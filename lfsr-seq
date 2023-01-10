@@ -1,0 +1,509 @@
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
+
+# lfsr-seq : tool to play around with LFSR sequences
+
+#    Copyright (C) 2023 Mohammadreza Khellat GNU GPL v3+
+#
+#    This program is free software; you can redistribute it and/or
+#    modify it under the terms of the GNU General Public License as
+#    published by the Free Software Foundation; either version 3, or
+#    (at your option) any later version.
+#
+#    This program is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+#    General Public License for more details.
+#
+#    You should have received a copy of the GNU General Public License
+#    along with this program; if not, write to the Free Software
+#    Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
+#    02111-1307, USA.
+#
+#    See also https://www.gnu.org/licenses/gpl.html
+"""
+LFSR sequences
+==============
+
+This play tool is motivated by exercise 2 of Tanja Lange cryptology
+course at:
+   https://www.hyperelliptic.org/tanja/teaching/CS22/
+
+The toy could be used to find periods of all possible states with _d_
+number of entries defined over _GF(gf_order)_ for a specific LFSR;
+and to arrange them in sequences. The order of the Characteristic
+Polynomial of the LFSR is also obtained alongside the orders of its
+factors to be compared with the periods of the listed sequences.
+"""
+#!/usr/bin/env sage
+
+import sys
+import csv
+import os
+import platform
+import datetime
+import textwrap
+import curses
+
+from sage.all import *
+
+if len(sys.argv) != 3:
+    print("Usage: %s <coeffs_csv_filename> <GF_order>" % sys.argv[0])
+    print("       You should provide the filename for the LFSR")
+    print("       coefficients vectors csv as the first arg and")
+    print("       Galois Field order as the second arg.")
+    sys.exit(1)
+
+
+
+#---/ _DUMP /---------------------------------------------------------
+#
+# decorative function : dumps text into to stdout or into the output
+#                       file opened object "OF".
+#
+def _DUMP(text, mode):
+    if mode == 'mode=file':
+        OF.write(text + '\n')
+    elif mode == 'mode=console':
+        print(text)
+    elif mode == 'mode=all':
+        print(text)
+        OF.write(text + '\n')    
+    else:
+        print('ERROR: unknown DUMP request')
+
+
+#---/ _INTRO /--------------------------------------------------------
+#
+# decorative function : _DUMPs introduction messages about the toy and
+#                       returns "_start_time" to be used to calculate
+#                       execution time later on.
+#
+def _INTRO(_my_name, _my_version, fn, OF):
+    _start_time = datetime.datetime.now()
+    _spaces      = int((62 - len(_my_name + _my_version))/2)
+    _identity    = ' '*_spaces + _my_name + _my_version + '\n'
+    _copyright_t = 'Copyright : GNU GPL v3+'
+    _lfsr_csv_t  = 'lfsr coeffs csv : ' + fn
+    _gf_order_t  = 'GF order : ' + gf_order
+    _platform_t  = 'platform : ' + platform.platform()
+    _runtime_t   = 'run start time : ' + _start_time.isoformat()
+    _copyright   = ' ' * (26 - len('Copyright')) + _copyright_t
+    _lfsr_csv    = ' ' * (26 - len('LFSR coeffs csv')) + _lfsr_csv_t
+    _gf_order    = ' ' * (26 - len('GF order')) + _gf_order_t
+    _platform    = ' ' * (26 - len('platform')) + _platform_t
+    _runtime     = ' ' * (26 - len('run start time')) + _runtime_t
+    _DUMP('*' * 62,   'mode=all')
+    _DUMP(_identity,  'mode=all')
+    _DUMP(_copyright, 'mode=all')
+    _DUMP(_lfsr_csv,  'mode=all')
+    _DUMP(_gf_order,  'mode=all')
+    _DUMP(textwrap.fill(_platform, 62, subsequent_indent=' ' * 29) \
+          , 'mode=all')
+    _DUMP(_runtime,   'mode=all')
+    _DUMP('*' * 62,   'mode=all')
+    return _start_time
+
+
+#---/ _SECTION /------------------------------------------------------
+#
+# decorative function : _DUMPs a unicode frame as section title as
+#                       well as a section content.
+#
+def _SECTION(section_title, section_description):
+    if type(section_title) is str and type(section_description) is str:
+        l1 = 60 - len(section_title)
+        l2 = int(round(l1/2))
+        l3 = 60 - len(section_title) - l2
+        _t_border   = u'\u2554' + u'\u2550' * 60 + u'\u2557'
+        _m_border_l = u'\u2560' + ' ' * l2
+        _m_border_r = ' ' * l3 + u'\u2563'
+        _m_border   = _m_border_l +  section_title + _m_border_r
+        _b_border   = u'\u255a' + u'\u2550' * 60 + u'\u255d'
+        _post_dsc_t = '  ' + section_description + '  '
+        _post_dsc   = textwrap.fill(_post_dsc_t \
+                            , width = 60 \
+                            , initial_indent='' \
+                            , subsequent_indent=' '*2)
+        _DUMP('\n' * 1,  'mode=all')
+        _DUMP(_t_border, 'mode=all')
+        _DUMP(_m_border, 'mode=all')
+        _DUMP(_b_border, 'mode=all')       
+        _DUMP(_post_dsc, 'mode=all')
+    else:
+        print('_SECTION : title and content must be strings')
+        exit(1)
+
+
+#---/ _SUBSECTION /---------------------------------------------------
+#
+# decorative function : _DUMPs a unicode frame as subsection title as
+#                       well as a subsection content.
+#
+def _SUBSECTION(subsection_title, subsection_description):
+    if type(subsection_title) is str and type(subsection_description) is str:
+        l1 = 4 + len(subsection_title)
+        _t_border   = u'\u256d' + u'\u254c' * (l1 - 2) + u'\u256e'
+        _m_border_l = u'\u251d' + ' '
+        _m_border_r = ' ' + u'\u2525'
+        _m_border   = _m_border_l + subsection_title + _m_border_r
+        _b_border   = u'\u2570' + u'\u254c' * (l1 - 2) + u'\u256f'
+        _post_dsc_t = '  ' + subsection_description + '  '
+        _post_dsc   = textwrap.fill(_post_dsc_t \
+                             , width = 60 \
+                             , initial_indent='' \
+                             , subsequent_indent=' '*2)
+        _DUMP(_t_border, 'mode=all')
+        _DUMP(_m_border, 'mode=all')
+        _DUMP(_b_border, 'mode=all')       
+        _DUMP(_post_dsc, 'mode=all')
+    else:
+        print('_SUBSECTION : title and content must be strings')
+        exit(1)
+
+
+#---/ _DUMP_SEQ_ROW /-------------------------------------------------
+#
+# decorative function : _DUMP a sequence table row which is basically
+#                       a wrapped row arranged as elements of the
+#                       "seq_entry" list.
+#
+def _DUMP_SEQ_ROW(seq_num, seq_entry, no_seqs, row_width, d_mode):
+    w = row_width - 1
+    _t_bar_row_f = ' ' + u'\u250c' + u'\u2508'*w + u'\u2510'
+    _b_bar_row_o = ' ' + u'\u251c' + u'\u2508'*w + u'\u2524'
+    _b_bar_row_l = ' ' + u'\u2514' + u'\u2508'*w + u'\u2518'
+    if seq_num == 1:
+        _DUMP(_t_bar_row_f, d_mode)
+    line_num = 0
+    for line in seq_entry:
+        line_num += 1
+        _m_bar_line = line + ' ' * (row_width - len(line)) + ' |'
+        _DUMP(_m_bar_line,  d_mode)
+    if seq_num < no_seqs:
+        _DUMP(_b_bar_row_o, d_mode)
+    else:
+        _DUMP(_b_bar_row_l, d_mode)
+
+
+#---/ _lfsr_sequence_mapper /-----------------------------------------
+#
+# function : goes through all possible state vectors, finds their
+#            periods and categorizes them based on what sequence they
+#            belong to.
+#
+def _lfsr_sequence_mapper(state_update_matrix, state_vector_space):
+    _subsec_name = 'STATES SEQUENCES'
+    _subsec_desc = 'all possible state sequences ' \
+                 + 'and their corresponding periods'
+    _SUBSECTION(_subsec_name, _subsec_desc)
+    ##################################################################
+    seq_dict    = {}
+    period_dict = {}
+    check_lst   = []
+    timer_lst   = []
+    est_t_lst   = []
+    seq        = 0
+    counter    = 0
+    max_period = 1
+    elp_t      = 0.00
+    max_t_t    = 0.00
+    d = len(basis(state_vector_space))
+    state_vector_space_size = 2 ** d
+    for bra in state_vector_space:
+        timer_lst.append(datetime.datetime.now())
+        ticks      = counter + 1
+        ref        = counter - 2
+        elp_delta  = timer_lst[counter] - timer_lst[counter - 1]
+        elp_s_int  = float(elp_delta.seconds)
+        elp_s_dec  = float(elp_delta.microseconds)*10**-6
+        elp_s      = elp_s_int + elp_s_dec
+        elp_t      = elp_t + elp_s # <--- total elapsed time
+        est_t_s    = elp_t / ticks # <--- elapsed time per step
+        est_t_t    = state_vector_space_size * est_t_s  
+        est_t_lst.append(est_t_t)
+        if counter >= 3:
+            est_t_avg = (est_t_lst[ref] + est_t_lst[ref-1])/2
+            if est_t_lst[ref+1] > est_t_avg:
+                max_t_t = est_t_lst[ref+1]
+        counter += 1
+        _total   = str(state_vector_space_size)
+        _count   = str(counter)
+        _ind     = ' ' * (len(_total) - len(_count))
+        prog     = int(counter * 60 / state_vector_space_size)
+        prog_b   = ' ' * 2 + u'\u2588' * prog + ' ' * (60 - prog)
+        prog_s   = _ind + _count + '/' + _total
+        prog_t   = ' ' * 2 + format(elp_t, '.1f') + ' s/' \
+                   + format(max_t_t, '.1f') + ' s'
+        prog_v   = ' ' * 2 + prog_s + ' states checked '
+        print(prog_b, end='\b')
+        print(prog_t + prog_v, end='\r')
+        if bra not in check_lst:
+            seq += 1
+            seq_lst = []
+            seq_lst.append(bra)
+            check_lst.append(bra)
+            bra2 = bra * state_update_matrix
+            seq_period = 1
+            while bra2 != bra:
+                seq_lst.append(bra2)
+                check_lst.append(bra2)
+                seq_period += 1
+                bra2 = bra2 * state_update_matrix
+            seq_dict[seq] = seq_lst
+            period_dict[seq] = seq_period
+            if period_dict[seq] > max_period:                   
+                max_period = period_dict[seq]
+    #
+    # building two simple dictionaries for state sequences and
+    # sequence periods :
+    #  - keys in both dictionaries are integers starting from 1 where
+    #    each integer identifies a sequence, i.e. we could call each
+    #    key a "sequence number".
+    #  - value for a specific seq nummber is either the list of state
+    #    vectors for that seq number (in seq dict) or its period (in
+    #    period dict)
+    #################################################################
+    print('\n')
+    periods_sum = 0
+    n  = len(period_dict) # <-- number of sequences
+    w  = 60               # <-- table row width
+    v1 = vector({d-1:1})  # <-- our special state ;)
+    vs = state_vector_space_size
+    for k,v in seq_dict.items():
+        periods_sum += period_dict[k]
+        p_str     = str(period_dict[k])
+        p_max_str = str(max_period)
+        s1        = 3 - len(str(k))
+        s2        = 1 + len(p_max_str) - len(p_str)
+        if v1 in v:
+            seq_column_1 = ' | ** sequence' + ' ' * s1 + str(k)
+            seq_column_2 = ' | T : ' + p_str + ' ' * s2 + '| '
+            indent_i     = seq_column_1 + seq_column_2
+            indent_w     = len(indent_i) - 5
+            indent_s     = ' | ' + ' ' * indent_w + '| '
+            seq_entry = textwrap.wrap(str(v1), width = w, \
+                                      initial_indent = indent_i, \
+                                      subsequent_indent = indent_s)
+            seq_all_v = textwrap.wrap(str(v), width = w, \
+                                      initial_indent = indent_i, \
+                                      subsequent_indent = indent_s)
+        else:
+            seq_column_1 = ' |    sequence' + ' ' * s1 + str(k)
+            seq_column_2 = ' | T : ' + p_str + ' ' * s2 + '| '
+            indent_i     = seq_column_1 + seq_column_2
+            indent_w     = len(indent_i) - 5
+            indent_s     = ' | ' + ' ' * indent_w + '| '
+            seq_entry = textwrap.wrap(str(v[0]), width = w, \
+                                      initial_indent = indent_i, \
+                                      subsequent_indent = indent_s)
+            seq_all_v = textwrap.wrap(str(v), width = w, \
+                                      initial_indent = indent_i, \
+                                      subsequent_indent = indent_s)
+    #
+    # a bunch of cosmetics to dump a shortened unicode table into
+    # stdout and a detailed one into the output file.
+    #################################################################
+        _DUMP_SEQ_ROW(k, seq_entry, n, w, 'mode=console')
+        _DUMP_SEQ_ROW(k, seq_all_v, n, w, 'mode=file')
+
+    _DUMP('  PERIOD VALUES SUMMED : ' + str(periods_sum) \
+          , 'mode=all')
+    _DUMP('     NO. STATE VECTORS : ' + str(vs) \
+          , 'mode=all')
+    #
+    # a naive verification to be happy that all states have been
+    # checked.
+    #################################################################
+
+
+#---/ _polynomial_order /----------------------------------------------
+#
+# function : finds the order of a polynomial over the field
+#            GF(gf_order).
+#
+def _polynomial_order(_polynomial, _state_vector_dim):
+    _polynomial_degree      = _polynomial.degree()
+    state_vector_space_size = 2 ** _state_vector_dim
+    bi = _polynomial_degree + 1
+    ei = state_vector_space_size
+    for j in range(bi, ei):
+        dividend = PolynomialRing(GF(gf_order), 't')(t**j)
+        divisor = _polynomial
+        q,r = dividend.quo_rem(divisor)
+        if r == 1:
+            _poly_order = j
+            break
+        elif j == state_vector_space_size:
+            _poly_order = oo
+    return _poly_order
+
+
+#---/ _characteristic_polynomial /-------------------------------------
+#
+#
+def _characteristic_polynomial(state_update_matrix_symbolic):
+    _subsec_name = 'CHARACTERISTIC POLYNOMIAL'
+    _subsec_desc = 'find char poly of the state update matrix C : ' \
+                 + 'P = det(xI - C); order of P is equal to the  ' \
+                 + 'order of C, and the orders of the factors of ' \
+                 + 'P, not necessarily prime factors of the order ' \
+                 + 'of C, could be found in the sequence table.'
+    _SUBSECTION(_subsec_name, _subsec_desc)
+    ##################################################################
+    d   = state_update_matrix_symbolic.dimensions()[0]
+    xI  = matrix(SR,d,d,var('t'))
+    A   = state_update_matrix_symbolic
+    ACM = xI - A
+    _DUMP(str(ACM), 'mode=all')
+    A_char_poly    = det(ACM)
+    A_char_poly_gf = PolynomialRing(GF(gf_order), 't')(A_char_poly)
+    A_char_poly_l  = textwrap.wrap(str(A_char_poly_gf), width = 38)
+    A_char_ord_i   = _polynomial_order(A_char_poly_gf, d)
+    A_char_ord_s   = str(A_char_ord_i)
+    l1             = 13 - len(A_char_ord_s)
+    _t_border_1    = ' ' + u'\u250e' + u'\u2504' * 40 + u'\u2530'
+    _t_border_2    = u'\u2504' * 18 + u'\u2512'
+    _t_border      = _t_border_1 + _t_border_2
+    _DUMP(_t_border, 'mode=all')
+    for term in A_char_poly_l:
+        _m_border_l   = ' ' + u'\u254e' + ' '
+        _m_border_r_1 = ' ' * (38 - len(term) + 1) + u'\u254e'
+        if len(term) >= 36:
+            _m_border_r_2 = ' ' * 18 + u'\u254e'
+        else:
+            _m_border_r_2 = ' O : ' + A_char_ord_s + ' '*l1 + u'\u254e'
+        _m_border = _m_border_l + term + _m_border_r_1 + _m_border_r_2
+        _DUMP(_m_border, 'mode=all')
+    _b_border_1 = ' ' + u'\u2516' + u'\u2504' * 40 + u'\u2538'
+    _b_border_2 = u'\u2504' * 18 + u'\u251a'
+    _b_border   = _b_border_1 + _b_border_2
+    _DUMP(_b_border, 'mode=all')
+    #
+    # formulating char poly, determining its order, and cosmetics to
+    # display info in a wrapped box.
+    #################################################################
+    f = factor(A_char_poly_gf)  
+    i = 0
+    l1 = len(str(len(list(f))))
+    l2 = len(A_char_ord_s)
+    for item in list(f):
+        i += 1
+        prime_poly = item[0]
+        prime_poly_power = item[1]
+        factor_order = _polynomial_order(prime_poly, d)
+        s1  = l1 - len(str(i))
+        t_1 = '   factor ' + ' ' * s1 + str(i) + ' | '
+        s2  = l2 - len(str(factor_order))
+        t_2 = 'O : ' + ' ' * s2 + str(factor_order) + ' | '
+        i_i = t_1 + t_2
+        s_i  = ' ' * (len(i_i) + 1)
+        t_p = textwrap.wrap('(' + str(prime_poly) + ')^' \
+                            + str(prime_poly_power), width = 55 \
+                            , initial_indent = i_i
+                            , subsequent_indent = s_i)
+        for t in t_p:
+            _DUMP(t, 'mode=all')
+    #
+    # factoring char poly, determining orders of the factors, and
+    # another set of cosmetics to list the factors.
+    #################################################################
+    return A_char_poly_gf
+
+
+#----------------------------------------------------------------------
+#----------------------------------------------------------------------
+#----------------------------------------------------------------------
+
+
+#---/ main /----------------------------------------------------------
+#
+#
+def main():
+    with open(sys.argv[1], mode = 'r') as coeffs_file:
+        coeffs_num = 0
+        coeffs = csv.reader(coeffs_file)
+        _my_name = 'Linear Feedback Shift Register Toy'
+        _my_version = ' 0.1 (08-Jan-2023)'
+        t_i = _INTRO(_my_name, _my_version, input_file_name, OF)
+        for coeffs_vector in coeffs:
+            coeffs_num += 1
+            d = len(coeffs_vector)
+            state_vector_space_size = 2**d
+            M = MatrixSpace(GF(gf_order),d,d)
+            I = M.identity_matrix()
+            C = M.matrix()
+            MS = MatrixSpace(SR,d)
+            CS = MS.matrix()
+            _SECTION('COEFFS SERIES ' \
+                     + str(coeffs_num) \
+                     , str(coeffs_vector))
+            ##########################################################
+            _SUBSECTION('STATE UPDATE MATRIX' \
+                        , 'state update matrix operation ' \
+                        + 'convention : S_i * C = S_i+1')
+            ##########################################################
+            for i in range(d):
+                row = []
+                if i > 0:
+                    row = [0 for k in range(i-1)]
+                    row.append(1)
+                for j in range(d-1-i):
+                    row.append(0)
+                row.append(coeffs_vector[i])
+                C[i] = row
+                CS[i] = row
+
+            for c_row in C:
+                _DUMP(' ' * 2 + str(c_row), 'mode=all')
+            #
+            # building the lfsr matrix operator C acting on state S_i
+            # generating state S_i+1 : S_i * C = S_i+1
+            ##########################################################
+            CE = I * C
+            for j in range(state_vector_space_size-1):
+                if CE == I:
+                    _SUBSECTION('STATE UPDATE MATRIX ORDER' \
+                                , 'exponent of the state update ' \
+                                + 'matrix analogous to the ' \
+                                + 'IDENTITY matrix :')
+                    _DUMP('  ** O(C) = ' + str(j+1) + ' **', \
+                          'mode=all')
+                    break
+                else:
+                    CE = CE * C
+            #
+            # finding order of C, i.e. the exponent of C that
+            # generates the identity matrix
+            ##########################################################
+            V = VectorSpace(GF(gf_order), d)
+            _lfsr_sequence_mapper(C, V)
+            #
+            # finding all sequences of states of the parameterized
+            # lfsr and their corresponding periods
+            ##########################################################
+            _characteristic_polynomial(CS)
+            #
+            # finding characteristic polynomial of the corresponding
+            # lfsr state update matrix over GF(gf_order), obtaining
+            # its order and its factors orders to see that the orders
+            # of the factors are in fact factors of the order of
+            # the big char poly.
+            ##########################################################
+    coeffs_file.close()
+    t_f = datetime.datetime.now()
+    t_e = t_f - t_i
+    print('\n  TOTAL execusion time : ' + str(t_e))
+
+
+#----------------------------------------------------------------------
+#----------------------------------------------------------------------
+#----------------------------------------------------------------------
+
+
+if __name__ == "__main__":
+    input_file_name = sys.argv[1]
+    output_file_name = input_file_name + '.out'
+    OF = open(output_file_name, 'w', encoding='utf-8')
+    gf_order = sys.argv[2]
+    main()
