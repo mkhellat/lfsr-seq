@@ -325,7 +325,7 @@ def _lfsr_sequence_mapper(state_update_matrix, state_vector_space):
 def _polynomial_order(_polynomial, _state_vector_dim):
     _polynomial_degree      = _polynomial.degree()
     state_vector_space_size = 2 ** _state_vector_dim
-    bi = _polynomial_degree + 1
+    bi = _polynomial_degree
     ei = state_vector_space_size
     for j in range(bi, ei):
         dividend = PolynomialRing(GF(gf_order), 't')(t**j)
