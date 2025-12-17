@@ -32,27 +32,26 @@ from lfsr.formatter import dump, intro, section, subsection, dump_seq_row
 
 __all__ = [
     # CLI
-    'main',
-    'cli_main',
+    "main",
+    "cli_main",
     # Core
-    'build_state_update_matrix',
-    'compute_matrix_order',
+    "build_state_update_matrix",
+    "compute_matrix_order",
     # Analysis
-    'lfsr_sequence_mapper',
+    "lfsr_sequence_mapper",
     # Polynomial
-    'characteristic_polynomial',
-    'polynomial_order',
+    "characteristic_polynomial",
+    "polynomial_order",
     # Field
-    'validate_gf_order',
-    'validate_coefficient_vector',
+    "validate_gf_order",
+    "validate_coefficient_vector",
     # I/O
-    'read_and_validate_csv',
-    'validate_csv_file',
+    "read_and_validate_csv",
+    "validate_csv_file",
     # Formatter
-    'dump',
-    'intro',
-    'section',
-    'subsection',
-    'dump_seq_row',
+    "dump",
+    "intro",
+    "section",
+    "subsection",
+    "dump_seq_row",
 ]
-

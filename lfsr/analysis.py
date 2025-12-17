@@ -18,20 +18,20 @@ def lfsr_sequence_mapper(
     state_update_matrix: Any,
     state_vector_space: Any,
     gf_order: int,
-    output_file: Optional[TextIO] = None
+    output_file: Optional[TextIO] = None,
 ) -> tuple:
     """
     Map all possible state vectors to their sequences and periods.
-    
+
     Goes through all possible state vectors, finds their periods and
     categorizes them based on what sequence they belong to.
-    
+
     Args:
         state_update_matrix: The LFSR state update matrix
         state_vector_space: Vector space of all possible states
         gf_order: The field order
         output_file: Optional file object for output
-        
+
     Returns:
         Tuple of (seq_dict, period_dict, max_period, periods_sum)
         where:
@@ -41,11 +41,11 @@ def lfsr_sequence_mapper(
         - periods_sum: Sum of all periods
     """
     from lfsr.formatter import subsection, dump, dump_seq_row
-    
-    subsec_name = 'STATES SEQUENCES'
-    subsec_desc = 'all possible state sequences ' + 'and their corresponding periods'
+
+    subsec_name = "STATES SEQUENCES"
+    subsec_desc = "all possible state sequences " + "and their corresponding periods"
     subsection(subsec_name, subsec_desc, output_file)
-    
+
     seq_dict = {}
     period_dict = {}
     check_lst = []
@@ -58,14 +58,14 @@ def lfsr_sequence_mapper(
     max_t_t = 0.00
     d = len(basis(state_vector_space))
     state_vector_space_size = int(gf_order) ** d
-    
+
     for bra in state_vector_space:
         timer_lst.append(datetime.datetime.now())
         ticks = counter + 1
         ref = counter - 2
         elp_delta = timer_lst[counter] - timer_lst[counter - 1]
         elp_s_int = float(elp_delta.seconds)
-        elp_s_dec = float(elp_delta.microseconds) * 10 ** -6
+        elp_s_dec = float(elp_delta.microseconds) * 10**-6
         elp_s = elp_s_int + elp_s_dec
         elp_t = elp_t + elp_s  # <--- total elapsed time
         est_t_s = elp_t / ticks  # <--- elapsed time per step
@@ -78,15 +78,15 @@ def lfsr_sequence_mapper(
         counter += 1
         _total = str(state_vector_space_size)
         _count = str(counter)
-        _ind = ' ' * (len(_total) - len(_count))
+        _ind = " " * (len(_total) - len(_count))
         prog = int(counter * 60 / state_vector_space_size)
-        prog_b = ' ' * 2 + '\u2588' * prog + ' ' * (60 - prog)
-        prog_s = _ind + _count + '/' + _total
-        prog_t = ' ' * 2 + format(elp_t, '.1f') + ' s/' + format(max_t_t, '.1f') + ' s'
-        prog_v = ' ' * 2 + prog_s + ' states checked '
-        print(prog_b, end='\b')
-        print(prog_t + prog_v, end='\r')
-        
+        prog_b = " " * 2 + "\u2588" * prog + " " * (60 - prog)
+        prog_s = _ind + _count + "/" + _total
+        prog_t = " " * 2 + format(elp_t, ".1f") + " s/" + format(max_t_t, ".1f") + " s"
+        prog_v = " " * 2 + prog_s + " states checked "
+        print(prog_b, end="\b")
+        print(prog_t + prog_v, end="\r")
+
         if bra not in check_lst:
             seq += 1
             seq_lst = []
@@ -103,7 +103,7 @@ def lfsr_sequence_mapper(
             period_dict[seq] = seq_period
             if period_dict[seq] > max_period:
                 max_period = period_dict[seq]
-    
+
     # Building two simple dictionaries for state sequences and sequence periods:
     # - keys in both dictionaries are integers starting from 1 where
     #   each integer identifies a sequence, i.e. we could call each
@@ -111,13 +111,13 @@ def lfsr_sequence_mapper(
     # - value for a specific seq number is either the list of state
     #   vectors for that seq number (in seq dict) or its period (in
     #   period dict)
-    print('\n')
+    print("\n")
     periods_sum = 0
     n = len(period_dict)  # <-- number of sequences
     w = 60  # <-- table row width
     v1 = vector({d - 1: 1})  # <-- our special state ;)
     vs = state_vector_space_size
-    
+
     for k, v in seq_dict.items():
         periods_sum += period_dict[k]
         p_str = str(period_dict[k])
@@ -125,11 +125,11 @@ def lfsr_sequence_mapper(
         s1 = 3 - len(str(k))
         s2 = 1 + len(p_max_str) - len(p_str)
         if v1 in v:
-            seq_column_1 = ' | ** sequence' + ' ' * s1 + str(k)
-            seq_column_2 = ' | T : ' + p_str + ' ' * s2 + '| '
+            seq_column_1 = " | ** sequence" + " " * s1 + str(k)
+            seq_column_2 = " | T : " + p_str + " " * s2 + "| "
             indent_i = seq_column_1 + seq_column_2
             indent_w = len(indent_i) - 5
-            indent_s = ' | ' + ' ' * indent_w + '| '
+            indent_s = " | " + " " * indent_w + "| "
             seq_entry = textwrap.wrap(
                 str(v1), width=w, initial_indent=indent_i, subsequent_indent=indent_s
             )
@@ -137,26 +137,25 @@ def lfsr_sequence_mapper(
                 str(v), width=w, initial_indent=indent_i, subsequent_indent=indent_s
             )
         else:
-            seq_column_1 = ' |    sequence' + ' ' * s1 + str(k)
-            seq_column_2 = ' | T : ' + p_str + ' ' * s2 + '| '
+            seq_column_1 = " |    sequence" + " " * s1 + str(k)
+            seq_column_2 = " | T : " + p_str + " " * s2 + "| "
             indent_i = seq_column_1 + seq_column_2
             indent_w = len(indent_i) - 5
-            indent_s = ' | ' + ' ' * indent_w + '| '
+            indent_s = " | " + " " * indent_w + "| "
             seq_entry = textwrap.wrap(
                 str(v[0]), width=w, initial_indent=indent_i, subsequent_indent=indent_s
             )
             seq_all_v = textwrap.wrap(
                 str(v), width=w, initial_indent=indent_i, subsequent_indent=indent_s
             )
-        
+
         # A bunch of cosmetics to dump a shortened unicode table into
         # stdout and a detailed one into the output file.
-        dump_seq_row(k, seq_entry, n, w, 'mode=console', output_file)
-        dump_seq_row(k, seq_all_v, n, w, 'mode=file', output_file)
-    
-    dump('  PERIOD VALUES SUMMED : ' + str(periods_sum), 'mode=all', output_file)
-    dump('     NO. STATE VECTORS : ' + str(vs), 'mode=all', output_file)
-    # A naive verification to be happy that all states have been checked.
-    
-    return seq_dict, period_dict, max_period, periods_sum
+        dump_seq_row(k, seq_entry, n, w, "mode=console", output_file)
+        dump_seq_row(k, seq_all_v, n, w, "mode=file", output_file)
 
+    dump("  PERIOD VALUES SUMMED : " + str(periods_sum), "mode=all", output_file)
+    dump("     NO. STATE VECTORS : " + str(vs), "mode=all", output_file)
+    # A naive verification to be happy that all states have been checked.
+
+    return seq_dict, period_dict, max_period, periods_sum
