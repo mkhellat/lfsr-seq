@@ -17,6 +17,120 @@ from sage.all import *
 from lfsr.constants import PROGRESS_BAR_WIDTH, TABLE_ROW_WIDTH
 
 
+def _update_progress_display(
+    counter: int,
+    elp_t: float,
+    max_t_t: float,
+    state_vector_space_size: int,
+) -> None:
+    """
+    Update and display progress bar information.
+
+    Args:
+        counter: Current iteration counter
+        elp_t: Total elapsed time so far
+        max_t_t: Maximum estimated total time
+        state_vector_space_size: Total number of states to process
+    """
+    _total = str(state_vector_space_size)
+    _count = str(counter)
+    _ind = " " * (len(_total) - len(_count))
+    prog = int(counter * PROGRESS_BAR_WIDTH / state_vector_space_size)
+    prog_b = " " * 2 + "\u2588" * prog + " " * (PROGRESS_BAR_WIDTH - prog)
+    prog_s = _ind + _count + "/" + _total
+    prog_t = " " * 2 + format(elp_t, ".1f") + " s/" + format(max_t_t, ".1f") + " s"
+    prog_info = " " * 2 + prog_s + " states checked "
+    print(prog_b, end="\b")
+    print(prog_t + prog_info, end="\r")
+
+
+def _find_sequence_cycle(
+    start_state: Any, state_update_matrix: Any, check_lst: List[Any]
+) -> Tuple[List[Any], int]:
+    """
+    Find the complete cycle of states starting from a given state.
+
+    Args:
+        start_state: The initial state vector to start the cycle from
+        state_update_matrix: The LFSR state update matrix
+        check_lst: List of already processed states (modified in place)
+
+    Returns:
+        Tuple of (sequence_list, period) where:
+        - sequence_list: List of all states in the cycle
+        - period: Length of the cycle
+    """
+    seq_lst = [start_state]
+    check_lst.append(start_state)
+    next_state = start_state * state_update_matrix
+    seq_period = 1
+
+    while next_state != start_state:
+        seq_lst.append(next_state)
+        check_lst.append(next_state)
+        seq_period += 1
+        next_state = next_state * state_update_matrix
+
+    return seq_lst, seq_period
+
+
+def _format_sequence_entry(
+    seq_num: int,
+    sequence: List[Any],
+    period: int,
+    max_period: int,
+    special_state: Any,
+    row_width: int,
+) -> Tuple[List[str], List[str]]:
+    """
+    Format a sequence entry for display.
+
+    Args:
+        seq_num: Sequence number
+        sequence: List of states in the sequence
+        period: Period of the sequence
+        max_period: Maximum period found (for formatting)
+        special_state: Special state vector to highlight
+        row_width: Width of the display row
+
+    Returns:
+        Tuple of (seq_entry, seq_all_v) where:
+        - seq_entry: Formatted entry for console (shortened)
+        - seq_all_v: Formatted entry for file (full sequence)
+    """
+    p_str = str(period)
+    p_max_str = str(max_period)
+    s1 = 3 - len(str(seq_num))
+    s2 = 1 + len(p_max_str) - len(p_str)
+
+    if special_state in sequence:
+        seq_column_1 = " | ** sequence" + " " * s1 + str(seq_num)
+    else:
+        seq_column_1 = " |    sequence" + " " * s1 + str(seq_num)
+
+    seq_column_2 = " | T : " + p_str + " " * s2 + "| "
+    indent_i = seq_column_1 + seq_column_2
+    indent_w = len(indent_i) - 5
+    indent_s = " | " + " " * indent_w + "| "
+
+    if special_state in sequence:
+        entry_text = str(special_state)
+    else:
+        entry_text = str(sequence[0])
+
+    seq_entry = textwrap.wrap(
+        entry_text, width=row_width, initial_indent=indent_i, subsequent_indent=indent_s
+    )
+    seq_all_v = textwrap.wrap(
+        str(sequence),
+        width=row_width,
+        initial_indent=indent_i,
+        subsequent_indent=indent_s,
+    )
+
+    return seq_entry, seq_all_v
+
+
 def lfsr_sequence_mapper(
     state_update_matrix: Any,
     state_vector_space: Any,
@@ -52,113 +166,79 @@ def lfsr_sequence_mapper(
     seq_dict = {}
     period_dict = {}
     check_lst = []
-    timer_lst = []
+    timer_lst = [datetime.datetime.now()]  # Initialize with first timestamp
     est_t_lst = []
     seq = 0
     counter = 0
     max_period = 1
-    elp_t = 0.00
-    max_t_t = 0.00
+    elp_t = 0.0
+    max_t_t = 0.0
     d = len(basis(state_vector_space))
     state_vector_space_size = int(gf_order) ** d
 
     for bra in state_vector_space:
         timer_lst.append(datetime.datetime.now())
-        ticks = counter + 1
-        ref = counter - 2
-        elp_delta = timer_lst[counter] - timer_lst[counter - 1]
-        elp_s_int = float(elp_delta.seconds)
-        elp_s_dec = float(elp_delta.microseconds) * 10**-6
-        elp_s = elp_s_int + elp_s_dec
-        elp_t = elp_t + elp_s  # <--- total elapsed time
-        est_t_s = elp_t / ticks  # <--- elapsed time per step
-        est_t_t = state_vector_space_size * est_t_s
-        est_t_lst.append(est_t_t)
-        if counter >= 3:
-            est_t_avg = (est_t_lst[ref] + est_t_lst[ref - 1]) / 2
-            if est_t_lst[ref + 1] > est_t_avg:
-                max_t_t = est_t_lst[ref + 1]
         counter += 1
-        _total = str(state_vector_space_size)
-        _count = str(counter)
-        _ind = " " * (len(_total) - len(_count))
-        prog = int(counter * PROGRESS_BAR_WIDTH / state_vector_space_size)
-        prog_b = " " * 2 + "\u2588" * prog + " " * (PROGRESS_BAR_WIDTH - prog)
-        prog_s = _ind + _count + "/" + _total
-        prog_t = " " * 2 + format(elp_t, ".1f") + " s/" + format(max_t_t, ".1f") + " s"
-        prog_v = " " * 2 + prog_s + " states checked "
-        print(prog_b, end="\b")
-        print(prog_t + prog_v, end="\r")
 
+        # Calculate elapsed time and estimates
+        if counter > 1:
+            ticks = counter
+            ref = counter - 2
+            elp_delta = timer_lst[counter] - timer_lst[counter - 1]
+            elp_s_int = float(elp_delta.seconds)
+            elp_s_dec = float(elp_delta.microseconds) * 10**-6
+            elp_s = elp_s_int + elp_s_dec
+            elp_t = elp_t + elp_s
+            est_t_s = elp_t / ticks
+            est_t_t = state_vector_space_size * est_t_s
+            est_t_lst.append(est_t_t)
+            if counter >= 3:
+                est_t_avg = (est_t_lst[ref] + est_t_lst[ref - 1]) / 2
+                if est_t_lst[ref + 1] > est_t_avg:
+                    max_t_t = est_t_lst[ref + 1]
+
+            # Update progress display
+            _update_progress_display(counter, elp_t, max_t_t, state_vector_space_size)
+
+        # Find sequence cycle if not already processed
         if bra not in check_lst:
             seq += 1
-            seq_lst = []
-            seq_lst.append(bra)
-            check_lst.append(bra)
-            bra2 = bra * state_update_matrix
-            seq_period = 1
-            while bra2 != bra:
-                seq_lst.append(bra2)
-                check_lst.append(bra2)
-                seq_period += 1
-                bra2 = bra2 * state_update_matrix
+            seq_lst, seq_period = _find_sequence_cycle(
+                bra, state_update_matrix, check_lst
+            )
             seq_dict[seq] = seq_lst
             period_dict[seq] = seq_period
-            if period_dict[seq] > max_period:
-                max_period = period_dict[seq]
+            if seq_period > max_period:
+                max_period = seq_period
 
-    # Building two simple dictionaries for state sequences and sequence periods:
-    # - keys in both dictionaries are integers starting from 1 where
-    #   each integer identifies a sequence, i.e. we could call each
-    #   key a "sequence number".
-    # - value for a specific seq number is either the list of state
-    #   vectors for that seq number (in seq dict) or its period (in
-    #   period dict)
+    # Display sequences
     print("\n")
-    periods_sum = 0
-    n = len(period_dict)  # <-- number of sequences
-    w = TABLE_ROW_WIDTH  # <-- table row width
-    v1 = vector({d - 1: 1})  # <-- our special state ;)
-    vs = state_vector_space_size
+    periods_sum = sum(period_dict.values())
+    num_sequences = len(period_dict)
+    row_width = TABLE_ROW_WIDTH
+    special_state = vector({d - 1: 1})  # Special state vector to highlight
 
-    for k, v in seq_dict.items():
-        periods_sum += period_dict[k]
-        p_str = str(period_dict[k])
-        p_max_str = str(max_period)
-        s1 = 3 - len(str(k))
-        s2 = 1 + len(p_max_str) - len(p_str)
-        if v1 in v:
-            seq_column_1 = " | ** sequence" + " " * s1 + str(k)
-            seq_column_2 = " | T : " + p_str + " " * s2 + "| "
-            indent_i = seq_column_1 + seq_column_2
-            indent_w = len(indent_i) - 5
-            indent_s = " | " + " " * indent_w + "| "
-            seq_entry = textwrap.wrap(
-                str(v1), width=w, initial_indent=indent_i, subsequent_indent=indent_s
-            )
-            seq_all_v = textwrap.wrap(
-                str(v), width=w, initial_indent=indent_i, subsequent_indent=indent_s
-            )
-        else:
-            seq_column_1 = " |    sequence" + " " * s1 + str(k)
-            seq_column_2 = " | T : " + p_str + " " * s2 + "| "
-            indent_i = seq_column_1 + seq_column_2
-            indent_w = len(indent_i) - 5
-            indent_s = " | " + " " * indent_w + "| "
-            seq_entry = textwrap.wrap(
-                str(v[0]), width=w, initial_indent=indent_i, subsequent_indent=indent_s
-            )
-            seq_all_v = textwrap.wrap(
-                str(v), width=w, initial_indent=indent_i, subsequent_indent=indent_s
-            )
+    for seq_num, sequence in seq_dict.items():
+        period = period_dict[seq_num]
+        seq_entry, seq_all_v = _format_sequence_entry(
+            seq_num, sequence, period, max_period, special_state, row_width
+        )
 
-        # A bunch of cosmetics to dump a shortened unicode table into
-        # stdout and a detailed one into the output file.
-        dump_seq_row(k, seq_entry, n, w, "mode=console", output_file)
-        dump_seq_row(k, seq_all_v, n, w, "mode=file", output_file)
+        # Display shortened version to console, full version to file
+        dump_seq_row(
+            seq_num, seq_entry, num_sequences, row_width, "mode=console", output_file
+        )
+        dump_seq_row(
+            seq_num, seq_all_v, num_sequences, row_width, "mode=file", output_file
+        )
 
     dump("  PERIOD VALUES SUMMED : " + str(periods_sum), "mode=all", output_file)
-    dump("     NO. STATE VECTORS : " + str(vs), "mode=all", output_file)
-    # A naive verification to be happy that all states have been checked.
+    dump(
+        "     NO. STATE VECTORS : " + str(state_vector_space_size),
+        "mode=all",
+        output_file,
+    )
+    # Verification: periods_sum should equal state_vector_space_size
+    # This confirms all states have been checked and categorized
 
     return seq_dict, period_dict, max_period, periods_sum
