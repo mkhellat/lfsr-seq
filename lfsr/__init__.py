@@ -14,14 +14,45 @@ Main Components:
 - cli: Command-line interface
 
 Example:
-    >>> from lfsr import LFSR
-    >>> lfsr = LFSR([1, 1, 1, 0], gf_order=2)
-    >>> sequences = lfsr.analyze_sequences()
+    >>> from lfsr.cli import main
+    >>> main("coefficients.csv", "2", output_file=open("output.txt", "w"))
 """
 
 __version__ = "0.2.0"
 __author__ = "Mohammadreza Khellat"
 
-# Package will be populated during refactoring
-__all__ = []
+# Export main functions
+from lfsr.cli import main, cli_main
+from lfsr.core import build_state_update_matrix, compute_matrix_order
+from lfsr.analysis import lfsr_sequence_mapper
+from lfsr.polynomial import characteristic_polynomial, polynomial_order
+from lfsr.field import validate_gf_order, validate_coefficient_vector
+from lfsr.io import read_and_validate_csv, validate_csv_file
+from lfsr.formatter import dump, intro, section, subsection, dump_seq_row
+
+__all__ = [
+    # CLI
+    'main',
+    'cli_main',
+    # Core
+    'build_state_update_matrix',
+    'compute_matrix_order',
+    # Analysis
+    'lfsr_sequence_mapper',
+    # Polynomial
+    'characteristic_polynomial',
+    'polynomial_order',
+    # Field
+    'validate_gf_order',
+    'validate_coefficient_vector',
+    # I/O
+    'read_and_validate_csv',
+    'validate_csv_file',
+    # Formatter
+    'dump',
+    'intro',
+    'section',
+    'subsection',
+    'dump_seq_row',
+]
 
