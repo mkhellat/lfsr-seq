@@ -24,6 +24,20 @@ __author__ = "Mohammadreza Khellat"
 # Export main functions
 from lfsr.analysis import lfsr_sequence_mapper
 from lfsr.cli import cli_main, main
+from lfsr.constants import (
+    DISPLAY_WIDTH,
+    FACTOR_DISPLAY_WIDTH,
+    INTRO_HEADER_WIDTH,
+    LABEL_PADDING_WIDTH,
+    MAX_PRIME_POWER_LIMIT,
+    MIN_GF_ORDER,
+    PLATFORM_INDENT,
+    POLYNOMIAL_DISPLAY_WIDTH,
+    PROGRESS_BAR_WIDTH,
+    TABLE_ROW_WIDTH,
+    TEXT_INDENT,
+    TEXT_WRAP_WIDTH,
+)
 from lfsr.core import build_state_update_matrix, compute_matrix_order
 from lfsr.field import validate_coefficient_vector, validate_gf_order
 from lfsr.formatter import dump, dump_seq_row, intro, section, subsection
@@ -54,4 +68,17 @@ __all__ = [
     "section",
     "subsection",
     "dump_seq_row",
+    # Constants
+    "DISPLAY_WIDTH",
+    "INTRO_HEADER_WIDTH",
+    "LABEL_PADDING_WIDTH",
+    "PLATFORM_INDENT",
+    "TABLE_ROW_WIDTH",
+    "PROGRESS_BAR_WIDTH",
+    "POLYNOMIAL_DISPLAY_WIDTH",
+    "FACTOR_DISPLAY_WIDTH",
+    "MAX_PRIME_POWER_LIMIT",
+    "MIN_GF_ORDER",
+    "TEXT_WRAP_WIDTH",
+    "TEXT_INDENT",
 ]
