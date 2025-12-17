@@ -22,13 +22,13 @@ __version__ = "0.2.0"
 __author__ = "Mohammadreza Khellat"
 
 # Export main functions
-from lfsr.cli import main, cli_main
-from lfsr.core import build_state_update_matrix, compute_matrix_order
 from lfsr.analysis import lfsr_sequence_mapper
-from lfsr.polynomial import characteristic_polynomial, polynomial_order
-from lfsr.field import validate_gf_order, validate_coefficient_vector
+from lfsr.cli import cli_main, main
+from lfsr.core import build_state_update_matrix, compute_matrix_order
+from lfsr.field import validate_coefficient_vector, validate_gf_order
+from lfsr.formatter import dump, dump_seq_row, intro, section, subsection
 from lfsr.io import read_and_validate_csv, validate_csv_file
-from lfsr.formatter import dump, intro, section, subsection, dump_seq_row
+from lfsr.polynomial import characteristic_polynomial, polynomial_order
 
 __all__ = [
     # CLI

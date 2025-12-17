@@ -86,6 +86,8 @@ ignore_missing_imports = true  # SageMath imports may not have type stubs
 [tool.ruff]
 line-length = 88
 target-version = "py38"
+
+[tool.ruff.lint]
 select = [
     "E",   # pycodestyle errors
     "W",   # pycodestyle warnings
@@ -96,6 +98,10 @@ select = [
 ]
 ignore = [
     "E501",  # line too long (handled by black)
+    "F403",  # star imports (needed for sage.all)
+    "F405",  # undefined names from star imports (sage.all)
+    "E741",  # ambiguous variable names (I for identity matrix is standard)
+    "B007",  # unused loop control variable (acceptable in some contexts)
 ]
 
 [tool.pytest.ini_options]

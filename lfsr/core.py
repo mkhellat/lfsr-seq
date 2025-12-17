@@ -8,7 +8,8 @@ This module provides functions for building state update matrices and
 computing matrix orders.
 """
 
-from typing import List, Any, Optional, TextIO, Tuple
+from typing import Any, List, Optional, TextIO, Tuple
+
 from sage.all import *
 
 
@@ -32,7 +33,6 @@ def build_state_update_matrix(
     """
     d = len(coeffs_vector)
     M = MatrixSpace(GF(gf_order), d, d)
-    I = M.identity_matrix()
     C = M.matrix()
     MS = MatrixSpace(SR, d)
     CS = MS.matrix()
@@ -72,7 +72,7 @@ def compute_matrix_order(
     Returns:
         The order of the matrix, or None if not found within the search space
     """
-    from lfsr.formatter import subsection, dump
+    from lfsr.formatter import dump, subsection
 
     CE = identity_matrix * state_update_matrix
     for j in range(state_vector_space_size - 1):

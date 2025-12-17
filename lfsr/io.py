@@ -8,10 +8,10 @@ This module handles CSV file reading, validation, and data preparation
 for LFSR coefficient vectors.
 """
 
-import sys
-import os
 import csv
-from typing import List, Tuple
+import os
+import sys
+from typing import List
 
 
 def validate_csv_file(filename: str) -> None:

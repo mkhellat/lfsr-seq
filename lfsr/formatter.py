@@ -11,7 +11,7 @@ results with decorative borders and structured output.
 import datetime
 import platform
 import textwrap
-from typing import TextIO, Optional
+from typing import Optional, TextIO
 
 
 def dump(text: str, mode: str, output_file: Optional[TextIO] = None) -> None:

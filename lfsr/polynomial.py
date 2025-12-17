@@ -10,6 +10,7 @@ and their orders over finite fields.
 
 import textwrap
 from typing import Any
+
 from sage.all import *
 
 
@@ -62,7 +63,7 @@ def characteristic_polynomial(
     Returns:
         The characteristic polynomial over GF(gf_order)
     """
-    from lfsr.formatter import subsection, dump
+    from lfsr.formatter import dump, subsection
 
     subsec_name = "CHARACTERISTIC POLYNOMIAL"
     subsec_desc = (

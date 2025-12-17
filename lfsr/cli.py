@@ -7,18 +7,19 @@ Command-line interface for LFSR analysis tool.
 This module provides the main entry point and CLI logic for the lfsr-seq tool.
 """
 
-import sys
-import os
 import datetime
+import os
+import sys
 from typing import Optional, TextIO
+
 from sage.all import *
 
-from lfsr.field import validate_gf_order, validate_coefficient_vector
-from lfsr.io import read_and_validate_csv
-from lfsr.core import build_state_update_matrix, compute_matrix_order
 from lfsr.analysis import lfsr_sequence_mapper
+from lfsr.core import build_state_update_matrix, compute_matrix_order
+from lfsr.field import validate_coefficient_vector, validate_gf_order
+from lfsr.formatter import dump, intro, section, subsection
+from lfsr.io import read_and_validate_csv
 from lfsr.polynomial import characteristic_polynomial
-from lfsr.formatter import intro, section, subsection, dump
 
 
 def main(

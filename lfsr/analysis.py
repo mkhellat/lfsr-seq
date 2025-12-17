@@ -10,7 +10,8 @@ periods, and categorizing state vectors.
 
 import datetime
 import textwrap
-from typing import Dict, List, Any, Optional, TextIO
+from typing import Any, Optional, TextIO
+
 from sage.all import *
 
 
@@ -40,7 +41,7 @@ def lfsr_sequence_mapper(
         - max_period: Maximum period found
         - periods_sum: Sum of all periods
     """
-    from lfsr.formatter import subsection, dump, dump_seq_row
+    from lfsr.formatter import dump, dump_seq_row, subsection
 
     subsec_name = "STATES SEQUENCES"
     subsec_desc = "all possible state sequences " + "and their corresponding periods"
