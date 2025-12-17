@@ -1,0 +1,18 @@
+# Core runtime dependencies for lfsr-seq
+# 
+# NOTE: SageMath must be installed separately via system package manager
+# or conda, as it is not available on PyPI.
+#
+# Installation instructions:
+#   Debian/Ubuntu: sudo apt-get install sagemath
+#   Fedora/RHEL:   sudo dnf install sagemath
+#   Arch Linux:    sudo pacman -S sagemath
+#   macOS:         brew install sagemath
+#   Conda:         conda install -c conda-forge sage
+#
+# Python version requirement: >=3.8
+
+# Optional but recommended for better performance
+# Uncomment if numpy support is added in the future
+# numpy>=1.20.0,<2.0.0
+
