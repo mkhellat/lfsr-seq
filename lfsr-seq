@@ -186,6 +186,96 @@ def _DUMP_SEQ_ROW(seq_num, seq_entry, no_seqs, row_width, d_mode):
         _DUMP(_b_bar_row_l, d_mode)
 
 
+#---/ _validate_gf_order /--------------------------------------------
+#
+# function : validates that GF_order is a valid prime or prime power
+#
+def _validate_gf_order(gf_order_str):
+    try:
+        gf_order = int(gf_order_str)
+    except ValueError:
+        print("ERROR: GF_order must be an integer, got: %s" % gf_order_str)
+        sys.exit(1)
+    
+    if gf_order < 2:
+        print("ERROR: GF_order must be at least 2, got: %d" % gf_order)
+        sys.exit(1)
+    
+    # Check if it's a prime
+    if is_prime(gf_order):
+        return gf_order
+    
+    # Check if it's a prime power (p^n where p is prime and n > 1)
+    # For now, we'll support small prime powers
+    # A more complete check would factor gf_order and verify it's p^n
+    if gf_order <= 1000:  # Reasonable limit for now
+        # Try to find if it's a prime power
+        for p in primes(2, int(sqrt(gf_order)) + 1):
+            n = 1
+            power = p
+            while power < gf_order:
+                power = power * p
+                n += 1
+            if power == gf_order:
+                return gf_order
+    
+    print("ERROR: GF_order must be a prime or prime power, got: %d" % gf_order)
+    print("       Supported: primes and small prime powers (p^n where p is prime)")
+    sys.exit(1)
+
+
+#---/ _validate_csv_file /--------------------------------------------
+#
+# function : validates CSV file exists and is readable
+#
+def _validate_csv_file(filename):
+    if not os.path.exists(filename):
+        print("ERROR: CSV file not found: %s" % filename)
+        sys.exit(1)
+    
+    if not os.path.isfile(filename):
+        print("ERROR: Path is not a file: %s" % filename)
+        sys.exit(1)
+    
+    if not os.access(filename, os.R_OK):
+        print("ERROR: CSV file is not readable: %s" % filename)
+        sys.exit(1)
+    
+    # Check if file is empty
+    if os.path.getsize(filename) == 0:
+        print("ERROR: CSV file is empty: %s" % filename)
+        sys.exit(1)
+
+
+#---/ _validate_coefficients /----------------------------------------
+#
+# function : validates coefficient vector and individual coefficients
+#
+def _validate_coefficients(coeffs_vector, gf_order, vector_num):
+    if len(coeffs_vector) == 0:
+        print("ERROR: Coefficient vector %d is empty" % vector_num)
+        sys.exit(1)
+    
+    # Check for consistent length (all should have same length)
+    # This will be checked in main() by comparing lengths
+    
+    # Validate each coefficient
+    for i, coeff_str in enumerate(coeffs_vector):
+        try:
+            coeff = int(coeff_str)
+        except ValueError:
+            print("ERROR: Invalid coefficient in vector %d, position %d: %s" 
+                  % (vector_num, i, coeff_str))
+            print("       Coefficients must be integers")
+            sys.exit(1)
+        
+        if coeff < 0 or coeff >= gf_order:
+            print("ERROR: Coefficient out of range in vector %d, position %d: %d" 
+                  % (vector_num, i, coeff))
+            print("       Coefficients must be in range [0, %d)" % gf_order)
+            sys.exit(1)
+
+
 #---/ _lfsr_sequence_mapper /-----------------------------------------
 #
 # function : goes through all possible state vectors, finds their
@@ -420,7 +510,36 @@ def _characteristic_polynomial(state_update_matrix_symbolic):
 #
 #
 def main():
-    with open(sys.argv[1], mode = 'r') as coeffs_file:
+    # Validate inputs before processing
+    _validate_csv_file(input_file_name)
+    global gf_order
+    gf_order = _validate_gf_order(gf_order)  # Update global with validated integer
+    
+    # Read and validate CSV content
+    with open(input_file_name, mode = 'r') as coeffs_file:
+        coeffs = csv.reader(coeffs_file)
+        coeffs_list = list(coeffs)  # Read all rows first for validation
+        
+        # Check if CSV is empty
+        if len(coeffs_list) == 0:
+            print("ERROR: CSV file contains no data: %s" % input_file_name)
+            sys.exit(1)
+        
+        # Check for consistent vector lengths
+        if len(coeffs_list) > 1:
+            first_length = len(coeffs_list[0])
+            for i, row in enumerate(coeffs_list[1:], start=2):
+                if len(row) != first_length:
+                    print("WARNING: Coefficient vector %d has length %d, expected %d" 
+                          % (i, len(row), first_length))
+                    print("         All vectors should have the same length for consistency")
+        
+        # Validate all coefficient vectors
+        for i, coeffs_vector in enumerate(coeffs_list, start=1):
+            _validate_coefficients(coeffs_vector, gf_order, i)
+    
+    # Now process the validated data
+    with open(input_file_name, mode = 'r') as coeffs_file:
         coeffs_num = 0
         coeffs = csv.reader(coeffs_file)
         _my_name = 'Linear Feedback Shift Register Toy'
