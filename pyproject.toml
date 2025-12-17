@@ -52,6 +52,7 @@ dev = [
 
 # Entry points will be configured after code refactoring into package structure
 # For now, the script can be run directly: ./lfsr-seq <csv_file> <gf_order>
+# Once enabled, lfsr-seq will be installed at: .venv/bin/lfsr-seq
 # [project.scripts]
 # lfsr-seq = "lfsr.cli:main"
 
