@@ -6,11 +6,12 @@
 # and installs the package.
 #
 # Usage:
-#   ./bootstrap.sh [--dev] [--skip-sagemath-check] [--help]
+#   ./bootstrap [--dev] [--skip-sagemath-check] [--no-venv] [--help]
 #
 # Options:
 #   --dev                 Install with development dependencies
 #   --skip-sagemath-check Skip SageMath availability check
+#   --no-venv             Skip virtual environment creation (install system-wide)
 #   --help                Show this help message
 #
 # Exit codes:
@@ -23,6 +24,7 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR" && pwd)"
 INSTALL_DEV=false
 SKIP_SAGEMATH_CHECK=false
+CREATE_VENV=true
 
 # Parse command line arguments
 while [ $# -gt 0 ]; do
@@ -35,14 +37,19 @@ while [ $# -gt 0 ]; do
             SKIP_SAGEMATH_CHECK=true
             shift
             ;;
+        --no-venv)
+            CREATE_VENV=false
+            shift
+            ;;
         --help|-h)
-            echo "bootstrap.sh - Automated installation and setup for lfsr-seq"
+            echo "bootstrap - Automated installation and setup for lfsr-seq"
             echo ""
             echo "Usage: $0 [OPTIONS]"
             echo ""
             echo "Options:"
             echo "  --dev                 Install with development dependencies"
             echo "  --skip-sagemath-check Skip SageMath availability check"
+            echo "  --no-venv             Skip virtual environment creation"
             echo "  --help, -h             Show this help message"
             echo ""
             exit 0
@@ -94,8 +101,38 @@ if ! python3 -m pip --version >/dev/null 2>&1; then
 fi
 echo "  ✓ pip available"
 
-# Step 3: Check SageMath (optional)
-echo "[3/6] Checking SageMath..."
+# Step 3: Create virtual environment (if requested)
+if [ "$CREATE_VENV" = "true" ]; then
+    echo "[3/7] Creating virtual environment..."
+    if [ -d "$PROJECT_ROOT/.venv" ]; then
+        echo "  ⚠ Virtual environment already exists at .venv"
+        read -p "    Remove and recreate? [y/N] " -n 1 -r
+        echo
+        if [ "$REPLY" = "y" ] || [ "$REPLY" = "Y" ]; then
+            rm -rf "$PROJECT_ROOT/.venv"
+            python3 -m venv "$PROJECT_ROOT/.venv"
+            echo "  ✓ Virtual environment recreated"
+        else
+            echo "  ⏭ Using existing virtual environment"
+        fi
+    else
+        python3 -m venv "$PROJECT_ROOT/.venv"
+        echo "  ✓ Virtual environment created at .venv"
+    fi
+    
+    # Activate virtual environment for subsequent steps
+    . "$PROJECT_ROOT/.venv/bin/activate"
+    echo "  ✓ Virtual environment activated"
+else
+    echo "[3/7] Skipping virtual environment creation (--no-venv)"
+    if [ -z "$VIRTUAL_ENV" ]; then
+        echo "  ⚠ WARNING: Not in a virtual environment"
+        echo "    Packages will be installed system-wide"
+    fi
+fi
+
+# Step 4: Check SageMath (optional)
+echo "[4/7] Checking SageMath..."
 if [ "$SKIP_SAGEMATH_CHECK" = "false" ]; then
     if python3 -c "import sage.all" 2>/dev/null; then
         SAGE_VERSION=$(python3 -c "import sage; print(sage.__version__)" 2>/dev/null || echo "unknown")
@@ -121,16 +158,16 @@ else
     echo "  ⏭ Skipped (--skip-sagemath-check)"
 fi
 
-# Step 4: Upgrade pip and build tools
-echo "[4/6] Upgrading pip and build tools..."
+# Step 5: Upgrade pip and build tools
+echo "[5/7] Upgrading pip and build tools..."
 python3 -m pip install --upgrade pip setuptools wheel build >/dev/null 2>&1 || {
     echo "  ✗ ERROR: Failed to upgrade pip/build tools"
     exit 1
 }
 echo "  ✓ pip and build tools upgraded"
 
-# Step 5: Install package
-echo "[5/6] Installing lfsr-seq..."
+# Step 6: Install package
+echo "[6/7] Installing lfsr-seq..."
 if [ "$INSTALL_DEV" = "true" ]; then
     echo "  Installing with development dependencies..."
     python3 -m pip install -e ".[dev]" || {
@@ -146,8 +183,8 @@ else
     echo "  ✓ Installed successfully"
 fi
 
-# Step 6: Verify installation
-echo "[6/6] Verifying installation..."
+# Step 7: Verify installation
+echo "[7/7] Verifying installation..."
 if [ -f "$PROJECT_ROOT/scripts/smoke-test.sh" ]; then
     if "$PROJECT_ROOT/scripts/smoke-test.sh" >/dev/null 2>&1; then
         echo "  ✓ Smoke tests passed"
@@ -164,6 +201,16 @@ echo "=========================================="
 echo "Installation completed successfully!"
 echo "=========================================="
 echo ""
+if [ "$CREATE_VENV" = "true" ]; then
+    echo "Virtual environment created at .venv"
+    echo ""
+    echo "To activate the virtual environment:"
+    echo "  source .venv/bin/activate"
+    echo ""
+    echo "To deactivate (when done):"
+    echo "  deactivate"
+    echo ""
+fi
 echo "Next steps:"
 echo "  1. Run environment check:  ./scripts/check-environment.sh"
 echo "  2. Run smoke tests:         ./scripts/smoke-test.sh"

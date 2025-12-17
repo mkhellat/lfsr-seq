@@ -4,6 +4,7 @@
 #
 # Usage:
 #   make help          - Show this help message
+#   make venv          - Create virtual environment (.venv)
 #   make install       - Install package in development mode
 #   make install-dev   - Install package with development dependencies
 #   make test          - Run tests
@@ -16,7 +17,7 @@
 #   make check-env     - Check environment setup
 #   make smoke-test    - Run smoke tests
 
-.PHONY: help install install-dev test test-cov lint format type-check clean distclean check-env smoke-test build
+.PHONY: help venv install install-dev test test-cov lint format type-check clean distclean check-env smoke-test build
 
 # Default target
 help:
@@ -24,6 +25,7 @@ help:
 	@echo ""
 	@echo "Available targets:"
 	@echo "  make help          - Show this help message"
+	@echo "  make venv          - Create virtual environment (.venv)"
 	@echo "  make install       - Install package in development mode"
 	@echo "  make install-dev   - Install package with development dependencies"
 	@echo "  make test          - Run tests with pytest"
@@ -39,13 +41,40 @@ help:
 	@echo "  make distclean     - Remove all generated files"
 	@echo ""
 
+# Virtual environment target
+venv:
+	@echo "Creating virtual environment..."
+	@if [ -d ".venv" ]; then \
+		echo "  Virtual environment already exists at .venv"; \
+		echo "  Remove it first with: rm -rf .venv"; \
+	else \
+		python3 -m venv .venv; \
+		echo "  ✓ Virtual environment created at .venv"; \
+		echo ""; \
+		echo "  To activate:"; \
+		echo "    source .venv/bin/activate"; \
+		echo ""; \
+		echo "  Then install dependencies:"; \
+		echo "    make install-dev"; \
+	fi
+
 # Installation targets
 install:
 	@echo "Installing lfsr-seq in development mode..."
+	@if [ -z "$$VIRTUAL_ENV" ] && [ ! -d ".venv" ]; then \
+		echo "  ⚠ WARNING: Not in a virtual environment"; \
+		echo "  Consider creating one with: make venv"; \
+		echo ""; \
+	fi
 	python3 -m pip install -e .
 
 install-dev:
 	@echo "Installing lfsr-seq with development dependencies..."
+	@if [ -z "$$VIRTUAL_ENV" ] && [ ! -d ".venv" ]; then \
+		echo "  ⚠ WARNING: Not in a virtual environment"; \
+		echo "  Consider creating one with: make venv"; \
+		echo ""; \
+	fi
 	python3 -m pip install -e ".[dev]"
 
 # Testing targets
@@ -116,11 +145,28 @@ distclean: clean
 	find . -type f -name "*.out" -delete
 	@echo "All generated files removed"
 
+clean-venv:
+	@echo "Removing virtual environment..."
+	@if [ -d ".venv" ]; then \
+		rm -rf .venv; \
+		echo "  ✓ Virtual environment removed"; \
+	else \
+		echo "  No virtual environment found"; \
+	fi
+
 # Quick development workflow
-dev-setup: check-env install-dev
+dev-setup: venv check-env
 	@echo ""
-	@echo "Development environment setup complete!"
-	@echo "Run 'make test' to verify installation"
+	@echo "Activating virtual environment and installing dependencies..."
+	@echo "  Run: source .venv/bin/activate"
+	@echo "  Then: make install-dev"
+	@echo ""
+	@if [ -d ".venv" ]; then \
+		.venv/bin/pip install --upgrade pip setuptools wheel >/dev/null 2>&1 || true; \
+		.venv/bin/pip install -e ".[dev]" >/dev/null 2>&1 || echo "  Install manually: source .venv/bin/activate && make install-dev"; \
+		echo "Development environment setup complete!"; \
+		echo "Run 'source .venv/bin/activate && make test' to verify installation"; \
+	fi
 
 # CI/CD helper
 ci: lint format-check type-check test

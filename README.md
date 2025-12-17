@@ -54,18 +54,27 @@ conda install -c conda-forge sage
 Use the automated bootstrap script:
 
 ```bash
-# Basic installation
+# Basic installation (creates virtual environment automatically)
 ./bootstrap
 
 # With development dependencies
 ./bootstrap --dev
+
+# Skip virtual environment (install system-wide)
+./bootstrap --no-venv
 ```
 
 The bootstrap script will:
 - Check your Python and SageMath installation
+- Create a virtual environment (`.venv`) unless `--no-venv` is specified
 - Upgrade pip and build tools
 - Install the package in development mode
 - Run smoke tests to verify installation
+
+**Note:** The virtual environment is automatically activated during installation. After installation, activate it with:
+```bash
+source .venv/bin/activate
+```
 
 ### Manual Installation
 
@@ -74,7 +83,16 @@ The bootstrap script will:
    ./scripts/check-environment.sh
    ```
 
-2. **Install the package:**
+2. **Create a virtual environment (recommended):**
+   ```bash
+   # Create virtual environment
+   python3 -m venv .venv
+
+   # Activate it
+   source .venv/bin/activate
+   ```
+
+3. **Install the package:**
    ```bash
    # Basic installation
    pip install -e .
@@ -83,17 +101,34 @@ The bootstrap script will:
    pip install -e ".[dev]"
    ```
 
+   **Note:** If you skip the virtual environment step, packages will be installed system-wide, which may require administrator privileges and can conflict with system packages.
+
 ### Using Make
 
 If you have `make` installed:
 
 ```bash
-# Install with development dependencies
+# Create virtual environment and install with development dependencies
+make venv
+source .venv/bin/activate
 make install-dev
 
 # Or just basic installation
+make venv
+source .venv/bin/activate
 make install
+
+# Quick development setup (creates venv and installs dev dependencies)
+make dev-setup
+source .venv/bin/activate
 ```
+
+**Available Make targets:**
+- `make venv` - Create virtual environment (`.venv`)
+- `make install` - Install package in development mode
+- `make install-dev` - Install with development dependencies
+- `make dev-setup` - Create venv and install dev dependencies
+- `make clean-venv` - Remove virtual environment
 
 ## Quick Start
 
@@ -141,12 +176,37 @@ Output is written to both:
 
 ### Setting Up Development Environment
 
+**Using bootstrap (recommended):**
 ```bash
-# Run bootstrap with dev dependencies
+# Creates venv and installs dev dependencies
 ./bootstrap --dev
 
-# Or use make
+# Activate the virtual environment
+source .venv/bin/activate
+```
+
+**Using Make:**
+```bash
+# Create venv and install dev dependencies
 make dev-setup
+
+# Activate the virtual environment
+source .venv/bin/activate
+```
+
+**Manual setup:**
+```bash
+# Create virtual environment
+python3 -m venv .venv
+source .venv/bin/activate
+
+# Install with dev dependencies
+pip install -e ".[dev]"
+```
+
+**Important:** Always activate the virtual environment before working on the project:
+```bash
+source .venv/bin/activate
 ```
 
 ### Running Tests
@@ -278,9 +338,29 @@ python3 lfsr-seq strange.csv 2
 
 ### "Module not found" after installation
 
-Ensure you're in the project directory and the package is installed:
+Ensure you're in the project directory, have activated the virtual environment, and the package is installed:
 ```bash
+# Activate virtual environment (if using one)
+source .venv/bin/activate
+
+# Install the package
 pip install -e .
+```
+
+### Virtual environment issues
+
+If you encounter issues with the virtual environment:
+
+```bash
+# Remove and recreate
+rm -rf .venv
+make venv
+# or
+python3 -m venv .venv
+
+# Activate and reinstall
+source .venv/bin/activate
+pip install -e ".[dev]"
 ```
 
 ## Mathematical Background
