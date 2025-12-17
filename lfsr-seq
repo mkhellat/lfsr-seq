@@ -209,7 +209,7 @@ def _lfsr_sequence_mapper(state_update_matrix, state_vector_space):
     elp_t      = 0.00
     max_t_t    = 0.00
     d = len(basis(state_vector_space))
-    state_vector_space_size = 2 ** d
+    state_vector_space_size = int(gf_order) ** d
     for bra in state_vector_space:
         timer_lst.append(datetime.datetime.now())
         ticks      = counter + 1
@@ -324,7 +324,7 @@ def _lfsr_sequence_mapper(state_update_matrix, state_vector_space):
 #
 def _polynomial_order(_polynomial, _state_vector_dim):
     _polynomial_degree      = _polynomial.degree()
-    state_vector_space_size = 2 ** _state_vector_dim
+    state_vector_space_size = int(gf_order) ** _state_vector_dim
     bi = _polynomial_degree
     ei = state_vector_space_size
     for j in range(bi, ei):
@@ -429,7 +429,7 @@ def main():
         for coeffs_vector in coeffs:
             coeffs_num += 1
             d = len(coeffs_vector)
-            state_vector_space_size = 2**d
+            state_vector_space_size = int(gf_order) ** d
             M = MatrixSpace(GF(gf_order),d,d)
             I = M.identity_matrix()
             C = M.matrix()
