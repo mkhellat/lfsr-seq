@@ -18,7 +18,7 @@ from lfsr.io import read_and_validate_csv
 from lfsr.core import build_state_update_matrix, compute_matrix_order
 from lfsr.analysis import lfsr_sequence_mapper
 from lfsr.polynomial import characteristic_polynomial
-from lfsr.formatter import intro, section, dump
+from lfsr.formatter import intro, section, subsection, dump
 
 
 def main(
@@ -70,7 +70,6 @@ def main(
             'state update matrix operation '
             + 'convention : S_i * C = S_i+1'
         )
-        from lfsr.formatter import subsection
         subsection(subsection_name, subsection_desc, output_file)
         
         # Print state update matrix
