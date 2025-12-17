@@ -11,7 +11,7 @@ results with decorative borders and structured output.
 import datetime
 import platform
 import textwrap
-from typing import Optional, TextIO
+from typing import List, Optional, TextIO
 
 from lfsr.constants import (
     DISPLAY_WIDTH,
