@@ -10,7 +10,7 @@ periods, and categorizing state vectors.
 
 import datetime
 import textwrap
-from typing import Any, Optional, TextIO
+from typing import Any, Dict, List, Optional, TextIO, Tuple
 
 from sage.all import *
 
@@ -22,7 +22,7 @@ def lfsr_sequence_mapper(
     state_vector_space: Any,
     gf_order: int,
     output_file: Optional[TextIO] = None,
-) -> tuple:
+) -> Tuple[Dict[int, List[Any]], Dict[int, int], int, int]:
     """
     Map all possible state vectors to their sequences and periods.
 

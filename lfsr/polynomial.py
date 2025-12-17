@@ -9,14 +9,16 @@ and their orders over finite fields.
 """
 
 import textwrap
-from typing import Any
+from typing import Any, Optional, TextIO, Union
 
 from sage.all import *
 
 from lfsr.constants import FACTOR_DISPLAY_WIDTH, POLYNOMIAL_DISPLAY_WIDTH
 
 
-def polynomial_order(polynomial: Any, state_vector_dim: int, gf_order: int) -> Any:
+def polynomial_order(
+    polynomial: Any, state_vector_dim: int, gf_order: int
+) -> Union[int, Any]:  # Returns int or oo (infinity) from SageMath
     """
     Find the order of a polynomial over the field GF(gf_order).
 
@@ -48,8 +50,10 @@ def polynomial_order(polynomial: Any, state_vector_dim: int, gf_order: int) -> A
 
 
 def characteristic_polynomial(
-    state_update_matrix_symbolic: Any, gf_order: int, output_file: Any = None
-) -> Any:
+    state_update_matrix_symbolic: Any,
+    gf_order: int,
+    output_file: Optional[TextIO] = None,
+) -> Any:  # Returns polynomial from SageMath
     """
     Compute and display the characteristic polynomial of the state update matrix.
 

@@ -173,7 +173,7 @@ def subsection(
 
 def dump_seq_row(
     seq_num: int,
-    seq_entry: list,
+    seq_entry: List[str],
     no_seqs: int,
     row_width: int,
     d_mode: str,
