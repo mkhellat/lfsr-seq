@@ -1,0 +1,182 @@
+#!/bin/sh
+# bootstrap.sh - Automated installation and setup script for lfsr-seq
+#
+# This script automates the installation and setup process for lfsr-seq
+# on POSIX-compliant systems. It checks dependencies, sets up the environment,
+# and installs the package.
+#
+# Usage:
+#   ./bootstrap.sh [--dev] [--skip-sagemath-check] [--help]
+#
+# Options:
+#   --dev                 Install with development dependencies
+#   --skip-sagemath-check Skip SageMath availability check
+#   --help                Show this help message
+#
+# Exit codes:
+#   0 - Installation successful
+#   1 - Installation failed
+
+set -e
+
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR" && pwd)"
+INSTALL_DEV=false
+SKIP_SAGEMATH_CHECK=false
+
+# Parse command line arguments
+while [ $# -gt 0 ]; do
+    case "$1" in
+        --dev)
+            INSTALL_DEV=true
+            shift
+            ;;
+        --skip-sagemath-check)
+            SKIP_SAGEMATH_CHECK=true
+            shift
+            ;;
+        --help|-h)
+            echo "bootstrap.sh - Automated installation and setup for lfsr-seq"
+            echo ""
+            echo "Usage: $0 [OPTIONS]"
+            echo ""
+            echo "Options:"
+            echo "  --dev                 Install with development dependencies"
+            echo "  --skip-sagemath-check Skip SageMath availability check"
+            echo "  --help, -h             Show this help message"
+            echo ""
+            exit 0
+            ;;
+        *)
+            echo "Unknown option: $1"
+            echo "Use --help for usage information"
+            exit 1
+            ;;
+    esac
+done
+
+echo "=========================================="
+echo "lfsr-seq Bootstrap Script"
+echo "=========================================="
+echo ""
+
+# Step 1: Check Python
+echo "[1/6] Checking Python installation..."
+if ! command -v python3 >/dev/null 2>&1; then
+    echo "  ✗ ERROR: python3 not found"
+    echo "    Please install Python 3.8 or higher"
+    exit 1
+fi
+
+PYTHON_VERSION=$(python3 --version 2>&1 | awk '{print $2}')
+PYTHON_MAJOR=$(echo "$PYTHON_VERSION" | cut -d. -f1)
+PYTHON_MINOR=$(echo "$PYTHON_VERSION" | cut -d. -f2)
+
+if [ "$PYTHON_MAJOR" -lt 3 ] || ([ "$PYTHON_MAJOR" -eq 3 ] && [ "$PYTHON_MINOR" -lt 8 ]); then
+    echo "  ✗ ERROR: Python 3.8+ required, found $PYTHON_VERSION"
+    exit 1
+fi
+echo "  ✓ Python $PYTHON_VERSION found"
+
+# Step 2: Check pip
+echo "[2/6] Checking pip installation..."
+if ! python3 -m pip --version >/dev/null 2>&1; then
+    echo "  ✗ ERROR: pip not found"
+    echo "    Installing pip..."
+    python3 -m ensurepip --upgrade || {
+        echo "  ✗ ERROR: Failed to install pip"
+        echo "    Please install pip manually:"
+        echo "      Debian/Ubuntu: sudo apt-get install python3-pip"
+        echo "      Fedora/RHEL:   sudo dnf install python3-pip"
+        echo "      Arch Linux:    sudo pacman -S python-pip"
+        exit 1
+    }
+fi
+echo "  ✓ pip available"
+
+# Step 3: Check SageMath (optional)
+echo "[3/6] Checking SageMath..."
+if [ "$SKIP_SAGEMATH_CHECK" = "false" ]; then
+    if python3 -c "import sage.all" 2>/dev/null; then
+        SAGE_VERSION=$(python3 -c "import sage; print(sage.__version__)" 2>/dev/null || echo "unknown")
+        echo "  ✓ SageMath $SAGE_VERSION found"
+    else
+        echo "  ⚠ WARNING: SageMath not found"
+        echo "    lfsr-seq requires SageMath to run"
+        echo "    Install SageMath via your system package manager:"
+        echo "      Debian/Ubuntu: sudo apt-get install sagemath"
+        echo "      Fedora/RHEL:   sudo dnf install sagemath"
+        echo "      Arch Linux:    sudo pacman -S sagemath"
+        echo "      macOS:         brew install sagemath"
+        echo "      Conda:         conda install -c conda-forge sage"
+        echo ""
+        read -p "    Continue installation anyway? [y/N] " -n 1 -r
+        echo
+        if [ ! "$REPLY" = "y" ] && [ ! "$REPLY" = "Y" ]; then
+            echo "    Installation cancelled"
+            exit 1
+        fi
+    fi
+else
+    echo "  ⏭ Skipped (--skip-sagemath-check)"
+fi
+
+# Step 4: Upgrade pip and build tools
+echo "[4/6] Upgrading pip and build tools..."
+python3 -m pip install --upgrade pip setuptools wheel build >/dev/null 2>&1 || {
+    echo "  ✗ ERROR: Failed to upgrade pip/build tools"
+    exit 1
+}
+echo "  ✓ pip and build tools upgraded"
+
+# Step 5: Install package
+echo "[5/6] Installing lfsr-seq..."
+if [ "$INSTALL_DEV" = "true" ]; then
+    echo "  Installing with development dependencies..."
+    python3 -m pip install -e ".[dev]" || {
+        echo "  ✗ ERROR: Installation failed"
+        exit 1
+    }
+    echo "  ✓ Installed with development dependencies"
+else
+    python3 -m pip install -e . || {
+        echo "  ✗ ERROR: Installation failed"
+        exit 1
+    }
+    echo "  ✓ Installed successfully"
+fi
+
+# Step 6: Verify installation
+echo "[6/6] Verifying installation..."
+if [ -f "$PROJECT_ROOT/scripts/smoke-test.sh" ]; then
+    if "$PROJECT_ROOT/scripts/smoke-test.sh" >/dev/null 2>&1; then
+        echo "  ✓ Smoke tests passed"
+    else
+        echo "  ⚠ WARNING: Some smoke tests failed (this may be expected)"
+        echo "    Run './scripts/smoke-test.sh' for details"
+    fi
+else
+    echo "  ⏭ Smoke test script not found, skipping"
+fi
+
+echo ""
+echo "=========================================="
+echo "Installation completed successfully!"
+echo "=========================================="
+echo ""
+echo "Next steps:"
+echo "  1. Run environment check:  ./scripts/check-environment.sh"
+echo "  2. Run smoke tests:         ./scripts/smoke-test.sh"
+echo "  3. Try the tool:            ./lfsr-seq strange.csv 2"
+echo ""
+if [ "$INSTALL_DEV" = "true" ]; then
+    echo "Development tools available:"
+    echo "  - Run tests:              make test"
+    echo "  - Format code:            make format"
+    echo "  - Run linting:            make lint"
+    echo "  - Type checking:          make type-check"
+    echo ""
+fi
+echo "For more information, see README.md"
+echo ""
+
