@@ -12,6 +12,8 @@ import sys
 
 from sage.all import *
 
+from lfsr.constants import MAX_PRIME_POWER_LIMIT, MIN_GF_ORDER
+
 
 def validate_gf_order(gf_order_str: str) -> int:
     """
@@ -32,8 +34,8 @@ def validate_gf_order(gf_order_str: str) -> int:
         print("ERROR: GF_order must be an integer, got: %s" % gf_order_str)
         sys.exit(1)
 
-    if gf_order < 2:
-        print("ERROR: GF_order must be at least 2, got: %d" % gf_order)
+    if gf_order < MIN_GF_ORDER:
+        print("ERROR: GF_order must be at least %d, got: %d" % (MIN_GF_ORDER, gf_order))
         sys.exit(1)
 
     # Check if it's a prime
@@ -43,7 +45,7 @@ def validate_gf_order(gf_order_str: str) -> int:
     # Check if it's a prime power (p^n where p is prime and n > 1)
     # For now, we'll support small prime powers
     # A more complete check would factor gf_order and verify it's p^n
-    if gf_order <= 1000:  # Reasonable limit for now
+    if gf_order <= MAX_PRIME_POWER_LIMIT:
         # Try to find if it's a prime power
         for p in primes(2, int(sqrt(gf_order)) + 1):
             n = 1

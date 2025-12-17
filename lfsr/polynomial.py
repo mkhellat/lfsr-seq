@@ -13,6 +13,8 @@ from typing import Any
 
 from sage.all import *
 
+from lfsr.constants import FACTOR_DISPLAY_WIDTH, POLYNOMIAL_DISPLAY_WIDTH
+
 
 def polynomial_order(polynomial: Any, state_vector_dim: int, gf_order: int) -> Any:
     """
@@ -82,7 +84,7 @@ def characteristic_polynomial(
     dump(str(ACM), "mode=all", output_file)
     A_char_poly = det(ACM)
     A_char_poly_gf = PolynomialRing(GF(gf_order), "t")(A_char_poly)
-    A_char_poly_l = textwrap.wrap(str(A_char_poly_gf), width=38)
+    A_char_poly_l = textwrap.wrap(str(A_char_poly_gf), width=POLYNOMIAL_DISPLAY_WIDTH)
     A_char_ord_i = polynomial_order(A_char_poly_gf, d, gf_order)
     A_char_ord_s = str(A_char_ord_i)
     l1 = 13 - len(A_char_ord_s)
@@ -92,8 +94,8 @@ def characteristic_polynomial(
     dump(t_border, "mode=all", output_file)
     for term in A_char_poly_l:
         m_border_l = " " + "\u254e" + " "
-        m_border_r_1 = " " * (38 - len(term) + 1) + "\u254e"
-        if len(term) >= 36:
+        m_border_r_1 = " " * (POLYNOMIAL_DISPLAY_WIDTH - len(term) + 1) + "\u254e"
+        if len(term) >= POLYNOMIAL_DISPLAY_WIDTH - 2:
             m_border_r_2 = " " * 18 + "\u254e"
         else:
             m_border_r_2 = " O : " + A_char_ord_s + " " * l1 + "\u254e"
@@ -122,7 +124,7 @@ def characteristic_polynomial(
         s_i = " " * (len(i_i) + 1)
         t_p = textwrap.wrap(
             "(" + str(prime_poly) + ")^" + str(prime_poly_power),
-            width=55,
+            width=FACTOR_DISPLAY_WIDTH,
             initial_indent=i_i,
             subsequent_indent=s_i,
         )

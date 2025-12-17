@@ -14,6 +14,8 @@ from typing import Any, Optional, TextIO
 
 from sage.all import *
 
+from lfsr.constants import PROGRESS_BAR_WIDTH, TABLE_ROW_WIDTH
+
 
 def lfsr_sequence_mapper(
     state_update_matrix: Any,
@@ -80,8 +82,8 @@ def lfsr_sequence_mapper(
         _total = str(state_vector_space_size)
         _count = str(counter)
         _ind = " " * (len(_total) - len(_count))
-        prog = int(counter * 60 / state_vector_space_size)
-        prog_b = " " * 2 + "\u2588" * prog + " " * (60 - prog)
+        prog = int(counter * PROGRESS_BAR_WIDTH / state_vector_space_size)
+        prog_b = " " * 2 + "\u2588" * prog + " " * (PROGRESS_BAR_WIDTH - prog)
         prog_s = _ind + _count + "/" + _total
         prog_t = " " * 2 + format(elp_t, ".1f") + " s/" + format(max_t_t, ".1f") + " s"
         prog_v = " " * 2 + prog_s + " states checked "
@@ -115,7 +117,7 @@ def lfsr_sequence_mapper(
     print("\n")
     periods_sum = 0
     n = len(period_dict)  # <-- number of sequences
-    w = 60  # <-- table row width
+    w = TABLE_ROW_WIDTH  # <-- table row width
     v1 = vector({d - 1: 1})  # <-- our special state ;)
     vs = state_vector_space_size
 

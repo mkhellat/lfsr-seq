@@ -13,6 +13,15 @@ import platform
 import textwrap
 from typing import Optional, TextIO
 
+from lfsr.constants import (
+    DISPLAY_WIDTH,
+    INTRO_HEADER_WIDTH,
+    LABEL_PADDING_WIDTH,
+    PLATFORM_INDENT,
+    TEXT_INDENT,
+    TEXT_WRAP_WIDTH,
+)
+
 
 def dump(text: str, mode: str, output_file: Optional[TextIO] = None) -> None:
     """
@@ -58,30 +67,32 @@ def intro(
         Start time datetime object
     """
     start_time = datetime.datetime.now()
-    spaces = int((62 - len(name + version)) / 2)
+    spaces = int((INTRO_HEADER_WIDTH - len(name + version)) / 2)
     identity = " " * spaces + name + version + "\n"
     copyright_t = "Copyright : GNU GPL v3+"
     lfsr_csv_t = "lfsr coeffs csv : " + filename
     gf_order_t = "GF order : " + gf_order
     platform_t = "platform : " + platform.platform()
     runtime_t = "run start time : " + start_time.isoformat()
-    copyright = " " * (26 - len("Copyright")) + copyright_t
-    lfsr_csv = " " * (26 - len("LFSR coeffs csv")) + lfsr_csv_t
-    gf_order_str = " " * (26 - len("GF order")) + gf_order_t
-    platform_str = " " * (26 - len("platform")) + platform_t
-    runtime = " " * (26 - len("run start time")) + runtime_t
-    dump("*" * 62, "mode=all", output_file)
+    copyright = " " * (LABEL_PADDING_WIDTH - len("Copyright")) + copyright_t
+    lfsr_csv = " " * (LABEL_PADDING_WIDTH - len("LFSR coeffs csv")) + lfsr_csv_t
+    gf_order_str = " " * (LABEL_PADDING_WIDTH - len("GF order")) + gf_order_t
+    platform_str = " " * (LABEL_PADDING_WIDTH - len("platform")) + platform_t
+    runtime = " " * (LABEL_PADDING_WIDTH - len("run start time")) + runtime_t
+    dump("*" * INTRO_HEADER_WIDTH, "mode=all", output_file)
     dump(identity, "mode=all", output_file)
     dump(copyright, "mode=all", output_file)
     dump(lfsr_csv, "mode=all", output_file)
     dump(gf_order_str, "mode=all", output_file)
     dump(
-        textwrap.fill(platform_str, 62, subsequent_indent=" " * 29),
+        textwrap.fill(
+            platform_str, INTRO_HEADER_WIDTH, subsequent_indent=" " * PLATFORM_INDENT
+        ),
         "mode=all",
         output_file,
     )
     dump(runtime, "mode=all", output_file)
-    dump("*" * 62, "mode=all", output_file)
+    dump("*" * INTRO_HEADER_WIDTH, "mode=all", output_file)
     return start_time
 
 
@@ -100,17 +111,20 @@ def section(
         print("_SECTION : title and content must be strings")
         exit(1)
 
-    l1 = 60 - len(section_title)
+    l1 = DISPLAY_WIDTH - len(section_title)
     l2 = int(round(l1 / 2))
-    l3 = 60 - len(section_title) - l2
-    t_border = "\u2554" + "\u2550" * 60 + "\u2557"
+    l3 = DISPLAY_WIDTH - len(section_title) - l2
+    t_border = "\u2554" + "\u2550" * DISPLAY_WIDTH + "\u2557"
     m_border_l = "\u2560" + " " * l2
     m_border_r = " " * l3 + "\u2563"
     m_border = m_border_l + section_title + m_border_r
-    b_border = "\u255a" + "\u2550" * 60 + "\u255d"
+    b_border = "\u255a" + "\u2550" * DISPLAY_WIDTH + "\u255d"
     post_dsc_t = "  " + section_description + "  "
     post_dsc = textwrap.fill(
-        post_dsc_t, width=60, initial_indent="", subsequent_indent=" " * 2
+        post_dsc_t,
+        width=TEXT_WRAP_WIDTH,
+        initial_indent="",
+        subsequent_indent=" " * TEXT_INDENT,
     )
     dump("\n" * 1, "mode=all", output_file)
     dump(t_border, "mode=all", output_file)
@@ -146,7 +160,10 @@ def subsection(
     b_border = "\u2570" + "\u254c" * (l1 - 2) + "\u256f"
     post_dsc_t = "  " + subsection_description + "  "
     post_dsc = textwrap.fill(
-        post_dsc_t, width=60, initial_indent="", subsequent_indent=" " * 2
+        post_dsc_t,
+        width=TEXT_WRAP_WIDTH,
+        initial_indent="",
+        subsequent_indent=" " * TEXT_INDENT,
     )
     dump(t_border, "mode=all", output_file)
     dump(m_border, "mode=all", output_file)
