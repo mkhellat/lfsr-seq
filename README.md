@@ -66,15 +66,16 @@ Use the automated bootstrap script:
 
 The bootstrap script will:
 - Check your Python and SageMath installation
-- Create a virtual environment (`.venv`) unless `--no-venv` is specified
+- **Automatically create a virtual environment (`.venv`)** for PEP 668 compliance
 - Upgrade pip and build tools
 - Install the package in development mode
 - Run smoke tests to verify installation
 
-**Note:** The virtual environment is automatically activated during installation. After installation, activate it with:
-```bash
-source .venv/bin/activate
-```
+**Note:** 
+- Virtual environment creation is the **default and recommended** approach (PEP 668 compliant)
+- The virtual environment is automatically activated during installation
+- After installation, activate it with: `source .venv/bin/activate`
+- Use `--no-venv` only if you need system-wide installation (not recommended, may fail on PEP 668 systems)
 
 ### Manual Installation
 
@@ -108,27 +109,31 @@ source .venv/bin/activate
 If you have `make` installed:
 
 ```bash
-# Create virtual environment and install with development dependencies
-make venv
-source .venv/bin/activate
-make install-dev
-
-# Or just basic installation
-make venv
-source .venv/bin/activate
-make install
-
-# Quick development setup (creates venv and installs dev dependencies)
+# Quick development setup (automatically creates venv and installs dev dependencies)
 make dev-setup
+source .venv/bin/activate
+
+# Or install manually (venv is automatically created)
+make install-dev
+source .venv/bin/activate
+
+# Basic installation (venv is automatically created)
+make install
 source .venv/bin/activate
 ```
 
 **Available Make targets:**
-- `make venv` - Create virtual environment (`.venv`)
-- `make install` - Install package in development mode
-- `make install-dev` - Install with development dependencies
-- `make dev-setup` - Create venv and install dev dependencies
+- `make venv` - Create virtual environment (`.venv`) - automatically called by other targets
+- `make install` - Install package in development mode (auto-creates venv)
+- `make install-dev` - Install with development dependencies (auto-creates venv)
+- `make dev-setup` - Create venv, check environment, and install dev dependencies
+- `make test` - Run tests (uses venv if available)
+- `make lint` - Run linting (uses venv if available)
+- `make format` - Format code (uses venv if available)
+- `make build` - Build distribution packages (uses venv if available)
 - `make clean-venv` - Remove virtual environment
+
+**Note:** All Make targets automatically create and use a virtual environment (`.venv`) to ensure PEP 668 compliance on modern Linux distributions.
 
 ## Quick Start
 
