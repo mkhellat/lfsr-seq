@@ -47,12 +47,8 @@ import curses
 
 from sage.all import *
 
-if len(sys.argv) != 3:
-    print("Usage: %s <coeffs_csv_filename> <GF_order>" % sys.argv[0])
-    print("       You should provide the filename for the LFSR")
-    print("       coefficients vectors csv as the first arg and")
-    print("       Galois Field order as the second arg.")
-    sys.exit(1)
+# Command line argument validation is now done in if __name__ == "__main__" block
+# with proper exception handling
 
 
 
@@ -609,7 +605,7 @@ def main():
             # of the factors are in fact factors of the order of
             # the big char poly.
             ##########################################################
-    coeffs_file.close()
+    # Input file is automatically closed by context manager
     t_f = datetime.datetime.now()
     t_e = t_f - t_i
     print('\n  TOTAL execusion time : ' + str(t_e))
@@ -621,8 +617,39 @@ def main():
 
 
 if __name__ == "__main__":
-    input_file_name = sys.argv[1]
-    output_file_name = input_file_name + '.out'
-    OF = open(output_file_name, 'w', encoding='utf-8')
-    gf_order = sys.argv[2]
-    main()
+    try:
+        # Validate command line arguments
+        if len(sys.argv) != 3:
+            print("Usage: %s <coeffs_csv_filename> <GF_order>" % sys.argv[0])
+            print("       You should provide the filename for the LFSR")
+            print("       coefficients vectors csv as the first arg and")
+            print("       Galois Field order as the second arg.")
+            sys.exit(1)
+        
+        input_file_name = sys.argv[1]
+        output_file_name = input_file_name + '.out'
+        gf_order = sys.argv[2]
+        
+        # Validate input file exists before opening output file
+        if not os.path.exists(input_file_name):
+            print("ERROR: Input CSV file not found: %s" % input_file_name)
+            sys.exit(1)
+        
+        # Open output file with context manager for proper resource management
+        # Note: OF is a global variable used throughout the code
+        # This will be refactored in a later phase to pass as parameter
+        global OF
+        with open(output_file_name, 'w', encoding='utf-8') as output_file:
+            OF = output_file  # Set global OF to the context-managed file
+            main()
+    except IOError as e:
+        print("ERROR: File I/O error: %s" % str(e))
+        sys.exit(1)
+    except KeyboardInterrupt:
+        print("\nERROR: Interrupted by user")
+        sys.exit(1)
+    except Exception as e:
+        print("ERROR: Unexpected error: %s" % str(e))
+        import traceback
+        traceback.print_exc()
+        sys.exit(1)
