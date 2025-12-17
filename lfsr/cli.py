@@ -28,10 +28,30 @@ def main(
     """
     Main function to process LFSR coefficient vectors and perform analysis.
 
+    This function orchestrates the complete LFSR analysis workflow:
+    1. Validates the Galois field order
+    2. Reads and validates CSV coefficient vectors
+    3. For each coefficient vector:
+       - Builds the state update matrix
+       - Computes matrix order
+       - Analyzes all state sequences and periods
+       - Computes characteristic polynomial
+
     Args:
-        input_file_name: Path to CSV file containing coefficient vectors
-        gf_order_str: String representation of the Galois field order
-        output_file: Optional file object for output (defaults to stdout)
+        input_file_name: Path to CSV file containing coefficient vectors.
+            Each row should contain coefficients for one LFSR configuration.
+        gf_order_str: String representation of the Galois field order.
+            Must be a prime or prime power (e.g., "2", "3", "4", "5", "7", "8", etc.).
+        output_file: Optional file object for output. If None, output goes
+            to stdout only. If provided, output is written to both stdout
+            and the file.
+
+    Raises:
+        SystemExit: If input validation fails or file I/O errors occur.
+
+    Example:
+        >>> with open("output.txt", "w") as f:
+        ...     main("coefficients.csv", "2", output_file=f)
     """
     # Validate GF order
     gf_order = validate_gf_order(gf_order_str)
@@ -111,7 +131,27 @@ def cli_main() -> None:
     """
     Command-line interface entry point.
 
-    Handles argument parsing, validation, and file I/O setup.
+    This is the main entry point when the package is run as a script.
+    It handles:
+    - Command-line argument parsing and validation
+    - Input file existence checking
+    - Output file creation
+    - Exception handling and error reporting
+
+    The output file is automatically named by appending '.out' to the
+    input filename.
+
+    Usage:
+        lfsr-seq <coeffs_csv_filename> <GF_order>
+
+    Raises:
+        SystemExit: If arguments are invalid, input file doesn't exist,
+            or any other error occurs during execution.
+
+    Example:
+        >>> # From command line:
+        >>> # $ lfsr-seq strange.csv 2
+        >>> # Creates strange.csv.out with analysis results
     """
     try:
         # Validate command line arguments

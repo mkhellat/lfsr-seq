@@ -85,13 +85,29 @@ def read_and_validate_csv(filename: str, gf_order: int) -> List[List[str]]:
 
 def read_csv_coefficients(filename: str) -> List[List[str]]:
     """
-    Read coefficient vectors from CSV file.
+    Read coefficient vectors from CSV file without validation.
+
+    This is a simple CSV reader that does not perform validation.
+    Use `read_and_validate_csv` for validated reading.
 
     Args:
         filename: Path to the CSV file
 
     Returns:
-        List of coefficient vectors (each vector is a list of strings)
+        List of coefficient vectors, where each vector is a list of strings.
+        Each row in the CSV becomes one coefficient vector.
+
+    Note:
+        This function does not validate:
+        - File existence
+        - File readability
+        - Coefficient values
+        - Vector lengths
+
+    Example:
+        >>> coeffs = read_csv_coefficients("data.csv")
+        >>> print(coeffs[0])  # First coefficient vector
+        ['1', '1', '0', '1']
     """
     with open(filename, mode="r") as coeffs_file:
         coeffs = csv.reader(coeffs_file)

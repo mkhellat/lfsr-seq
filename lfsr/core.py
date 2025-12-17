@@ -22,14 +22,26 @@ def build_state_update_matrix(
     The state update matrix C follows the convention: S_i * C = S_i+1
     where S_i is the current state vector and S_i+1 is the next state.
 
+    The matrix is constructed as a companion matrix where:
+    - The first d-1 rows form an identity-like structure with 1s on the
+      subdiagonal
+    - The last row contains the LFSR coefficients
+
     Args:
-        coeffs_vector: List of coefficients (as integers) for the LFSR
-        gf_order: The field order
+        coeffs_vector: List of coefficients (as integers) for the LFSR.
+            The length determines the dimension of the state space.
+        gf_order: The field order for the finite field GF(gf_order).
 
     Returns:
         Tuple of (C, CS) where:
-        - C: State update matrix over GF(gf_order)
-        - CS: Symbolic state update matrix over SR (for characteristic polynomial)
+        - C: State update matrix over GF(gf_order), used for state transitions
+        - CS: Symbolic state update matrix over SR (SageMath symbolic ring),
+            used for characteristic polynomial computation
+
+    Example:
+        >>> coeffs = [1, 1, 0, 1]
+        >>> C, CS = build_state_update_matrix(coeffs, 2)
+        >>> # C is a 4x4 matrix over GF(2)
     """
     d = len(coeffs_vector)
     M = MatrixSpace(GF(gf_order), d, d)
@@ -61,16 +73,34 @@ def compute_matrix_order(
     Compute the order of the state update matrix.
 
     The order of matrix C is the smallest positive integer n such that C^n = I,
-    where I is the identity matrix.
+    where I is the identity matrix. This represents the period of the LFSR
+    state transitions.
+
+    The algorithm computes successive powers of C until C^n = I, or until
+    the maximum possible order (state_vector_space_size - 1) is reached.
 
     Args:
-        state_update_matrix: The state update matrix C
-        identity_matrix: The identity matrix I
-        state_vector_space_size: Size of the state vector space (gf_order^d)
-        output_file: Optional file object for output
+        state_update_matrix: The state update matrix C over GF(gf_order)
+        identity_matrix: The identity matrix I of the same dimension
+        state_vector_space_size: Size of the state vector space (gf_order^d).
+            This is the maximum possible order.
+        output_file: Optional file object for formatted output.
+            If provided, the order is written to the file.
 
     Returns:
-        The order of the matrix, or None if not found within the search space
+        The order of the matrix (smallest n such that C^n = I), or None if
+        the order is not found within the search space [1, state_vector_space_size-1].
+
+    Note:
+        The order is always at most state_vector_space_size - 1 by the
+        pigeonhole principle. If None is returned, it indicates an error
+        in the computation or an extremely large order.
+
+    Example:
+        >>> C = build_state_update_matrix([1, 1, 0, 1], 2)[0]
+        >>> I = MatrixSpace(GF(2), 4, 4).identity_matrix()
+        >>> order = compute_matrix_order(C, I, 16)
+        >>> # Returns the period of the LFSR
     """
     from lfsr.formatter import dump, subsection
 
