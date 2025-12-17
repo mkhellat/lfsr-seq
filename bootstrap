@@ -101,20 +101,12 @@ if ! python3 -m pip --version >/dev/null 2>&1; then
 fi
 echo "  ✓ pip available"
 
-# Step 3: Create virtual environment (if requested)
+# Step 3: Create virtual environment (default, PEP 668 compliant)
 if [ "$CREATE_VENV" = "true" ]; then
-    echo "[3/7] Creating virtual environment..."
+    echo "[3/7] Creating virtual environment (PEP 668 compliant)..."
     if [ -d "$PROJECT_ROOT/.venv" ]; then
         echo "  ⚠ Virtual environment already exists at .venv"
-        read -p "    Remove and recreate? [y/N] " -n 1 -r
-        echo
-        if [ "$REPLY" = "y" ] || [ "$REPLY" = "Y" ]; then
-            rm -rf "$PROJECT_ROOT/.venv"
-            python3 -m venv "$PROJECT_ROOT/.venv"
-            echo "  ✓ Virtual environment recreated"
-        else
-            echo "  ⏭ Using existing virtual environment"
-        fi
+        echo "  Using existing virtual environment"
     else
         python3 -m venv "$PROJECT_ROOT/.venv"
         echo "  ✓ Virtual environment created at .venv"
@@ -123,11 +115,13 @@ if [ "$CREATE_VENV" = "true" ]; then
     # Activate virtual environment for subsequent steps
     . "$PROJECT_ROOT/.venv/bin/activate"
     echo "  ✓ Virtual environment activated"
+    echo "  Note: This ensures PEP 668 compliance (no system-wide package installation)"
 else
     echo "[3/7] Skipping virtual environment creation (--no-venv)"
     if [ -z "$VIRTUAL_ENV" ]; then
         echo "  ⚠ WARNING: Not in a virtual environment"
-        echo "    Packages will be installed system-wide"
+        echo "    Packages will be installed system-wide (may fail on PEP 668 systems)"
+        echo "    This is not recommended and may require --break-system-packages flag"
     fi
 fi
 

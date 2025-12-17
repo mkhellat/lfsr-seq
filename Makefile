@@ -42,68 +42,94 @@ help:
 	@echo ""
 
 # Virtual environment target
+# This target ensures venv exists but doesn't fail if it already exists
 venv:
-	@echo "Creating virtual environment..."
-	@if [ -d ".venv" ]; then \
-		echo "  Virtual environment already exists at .venv"; \
-		echo "  Remove it first with: rm -rf .venv"; \
-	else \
+	@if [ ! -d ".venv" ]; then \
+		echo "Creating virtual environment..."; \
 		python3 -m venv .venv; \
 		echo "  ✓ Virtual environment created at .venv"; \
-		echo ""; \
-		echo "  To activate:"; \
-		echo "    source .venv/bin/activate"; \
-		echo ""; \
-		echo "  Then install dependencies:"; \
-		echo "    make install-dev"; \
 	fi
+
+# Helper to ensure venv exists and get Python/pip paths
+VENV_PYTHON := $(if $(wildcard .venv),.venv/bin/python3,python3)
+VENV_PIP := $(if $(wildcard .venv),.venv/bin/pip,python3 -m pip)
 
 # Installation targets
-install:
+install: venv
 	@echo "Installing lfsr-seq in development mode..."
-	@if [ -z "$$VIRTUAL_ENV" ] && [ ! -d ".venv" ]; then \
-		echo "  ⚠ WARNING: Not in a virtual environment"; \
-		echo "  Consider creating one with: make venv"; \
-		echo ""; \
+	@if [ -d ".venv" ]; then \
+		echo "  Using virtual environment at .venv"; \
+		.venv/bin/pip install --upgrade pip setuptools wheel >/dev/null 2>&1 || true; \
+		.venv/bin/pip install -e .; \
+	else \
+		echo "  ✗ ERROR: Virtual environment not found"; \
+		echo "  This should not happen - venv target should have created it"; \
+		exit 1; \
 	fi
-	python3 -m pip install -e .
 
-install-dev:
+install-dev: venv
 	@echo "Installing lfsr-seq with development dependencies..."
-	@if [ -z "$$VIRTUAL_ENV" ] && [ ! -d ".venv" ]; then \
-		echo "  ⚠ WARNING: Not in a virtual environment"; \
-		echo "  Consider creating one with: make venv"; \
-		echo ""; \
+	@if [ -d ".venv" ]; then \
+		echo "  Using virtual environment at .venv"; \
+		.venv/bin/pip install --upgrade pip setuptools wheel >/dev/null 2>&1 || true; \
+		.venv/bin/pip install -e ".[dev]"; \
+	else \
+		echo "  ✗ ERROR: Virtual environment not found"; \
+		echo "  This should not happen - venv target should have created it"; \
+		exit 1; \
 	fi
-	python3 -m pip install -e ".[dev]"
 
 # Testing targets
-test:
+test: venv
 	@echo "Running tests..."
-	python3 -m pytest tests/ -v
+	@if [ -d ".venv" ]; then \
+		.venv/bin/python -m pytest tests/ -v; \
+	else \
+		python3 -m pytest tests/ -v; \
+	fi
 
-test-cov:
+test-cov: venv
 	@echo "Running tests with coverage..."
-	python3 -m pytest tests/ --cov=lfsr --cov-report=html --cov-report=term
+	@if [ -d ".venv" ]; then \
+		.venv/bin/python -m pytest tests/ --cov=lfsr --cov-report=html --cov-report=term; \
+	else \
+		python3 -m pytest tests/ --cov=lfsr --cov-report=html --cov-report=term; \
+	fi
 	@echo ""
 	@echo "Coverage report generated in htmlcov/index.html"
 
 # Code quality targets
-lint:
+lint: venv
 	@echo "Running linting checks..."
-	python3 -m ruff check .
+	@if [ -d ".venv" ]; then \
+		.venv/bin/python -m ruff check .; \
+	else \
+		python3 -m ruff check .; \
+	fi
 
-format:
+format: venv
 	@echo "Formatting code with black..."
-	python3 -m black .
+	@if [ -d ".venv" ]; then \
+		.venv/bin/python -m black .; \
+	else \
+		python3 -m black .; \
+	fi
 
-format-check:
+format-check: venv
 	@echo "Checking code formatting..."
-	python3 -m black --check .
+	@if [ -d ".venv" ]; then \
+		.venv/bin/python -m black --check .; \
+	else \
+		python3 -m black --check .; \
+	fi
 
-type-check:
+type-check: venv
 	@echo "Running type checking..."
-	python3 -m mypy . || true
+	@if [ -d ".venv" ]; then \
+		.venv/bin/python -m mypy . || true; \
+	else \
+		python3 -m mypy . || true; \
+	fi
 
 # Environment and smoke tests
 check-env:
@@ -115,10 +141,15 @@ smoke-test:
 	@./scripts/smoke-test.sh
 
 # Build targets
-build:
+build: venv
 	@echo "Building distribution packages..."
-	python3 -m pip install --upgrade build
-	python3 -m build
+	@if [ -d ".venv" ]; then \
+		.venv/bin/pip install --upgrade build >/dev/null 2>&1 || true; \
+		.venv/bin/python -m build; \
+	else \
+		python3 -m pip install --upgrade build >/dev/null 2>&1 || true; \
+		python3 -m build; \
+	fi
 	@echo ""
 	@echo "Distribution packages created in dist/"
 
@@ -155,18 +186,16 @@ clean-venv:
 	fi
 
 # Quick development workflow
-dev-setup: venv check-env
+dev-setup: venv check-env install-dev
 	@echo ""
-	@echo "Activating virtual environment and installing dependencies..."
-	@echo "  Run: source .venv/bin/activate"
-	@echo "  Then: make install-dev"
+	@echo "Development environment setup complete!"
 	@echo ""
-	@if [ -d ".venv" ]; then \
-		.venv/bin/pip install --upgrade pip setuptools wheel >/dev/null 2>&1 || true; \
-		.venv/bin/pip install -e ".[dev]" >/dev/null 2>&1 || echo "  Install manually: source .venv/bin/activate && make install-dev"; \
-		echo "Development environment setup complete!"; \
-		echo "Run 'source .venv/bin/activate && make test' to verify installation"; \
-	fi
+	@echo "Virtual environment is ready at .venv"
+	@echo "To activate: source .venv/bin/activate"
+	@echo ""
+	@echo "Run tests: make test"
+	@echo "Format code: make format"
+	@echo "Run linting: make lint"
 
 # CI/CD helper
 ci: lint format-check type-check test
