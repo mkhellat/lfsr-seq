@@ -31,6 +31,7 @@ def main(
     verbose: bool = False,
     quiet: bool = False,
     no_progress: bool = False,
+    output_format: str = "text",
 ) -> None:
     """
     Main function to process LFSR coefficient vectors and perform analysis.
@@ -198,6 +199,13 @@ def parse_args(args: Optional[list] = None) -> argparse.Namespace:
     )
 
     parser.add_argument(
+        "--format",
+        choices=["text", "json", "csv", "xml"],
+        default="text",
+        help="Output format (default: text)",
+    )
+
+    parser.add_argument(
         "--version",
         action="version",
         version=f"%(prog)s {__version__}",
@@ -273,6 +281,7 @@ def cli_main() -> None:
                 verbose=args.verbose,
                 quiet=args.quiet,
                 no_progress=args.no_progress,
+                output_format=args.format,
             )
 
         if not args.quiet:
