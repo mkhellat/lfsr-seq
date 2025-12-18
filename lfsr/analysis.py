@@ -10,7 +10,7 @@ periods, and categorizing state vectors.
 
 import datetime
 import textwrap
-from typing import Any, Dict, List, Optional, TextIO, Tuple
+from typing import Any, Dict, List, Optional, Set, TextIO, Tuple
 
 from sage.all import *
 
@@ -45,7 +45,7 @@ def _update_progress_display(
 
 
 def _find_sequence_cycle(
-    start_state: Any, state_update_matrix: Any, check_lst: List[Any]
+    start_state: Any, state_update_matrix: Any, visited_set: set
 ) -> Tuple[List[Any], int]:
     """
     Find the complete cycle of states starting from a given state.
@@ -53,7 +53,7 @@ def _find_sequence_cycle(
     Args:
         start_state: The initial state vector to start the cycle from
         state_update_matrix: The LFSR state update matrix
-        check_lst: List of already processed states (modified in place)
+        visited_set: Set of already processed states (modified in place)
 
     Returns:
         Tuple of (sequence_list, period) where:
@@ -61,13 +61,13 @@ def _find_sequence_cycle(
         - period: Length of the cycle
     """
     seq_lst = [start_state]
-    check_lst.append(start_state)
+    visited_set.add(start_state)
     next_state = start_state * state_update_matrix
     seq_period = 1
 
     while next_state != start_state:
         seq_lst.append(next_state)
-        check_lst.append(next_state)
+        visited_set.add(next_state)
         seq_period += 1
         next_state = next_state * state_update_matrix
 
@@ -143,6 +143,9 @@ def lfsr_sequence_mapper(
     Goes through all possible state vectors, finds their periods and
     categorizes them based on what sequence they belong to.
 
+    This function uses a set-based visited tracking for O(1) membership
+    testing, improving performance from O(n²) to O(n) for large state spaces.
+
     Args:
         state_update_matrix: The LFSR state update matrix
         state_vector_space: Vector space of all possible states
@@ -165,7 +168,7 @@ def lfsr_sequence_mapper(
 
     seq_dict = {}
     period_dict = {}
-    check_lst = []
+    visited_set = set()  # Use set for O(1) membership testing instead of O(n) list lookup
     timer_lst = [datetime.datetime.now()]  # Initialize with first timestamp
     est_t_lst = []
     seq = 0
@@ -201,10 +204,11 @@ def lfsr_sequence_mapper(
             _update_progress_display(counter, elp_t, max_t_t, state_vector_space_size)
 
         # Find sequence cycle if not already processed
-        if bra not in check_lst:
+        # O(1) lookup with set instead of O(n) with list
+        if bra not in visited_set:
             seq += 1
             seq_lst, seq_period = _find_sequence_cycle(
-                bra, state_update_matrix, check_lst
+                bra, state_update_matrix, visited_set
             )
             seq_dict[seq] = seq_lst
             period_dict[seq] = seq_period
