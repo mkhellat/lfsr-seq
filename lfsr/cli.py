@@ -7,6 +7,7 @@ Command-line interface for LFSR analysis tool.
 This module provides the main entry point and CLI logic for the lfsr-seq tool.
 """
 
+import argparse
 import datetime
 import os
 import sys
@@ -14,6 +15,7 @@ from typing import Optional, TextIO
 
 from sage.all import *
 
+from lfsr import __version__
 from lfsr.analysis import lfsr_sequence_mapper
 from lfsr.core import build_state_update_matrix, compute_matrix_order
 from lfsr.field import validate_coefficient_vector, validate_gf_order
@@ -23,7 +25,12 @@ from lfsr.polynomial import characteristic_polynomial
 
 
 def main(
-    input_file_name: str, gf_order_str: str, output_file: Optional[TextIO] = None
+    input_file_name: str,
+    gf_order_str: str,
+    output_file: Optional[TextIO] = None,
+    verbose: bool = False,
+    quiet: bool = False,
+    no_progress: bool = False,
 ) -> None:
     """
     Main function to process LFSR coefficient vectors and perform analysis.
@@ -107,7 +114,7 @@ def main(
 
         # Create vector space and analyze sequences
         V = VectorSpace(GF(gf_order), d)
-        lfsr_sequence_mapper(C, V, gf_order, output_file)
+        lfsr_sequence_mapper(C, V, gf_order, output_file, no_progress=no_progress)
 
         # Finding all sequences of states of the parameterized
         # LFSR and their corresponding periods
@@ -127,22 +134,99 @@ def main(
     print("\n  TOTAL execusion time : " + str(t_e))
 
 
+def parse_args(args: Optional[list] = None) -> argparse.Namespace:
+    """
+    Parse command-line arguments.
+
+    Args:
+        args: Optional list of arguments to parse. If None, uses sys.argv.
+
+    Returns:
+        Parsed arguments as argparse.Namespace.
+    """
+    parser = argparse.ArgumentParser(
+        prog="lfsr-seq",
+        description="Linear Feedback Shift Register (LFSR) Sequence Analysis Tool",
+        epilog=(
+            "Example:\n"
+            "  lfsr-seq strange.csv 2\n"
+            "  lfsr-seq coefficients.csv 3 --output results.txt\n"
+            "\n"
+            "For more information, see the README.md file."
+        ),
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
+
+    parser.add_argument(
+        "input_file",
+        metavar="INPUT_FILE",
+        help="CSV file containing LFSR coefficient vectors (one per line)",
+    )
+
+    parser.add_argument(
+        "gf_order",
+        metavar="GF_ORDER",
+        help="Galois field order (must be a prime or prime power, e.g., 2, 3, 4, 5, 7, 8)",
+    )
+
+    parser.add_argument(
+        "-o",
+        "--output",
+        metavar="OUTPUT_FILE",
+        default=None,
+        help="Output file path (default: INPUT_FILE.out)",
+    )
+
+    parser.add_argument(
+        "-v",
+        "--verbose",
+        action="store_true",
+        help="Enable verbose output (show detailed progress and information)",
+    )
+
+    parser.add_argument(
+        "-q",
+        "--quiet",
+        action="store_true",
+        help="Enable quiet mode (suppress non-essential output)",
+    )
+
+    parser.add_argument(
+        "--no-progress",
+        action="store_true",
+        help="Disable progress bar display",
+    )
+
+    parser.add_argument(
+        "--version",
+        action="version",
+        version=f"%(prog)s {__version__}",
+    )
+
+    parsed_args = parser.parse_args(args)
+
+    # Validate that verbose and quiet are not both set
+    if parsed_args.verbose and parsed_args.quiet:
+        parser.error("Cannot specify both --verbose and --quiet")
+
+    return parsed_args
+
+
 def cli_main() -> None:
     """
     Command-line interface entry point.
 
     This is the main entry point when the package is run as a script.
     It handles:
-    - Command-line argument parsing and validation
+    - Command-line argument parsing and validation using argparse
     - Input file existence checking
     - Output file creation
     - Exception handling and error reporting
 
-    The output file is automatically named by appending '.out' to the
-    input filename.
+    The output file defaults to INPUT_FILE.out if not specified.
 
     Usage:
-        lfsr-seq <coeffs_csv_filename> <GF_order>
+        lfsr-seq <coeffs_csv_filename> <GF_order> [options]
 
     Raises:
         SystemExit: If arguments are invalid, input file doesn't exist,
@@ -152,36 +236,56 @@ def cli_main() -> None:
         >>> # From command line:
         >>> # $ lfsr-seq strange.csv 2
         >>> # Creates strange.csv.out with analysis results
+        >>> # $ lfsr-seq strange.csv 2 --output results.txt
+        >>> # Creates results.txt with analysis results
     """
     try:
-        # Validate command line arguments
-        if len(sys.argv) != 3:
-            print("Usage: %s <coeffs_csv_filename> <GF_order>" % sys.argv[0])
-            print("       You should provide the filename for the LFSR")
-            print("       coefficients vectors csv as the first arg and")
-            print("       Galois Field order as the second arg.")
-            sys.exit(1)
+        args = parse_args()
 
-        input_file_name = sys.argv[1]
-        output_file_name = input_file_name + ".out"
-        gf_order = sys.argv[2]
+        input_file_name = args.input_file
+        gf_order = args.gf_order
+
+        # Determine output file name
+        if args.output:
+            output_file_name = args.output
+        else:
+            output_file_name = input_file_name + ".out"
 
         # Validate input file exists before opening output file
         if not os.path.exists(input_file_name):
-            print("ERROR: Input CSV file not found: %s" % input_file_name)
+            print(f"ERROR: Input CSV file not found: {input_file_name}", file=sys.stderr)
             sys.exit(1)
+
+        # Show verbose information if requested
+        if args.verbose:
+            print(f"Input file: {input_file_name}")
+            print(f"Output file: {output_file_name}")
+            print(f"GF order: {gf_order}")
+            print()
 
         # Open output file with context manager for proper resource management
         with open(output_file_name, "w", encoding="utf-8") as output_file:
-            main(input_file_name, gf_order, output_file)
+            # Pass flags to main function
+            main(
+                input_file_name,
+                gf_order,
+                output_file,
+                verbose=args.verbose,
+                quiet=args.quiet,
+                no_progress=args.no_progress,
+            )
+
+        if not args.quiet:
+            print(f"\nAnalysis complete. Results written to: {output_file_name}")
+
     except IOError as e:
-        print("ERROR: File I/O error: %s" % str(e))
+        print(f"ERROR: File I/O error: {e}", file=sys.stderr)
         sys.exit(1)
     except KeyboardInterrupt:
-        print("\nERROR: Interrupted by user")
+        print("\nERROR: Interrupted by user", file=sys.stderr)
         sys.exit(1)
     except Exception as e:
-        print("ERROR: Unexpected error: %s" % str(e))
+        print(f"ERROR: Unexpected error: {e}", file=sys.stderr)
         import traceback
 
         traceback.print_exc()

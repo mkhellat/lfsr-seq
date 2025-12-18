@@ -136,6 +136,7 @@ def lfsr_sequence_mapper(
     state_vector_space: Any,
     gf_order: int,
     output_file: Optional[TextIO] = None,
+    no_progress: bool = False,
 ) -> Tuple[Dict[int, List[Any]], Dict[int, int], int, int]:
     """
     Map all possible state vectors to their sequences and periods.
@@ -200,8 +201,9 @@ def lfsr_sequence_mapper(
                 if est_t_lst[ref + 1] > est_t_avg:
                     max_t_t = est_t_lst[ref + 1]
 
-            # Update progress display
-            _update_progress_display(counter, elp_t, max_t_t, state_vector_space_size)
+            # Update progress display (unless disabled)
+            if not no_progress:
+                _update_progress_display(counter, elp_t, max_t_t, state_vector_space_size)
 
         # Find sequence cycle if not already processed
         # O(1) lookup with set instead of O(n) with list
