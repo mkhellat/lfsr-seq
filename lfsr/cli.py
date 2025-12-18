@@ -115,13 +115,37 @@ def main(
 
         # Create vector space and analyze sequences
         V = VectorSpace(GF(gf_order), d)
-        lfsr_sequence_mapper(C, V, gf_order, output_file, no_progress=no_progress)
+        seq_dict, period_dict, max_period, periods_sum = lfsr_sequence_mapper(
+            C, V, gf_order, output_file, no_progress=no_progress
+        )
 
         # Finding all sequences of states of the parameterized
         # LFSR and their corresponding periods
 
         # Compute characteristic polynomial
-        characteristic_polynomial(CS, gf_order, output_file)
+        char_poly = characteristic_polynomial(CS, gf_order, output_file)
+
+        # Export in requested format if not text
+        if output_format != "text" and output_file is not None:
+            from lfsr.export import get_export_function
+            from lfsr.polynomial import polynomial_order
+
+            # Get polynomial order
+            char_poly_order = polynomial_order(char_poly, d, gf_order)
+
+            # Get export function and export
+            export_func = get_export_function(output_format)
+            export_func(
+                seq_dict,
+                period_dict,
+                max_period,
+                periods_sum,
+                char_poly,
+                char_poly_order,
+                coeffs_vector,
+                gf_order,
+                output_file,
+            )
 
         # Finding characteristic polynomial of the corresponding
         # LFSR state update matrix over GF(gf_order), obtaining
