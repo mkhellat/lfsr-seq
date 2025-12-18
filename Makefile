@@ -32,7 +32,7 @@ help:
 	@echo "  make test-cov      - Run tests with coverage report"
 	@echo "  make lint          - Run linting checks (ruff)"
 	@echo "  make format        - Format code with black"
-	@echo "  make format-check   - Check code formatting without modifying"
+	@echo "  make format-check  - Check code formatting without modifying"
 	@echo "  make type-check    - Run type checking with mypy"
 	@echo "  make check-env     - Check environment setup"
 	@echo "  make smoke-test    - Run smoke tests"

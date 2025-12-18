@@ -47,9 +47,9 @@ while [ $# -gt 0 ]; do
             echo "Usage: $0 [OPTIONS]"
             echo ""
             echo "Options:"
-            echo "  --dev                 Install with development dependencies"
-            echo "  --skip-sagemath-check Skip SageMath availability check"
-            echo "  --no-venv             Skip virtual environment creation"
+            echo "  --dev                  Install with development dependencies"
+            echo "  --skip-sagemath-check  Skip SageMath availability check"
+            echo "  --no-venv              Skip virtual environment creation"
             echo "  --help, -h             Show this help message"
             echo ""
             exit 0
