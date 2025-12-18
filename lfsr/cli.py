@@ -13,15 +13,15 @@ import os
 import sys
 from typing import Optional, TextIO
 
-from sage.all import *
+# Try to import sage, but don't fail until it's actually needed
+_sage_available = False
+try:
+    from sage.all import *
+    _sage_available = True
+except ImportError:
+    pass
 
 from lfsr import __version__
-from lfsr.analysis import lfsr_sequence_mapper
-from lfsr.core import build_state_update_matrix, compute_matrix_order
-from lfsr.field import validate_coefficient_vector, validate_gf_order
-from lfsr.formatter import dump, intro, section, subsection
-from lfsr.io import read_and_validate_csv
-from lfsr.polynomial import characteristic_polynomial
 
 
 def main(
@@ -61,6 +61,28 @@ def main(
         >>> with open("output.txt", "w") as f:
         ...     main("coefficients.csv", "2", output_file=f)
     """
+    # Check if sage is available
+    if not _sage_available:
+        print(
+            "ERROR: SageMath is required but not installed.\n"
+            "Please install SageMath using one of the following methods:\n"
+            "  Debian/Ubuntu: sudo apt-get install sagemath\n"
+            "  Fedora/RHEL:   sudo dnf install sagemath\n"
+            "  Arch Linux:    sudo pacman -S sagemath\n"
+            "  macOS:         brew install sagemath\n"
+            "  Conda:         conda install -c conda-forge sage\n",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+    
+    # Import sage-dependent modules
+    from lfsr.analysis import lfsr_sequence_mapper
+    from lfsr.core import build_state_update_matrix, compute_matrix_order
+    from lfsr.field import validate_coefficient_vector, validate_gf_order
+    from lfsr.formatter import dump, intro, section, subsection
+    from lfsr.io import read_and_validate_csv
+    from lfsr.polynomial import characteristic_polynomial
+    
     # Validate GF order
     gf_order = validate_gf_order(gf_order_str)
 
