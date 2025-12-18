@@ -29,3 +29,7 @@ MIN_GF_ORDER = 2  # Minimum valid Galois field order
 # Text wrapping constants
 TEXT_WRAP_WIDTH = 60  # Standard text wrapping width
 TEXT_INDENT = 2  # Standard text indent for wrapped lines
+
+# Security constants
+MAX_FILE_SIZE = 10 * 1024 * 1024  # 10 MB maximum file size
+MAX_CSV_ROWS = 10000  # Maximum number of CSV rows to process
