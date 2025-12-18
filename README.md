@@ -2,15 +2,36 @@
 
 **Linear Feedback Shift Register (LFSR) Sequence Analysis Tool**
 
-A tool for analyzing Linear Feedback Shift Register sequences, computing periods, and determining characteristic polynomials over finite fields. This tool is useful for cryptographic research, stream cipher analysis, and educational purposes.
+A comprehensive, production-ready tool for analyzing Linear Feedback Shift Register sequences, computing periods, determining characteristic polynomials, and performing advanced cryptanalysis over finite fields. This tool is useful for cryptographic research, stream cipher analysis, educational purposes, and security evaluation.
+
+[![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
+[![License: GPL v3+](https://img.shields.io/badge/license-GPL%20v3+-green.svg)](https://www.gnu.org/licenses/gpl-3.0)
+[![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 
 ## Features
 
-- Analyze LFSR sequences and compute periods
-- Determine characteristic polynomials and their orders
-- Support for multiple finite fields (GF(p) where p is prime)
-- Process multiple LFSR coefficient vectors from CSV files
-- Detailed output with sequence tables and polynomial factorization
+### Core Analysis
+- **Sequence Analysis**: Analyze all possible LFSR state sequences and compute periods
+- **Characteristic Polynomials**: Determine characteristic polynomials and their orders
+- **Matrix Operations**: Compute state update matrices and their orders
+- **Polynomial Factorization**: Factor characteristic polynomials and analyze factor orders
+
+### Advanced Features
+- **Berlekamp-Massey Algorithm**: Synthesize LFSRs from sequences
+- **Linear Complexity**: Calculate linear complexity and complexity profiles
+- **Statistical Analysis**: Frequency tests, runs tests, autocorrelation, periodicity detection
+- **Multi-format Export**: Export results in JSON, CSV, XML, or plain text formats
+
+### Field Support
+- **Prime Fields**: Full support for GF(p) where p is prime
+- **Prime Power Fields**: Support for GF(pⁿ) extension fields
+- **Comprehensive Validation**: Input validation for field orders and coefficients
+
+### User Experience
+- **Modern CLI**: Command-line interface with argparse, help system, and multiple options
+- **Progress Tracking**: Real-time progress bars with time estimates
+- **Verbose/Quiet Modes**: Control output verbosity
+- **Security Hardened**: Path traversal protection, file size limits, input sanitization
 
 ## Prerequisites
 
@@ -128,10 +149,16 @@ source .venv/bin/activate
 - `make install-dev` - Install with development dependencies (auto-creates venv)
 - `make dev-setup` - Create venv, check environment, and install dev dependencies
 - `make test` - Run tests (uses venv if available)
+- `make test-cov` - Run tests with coverage report
 - `make lint` - Run linting (uses venv if available)
 - `make format` - Format code (uses venv if available)
+- `make format-check` - Check code formatting without modifying
+- `make type-check` - Run type checking (uses venv if available)
 - `make build` - Build distribution packages (uses venv if available)
+- `make clean` - Remove build artifacts
+- `make distclean` - Remove all generated files
 - `make clean-venv` - Remove virtual environment
+- `make ci` - Run all CI checks (lint, format-check, type-check, test)
 
 **Note:** All Make targets automatically create and use a virtual environment (`.venv`) to ensure PEP 668 compliance on modern Linux distributions.
 
@@ -140,18 +167,57 @@ source .venv/bin/activate
 ### Basic Usage
 
 ```bash
-./lfsr-seq <coeffs_csv_filename> <GF_order>
+lfsr-seq <input_file> <gf_order> [options]
 ```
 
 **Example:**
 ```bash
-./lfsr-seq strange.csv 2
+lfsr-seq strange.csv 2
 ```
 
 This will:
 - Read LFSR coefficients from `strange.csv`
 - Analyze sequences over GF(2)
 - Generate output in `strange.csv.out`
+
+### Command-Line Options
+
+```bash
+lfsr-seq <input_file> <gf_order> [options]
+
+Positional arguments:
+  input_file            CSV file containing LFSR coefficient vectors
+  gf_order              Galois field order (prime or prime power)
+
+Optional arguments:
+  -h, --help            Show help message and exit
+  --version             Show version and exit
+  -o, --output FILE     Specify output file (default: input_file.out)
+  -v, --verbose         Enable verbose output
+  -q, --quiet           Enable quiet mode (suppress non-essential output)
+  --no-progress         Disable progress bar display
+  --format {text,json,csv,xml}
+                        Output format (default: text)
+```
+
+**Examples:**
+
+```bash
+# Basic analysis
+lfsr-seq coefficients.csv 2
+
+# Verbose output with custom output file
+lfsr-seq coefficients.csv 2 --verbose --output results.txt
+
+# Export to JSON format
+lfsr-seq coefficients.csv 2 --format json --output results.json
+
+# Quiet mode (no progress bar)
+lfsr-seq coefficients.csv 2 --quiet --no-progress
+
+# Analyze over GF(3)
+lfsr-seq coefficients.csv 3
+```
 
 ### Input Format
 
@@ -165,17 +231,195 @@ The CSV file should contain one or more rows of LFSR coefficients. Each row repr
 
 Each coefficient should be in the range [0, GF_order-1].
 
-### Output
+**Security Limits:**
+- Maximum file size: 10 MB
+- Maximum CSV rows: 10,000
+- Path traversal protection enabled
+
+### Output Formats
+
+The tool supports multiple output formats:
+
+**Text Format (Default):**
+Human-readable formatted output with tables and sections.
+
+**JSON Format:**
+Structured JSON output suitable for programmatic processing:
+```bash
+lfsr-seq strange.csv 2 --format json --output results.json
+```
+
+**CSV Format:**
+Tabular CSV output:
+```bash
+lfsr-seq strange.csv 2 --format csv --output results.csv
+```
+
+**XML Format:**
+Structured XML output:
+```bash
+lfsr-seq strange.csv 2 --format xml --output results.xml
+```
+
+### Output Contents
 
 The tool generates detailed output including:
 - State update matrix
+- Matrix order (period of state transitions)
 - All possible state sequences with their periods
 - Characteristic polynomial and its order
 - Factorization of the characteristic polynomial
+- Statistical analysis (when using Python API)
 
 Output is written to both:
-- Console (summary)
-- Output file (`<input_file>.out` with full details)
+- Console (summary, unless `--quiet` is used)
+- Output file (full details)
+
+## Python API
+
+The tool can also be used as a Python library:
+
+```python
+from lfsr.cli import main
+from lfsr.synthesis import berlekamp_massey, linear_complexity
+from lfsr.statistics import statistical_summary
+from lfsr.core import build_state_update_matrix
+
+# Analyze LFSR from CSV
+with open("output.txt", "w") as f:
+    main("coefficients.csv", "2", output_file=f)
+
+# Synthesize LFSR from sequence using Berlekamp-Massey
+sequence = [1, 0, 1, 1, 0, 1, 0, 0, 1]
+poly, complexity = berlekamp_massey(sequence, 2)
+print(f"Linear complexity: {complexity}")
+
+# Statistical analysis
+stats = statistical_summary(sequence, 2)
+print(f"Frequency ratio: {stats['frequency']['ratio']}")
+print(f"Total runs: {stats['runs']['total_runs']}")
+
+# Build state update matrix
+coeffs = [1, 1, 0, 1]
+C, CS = build_state_update_matrix(coeffs, 2)
+```
+
+## Usage Examples
+
+### Example 1: Basic Analysis
+
+```bash
+# Analyze LFSR over GF(2)
+lfsr-seq strange.csv 2
+```
+
+### Example 2: Multiple LFSR Configurations
+
+Create a CSV file with multiple coefficient vectors:
+
+```csv
+1,0,1,1
+1,1,0,1,1
+1,1,1,0,1,1
+```
+
+Then run:
+```bash
+lfsr-seq my_lfsrs.csv 2
+```
+
+The tool will process each row as a separate LFSR configuration.
+
+### Example 3: Non-Binary Fields
+
+```bash
+# Analyze LFSR over GF(3)
+lfsr-seq coefficients.csv 3
+
+# Analyze LFSR over GF(4) = GF(2²)
+lfsr-seq coefficients.csv 4
+```
+
+### Example 4: Export to JSON
+
+```bash
+lfsr-seq strange.csv 2 --format json --output results.json
+```
+
+The JSON file contains structured data:
+```json
+{
+  "metadata": {
+    "timestamp": "2025-01-XX...",
+    "gf_order": 2,
+    "coefficients": [1, 1, 0, 1],
+    "lfsr_degree": 4
+  },
+  "characteristic_polynomial": {
+    "polynomial": "t^4 + t^3 + t + 1",
+    "order": "15"
+  },
+  "sequences": { ... },
+  "statistics": { ... }
+}
+```
+
+### Example 5: Verbose Mode
+
+```bash
+lfsr-seq strange.csv 2 --verbose
+```
+
+Shows detailed information about input files, output location, and processing steps.
+
+## Project Structure
+
+```
+lfsr-seq/
+├── lfsr/                    # Main package
+│   ├── __init__.py         # Package initialization
+│   ├── core.py             # Core LFSR mathematics
+│   ├── analysis.py         # Sequence analysis algorithms
+│   ├── polynomial.py       # Polynomial operations
+│   ├── field.py            # Finite field operations
+│   ├── io.py               # Input/output handling
+│   ├── formatter.py        # Output formatting
+│   ├── cli.py              # Command-line interface
+│   ├── synthesis.py         # Berlekamp-Massey & LFSR synthesis
+│   ├── statistics.py       # Statistical analysis tools
+│   ├── export.py           # Multi-format export functions
+│   └── constants.py        # Named constants
+├── tests/                   # Test suite
+│   ├── test_core.py        # Core function tests
+│   ├── test_field.py       # Field validation tests
+│   ├── test_polynomial.py  # Polynomial operation tests
+│   ├── test_io.py          # I/O operation tests
+│   ├── test_integration.py # Integration tests
+│   ├── test_edge_cases.py  # Edge case tests
+│   ├── conftest.py         # Pytest configuration
+│   └── fixtures/           # Test data
+├── docs/                    # Documentation
+│   ├── conf.py             # Sphinx configuration
+│   ├── index.rst           # Documentation index
+│   ├── installation.rst    # Installation guide
+│   ├── user_guide.rst      # User guide
+│   ├── api/                # API reference
+│   ├── mathematical_background.rst
+│   └── examples.rst
+├── scripts/                 # Utility scripts
+│   ├── check-environment.sh
+│   ├── smoke-test.sh
+│   ├── test-build.sh
+│   └── test-install.sh
+├── lfsr-seq                # Main executable script
+├── bootstrap               # Automated installation script
+├── Makefile                # Development tasks
+├── pyproject.toml          # Project metadata and build config
+├── requirements.txt        # Runtime dependencies
+├── requirements-dev.txt    # Development dependencies
+├── strange.csv             # Sample input file
+└── README.md               # This file
+```
 
 ## Development
 
@@ -223,8 +467,14 @@ make test
 # Run tests with coverage
 make test-cov
 
-# Run smoke tests
-make smoke-test
+# Run specific test file
+pytest tests/test_core.py -v
+
+# Run tests matching a pattern
+pytest tests/ -k "test_matrix" -v
+
+# Skip slow tests
+pytest tests/ -m "not slow"
 ```
 
 ### Code Quality
@@ -254,6 +504,19 @@ make build
 
 This creates distribution packages in the `dist/` directory.
 
+### Building Documentation
+
+```bash
+# Install Sphinx (if not already installed)
+pip install sphinx sphinx-rtd-theme
+
+# Build documentation
+cd docs
+make html
+
+# Documentation will be in docs/_build/html/
+```
+
 ### Cleaning
 
 ```bash
@@ -262,50 +525,10 @@ make clean
 
 # Deep clean (remove all generated files)
 make distclean
+
+# Remove virtual environment
+make clean-venv
 ```
-
-## Project Structure
-
-```
-lfsr-seq/
-├── lfsr-seq              # Main script
-├── bootstrap             # Automated installation script
-├── Makefile              # Development tasks
-├── pyproject.toml        # Project metadata and build config
-├── requirements.txt      # Runtime dependencies
-├── requirements-dev.txt  # Development dependencies
-├── scripts/
-│   ├── check-environment.sh  # Environment validation
-│   └── smoke-test.sh         # Basic functionality tests
-├── strange.csv           # Sample input file
-└── README.md             # This file
-```
-
-## Usage Examples
-
-### Example 1: Basic Analysis
-
-```bash
-# Analyze LFSR over GF(2)
-./lfsr-seq strange.csv 2
-```
-
-### Example 2: Multiple LFSR Configurations
-
-Create a CSV file with multiple coefficient vectors:
-
-```csv
-1,0,1,1
-1,1,0,1,1
-1,1,1,0,1,1
-```
-
-Then run:
-```bash
-./lfsr-seq my_lfsrs.csv 2
-```
-
-The tool will process each row as a separate LFSR configuration.
 
 ## Verification
 
@@ -327,7 +550,7 @@ make smoke-test
 
 ### "SageMath not found"
 
-Install SageMath via your system package manager (see Prerequisites section).
+Install SageMath via your system package manager (see Prerequisites section). The tool will skip tests that require SageMath if it's not available.
 
 ### "Permission denied" on script execution
 
@@ -339,6 +562,11 @@ chmod +x lfsr-seq
 Or run directly with Python:
 ```bash
 python3 lfsr-seq strange.csv 2
+```
+
+Or use the installed command (after installation):
+```bash
+lfsr-seq strange.csv 2
 ```
 
 ### "Module not found" after installation
@@ -368,6 +596,18 @@ source .venv/bin/activate
 pip install -e ".[dev]"
 ```
 
+### Tests fail with "SageMath not available"
+
+This is expected if SageMath is not installed. Tests will automatically skip if SageMath is not available. Install SageMath to run the full test suite.
+
+### "File too large" error
+
+The tool has security limits:
+- Maximum file size: 10 MB
+- Maximum CSV rows: 10,000
+
+If you need to process larger files, you can modify the limits in `lfsr/constants.py`.
+
 ## Mathematical Background
 
 This tool is motivated by exercise 2 of Tanja Lange's cryptology course:
@@ -375,13 +615,88 @@ This tool is motivated by exercise 2 of Tanja Lange's cryptology course:
 
 The tool finds periods of all possible states with *d* number of entries defined over *GF(gf_order)* for a specific LFSR, and arranges them in sequences. The order of the Characteristic Polynomial of the LFSR is also obtained alongside the orders of its factors to be compared with the periods of the listed sequences.
 
+### Key Concepts
+
+- **Linear Feedback Shift Register (LFSR)**: A shift register whose input is a linear function of its previous state
+- **State Update Matrix**: Matrix representation of LFSR state transitions
+- **Characteristic Polynomial**: Polynomial whose roots determine LFSR properties
+- **Period**: Length of cycle before LFSR returns to initial state
+- **Linear Complexity**: Length of shortest LFSR that can generate a sequence
+- **Berlekamp-Massey Algorithm**: Algorithm for synthesizing LFSRs from sequences
+
+For detailed mathematical background, see the [documentation](docs/mathematical_background.rst).
+
 ## Contributing
 
 Contributions are welcome! Please ensure:
-- Code follows the project's style guidelines
-- Tests pass (`make test`)
-- Code is formatted (`make format`)
-- Linting passes (`make lint`)
+
+1. **Code Quality:**
+   - Code follows the project's style guidelines (black formatting)
+   - Tests pass (`make test`)
+   - Code is formatted (`make format`)
+   - Linting passes (`make lint`)
+   - Type checking passes (`make type-check`)
+
+2. **Testing:**
+   - Add tests for new features
+   - Maintain test coverage above 90%
+   - Run full test suite before submitting
+
+3. **Documentation:**
+   - Update docstrings for new functions
+   - Add examples to docstrings
+   - Update README if needed
+
+4. **Commit Messages:**
+   - Use clear, descriptive commit messages
+   - Reference issue numbers if applicable
+
+### Development Workflow
+
+```bash
+# 1. Create a feature branch
+git checkout -b feature/my-feature
+
+# 2. Make changes and test
+make test
+make lint
+make format
+
+# 3. Commit changes
+git commit -m "Add feature X"
+
+# 4. Push and create pull request
+git push origin feature/my-feature
+```
+
+## Testing
+
+The project includes comprehensive test coverage:
+
+- **Unit Tests**: Test individual functions and modules
+- **Integration Tests**: Test complete workflows
+- **Edge Case Tests**: Test boundary conditions and special cases
+- **Test Fixtures**: Known LFSR configurations for validation
+
+Run tests with:
+```bash
+make test          # Run all tests
+make test-cov      # Run with coverage report
+pytest tests/ -v   # Run with verbose output
+```
+
+Test coverage is maintained above 90% and enforced in CI.
+
+## CI/CD
+
+The project uses GitHub Actions for continuous integration:
+
+- **Automated Testing**: Tests run on Python 3.8-3.13
+- **Linting**: Automated code quality checks
+- **Type Checking**: Automated type validation
+- **Build Verification**: Ensures package builds correctly
+
+See `.github/workflows/ci.yml` for configuration.
 
 ## License
 
@@ -401,3 +716,15 @@ See also https://www.gnu.org/licenses/gpl.html
 
 - Inspired by Tanja Lange's cryptology course exercises
 - Built with [SageMath](https://www.sagemath.org/)
+- Uses modern Python packaging standards (PEP 517, PEP 518, PEP 621)
+
+## Related Resources
+
+- [SageMath Documentation](https://doc.sagemath.org/)
+- [Tanja Lange's Cryptology Course](https://www.hyperelliptic.org/tanja/teaching/CS22/)
+- [GNU GPL License](https://www.gnu.org/licenses/gpl.html)
+
+---
+
+**Version**: 0.2.0  
+**Last Updated**: 2025-01-XX
