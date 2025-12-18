@@ -27,7 +27,22 @@ echo "  ✓ Python version: $PYTHON_VERSION"
 
 # Check SageMath
 echo "Checking SageMath..."
-if ! python3 -c "import sage.all" 2>/dev/null; then
+SAGE_FOUND=false
+SAGE_VERSION="unknown"
+
+# First, try to import sage.all directly with python3
+if python3 -c "import sage.all" 2>/dev/null; then
+    SAGE_VERSION=$(python3 -c "import sage; print(sage.__version__)" 2>/dev/null || echo "unknown")
+    SAGE_FOUND=true
+# If that fails, check if sage command exists and can import sage.all
+elif command -v sage >/dev/null 2>&1; then
+    if sage -c "import sage.all" >/dev/null 2>&1; then
+        SAGE_VERSION=$(sage --version 2>/dev/null | head -n1 || echo "unknown")
+        SAGE_FOUND=true
+    fi
+fi
+
+if [ "$SAGE_FOUND" = "false" ]; then
     echo "  ✗ ERROR: SageMath not found"
     echo ""
     echo "  Please install SageMath via your system package manager:"
@@ -39,7 +54,6 @@ if ! python3 -c "import sage.all" 2>/dev/null; then
     exit 1
 fi
 
-SAGE_VERSION=$(python3 -c "import sage; print(sage.__version__)" 2>/dev/null || echo "unknown")
 echo "  ✓ SageMath version: $SAGE_VERSION"
 
 # Check required Python standard library modules

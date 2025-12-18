@@ -128,8 +128,22 @@ fi
 # Step 4: Check SageMath (optional)
 echo "[4/7] Checking SageMath..."
 if [ "$SKIP_SAGEMATH_CHECK" = "false" ]; then
+    SAGE_FOUND=false
+    SAGE_VERSION="unknown"
+    
+    # First, try to import sage.all directly with python3
     if python3 -c "import sage.all" 2>/dev/null; then
         SAGE_VERSION=$(python3 -c "import sage; print(sage.__version__)" 2>/dev/null || echo "unknown")
+        SAGE_FOUND=true
+    # If that fails, check if sage command exists and can import sage.all
+    elif command -v sage >/dev/null 2>&1; then
+        if sage -c "import sage.all" >/dev/null 2>&1; then
+            SAGE_VERSION=$(sage --version 2>/dev/null | head -n1 || echo "unknown")
+            SAGE_FOUND=true
+        fi
+    fi
+    
+    if [ "$SAGE_FOUND" = "true" ]; then
         echo "  ✓ SageMath $SAGE_VERSION found"
     else
         echo "  ⚠ WARNING: SageMath not found"
