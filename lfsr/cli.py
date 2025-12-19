@@ -10,6 +10,7 @@ This module provides the main entry point and CLI logic for the lfsr-seq tool.
 import argparse
 import datetime
 import os
+import subprocess
 import sys
 from typing import Optional, TextIO
 
@@ -19,7 +20,28 @@ try:
     from sage.all import *
     _sage_available = True
 except ImportError:
-    pass
+    # If direct import fails, try to find SageMath via the 'sage' command
+    # This is needed when running in a virtual environment that doesn't have
+    # access to system site-packages
+    try:
+        # Get SageMath's Python path by running sage -c
+        result = subprocess.run(
+            ["sage", "-c", "import sys; print('\\n'.join(sys.path))"],
+            capture_output=True,
+            text=True,
+            timeout=5,
+        )
+        if result.returncode == 0:
+            sage_paths = result.stdout.strip().split("\n")
+            # Add SageMath's site-packages to sys.path
+            for path in sage_paths:
+                if path and path not in sys.path and os.path.isdir(path):
+                    sys.path.insert(0, path)
+            # Try importing again
+            from sage.all import *
+            _sage_available = True
+    except (subprocess.TimeoutExpired, subprocess.SubprocessError, FileNotFoundError, ImportError):
+        pass
 
 from lfsr import __version__
 
