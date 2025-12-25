@@ -236,7 +236,6 @@ docs: venv
 	@echo "Building Sphinx documentation..."
 	@if [ -d ".venv" ]; then \
 		.venv/bin/pip install sphinx sphinx-rtd-theme >/dev/null 2>&1 || true; \
-		cd docs && .venv/bin/sphinx-build -b html . _build/html || \
 		cd docs && ../.venv/bin/sphinx-build -b html . _build/html; \
 		echo ""; \
 		echo "Documentation built in docs/_build/html/"; \
@@ -258,7 +257,6 @@ docs-live: venv
 	@echo "Starting live documentation server..."
 	@if [ -d ".venv" ]; then \
 		.venv/bin/pip install sphinx-autobuild >/dev/null 2>&1 || true; \
-		cd docs && .venv/bin/sphinx-autobuild . _build/html --host 0.0.0.0 --port 8000 || \
 		cd docs && ../.venv/bin/sphinx-autobuild . _build/html --host 0.0.0.0 --port 8000; \
 	else \
 		python3 -m pip install sphinx-autobuild >/dev/null 2>&1 || true; \

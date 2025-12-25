@@ -43,7 +43,7 @@ Analyze LFSR over GF(3):
    lfsr-seq gf3.csv 3
 
 Export to JSON
--------------
+~~~~~~~~~~~~~~
 
 Export results in JSON format:
 

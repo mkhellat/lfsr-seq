@@ -6,24 +6,29 @@ The export module provides functions for exporting LFSR analysis results in vari
 .. automodule:: lfsr.export
    :members:
    :undoc-members:
-   :show-inheritance:
+   :show-inheritance: False
+   :imported-members: False
 
 Functions
 ---------
 
 .. autofunction:: lfsr.export.export_to_json
+   :no-index:
 
 Exports analysis results to JSON format with structured metadata and data.
 
 .. autofunction:: lfsr.export.export_to_csv
+   :no-index:
 
 Exports analysis results to CSV format with tabular data.
 
 .. autofunction:: lfsr.export.export_to_xml
+   :no-index:
 
 Exports analysis results to XML format with hierarchical structure.
 
 .. autofunction:: lfsr.export.get_export_function
+   :no-index:
 
 Returns the appropriate export function for a given format name.
 

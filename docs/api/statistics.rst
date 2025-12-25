@@ -6,32 +6,39 @@ The statistics module provides statistical tests and analysis functions for eval
 .. automodule:: lfsr.statistics
    :members:
    :undoc-members:
-   :show-inheritance:
+   :show-inheritance: False
+   :imported-members: False
 
 Functions
 ---------
 
 .. autofunction:: lfsr.statistics.frequency_test
+   :no-index:
 
 Performs frequency (monobit) test on a sequence to check if zeros and ones are approximately equal.
 
 .. autofunction:: lfsr.statistics.runs_test
+   :no-index:
 
 Performs runs test on a binary sequence to check if the number of runs is consistent with randomness.
 
 .. autofunction:: lfsr.statistics.autocorrelation
+   :no-index:
 
 Computes the autocorrelation of a sequence at a given lag.
 
 .. autofunction:: lfsr.statistics.periodicity_test
+   :no-index:
 
 Tests for periodic patterns in a sequence.
 
 .. autofunction:: lfsr.statistics.linear_complexity_profile
+   :no-index:
 
 Computes the linear complexity profile of a sequence, showing how complexity evolves.
 
 .. autofunction:: lfsr.statistics.statistical_summary
+   :no-index:
 
 Provides a comprehensive statistical summary of a sequence, including multiple tests.
 

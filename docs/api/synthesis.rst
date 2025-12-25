@@ -6,24 +6,29 @@ The synthesis module provides algorithms for synthesizing LFSRs from sequences, 
 .. automodule:: lfsr.synthesis
    :members:
    :undoc-members:
-   :show-inheritance:
+   :show-inheritance: False
+   :imported-members: False
 
 Functions
 ---------
 
 .. autofunction:: lfsr.synthesis.berlekamp_massey
+   :no-index:
 
 Implements the Berlekamp-Massey algorithm for finding the shortest LFSR that can generate a given sequence.
 
 .. autofunction:: lfsr.synthesis.linear_complexity
+   :no-index:
 
 Computes the linear complexity of a sequence, which is the length of the shortest LFSR that can generate it.
 
 .. autofunction:: lfsr.synthesis.extract_sequence_from_lfsr
+   :no-index:
 
 Extracts a sequence from an LFSR by iterating through state transitions.
 
 .. autofunction:: lfsr.synthesis.synthesize_lfsr_from_sequence
+   :no-index:
 
 Convenience function that synthesizes an LFSR from a sequence using Berlekamp-Massey.
 

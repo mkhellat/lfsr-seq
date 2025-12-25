@@ -6,16 +6,19 @@ The polynomial module provides functions for working with characteristic polynom
 .. automodule:: lfsr.polynomial
    :members:
    :undoc-members:
-   :show-inheritance:
+   :show-inheritance: False
+   :imported-members: False
 
 Functions
 ---------
 
 .. autofunction:: lfsr.polynomial.characteristic_polynomial
+   :no-index:
 
 Computes the characteristic polynomial of the state update matrix using the determinant of (xI - C).
 
 .. autofunction:: lfsr.polynomial.polynomial_order
+   :no-index:
 
 Computes the order of a polynomial over a finite field, which is the smallest positive integer n such that the polynomial divides x^n - 1.
 

@@ -6,20 +6,24 @@ The field module provides validation functions for finite field orders and coeff
 .. automodule:: lfsr.field
    :members:
    :undoc-members:
-   :show-inheritance:
+   :show-inheritance: False
+   :imported-members: False
 
 Functions
 ---------
 
 .. autofunction:: lfsr.field.validate_gf_order
+   :no-index:
 
 Validates that a field order string represents a valid finite field order (prime or prime power).
 
 .. autofunction:: lfsr.field.validate_coefficient
+   :no-index:
 
 Validates that a coefficient value is within the valid range for the given field order.
 
 .. autofunction:: lfsr.field.validate_coefficient_vector
+   :no-index:
 
 Validates an entire coefficient vector, checking that all coefficients are valid for the field order.
 

@@ -6,20 +6,25 @@ The CLI module provides the command-line interface for the lfsr-seq tool, includ
 .. automodule:: lfsr.cli
    :members:
    :undoc-members:
-   :show-inheritance:
+   :show-inheritance: False
+   :imported-members: False
+   :imported-members: False
 
 Functions
 ---------
 
 .. autofunction:: lfsr.cli.main
+   :no-index:
 
 Main function that performs LFSR analysis from command-line arguments or programmatic calls.
 
 .. autofunction:: lfsr.cli.parse_args
+   :no-index:
 
 Parses command-line arguments and returns an argparse Namespace.
 
 .. autofunction:: lfsr.cli.cli_main
+   :no-index:
 
 Entry point for the command-line interface, handles errors and calls main.
 

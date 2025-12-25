@@ -86,7 +86,7 @@ Examples
 --------
 
 Basic Analysis
-~~~~~~~~~~~~~
+~~~~~~~~~~~~~~
 
 .. code-block:: bash
 

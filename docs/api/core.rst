@@ -4,5 +4,7 @@ Core Module
 .. automodule:: lfsr.core
    :members:
    :undoc-members:
-   :show-inheritance:
+   :show-inheritance: False
+   :imported-members: False
+   :imported-members: False
 

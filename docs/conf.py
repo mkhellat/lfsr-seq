@@ -5,6 +5,14 @@
 
 import os
 import sys
+import warnings
+
+# CRITICAL: Suppress SageMath deprecation warnings BEFORE any imports
+# These warnings cause Sphinx to hang during autodoc processing
+warnings.filterwarnings("ignore", category=DeprecationWarning)
+warnings.filterwarnings("ignore", message=".*is superseded.*")
+warnings.filterwarnings("ignore", message=".*Importing.*from here is deprecated.*")
+warnings.filterwarnings("ignore", message=".*combinat.species.*")
 
 # Add the project root to the path
 sys.path.insert(0, os.path.abspath(".."))
@@ -46,9 +54,44 @@ napoleon_include_private_with_doc = False
 autodoc_member_order = "bysource"
 autodoc_default_options = {
     "members": True,
-    "undoc-members": True,
-    "show-inheritance": True,
+    "undoc-members": False,  # Don't show undocumented members to reduce noise
+    "show-inheritance": False,  # Disable to avoid SageMath inheritance chains
+    "imported-members": False,  # Don't show imported members from SageMath
+    "special-members": False,  # Don't show special members (__init__, etc.) unless documented
 }
+
+# Ignore certain members that come from SageMath
+autodoc_mock_imports = []
+
+# Skip certain modules during autodoc to avoid hanging
+autodoc_skip_member = lambda app, what, name, obj, skip, options: (
+    skip or name.startswith("_") or "sage" in str(type(obj))
+)
+
+# Suppress warnings from SageMath's internal docstrings and formatting issues
+suppress_warnings = [
+    "autodoc.import_object",
+    "ref.python",
+    "autodoc",
+    "ref.ref",
+    "ref.doc",
+]
+
+# Skip members that cause issues with SageMath
+def autodoc_skip_member(app, what, name, obj, skip, options):
+    """Skip problematic members during autodoc."""
+    # Skip private members
+    if name.startswith("_"):
+        return True
+    # Skip if it's a SageMath object (check type string)
+    if hasattr(obj, "__module__") and obj.__module__ and "sage" in obj.__module__:
+        if name not in ["GF", "MatrixSpace", "VectorSpace", "SR"]:  # Keep essential ones
+            return True
+    return skip
+
+def setup(app):
+    """Setup function for Sphinx."""
+    app.connect("autodoc-skip-member", autodoc_skip_member)
 
 # Intersphinx mapping
 intersphinx_mapping = {
@@ -64,7 +107,6 @@ project_description = (
 
 # HTML theme options
 html_theme_options = {
-    "display_version": True,
     "prev_next_buttons_location": "bottom",
     "style_external_links": False,
     "vcs_pageview_mode": "",

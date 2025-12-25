@@ -6,12 +6,15 @@ The analysis module provides functions for analyzing LFSR sequences, computing p
 .. automodule:: lfsr.analysis
    :members:
    :undoc-members:
-   :show-inheritance:
+   :show-inheritance: False
+   :imported-members: False
+   :imported-members: False
 
 Functions
 ---------
 
 .. autofunction:: lfsr.analysis.lfsr_sequence_mapper
+   :no-index:
 
 This is the main function for mapping all possible state vectors to their sequences and periods. It enumerates the entire state space and identifies all cycles.
 

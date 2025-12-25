@@ -6,28 +6,34 @@ The formatter module provides functions for formatting and displaying LFSR analy
 .. automodule:: lfsr.formatter
    :members:
    :undoc-members:
-   :show-inheritance:
+   :show-inheritance: False
+   :imported-members: False
 
 Functions
 ---------
 
 .. autofunction:: lfsr.formatter.dump
+   :no-index:
 
 Writes text to output file and/or console based on mode.
 
 .. autofunction:: lfsr.formatter.intro
+   :no-index:
 
 Prints the introduction header with tool information.
 
 .. autofunction:: lfsr.formatter.section
+   :no-index:
 
 Prints a section header with title and description.
 
 .. autofunction:: lfsr.formatter.subsection
+   :no-index:
 
 Prints a subsection header with title and description.
 
 .. autofunction:: lfsr.formatter.dump_seq_row
+   :no-index:
 
 Formats and displays a sequence row in a table format.
 

@@ -6,24 +6,29 @@ The I/O module provides functions for reading and validating CSV files containin
 .. automodule:: lfsr.io
    :members:
    :undoc-members:
-   :show-inheritance:
+   :show-inheritance: False
+   :imported-members: False
 
 Functions
 ---------
 
 .. autofunction:: lfsr.io.sanitize_file_path
+   :no-index:
 
 Sanitizes file paths to prevent directory traversal attacks.
 
 .. autofunction:: lfsr.io.validate_csv_file
+   :no-index:
 
 Validates that a CSV file exists, is readable, and meets size constraints.
 
 .. autofunction:: lfsr.io.read_and_validate_csv
+   :no-index:
 
 Reads and validates CSV file containing coefficient vectors, with comprehensive validation.
 
 .. autofunction:: lfsr.io.read_csv_coefficients
+   :no-index:
 
 Simple CSV reader without validation (for internal use).
 
