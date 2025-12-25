@@ -99,12 +99,17 @@ if [ "$CLEAN_ONLY" = "true" ]; then
     echo "  ✓ Python caches removed"
     
     # Remove test and coverage artifacts
-    echo "[3/4] Removing test artifacts..."
+    echo "[3/5] Removing test artifacts..."
     rm -rf .pytest_cache .mypy_cache .ruff_cache htmlcov/ .coverage coverage.xml 2>/dev/null || true
     echo "  ✓ Test artifacts removed"
     
+    # Remove documentation artifacts
+    echo "[4/5] Removing documentation artifacts..."
+    rm -rf docs/_build/ docs/.doctrees/ 2>/dev/null || true
+    echo "  ✓ Documentation artifacts removed"
+    
     # Remove temporary files
-    echo "[4/4] Removing temporary files..."
+    echo "[5/5] Removing temporary files..."
     find . -type f -name "*.out" -delete 2>/dev/null || true
     echo "  ✓ Temporary files removed"
     

@@ -171,6 +171,8 @@ clean:
 	rm -rf htmlcov/
 	rm -rf .coverage
 	rm -rf coverage.xml
+	rm -rf docs/_build/
+	rm -rf docs/.doctrees/
 	@echo "Build artifacts removed"
 
 distclean: clean clean-venv
