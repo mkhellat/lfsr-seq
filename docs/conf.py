@@ -222,6 +222,33 @@ intersphinx_mapping = {
     "sage": ("https://doc.sagemath.org/html/en/reference/", None),
 }
 
+# LaTeX configuration for PDF output
+# Define SageMath-specific LaTeX commands and Unicode symbols that appear in docstrings
+latex_elements = {
+    'preamble': r'''
+% Define SageMath-specific LaTeX commands
+\newcommand{\ZZ}{\mathbb{Z}}
+\newcommand{\QQ}{\mathbb{Q}}
+\newcommand{\RR}{\mathbb{R}}
+\newcommand{\CC}{\mathbb{C}}
+\newcommand{\FF}{\mathbb{F}}
+\newcommand{\NN}{\mathbb{N}}
+
+% Support for Unicode characters that appear in docstrings
+\usepackage{textcomp}
+\usepackage{amssymb}
+% Define Unicode symbol ≡ (U+2261) - use text mode equivalent
+% The symbol appears in text, so we need a text-mode version
+\DeclareUnicodeCharacter{2261}{$\equiv$}
+% Define other common Unicode math symbols (use math mode for text context)
+\DeclareUnicodeCharacter{2260}{$\neq$}
+\DeclareUnicodeCharacter{2264}{$\leq$}
+\DeclareUnicodeCharacter{2265}{$\geq$}
+\DeclareUnicodeCharacter{2212}{-}
+\DeclareUnicodeCharacter{2217}{*}
+''',
+}
+
 # Add project description
 project_description = (
     "A comprehensive tool for analyzing Linear Feedback Shift Register sequences, "
