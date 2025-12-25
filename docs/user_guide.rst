@@ -39,7 +39,7 @@ Input Format
 The CSV file should contain one or more rows of LFSR coefficients.
 Each row represents a different LFSR configuration:
 
-.. code-block:: csv
+.. code-block:: text
 
    1,1,1,0,0,0,0,0,1,1
    1,1,1,0,0,0,0,0,1,1,0,1,1,1,0

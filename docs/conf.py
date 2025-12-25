@@ -60,6 +60,11 @@ autodoc_default_options = {
     "special-members": False,  # Don't show special members (__init__, etc.) unless documented
 }
 
+# Suppress duplicate object warnings by not documenting type annotations
+autodoc_typehints = "none"  # Don't document type hints to avoid duplicate warnings
+autodoc_typehints_format = "short"  # Use short format if typehints are shown
+autodoc_preserve_defaults = False  # Don't preserve default values to reduce complexity
+
 # Ignore certain members that come from SageMath
 autodoc_mock_imports = []
 
@@ -67,12 +72,15 @@ autodoc_mock_imports = []
 # (This lambda is replaced by the function below)
 
 # Suppress warnings from SageMath's internal docstrings and formatting issues
+# Note: Duplicate object warnings are filtered in Makefile output and suppressed here
 suppress_warnings = [
     "autodoc.import_object",
     "ref.python",
     "autodoc",
     "ref.ref",
     "ref.doc",
+    "app.add_directive",
+    "misc.highlighting_failure",  # Suppress unknown lexer warnings (e.g., csv)
 ]
 
 # Skip members that cause issues with SageMath
@@ -84,6 +92,18 @@ def autodoc_skip_member(app, what, name, obj, skip, options):
     # Skip SageMath functions that cause docstring errors
     if name == "lattice_polytope":
         return True
+    # Skip documenting imported types from typing, cysignals, cypari2, sage modules
+    # These cause duplicate object warnings when documented across multiple modules
+    # This includes type annotations that appear in docstrings
+    if what in ("class", "data", "attribute", "exception"):
+        if hasattr(obj, "__module__") and obj.__module__:
+            module = obj.__module__
+            # Skip standard library typing types (typing.TextIO, typing.Any, etc.)
+            if module.startswith("typing"):
+                return True
+            # Skip SageMath-related types (cysignals, cypari2, sage modules)
+            if any(module.startswith(prefix) for prefix in ["cysignals", "cypari2", "sage"]):
+                return True
     # Skip if it's a SageMath object (check type string)
     if hasattr(obj, "__module__") and obj.__module__ and "sage" in obj.__module__:
         if name not in ["GF", "MatrixSpace", "VectorSpace", "SR"]:  # Keep essential ones
@@ -93,6 +113,46 @@ def autodoc_skip_member(app, what, name, obj, skip, options):
 def setup(app):
     """Setup function for Sphinx."""
     app.connect("autodoc-skip-member", autodoc_skip_member)
+    
+    # Suppress duplicate object warnings using Sphinx's warning system
+    # These warnings occur when the same type (e.g., typing.TextIO) appears in multiple modules
+    import sphinx.util.logging
+    
+    # Get the logger that handles duplicate warnings
+    logger = sphinx.util.logging.getLogger("sphinx.ref")
+    
+    class DuplicateFilter:
+        """Filter to suppress duplicate object description warnings."""
+        def filter(self, record):
+            try:
+                # Try to get the message
+                if hasattr(record, 'getMessage'):
+                    msg = record.getMessage()
+                elif hasattr(record, 'msg') and hasattr(record, 'args'):
+                    try:
+                        msg = str(record.msg) % record.args
+                    except:
+                        msg = str(record.msg)
+                else:
+                    msg = str(record)
+            except:
+                msg = str(record)
+            
+            # Suppress duplicate object description warnings
+            if "duplicate object description" in msg.lower():
+                return False
+            return True
+    
+    # Apply filter - Sphinx uses a custom logging system
+    # We need to intercept at the warning level
+    dup_filter = DuplicateFilter()
+    
+    # Add filter to Python's root logger (Sphinx uses standard logging)
+    import logging
+    root_logger = logging.getLogger()
+    for handler in root_logger.handlers:
+        if not any(isinstance(f, type(dup_filter)) for f in handler.filters):
+            handler.addFilter(dup_filter)
 
 # Intersphinx mapping
 intersphinx_mapping = {
