@@ -17,33 +17,35 @@
 #   make check-env     - Check environment setup
 #   make smoke-test    - Run smoke tests
 
-.PHONY: help venv install install-dev test test-cov lint format type-check clean distclean check-env smoke-test build uninstall clean-venv docs docs-clean docs-live
+.PHONY: help venv install install-dev test test-cov lint format type-check clean distclean check-env smoke-test build uninstall clean-venv docs docs-clean docs-clean-pdf docs-pdf docs-live
 
 # Default target
 help:
 	@echo "lfsr-seq Development Makefile"
 	@echo ""
 	@echo "Available targets:"
-	@echo "  make help          - Show this help message"
-	@echo "  make venv          - Create virtual environment (.venv)"
-	@echo "  make install       - Install package in development mode"
-	@echo "  make install-dev   - Install package with development dependencies"
-	@echo "  make test          - Run tests with pytest"
-	@echo "  make test-cov      - Run tests with coverage report"
-	@echo "  make lint          - Run linting checks (ruff)"
-	@echo "  make format        - Format code with black"
-	@echo "  make format-check  - Check code formatting without modifying"
-	@echo "  make type-check    - Run type checking with mypy"
-	@echo "  make check-env     - Check environment setup"
-	@echo "  make smoke-test    - Run smoke tests"
-	@echo "  make build         - Build distribution packages"
-	@echo "  make clean         - Remove build artifacts"
-	@echo "  make clean-venv    - Remove virtual environment"
-	@echo "  make distclean     - Remove all generated files (including venv)"
-	@echo "  make uninstall     - Uninstall the package"
-	@echo "  make docs          - Build Sphinx documentation"
-	@echo "  make docs-clean    - Clean documentation build artifacts"
-	@echo "  make docs-live     - Start live documentation server (auto-reload)"
+	@echo "  make help           - Show this help message"
+	@echo "  make venv           - Create virtual environment (.venv)"
+	@echo "  make install        - Install package in development mode"
+	@echo "  make install-dev    - Install package with development dependencies"
+	@echo "  make test           - Run tests with pytest"
+	@echo "  make test-cov       - Run tests with coverage report"
+	@echo "  make lint           - Run linting checks (ruff)"
+	@echo "  make format         - Format code with black"
+	@echo "  make format-check   - Check code formatting without modifying"
+	@echo "  make type-check     - Run type checking with mypy"
+	@echo "  make check-env      - Check environment setup"
+	@echo "  make smoke-test     - Run smoke tests"
+	@echo "  make build          - Build distribution packages"
+	@echo "  make clean          - Remove build artifacts"
+	@echo "  make clean-venv     - Remove virtual environment"
+	@echo "  make distclean      - Remove all generated files (including venv)"
+	@echo "  make uninstall      - Uninstall the package"
+	@echo "  make docs           - Build Sphinx documentation (HTML)"
+	@echo "  make docs-clean     - Clean documentation build artifacts"
+	@echo "  make docs-pdf       - Build Sphinx documentation (PDF)"
+	@echo "  make docs-clean-pdf - Clean PDF documentation build artifacts"
+	@echo "  make docs-live      - Start live documentation server (auto-reload)"
 	@echo ""
 
 # Virtual environment target
@@ -254,6 +256,33 @@ docs-clean:
 	rm -rf docs/_build/
 	rm -rf docs/.doctrees/
 	@echo "Documentation build artifacts removed"
+
+docs-pdf: venv
+	@echo "Building PDF documentation..."
+	@if [ -d ".venv" ]; then \
+		.venv/bin/pip install sphinx sphinx-rtd-theme >/dev/null 2>&1 || true; \
+		cd docs && ../.venv/bin/sphinx-build -b latex . _build/latex; \
+		echo ""; \
+		echo "LaTeX source generated in docs/_build/latex/"; \
+		echo "Compiling PDF..."; \
+		cd _build/latex && make all-pdf || (echo "ERROR: PDF compilation failed. Make sure LaTeX (texlive) is installed." && exit 1); \
+		echo ""; \
+		echo "PDF documentation built: docs/_build/latex/*.pdf"; \
+	else \
+		python3 -m pip install sphinx sphinx-rtd-theme >/dev/null 2>&1 || true; \
+		cd docs && python3 -m sphinx -b latex . _build/latex; \
+		echo ""; \
+		echo "LaTeX source generated in docs/_build/latex/"; \
+		echo "Compiling PDF..."; \
+		cd _build/latex && make all-pdf || (echo "ERROR: PDF compilation failed. Make sure LaTeX (texlive) is installed." && exit 1); \
+		echo ""; \
+		echo "PDF documentation built: docs/_build/latex/*.pdf"; \
+	fi
+
+docs-clean-pdf:
+	@echo "Cleaning PDF documentation build artifacts..."
+	rm -rf docs/_build/latex/
+	@echo "PDF documentation build artifacts removed"
 
 docs-live: venv
 	@echo "Starting live documentation server..."

@@ -213,12 +213,8 @@ def setup(app):
         for handler in logger.handlers:
             handler.addFilter(dup_filter)
     
-    # Use Sphinx's warning suppression for ref.duplicate category
-    # This is the proper way to suppress these warnings
-    app.add_config_value('suppress_warnings', [], 'env')
-    if hasattr(app.config, 'suppress_warnings'):
-        if 'ref.duplicate' not in app.config.suppress_warnings:
-            app.config.suppress_warnings.append('ref.duplicate')
+    # The suppress_warnings is already configured in the config above
+    # No need to add it again here
 
 # Intersphinx mapping
 intersphinx_mapping = {

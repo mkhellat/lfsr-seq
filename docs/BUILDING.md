@@ -20,8 +20,14 @@ The easiest way to build the documentation is using the Makefile:
 # Build HTML documentation
 make docs
 
+# Build PDF documentation (requires LaTeX)
+make docs-pdf
+
 # Clean documentation build artifacts
 make docs-clean
+
+# Clean PDF documentation build artifacts
+make docs-clean-pdf
 
 # Start live documentation server (auto-reload on changes)
 make docs-live
@@ -77,11 +83,28 @@ cd docs && sphinx-build -b html . _build/html
 
 Build PDF documentation (requires LaTeX):
 
+**Using Make (Recommended)**:
+```bash
+make docs-pdf
+```
+
+**Manual Build**:
 ```bash
 cd docs
 sphinx-build -b latex . _build/latex
 cd _build/latex
-make pdf
+make all-pdf
+```
+
+The PDF will be generated in `docs/_build/latex/` with a name like `lfsr-seq.pdf`.
+
+**Note**: Building PDF requires a LaTeX distribution (e.g., TeX Live, MiKTeX). On Linux:
+```bash
+# Debian/Ubuntu
+sudo apt-get install texlive-latex-base texlive-latex-extra texlive-fonts-recommended
+
+# Arch Linux
+sudo pacman -S texlive-core texlive-bin texlive-latexextra
 ```
 
 ### Other Formats
