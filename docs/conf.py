@@ -56,3 +56,33 @@ intersphinx_mapping = {
     "sage": ("https://doc.sagemath.org/html/en/reference/", None),
 }
 
+# Add project description
+project_description = (
+    "A comprehensive tool for analyzing Linear Feedback Shift Register sequences, "
+    "computing periods, and determining characteristic polynomials over finite fields."
+)
+
+# HTML theme options
+html_theme_options = {
+    "display_version": True,
+    "prev_next_buttons_location": "bottom",
+    "style_external_links": False,
+    "vcs_pageview_mode": "",
+    "style_nav_header_background": "#2980B9",
+    # Toc options
+    "collapse_navigation": True,
+    "sticky_navigation": True,
+    "navigation_depth": 4,
+    "includehidden": True,
+    "titles_only": False,
+}
+
+# Add custom CSS
+html_css_files = [
+    "custom.css",
+]
+
+# Logo (if you have one)
+# html_logo = "../artwork/icon.png"
+# html_favicon = "../artwork/icon.png"
+

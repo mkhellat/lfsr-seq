@@ -1,0 +1,422 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   width="1200"
+   height="630"
+   viewBox="0 0 1200 630"
+   version="1.1"
+   id="svg34"
+   sodipodi:docname="og-image.svg"
+   inkscape:version="1.4.2 (ebf0e940d0, 2025-05-08)"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <sodipodi:namedview
+     id="namedview34"
+     pagecolor="#ffffff"
+     bordercolor="#000000"
+     borderopacity="0.25"
+     inkscape:showpageshadow="2"
+     inkscape:pageopacity="0.0"
+     inkscape:pagecheckerboard="0"
+     inkscape:deskcolor="#d1d1d1"
+     inkscape:zoom="0.59823478"
+     inkscape:cx="658.6043"
+     inkscape:cy="345.1822"
+     inkscape:window-width="1600"
+     inkscape:window-height="742"
+     inkscape:window-x="0"
+     inkscape:window-y="91"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="svg34" />
+  <defs
+     id="defs13">
+    <!-- Silver to dark gray gradient -->
+    <linearGradient
+       id="bgGradient"
+       x1="0%"
+       y1="0%"
+       x2="100%"
+       y2="100%">
+      <stop
+         offset="0%"
+         style="stop-color:#e8e8e8;stop-opacity:1"
+         id="stop1" />
+      <stop
+         offset="50%"
+         style="stop-color:#c0c0c0;stop-opacity:1"
+         id="stop2" />
+      <stop
+         offset="100%"
+         style="stop-color:#808080;stop-opacity:1"
+         id="stop3" />
+    </linearGradient>
+    <!-- Dark gray gradient for nodes -->
+    <linearGradient
+       id="nodeGradient"
+       x1="0%"
+       y1="0%"
+       x2="100%"
+       y2="100%">
+      <stop
+         offset="0%"
+         style="stop-color:#505050;stop-opacity:1"
+         id="stop4" />
+      <stop
+         offset="100%"
+         style="stop-color:#2a2a2a;stop-opacity:1"
+         id="stop5" />
+    </linearGradient>
+    <!-- Dark gray gradient for text -->
+    <linearGradient
+       id="textGradient"
+       x1="0%"
+       y1="0%"
+       x2="0%"
+       y2="100%">
+      <stop
+         offset="0%"
+         style="stop-color:#505050;stop-opacity:1"
+         id="stop6" />
+      <stop
+         offset="100%"
+         style="stop-color:#2a2a2a;stop-opacity:1"
+         id="stop7" />
+    </linearGradient>
+    <!-- Silver highlight -->
+    <linearGradient
+       id="highlightGradient"
+       x1="0%"
+       y1="0%"
+       x2="0%"
+       y2="100%">
+      <stop
+         offset="0%"
+         style="stop-color:#ffffff;stop-opacity:0.4"
+         id="stop8" />
+      <stop
+         offset="100%"
+         style="stop-color:#ffffff;stop-opacity:0.1"
+         id="stop9" />
+    </linearGradient>
+    <!-- Path gradient for circular arrow -->
+    <linearGradient
+       id="pathGradient"
+       x1="0%"
+       y1="0%"
+       x2="100%"
+       y2="100%">
+      <stop
+         offset="0%"
+         style="stop-color:#909090;stop-opacity:1"
+         id="stop10" />
+      <stop
+         offset="50%"
+         style="stop-color:#505050;stop-opacity:1"
+         id="stop11" />
+      <stop
+         offset="100%"
+         style="stop-color:#303030;stop-opacity:1"
+         id="stop12" />
+    </linearGradient>
+    <!-- Shadow filter -->
+    <filter
+       id="shadow"
+       x="-0.768"
+       y="-0.96"
+       width="2.696"
+       height="3.12">
+      <feGaussianBlur
+         in="SourceAlpha"
+         stdDeviation="8"
+         id="feGaussianBlur12" />
+      <feOffset
+         dx="4"
+         dy="4"
+         result="offsetblur"
+         id="feOffset12" />
+      <feComponentTransfer
+         id="feComponentTransfer12">
+        <feFuncA
+           type="linear"
+           slope="0.3"
+           id="feFuncA12" />
+      </feComponentTransfer>
+      <feMerge
+         id="feMerge13">
+        <feMergeNode
+           id="feMergeNode12" />
+        <feMergeNode
+           in="SourceGraphic"
+           id="feMergeNode13" />
+      </feMerge>
+    </filter>
+  </defs>
+  <!-- Background: Gradient -->
+  <rect
+     width="1200"
+     height="630"
+     fill="url(#bgGradient)"
+     id="rect13" />
+  <!-- Border -->
+  <rect
+     width="1200"
+     height="630"
+     fill="none"
+     stroke="#4a4a4a"
+     stroke-width="4"
+     id="rect14" />
+  <!-- Left side: Large LFSR Circular Design -->
+  <g
+     id="lfsr-design"
+     transform="translate(300, 315)">
+    <!-- Node 1 (top) with letter "L" -->
+    <circle
+       cx="0"
+       cy="-120"
+       r="50"
+       fill="url(#nodeGradient)"
+       stroke="#1a1a1a"
+       stroke-width="4"
+       filter="url(#shadow)"
+       id="circle14" />
+    <circle
+       cx="0"
+       cy="-120"
+       r="46"
+       fill="url(#highlightGradient)"
+       id="circle15" />
+    <text
+       x="0"
+       y="-105"
+       font-family="Arial, sans-serif"
+       font-size="60"
+       font-weight="bold"
+       fill="url(#textGradient)"
+       text-anchor="middle"
+       filter="url(#shadow)"
+       id="text15">L</text>
+    <!-- Node 2 (right) with letter "F" -->
+    <circle
+       cx="120"
+       cy="0"
+       r="50"
+       fill="url(#nodeGradient)"
+       stroke="#1a1a1a"
+       stroke-width="4"
+       filter="url(#shadow)"
+       id="circle16" />
+    <circle
+       cx="120"
+       cy="0"
+       r="46"
+       fill="url(#highlightGradient)"
+       id="circle17" />
+    <text
+       x="120"
+       y="15"
+       font-family="Arial, sans-serif"
+       font-size="60"
+       font-weight="bold"
+       fill="url(#textGradient)"
+       text-anchor="middle"
+       filter="url(#shadow)"
+       id="text17">F</text>
+    <!-- Node 3 (bottom) with letter "S" -->
+    <circle
+       cx="0"
+       cy="120"
+       r="50"
+       fill="url(#nodeGradient)"
+       stroke="#1a1a1a"
+       stroke-width="4"
+       filter="url(#shadow)"
+       id="circle18" />
+    <circle
+       cx="0"
+       cy="120"
+       r="46"
+       fill="url(#highlightGradient)"
+       id="circle19" />
+    <text
+       x="0"
+       y="135"
+       font-family="Arial, sans-serif"
+       font-size="60"
+       font-weight="bold"
+       fill="url(#textGradient)"
+       text-anchor="middle"
+       filter="url(#shadow)"
+       id="text19">S</text>
+    <!-- Node 4 (left) with letter "R" -->
+    <circle
+       cx="-120"
+       cy="0"
+       r="50"
+       fill="url(#nodeGradient)"
+       stroke="#1a1a1a"
+       stroke-width="4"
+       filter="url(#shadow)"
+       id="circle20" />
+    <circle
+       cx="-120"
+       cy="0"
+       r="46"
+       fill="url(#highlightGradient)"
+       id="circle21" />
+    <text
+       x="-120"
+       y="15"
+       font-family="Arial, sans-serif"
+       font-size="60"
+       font-weight="bold"
+       fill="url(#textGradient)"
+       text-anchor="middle"
+       filter="url(#shadow)"
+       id="text21">R</text>
+    <!-- Circular arrow connecting nodes -->
+    <path
+       d="M 0 -170 A 120 120 0 0 1 120 0 A 120 120 0 0 1 0 170 A 120 120 0 0 1 -120 0 A 120 120 0 0 1 0 -170"
+       fill="none"
+       stroke="#505050"
+       stroke-width="28"
+       stroke-linecap="round"
+       opacity="0.8"
+       id="path21" />
+    <path
+       d="M 0 -170 A 120 120 0 0 1 120 0 A 120 120 0 0 1 0 170 A 120 120 0 0 1 -120 0 A 120 120 0 0 1 0 -170"
+       fill="none"
+       stroke="url(#pathGradient)"
+       stroke-width="24"
+       stroke-linecap="round"
+       id="path22" />
+    <!-- Arrowhead -->
+    <path
+       d="M -120 0 L -145 -10 L -145 10 Z"
+       fill="url(#nodeGradient)"
+       filter="url(#shadow)"
+       id="path23" />
+    <!-- Inner connecting lines -->
+    <line
+       x1="0"
+       y1="-70"
+       x2="70"
+       y2="0"
+       stroke="url(#nodeGradient)"
+       stroke-width="16"
+       stroke-linecap="round"
+       opacity="0.6"
+       filter="url(#shadow)"
+       id="line23" />
+    <line
+       x1="70"
+       y1="0"
+       x2="0"
+       y2="70"
+       stroke="url(#nodeGradient)"
+       stroke-width="16"
+       stroke-linecap="round"
+       opacity="0.6"
+       filter="url(#shadow)"
+       id="line24" />
+    <line
+       x1="0"
+       y1="70"
+       x2="-70"
+       y2="0"
+       stroke="url(#nodeGradient)"
+       stroke-width="16"
+       stroke-linecap="round"
+       opacity="0.6"
+       filter="url(#shadow)"
+       id="line25" />
+    <line
+       x1="-70"
+       y1="0"
+       x2="0"
+       y2="-70"
+       stroke="url(#nodeGradient)"
+       stroke-width="16"
+       stroke-linecap="round"
+       opacity="0.6"
+       filter="url(#shadow)"
+       id="line26" />
+  </g>
+  <!-- Right side: Text -->
+  <g
+     id="text-content"
+     transform="translate(600, 100)">
+    <!-- Main title -->
+    <text
+       x="0"
+       y="80"
+       font-family="Arial, sans-serif"
+       font-size="72"
+       font-weight="bold"
+       fill="#2a2a2a"
+       id="text26">lfsr-seq</text>
+    <!-- Subtitle -->
+    <text
+       x="0"
+       y="140"
+       font-family="Arial, sans-serif"
+       font-size="32"
+       fill="#404040"
+       id="text27">Linear Feedback Shift Register</text>
+    <text
+       x="0"
+       y="180"
+       font-family="Arial, sans-serif"
+       font-size="32"
+       fill="#404040"
+       id="text28">Sequence Analysis Tool</text>
+    <!-- Feature list -->
+    <g
+       transform="translate(0, 240)"
+       id="g33">
+      <text
+         x="0"
+         y="0"
+         font-family="Arial, sans-serif"
+         font-size="24"
+         fill="#505050"
+         id="text29">• Berlekamp-Massey Algorithm</text>
+      <text
+         x="0"
+         y="40"
+         font-family="Arial, sans-serif"
+         font-size="24"
+         fill="#505050"
+         id="text30">• Linear Complexity Analysis</text>
+      <text
+         x="0"
+         y="80"
+         font-family="Arial, sans-serif"
+         font-size="24"
+         fill="#505050"
+         id="text31">• Statistical Testing</text>
+      <text
+         x="0"
+         y="120"
+         font-family="Arial, sans-serif"
+         font-size="24"
+         fill="#505050"
+         id="text32">• Multi-format Export</text>
+      <text
+         x="0"
+         y="160"
+         font-family="Arial, sans-serif"
+         font-size="24"
+         fill="#505050"
+         id="text33">• GF(p) and GF(pⁿ) Support</text>
+    </g>
+    <!-- Version -->
+    <text
+       x="0"
+       y="438"
+       font-family="Arial, sans-serif"
+       font-size="20px"
+       fill="#606060"
+       id="text34">Version 0.2.0</text>
+  </g>
+</svg>

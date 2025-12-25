@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <!-- Dark to darker gray gradient for background -->
+    <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#404040;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#2a2a2a;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#1a1a1a;stop-opacity:1" />
+    </linearGradient>
+    
+    <!-- Silver/light gray gradient for nodes (inverted) -->
+    <linearGradient id="nodeGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#d0d0d0;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#a0a0a0;stop-opacity:1" />
+    </linearGradient>
+    
+    <!-- Light gray gradient for text (inverted) -->
+    <linearGradient id="textGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#e0e0e0;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#c0c0c0;stop-opacity:1" />
+    </linearGradient>
+    
+    <!-- Highlight gradient -->
+    <linearGradient id="highlightGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#ffffff;stop-opacity:0.5" />
+      <stop offset="100%" style="stop-color:#ffffff;stop-opacity:0.1" />
+    </linearGradient>
+    
+    <!-- Path gradient for circular arrow (lighter for dark bg) -->
+    <linearGradient id="pathGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#808080;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#606060;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#404040;stop-opacity:1" />
+    </linearGradient>
+    
+    <!-- Shadow filter -->
+    <filter id="shadow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="5"/>
+      <feOffset dx="3" dy="3" result="offsetblur"/>
+      <feComponentTransfer>
+        <feFuncA type="linear" slope="0.4"/>
+      </feComponentTransfer>
+      <feMerge>
+        <feMergeNode/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  
+  <!-- Background: Dark gradient circle -->
+  <circle cx="256" cy="256" r="240" fill="url(#bgGradient)" stroke="#505050" stroke-width="18" filter="url(#shadow)"/>
+  
+  <!-- Circular arrangement: 4 nodes with letters L, F, S, R -->
+  
+  <!-- Node 1 (top) with letter "L" -->
+  <circle cx="256" cy="140" r="40" fill="url(#nodeGradient)" stroke="#e0e0e0" stroke-width="3" filter="url(#shadow)"/>
+  <circle cx="256" cy="140" r="36" fill="url(#highlightGradient)"/>
+  <text x="256" y="150" font-family="Arial, sans-serif" font-size="48" font-weight="bold" fill="url(#textGradient)" text-anchor="middle" filter="url(#shadow)">L</text>
+  
+  <!-- Node 2 (right) with letter "F" -->
+  <circle cx="372" cy="256" r="40" fill="url(#nodeGradient)" stroke="#e0e0e0" stroke-width="3" filter="url(#shadow)"/>
+  <circle cx="372" cy="256" r="36" fill="url(#highlightGradient)"/>
+  <text x="372" y="266" font-family="Arial, sans-serif" font-size="48" font-weight="bold" fill="url(#textGradient)" text-anchor="middle" filter="url(#shadow)">F</text>
+  
+  <!-- Node 3 (bottom) with letter "S" -->
+  <circle cx="256" cy="372" r="40" fill="url(#nodeGradient)" stroke="#e0e0e0" stroke-width="3" filter="url(#shadow)"/>
+  <circle cx="256" cy="372" r="36" fill="url(#highlightGradient)"/>
+  <text x="256" y="382" font-family="Arial, sans-serif" font-size="48" font-weight="bold" fill="url(#textGradient)" text-anchor="middle" filter="url(#shadow)">S</text>
+  
+  <!-- Node 4 (left) with letter "R" -->
+  <circle cx="140" cy="256" r="40" fill="url(#nodeGradient)" stroke="#e0e0e0" stroke-width="3" filter="url(#shadow)"/>
+  <circle cx="140" cy="256" r="36" fill="url(#highlightGradient)"/>
+  <text x="140" y="266" font-family="Arial, sans-serif" font-size="48" font-weight="bold" fill="url(#textGradient)" text-anchor="middle" filter="url(#shadow)">R</text>
+  
+  <!-- Circular arrow connecting nodes (clockwise) -->
+  <path d="M 256 100 A 116 116 0 0 1 371 256 A 116 116 0 0 1 256 412 A 116 116 0 0 1 141 256 A 116 116 0 0 1 256 100" 
+        fill="none" 
+        stroke="#606060" 
+        stroke-width="22" 
+        stroke-linecap="round"
+        opacity="0.8"/>
+  <path d="M 256 100 A 116 116 0 0 1 371 256 A 116 116 0 0 1 256 412 A 116 116 0 0 1 141 256 A 116 116 0 0 1 256 100" 
+        fill="none" 
+        stroke="url(#pathGradient)" 
+        stroke-width="18" 
+        stroke-linecap="round"/>
+  
+  <!-- Arrowhead on circular path -->
+  <path d="M 141 256 L 125 246 L 125 266 Z" fill="url(#nodeGradient)" filter="url(#shadow)"/>
+  
+  <!-- Inner connecting lines between adjacent nodes -->
+  <line x1="256" y1="180" x2="340" y2="256" stroke="url(#nodeGradient)" stroke-width="12" stroke-linecap="round" opacity="0.6" filter="url(#shadow)"/>
+  <line x1="340" y1="256" x2="256" y2="332" stroke="url(#nodeGradient)" stroke-width="12" stroke-linecap="round" opacity="0.6" filter="url(#shadow)"/>
+  <line x1="256" y1="332" x2="172" y2="256" stroke="url(#nodeGradient)" stroke-width="12" stroke-linecap="round" opacity="0.6" filter="url(#shadow)"/>
+  <line x1="172" y1="256" x2="256" y2="180" stroke="url(#nodeGradient)" stroke-width="12" stroke-linecap="round" opacity="0.6" filter="url(#shadow)"/>
+</svg>

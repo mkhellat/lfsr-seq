@@ -1,0 +1,68 @@
+/* Custom CSS for lfsr-seq documentation */
+
+/* Improve code block styling */
+.highlight {
+    background-color: #f8f9fa;
+    border-left: 4px solid #2980B9;
+    padding: 0.5em;
+    margin: 1em 0;
+}
+
+/* Style API documentation */
+.py.class, .py.function, .py.method {
+    margin-top: 1.5em;
+    padding-top: 1em;
+    border-top: 1px solid #e0e0e0;
+}
+
+/* Improve table styling */
+table.docutils {
+    border-collapse: collapse;
+    width: 100%;
+}
+
+table.docutils th {
+    background-color: #2980B9;
+    color: white;
+    padding: 0.5em;
+}
+
+table.docutils td {
+    padding: 0.5em;
+    border: 1px solid #e0e0e0;
+}
+
+/* Math equation styling */
+.math {
+    font-size: 1.1em;
+}
+
+/* Improve section headers */
+.section h1, .section h2, .section h3 {
+    color: #2980B9;
+    margin-top: 1.5em;
+}
+
+/* Code inline styling */
+code {
+    background-color: #f4f4f4;
+    padding: 0.2em 0.4em;
+    border-radius: 3px;
+    font-size: 0.9em;
+}
+
+/* Improve note/warning boxes */
+.note, .warning, .admonition {
+    padding: 1em;
+    margin: 1em 0;
+    border-left: 4px solid;
+    background-color: #f9f9f9;
+}
+
+.note {
+    border-color: #2980B9;
+}
+
+.warning {
+    border-color: #f39c12;
+}

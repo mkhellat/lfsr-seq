@@ -17,7 +17,7 @@
 #   make check-env     - Check environment setup
 #   make smoke-test    - Run smoke tests
 
-.PHONY: help venv install install-dev test test-cov lint format type-check clean distclean check-env smoke-test build uninstall clean-venv
+.PHONY: help venv install install-dev test test-cov lint format type-check clean distclean check-env smoke-test build uninstall clean-venv docs docs-clean docs-live
 
 # Default target
 help:
@@ -41,6 +41,9 @@ help:
 	@echo "  make clean-venv    - Remove virtual environment"
 	@echo "  make distclean     - Remove all generated files (including venv)"
 	@echo "  make uninstall     - Uninstall the package"
+	@echo "  make docs          - Build Sphinx documentation"
+	@echo "  make docs-clean    - Clean documentation build artifacts"
+	@echo "  make docs-live     - Start live documentation server (auto-reload)"
 	@echo ""
 
 # Virtual environment target
@@ -227,6 +230,40 @@ dev-setup: venv check-env install-dev
 	@echo "Run tests: make test"
 	@echo "Format code: make format"
 	@echo "Run linting: make lint"
+
+# Documentation targets
+docs: venv
+	@echo "Building Sphinx documentation..."
+	@if [ -d ".venv" ]; then \
+		.venv/bin/pip install sphinx sphinx-rtd-theme >/dev/null 2>&1 || true; \
+		cd docs && .venv/bin/sphinx-build -b html . _build/html || \
+		cd docs && ../.venv/bin/sphinx-build -b html . _build/html; \
+		echo ""; \
+		echo "Documentation built in docs/_build/html/"; \
+		echo "Open docs/_build/html/index.html in your browser"; \
+	else \
+		python3 -m pip install sphinx sphinx-rtd-theme >/dev/null 2>&1 || true; \
+		cd docs && python3 -m sphinx -b html . _build/html; \
+		echo ""; \
+		echo "Documentation built in docs/_build/html/"; \
+	fi
+
+docs-clean:
+	@echo "Cleaning documentation build artifacts..."
+	rm -rf docs/_build/
+	rm -rf docs/.doctrees/
+	@echo "Documentation build artifacts removed"
+
+docs-live: venv
+	@echo "Starting live documentation server..."
+	@if [ -d ".venv" ]; then \
+		.venv/bin/pip install sphinx-autobuild >/dev/null 2>&1 || true; \
+		cd docs && .venv/bin/sphinx-autobuild . _build/html --host 0.0.0.0 --port 8000 || \
+		cd docs && ../.venv/bin/sphinx-autobuild . _build/html --host 0.0.0.0 --port 8000; \
+	else \
+		python3 -m pip install sphinx-autobuild >/dev/null 2>&1 || true; \
+		cd docs && python3 -m sphinx_autobuild . _build/html --host 0.0.0.0 --port 8000; \
+	fi
 
 # CI/CD helper
 ci: lint format-check type-check test

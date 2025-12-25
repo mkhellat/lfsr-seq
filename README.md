@@ -517,16 +517,45 @@ This creates distribution packages in the `dist/` directory.
 
 ### Building Documentation
 
+The project uses Sphinx for documentation. See `docs/BUILDING.md` for detailed instructions.
+
+**Quick Start:**
+
 ```bash
-# Install Sphinx (if not already installed)
+# Build HTML documentation (recommended)
+make docs
+
+# Clean documentation build artifacts
+make docs-clean
+
+# Start live documentation server (auto-reload on changes)
+make docs-live
+```
+
+**Manual Build:**
+
+```bash
+# Install Sphinx and theme
 pip install sphinx sphinx-rtd-theme
 
 # Build documentation
 cd docs
-make html
+sphinx-build -b html . _build/html
 
 # Documentation will be in docs/_build/html/
+# Open docs/_build/html/index.html in your browser
 ```
+
+**Documentation Structure:**
+- User documentation: Installation, user guide, examples, mathematical background
+- API reference: Complete documentation for all modules and functions
+- Build guide: See `docs/BUILDING.md` for detailed build instructions
+
+The documentation includes:
+- Comprehensive API reference for all modules
+- Usage examples and tutorials
+- Mathematical background and theory
+- Installation and setup guides
 
 ### Cleaning and Uninstallation
 
