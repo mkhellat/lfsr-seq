@@ -238,13 +238,13 @@ docs: venv
 	@echo "Building Sphinx documentation..."
 	@if [ -d ".venv" ]; then \
 		.venv/bin/pip install sphinx sphinx-rtd-theme >/dev/null 2>&1 || true; \
-		cd docs && ../.venv/bin/sphinx-build -b html . _build/html 2>&1 | (grep -v "WARNING.*duplicate object description" | grep -v "WARNING.*Pygments lexer name 'csv'" || cat); \
+		cd docs && ../.venv/bin/sphinx-build -b html . _build/html; \
 		echo ""; \
 		echo "Documentation built in docs/_build/html/"; \
 		echo "Open docs/_build/html/index.html in your browser"; \
 	else \
 		python3 -m pip install sphinx sphinx-rtd-theme >/dev/null 2>&1 || true; \
-		cd docs && python3 -m sphinx -b html . _build/html 2>&1 | (grep -v "WARNING.*duplicate object description" | grep -v "WARNING.*Pygments lexer name 'csv'" || cat); \
+		cd docs && python3 -m sphinx -b html . _build/html; \
 		echo ""; \
 		echo "Documentation built in docs/_build/html/"; \
 	fi
