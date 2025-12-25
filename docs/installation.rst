@@ -63,8 +63,8 @@ Bootstrap script options:
    ./bootstrap                    # Basic installation
    ./bootstrap --dev              # With development dependencies
    ./bootstrap --no-venv          # Skip virtual environment (system-wide)
-   ./bootstrap --clean             # Clean build artifacts and caches
-   ./bootstrap --uninstall         # Uninstall the package
+   ./bootstrap --clean            # Clean build artifacts and caches
+   ./bootstrap --uninstall        # Uninstall the package
 
 Manual Installation
 ~~~~~~~~~~~~~~~~~~~
@@ -107,18 +107,24 @@ Available Make targets:
 - ``make venv`` - Create virtual environment
 - ``make install`` - Install package in development mode
 - ``make install-dev`` - Install with development dependencies
-- ``make dev-setup`` - Create venv, check environment, and install dev dependencies
 - ``make test`` - Run tests
 - ``make test-cov`` - Run tests with coverage report
 - ``make lint`` - Run linting checks
 - ``make format`` - Format code
 - ``make format-check`` - Check code formatting
 - ``make type-check`` - Run type checking
+- ``make check-env`` - Check environment setup
+- ``make smoke-test`` - Run smoke tests
 - ``make build`` - Build distribution packages
 - ``make clean`` - Remove build artifacts
 - ``make clean-venv`` - Remove virtual environment
 - ``make distclean`` - Remove all generated files (including venv)
 - ``make uninstall`` - Uninstall the package
+- ``make docs`` - Build Sphinx documentation (HTML)
+- ``make docs-clean`` - Clean documentation build artifacts
+- ``make docs-pdf`` - Build Sphinx documentation (PDF)
+- ``make docs-clean-pdf`` - Clean PDF documentation build artifacts
+- ``make docs-live`` - Start live documentation server (auto-reload)
 
 Verification
 ------------

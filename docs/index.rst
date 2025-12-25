@@ -3,17 +3,23 @@ LFSR-Seq Documentation
 
 **Linear Feedback Shift Register (LFSR) Sequence Analysis Tool**
 
-A comprehensive tool for analyzing Linear Feedback Shift Register sequences,
-computing periods, and determining characteristic polynomials over finite fields.
+A comprehensive, production-ready tool for analyzing Linear Feedback Shift Register sequences,
+computing periods, determining characteristic polynomials, and performing advanced cryptanalysis
+over finite fields.
 
 Welcome to the lfsr-seq documentation! This tool provides:
 
 * **Complete LFSR Analysis**: Analyze all possible state sequences and compute periods
 * **Characteristic Polynomials**: Determine characteristic polynomials and their orders
+* **Matrix Operations**: Compute state update matrices and their orders
+* **Polynomial Factorization**: Factor characteristic polynomials and analyze factor orders
 * **Berlekamp-Massey Algorithm**: Synthesize LFSRs from sequences
-* **Statistical Analysis**: Evaluate sequence quality with various statistical tests
+* **Linear Complexity**: Calculate linear complexity and complexity profiles
+* **Statistical Analysis**: Frequency tests, runs tests, autocorrelation, periodicity detection
 * **Multi-format Export**: Export results in JSON, CSV, XML, or plain text
 * **Python API**: Use as a library for programmatic analysis
+* **Field Support**: Full support for GF(p) and GF(pⁿ) extension fields
+* **Security Hardened**: Path traversal protection, file size limits, input sanitization
 
 Getting Started
 ---------------
@@ -42,12 +48,22 @@ Documentation Contents
 
    api/index
 
+Documentation Building
+-----------------------
+
+The documentation can be built in multiple formats:
+
+* **HTML** (recommended): ``make docs``
+* **PDF**: ``make docs-pdf`` (requires LaTeX)
+* **Live Server**: ``make docs-live`` (auto-reload on changes)
+
+See :doc:`installation` for all available Make targets.
+
 Additional Resources
 --------------------
 
-* `GitHub Repository <https://github.com/yourusername/lfsr-seq>`_
-* `Issue Tracker <https://github.com/yourusername/lfsr-seq/issues>`_
 * `SageMath Documentation <https://doc.sagemath.org/>`_
+* `Tanja Lange's Cryptology Course <https://www.hyperelliptic.org/tanja/teaching/CS22/>`_
 
 Indices and tables
 ==================

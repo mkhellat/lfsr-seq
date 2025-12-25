@@ -63,17 +63,40 @@ Use the library programmatically:
    from lfsr.cli import main
    from lfsr.synthesis import berlekamp_massey, linear_complexity
    from lfsr.statistics import statistical_summary
+   from lfsr.core import build_state_update_matrix, compute_matrix_order
+   from lfsr.polynomial import characteristic_polynomial, polynomial_order
+   from lfsr.field import validate_gf_order, validate_coefficient_vector
 
-   # Analyze LFSR
+   # Analyze LFSR from CSV file
    with open("output.txt", "w") as f:
        main("coefficients.csv", "2", output_file=f)
 
-   # Synthesize LFSR from sequence
+   # Synthesize LFSR from sequence using Berlekamp-Massey
    sequence = [1, 0, 1, 1, 0, 1, 0, 0, 1]
    poly, complexity = berlekamp_massey(sequence, 2)
    print(f"Linear complexity: {complexity}")
 
+   # Calculate linear complexity directly
+   complexity = linear_complexity(sequence, 2)
+   print(f"Linear complexity: {complexity}")
+
    # Statistical analysis
    stats = statistical_summary(sequence, 2)
-   print(stats)
+   print(f"Frequency ratio: {stats['frequency']['ratio']}")
+   print(f"Total runs: {stats['runs']['total_runs']}")
+
+   # Build state update matrix
+   coeffs = [1, 1, 0, 1]
+   C, CS = build_state_update_matrix(coeffs, 2)
+   order = compute_matrix_order(C, CS)
+   print(f"Matrix order (period): {order}")
+
+   # Characteristic polynomial
+   char_poly = characteristic_polynomial(coeffs, 2)
+   poly_order = polynomial_order(char_poly, 2)
+   print(f"Polynomial order: {poly_order}")
+
+   # Field validation
+   gf_order = validate_gf_order("4")  # Returns 4
+   validate_coefficient_vector([1, 2, 3], 4)  # Validates coefficients for GF(4)
 
