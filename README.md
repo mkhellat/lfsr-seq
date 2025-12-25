@@ -8,6 +8,10 @@ A comprehensive, production-ready tool for analyzing Linear Feedback Shift Regis
 [![License: GPL v3+](https://img.shields.io/badge/license-GPL%20v3+-green.svg)](https://www.gnu.org/licenses/gpl-3.0)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 
+<div align="center">
+  <img src="artwork/icon.svg" alt="LFSR-Seq Logo" width="128" height="128">
+</div>
+
 ## Features
 
 ### Core Analysis
@@ -83,6 +87,12 @@ Use the automated bootstrap script:
 
 # Skip virtual environment (install system-wide)
 ./bootstrap --no-venv
+
+# Clean build artifacts and caches
+./bootstrap --clean
+
+# Uninstall the package
+./bootstrap --uninstall
 ```
 
 The bootstrap script will:
@@ -156,8 +166,9 @@ source .venv/bin/activate
 - `make type-check` - Run type checking (uses venv if available)
 - `make build` - Build distribution packages (uses venv if available)
 - `make clean` - Remove build artifacts
-- `make distclean` - Remove all generated files
 - `make clean-venv` - Remove virtual environment
+- `make distclean` - Remove all generated files (including venv)
+- `make uninstall` - Uninstall the package
 - `make ci` - Run all CI checks (lint, format-check, type-check, test)
 
 **Note:** All Make targets automatically create and use a virtual environment (`.venv`) to ensure PEP 668 compliance on modern Linux distributions.
@@ -517,18 +528,33 @@ make html
 # Documentation will be in docs/_build/html/
 ```
 
-### Cleaning
+### Cleaning and Uninstallation
 
 ```bash
 # Remove build artifacts
 make clean
 
-# Deep clean (remove all generated files)
-make distclean
-
 # Remove virtual environment
 make clean-venv
+
+# Deep clean (remove all generated files including venv)
+make distclean
+
+# Uninstall the package
+make uninstall
 ```
+
+**Using bootstrap script:**
+
+```bash
+# Clean build artifacts and caches
+./bootstrap --clean
+
+# Uninstall the package
+./bootstrap --uninstall
+```
+
+**Note:** The `--clean` and `--uninstall` options in bootstrap do not remove the virtual environment. To remove it, use `make clean-venv` or `rm -rf .venv`.
 
 ## Verification
 

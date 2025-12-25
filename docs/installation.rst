@@ -56,6 +56,16 @@ Or with development dependencies:
 
    ./bootstrap --dev
 
+Bootstrap script options:
+
+.. code-block:: bash
+
+   ./bootstrap                    # Basic installation
+   ./bootstrap --dev              # With development dependencies
+   ./bootstrap --no-venv          # Skip virtual environment (system-wide)
+   ./bootstrap --clean             # Clean build artifacts and caches
+   ./bootstrap --uninstall         # Uninstall the package
+
 Manual Installation
 ~~~~~~~~~~~~~~~~~~~
 
@@ -92,6 +102,24 @@ Using Make
    make dev-setup
    source .venv/bin/activate
 
+Available Make targets:
+
+- ``make venv`` - Create virtual environment
+- ``make install`` - Install package in development mode
+- ``make install-dev`` - Install with development dependencies
+- ``make dev-setup`` - Create venv, check environment, and install dev dependencies
+- ``make test`` - Run tests
+- ``make test-cov`` - Run tests with coverage report
+- ``make lint`` - Run linting checks
+- ``make format`` - Format code
+- ``make format-check`` - Check code formatting
+- ``make type-check`` - Run type checking
+- ``make build`` - Build distribution packages
+- ``make clean`` - Remove build artifacts
+- ``make clean-venv`` - Remove virtual environment
+- ``make distclean`` - Remove all generated files (including venv)
+- ``make uninstall`` - Uninstall the package
+
 Verification
 ------------
 
@@ -101,4 +129,25 @@ After installation, verify everything works:
 
    ./scripts/check-environment.sh
    ./scripts/smoke-test.sh
+
+Cleaning and Uninstallation
+----------------------------
+
+To clean build artifacts:
+
+.. code-block:: bash
+
+   make clean              # Remove build artifacts
+   make clean-venv         # Remove virtual environment
+   make distclean          # Remove all generated files (including venv)
+   ./bootstrap --clean     # Clean using bootstrap script
+
+To uninstall the package:
+
+.. code-block:: bash
+
+   make uninstall          # Uninstall using Make
+   ./bootstrap --uninstall # Uninstall using bootstrap script
+
+**Note:** The ``--clean`` and ``--uninstall`` options in bootstrap do not remove the virtual environment. To remove it, use ``make clean-venv`` or ``rm -rf .venv``.
 
