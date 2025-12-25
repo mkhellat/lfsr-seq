@@ -8,7 +8,6 @@ The analysis module provides functions for analyzing LFSR sequences, computing p
    :undoc-members:
    :show-inheritance: False
    :imported-members: False
-   :imported-members: False
 
 Functions
 ---------

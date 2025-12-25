@@ -41,7 +41,6 @@ Quick Reference
 
 Common Functions
 ~~~~~~~~~~~~~~~~
-~~~~~~~~~~~~~~~
 
 **Core Operations**:
 

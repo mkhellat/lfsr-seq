@@ -55,10 +55,10 @@ def main(
     no_progress: bool = False,
     output_format: str = "text",
 ) -> None:
-    """
-    Main function to process LFSR coefficient vectors and perform analysis.
+    """Main function to process LFSR coefficient vectors and perform analysis.
 
     This function orchestrates the complete LFSR analysis workflow:
+
     1. Validates the Galois field order
     2. Reads and validates CSV coefficient vectors
     3. For each coefficient vector:

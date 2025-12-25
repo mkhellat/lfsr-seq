@@ -64,9 +64,7 @@ autodoc_default_options = {
 autodoc_mock_imports = []
 
 # Skip certain modules during autodoc to avoid hanging
-autodoc_skip_member = lambda app, what, name, obj, skip, options: (
-    skip or name.startswith("_") or "sage" in str(type(obj))
-)
+# (This lambda is replaced by the function below)
 
 # Suppress warnings from SageMath's internal docstrings and formatting issues
 suppress_warnings = [
@@ -82,6 +80,9 @@ def autodoc_skip_member(app, what, name, obj, skip, options):
     """Skip problematic members during autodoc."""
     # Skip private members
     if name.startswith("_"):
+        return True
+    # Skip SageMath functions that cause docstring errors
+    if name == "lattice_polytope":
         return True
     # Skip if it's a SageMath object (check type string)
     if hasattr(obj, "__module__") and obj.__module__ and "sage" in obj.__module__:

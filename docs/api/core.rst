@@ -6,5 +6,4 @@ Core Module
    :undoc-members:
    :show-inheritance: False
    :imported-members: False
-   :imported-members: False
 

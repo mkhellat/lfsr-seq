@@ -16,13 +16,13 @@ from sage.all import *
 def build_state_update_matrix(
     coeffs_vector: List[int], gf_order: int
 ) -> Tuple[Any, Any]:
-    """
-    Build the LFSR state update matrix from coefficient vector.
+    """Build the LFSR state update matrix from coefficient vector.
 
     The state update matrix C follows the convention: S_i * C = S_i+1
     where S_i is the current state vector and S_i+1 is the next state.
 
     The matrix is constructed as a companion matrix where:
+
     - The first d-1 rows form an identity-like structure with 1s on the
       subdiagonal
     - The last row contains the LFSR coefficients

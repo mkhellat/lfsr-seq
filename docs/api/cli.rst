@@ -8,7 +8,6 @@ The CLI module provides the command-line interface for the lfsr-seq tool, includ
    :undoc-members:
    :show-inheritance: False
    :imported-members: False
-   :imported-members: False
 
 Functions
 ---------
