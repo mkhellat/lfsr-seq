@@ -17,7 +17,7 @@
 #   make check-env     - Check environment setup
 #   make smoke-test    - Run smoke tests
 
-.PHONY: help venv install install-dev test test-cov lint format type-check clean distclean check-env smoke-test build
+.PHONY: help venv install install-dev test test-cov lint format type-check clean distclean check-env smoke-test build uninstall clean-venv
 
 # Default target
 help:
@@ -38,7 +38,9 @@ help:
 	@echo "  make smoke-test    - Run smoke tests"
 	@echo "  make build         - Build distribution packages"
 	@echo "  make clean         - Remove build artifacts"
-	@echo "  make distclean     - Remove all generated files"
+	@echo "  make clean-venv    - Remove virtual environment"
+	@echo "  make distclean     - Remove all generated files (including venv)"
+	@echo "  make uninstall     - Uninstall the package"
 	@echo ""
 
 # Virtual environment target
@@ -168,7 +170,7 @@ clean:
 	rm -rf coverage.xml
 	@echo "Build artifacts removed"
 
-distclean: clean
+distclean: clean clean-venv
 	@echo "Performing deep clean..."
 	find . -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null || true
 	find . -type f -name "*.pyc" -delete
@@ -184,6 +186,35 @@ clean-venv:
 	else \
 		echo "  No virtual environment found"; \
 	fi
+
+# Uninstall target
+uninstall:
+	@echo "Uninstalling lfsr-seq..."
+	@if [ -d ".venv" ]; then \
+		echo "  Using virtual environment at .venv"; \
+		if .venv/bin/pip show lfsr-seq >/dev/null 2>&1; then \
+			.venv/bin/pip uninstall -y lfsr-seq || true; \
+			echo "  ✓ Package uninstalled from virtual environment"; \
+		else \
+			echo "  Package not found in virtual environment"; \
+		fi; \
+		rm -rf *.egg-info 2>/dev/null || true; \
+		rm -rf .eggs 2>/dev/null || true; \
+		echo "  ✓ Build metadata cleaned"; \
+	else \
+		echo "  Checking system-wide installation..."; \
+		if python3 -m pip show lfsr-seq >/dev/null 2>&1; then \
+			echo "  WARNING: Package found in system Python"; \
+			echo "  To uninstall system-wide, run: python3 -m pip uninstall lfsr-seq"; \
+			echo "  Or activate your virtual environment first"; \
+		else \
+			echo "  Package not found in system Python"; \
+		fi; \
+		rm -rf *.egg-info 2>/dev/null || true; \
+		rm -rf .eggs 2>/dev/null || true; \
+		echo "  ✓ Build metadata cleaned"; \
+	fi
+	@echo "Uninstall complete"
 
 # Quick development workflow
 dev-setup: venv check-env install-dev

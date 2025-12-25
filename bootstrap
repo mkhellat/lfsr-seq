@@ -6,12 +6,14 @@
 # and installs the package.
 #
 # Usage:
-#   ./bootstrap [--dev] [--skip-sagemath-check] [--no-venv] [--help]
+#   ./bootstrap [--dev] [--skip-sagemath-check] [--no-venv] [--clean] [--uninstall] [--help]
 #
 # Options:
 #   --dev                 Install with development dependencies
 #   --skip-sagemath-check Skip SageMath availability check
 #   --no-venv             Skip virtual environment creation (install system-wide)
+#   --clean               Clean build artifacts and caches
+#   --uninstall           Uninstall the package
 #   --help                Show this help message
 #
 # Exit codes:
@@ -25,6 +27,8 @@ PROJECT_ROOT="$(cd "$SCRIPT_DIR" && pwd)"
 INSTALL_DEV=false
 SKIP_SAGEMATH_CHECK=false
 CREATE_VENV=true
+CLEAN_ONLY=false
+UNINSTALL_ONLY=false
 
 # Parse command line arguments
 while [ $# -gt 0 ]; do
@@ -41,6 +45,14 @@ while [ $# -gt 0 ]; do
             CREATE_VENV=false
             shift
             ;;
+        --clean)
+            CLEAN_ONLY=true
+            shift
+            ;;
+        --uninstall)
+            UNINSTALL_ONLY=true
+            shift
+            ;;
         --help|-h)
             echo "bootstrap - Automated installation and setup for lfsr-seq"
             echo ""
@@ -50,6 +62,8 @@ while [ $# -gt 0 ]; do
             echo "  --dev                  Install with development dependencies"
             echo "  --skip-sagemath-check  Skip SageMath availability check"
             echo "  --no-venv              Skip virtual environment creation"
+            echo "  --clean                Clean build artifacts and caches"
+            echo "  --uninstall            Uninstall the package"
             echo "  --help, -h             Show this help message"
             echo ""
             exit 0
@@ -66,6 +80,95 @@ echo "=========================================="
 echo "lfsr-seq Bootstrap Script"
 echo "=========================================="
 echo ""
+
+# Handle clean option
+if [ "$CLEAN_ONLY" = "true" ]; then
+    echo "Cleaning build artifacts and caches..."
+    echo ""
+    
+    # Remove build artifacts
+    echo "[1/4] Removing build directories..."
+    rm -rf build/ dist/ *.egg-info .eggs 2>/dev/null || true
+    echo "  ✓ Build directories removed"
+    
+    # Remove Python caches
+    echo "[2/4] Removing Python caches..."
+    find . -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null || true
+    find . -type f -name "*.pyc" -delete 2>/dev/null || true
+    find . -type f -name "*.pyo" -delete 2>/dev/null || true
+    echo "  ✓ Python caches removed"
+    
+    # Remove test and coverage artifacts
+    echo "[3/4] Removing test artifacts..."
+    rm -rf .pytest_cache .mypy_cache .ruff_cache htmlcov/ .coverage coverage.xml 2>/dev/null || true
+    echo "  ✓ Test artifacts removed"
+    
+    # Remove temporary files
+    echo "[4/4] Removing temporary files..."
+    find . -type f -name "*.out" -delete 2>/dev/null || true
+    echo "  ✓ Temporary files removed"
+    
+    echo ""
+    echo "=========================================="
+    echo "Clean completed successfully!"
+    echo "=========================================="
+    echo ""
+    echo "Note: Virtual environment (.venv) was not removed"
+    echo "To remove it, use: make clean-venv or rm -rf .venv"
+    echo ""
+    exit 0
+fi
+
+# Handle uninstall option
+if [ "$UNINSTALL_ONLY" = "true" ]; then
+    echo "Uninstalling lfsr-seq..."
+    echo ""
+    
+    # Check if virtual environment exists
+    if [ -d "$PROJECT_ROOT/.venv" ]; then
+        echo "[1/3] Uninstalling from virtual environment..."
+        . "$PROJECT_ROOT/.venv/bin/activate"
+        if python3 -m pip show lfsr-seq >/dev/null 2>&1; then
+            python3 -m pip uninstall -y lfsr-seq || {
+                echo "  ✗ ERROR: Failed to uninstall package"
+                exit 1
+            }
+            echo "  ✓ Package uninstalled from virtual environment"
+        else
+            echo "  ⚠ Package not found in virtual environment"
+        fi
+    else
+        echo "[1/3] Checking system-wide installation..."
+        if python3 -m pip show lfsr-seq >/dev/null 2>&1; then
+            echo "  ⚠ WARNING: Package found in system Python"
+            echo "  To uninstall system-wide, run: python3 -m pip uninstall lfsr-seq"
+            echo "  Or activate your virtual environment first"
+        else
+            echo "  Package not found in system Python"
+        fi
+    fi
+    
+    # Remove build metadata
+    echo "[2/3] Removing build metadata..."
+    rm -rf "$PROJECT_ROOT"/*.egg-info "$PROJECT_ROOT/.eggs" 2>/dev/null || true
+    echo "  ✓ Build metadata removed"
+    
+    # Clean Python caches in project
+    echo "[3/3] Cleaning project caches..."
+    find "$PROJECT_ROOT" -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null || true
+    find "$PROJECT_ROOT" -type f -name "*.pyc" -delete 2>/dev/null || true
+    echo "  ✓ Project caches cleaned"
+    
+    echo ""
+    echo "=========================================="
+    echo "Uninstall completed successfully!"
+    echo "=========================================="
+    echo ""
+    echo "Note: Virtual environment (.venv) was not removed"
+    echo "To remove it, use: make clean-venv or rm -rf .venv"
+    echo ""
+    exit 0
+fi
 
 # Step 1: Check Python
 echo "[1/6] Checking Python installation..."
@@ -221,8 +324,8 @@ if [ "$CREATE_VENV" = "true" ]; then
 fi
 echo "Next steps:"
 echo "  1. Run environment check:  ./scripts/check-environment.sh"
-echo "  2. Run smoke tests:         ./scripts/smoke-test.sh"
-echo "  3. Try the tool:            ./lfsr-seq strange.csv 2"
+echo "  2. Run smoke tests:        ./scripts/smoke-test.sh"
+echo "  3. Try the tool:           ./lfsr-seq strange.csv 2"
 echo ""
 if [ "$INSTALL_DEV" = "true" ]; then
     echo "Development tools available:"
