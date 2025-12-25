@@ -54,6 +54,7 @@ def _find_sequence_cycle(
         start_state: The initial state vector to start the cycle from
         state_update_matrix: The LFSR state update matrix
         visited_set: Set of already processed states (modified in place)
+                     Stores tuples (hashable) instead of vectors (mutable)
 
     Returns:
         Tuple of (sequence_list, period) where:
@@ -61,13 +62,17 @@ def _find_sequence_cycle(
         - period: Length of the cycle
     """
     seq_lst = [start_state]
-    visited_set.add(start_state)
+    # Convert vector to tuple for hashing (SageMath vectors are mutable and unhashable)
+    start_state_tuple = tuple(start_state)
+    visited_set.add(start_state_tuple)
     next_state = start_state * state_update_matrix
     seq_period = 1
 
     while next_state != start_state:
         seq_lst.append(next_state)
-        visited_set.add(next_state)
+        # Convert vector to tuple for hashing
+        next_state_tuple = tuple(next_state)
+        visited_set.add(next_state_tuple)
         seq_period += 1
         next_state = next_state * state_update_matrix
 
@@ -187,7 +192,6 @@ def lfsr_sequence_mapper(
         # Calculate elapsed time and estimates
         if counter > 1:
             ticks = counter
-            ref = counter - 2
             elp_delta = timer_lst[counter] - timer_lst[counter - 1]
             elp_s_int = float(elp_delta.seconds)
             elp_s_dec = float(elp_delta.microseconds) * 10**-6
@@ -196,10 +200,17 @@ def lfsr_sequence_mapper(
             est_t_s = elp_t / ticks
             est_t_t = state_vector_space_size * est_t_s
             est_t_lst.append(est_t_t)
-            if counter >= 3:
-                est_t_avg = (est_t_lst[ref] + est_t_lst[ref - 1]) / 2
-                if est_t_lst[ref + 1] > est_t_avg:
-                    max_t_t = est_t_lst[ref + 1]
+            if counter >= 3 and len(est_t_lst) >= 3:
+                # ref is the index of the previous estimate (counter - 2)
+                # est_t_lst has indices: 0, 1, 2, ... (one per iteration after counter > 1)
+                # When counter = 3, est_t_lst has [est_t_t], so index 0
+                # When counter = 4, est_t_lst has [est_t_t1, est_t_t2], so indices 0, 1
+                # We want to compare the current estimate with the average of previous two
+                ref = len(est_t_lst) - 1  # Current estimate index
+                if ref >= 2:
+                    est_t_avg = (est_t_lst[ref - 1] + est_t_lst[ref - 2]) / 2
+                    if est_t_lst[ref] > est_t_avg:
+                        max_t_t = est_t_lst[ref]
 
             # Update progress display (unless disabled)
             if not no_progress:
@@ -207,7 +218,9 @@ def lfsr_sequence_mapper(
 
         # Find sequence cycle if not already processed
         # O(1) lookup with set instead of O(n) with list
-        if bra not in visited_set:
+        # Convert vector to tuple for hashing (SageMath vectors are mutable and unhashable)
+        bra_tuple = tuple(bra)
+        if bra_tuple not in visited_set:
             seq += 1
             seq_lst, seq_period = _find_sequence_cycle(
                 bra, state_update_matrix, visited_set
