@@ -1,16 +1,14 @@
 # lfsr-seq
 
-**Linear Feedback Shift Register (LFSR) Sequence Analysis Tool**
-
-A comprehensive, production-ready tool for analyzing Linear Feedback Shift Register sequences, computing periods, determining characteristic polynomials, and performing advanced cryptanalysis over finite fields. This tool is useful for cryptographic research, stream cipher analysis, educational purposes, and security evaluation.
-
 [![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
 [![License: GPL v3+](https://img.shields.io/badge/license-GPL%20v3+-green.svg)](https://www.gnu.org/licenses/gpl-3.0)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 
-<div align="center">
-  <img src="artwork/icon.svg" alt="LFSR-Seq Logo" width="128" height="128">
-</div>
+**Linear Feedback Shift Register (LFSR) Sequence Analysis Tool**
+
+A comprehensive, production-ready tool for analyzing Linear Feedback Shift Register sequences, computing periods, determining characteristic polynomials, and performing advanced cryptanalysis over finite fields. This tool is useful for cryptographic research, stream cipher analysis, educational purposes, and security evaluation.
+
+![LFSR-Seq Logo](artwork/icon.svg)
 
 ## Features
 
@@ -20,7 +18,7 @@ A comprehensive, production-ready tool for analyzing Linear Feedback Shift Regis
 - **Primitive Polynomial Detection**: Automatically detect primitive polynomials that yield maximum-period LFSRs
 - **Matrix Operations**: Compute state update matrices and their orders
 - **Polynomial Factorization**: Factor characteristic polynomials and analyze factor orders
-- **Efficient Cycle Detection**: Uses Floyd's algorithm (tortoise and hare) for O(1) space complexity
+- **Efficient Cycle Detection**: Multiple algorithms available (Floyd's, Brent's, enumeration) for cycle detection
 
 ### Advanced Features
 - **Berlekamp-Massey Algorithm**: Synthesize LFSRs from sequences
@@ -40,8 +38,10 @@ A comprehensive, production-ready tool for analyzing Linear Feedback Shift Regis
 - **Security Hardened**: Path traversal protection, file size limits, input sanitization
 
 ### Performance Optimizations
-- **Floyd Cycle Detection**: Memory-efficient cycle finding using O(1) space algorithm
+- **Multiple Cycle Detection Algorithms**: Floyd's (tortoise-and-hare), Brent's (powers-of-2), and enumeration methods
+- **Period-Only Mode**: True O(1) space complexity for period computation without sequence storage
 - **Optimized State Tracking**: Set-based visited state tracking for O(1) lookups
+- **Primitive Polynomial Optimization**: Fast period prediction for primitive polynomials
 - **Scalable Architecture**: Designed to handle larger LFSRs efficiently
 
 ## Prerequisites
@@ -217,8 +217,12 @@ Optional arguments:
   --format {text,json,csv,xml}
                         Output format (default: text)
   --period-only         Compute periods only, without storing sequences
-  --algorithm {floyd,enumeration,auto}
+  --algorithm {floyd,brent,enumeration,auto}
                         Cycle detection algorithm (default: auto)
+                        - floyd: Tortoise-and-hare method
+                        - brent: Powers-of-2 method
+                        - enumeration: Simple enumeration (default, faster)
+                        - auto: Enumeration for full mode, floyd for period-only
   --check-primitive     Explicitly check for primitive polynomials
                         (detection is automatic, flag makes it explicit)
 ```
@@ -377,7 +381,7 @@ The JSON file contains structured data:
 ```json
 {
   "metadata": {
-    "timestamp": "2025-01-XX...",
+    "timestamp": "2025-12-26T...",
     "gf_order": 2,
     "coefficients": [1, 1, 0, 1],
     "lfsr_degree": 4
@@ -798,4 +802,4 @@ See also https://www.gnu.org/licenses/gpl.html
 ---
 
 **Version**: 0.2.0  
-**Last Updated**: 2025-01-XX
+**Last Updated**: 2025-12-26
