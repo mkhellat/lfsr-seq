@@ -12,7 +12,6 @@ characteristic polynomials, and performing advanced cryptanalysis over
 finite fields. This tool is useful for cryptographic research, stream
 cipher analysis, educational purposes, and security evaluation.
 
-![LFSR-Seq Logo](artwork/icon.svg)
 
 ## Features
 
