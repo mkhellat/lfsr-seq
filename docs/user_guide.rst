@@ -37,6 +37,11 @@ Optional Arguments:
    --no-progress              Disable progress bar display
    --format {text,json,csv,xml}
                               Output format (default: text)
+   --algorithm {floyd,enumeration,auto}
+                              Cycle detection algorithm (default: auto)
+                              - floyd: O(1) space, faster for large periods
+                              - enumeration: O(period) space, sometimes faster for small periods
+                              - auto: Use floyd (default)
 
 Input Format
 ------------
@@ -135,6 +140,10 @@ The tool implements several performance optimizations:
   * **Memory**: O(1) extra space vs O(period) for naive enumeration
   * **Time**: O(period) with better cache performance
   * **Scalability**: Enables analysis of LFSRs with very large periods (>10^6 states)
+  * **Algorithm Selection**: Use ``--algorithm`` option to choose between floyd, enumeration, or auto
+    * For small periods or when memory is not a concern, enumeration may be faster
+    * For large periods or memory-constrained environments, Floyd's algorithm is recommended
+    * Default (auto) uses Floyd's algorithm
 * **Optimized State Tracking**: Set-based visited state tracking for O(1) membership testing
 * **Efficient Algorithms**: Mathematical optimizations for period computation and sequence analysis
 
