@@ -70,6 +70,12 @@ Optional Arguments:
                               
    --no-period-stats          Disable period distribution statistics display.
 
+   --show-period-stats        Display detailed period distribution statistics (enabled by default).
+                              Shows mean, median, variance, standard deviation, period frequency
+                              histogram, and comparison with theoretical bounds.
+                              
+   --no-period-stats          Disable period distribution statistics display.
+
 Input Format
 ------------
 
