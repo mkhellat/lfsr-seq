@@ -169,7 +169,7 @@ def _find_sequence_cycle_enumeration(
 
 
 def _find_sequence_cycle(
-    start_state: Any, state_update_matrix: Any, visited_set: set
+    start_state: Any, state_update_matrix: Any, visited_set: set, algorithm: str = "auto"
 ) -> Tuple[List[Any], int]:
     """
     Find the complete cycle of states starting from a given state.
@@ -182,15 +182,23 @@ def _find_sequence_cycle(
         state_update_matrix: The LFSR state update matrix
         visited_set: Set of already processed states (modified in place)
                      Stores tuples (hashable) instead of vectors (mutable)
+        algorithm: Algorithm to use: "floyd", "enumeration", or "auto" (default: "auto")
+                   "auto" uses Floyd's algorithm by default
 
     Returns:
         Tuple of (sequence_list, period) where:
         - sequence_list: List of all states in the cycle
         - period: Length of the cycle
     """
-    # Use Floyd's algorithm for efficiency (especially for large periods)
-    # Falls back to enumeration if limits are hit or for safety
-    return _find_sequence_cycle_floyd(start_state, state_update_matrix, visited_set)
+    if algorithm == "enumeration":
+        return _find_sequence_cycle_enumeration(start_state, state_update_matrix, visited_set)
+    elif algorithm == "floyd" or algorithm == "auto":
+        # Use Floyd's algorithm for efficiency (especially for large periods)
+        # Falls back to enumeration if limits are hit or for safety
+        return _find_sequence_cycle_floyd(start_state, state_update_matrix, visited_set)
+    else:
+        # Invalid algorithm, default to Floyd
+        return _find_sequence_cycle_floyd(start_state, state_update_matrix, visited_set)
 
 
 def _format_sequence_entry(
@@ -256,6 +264,7 @@ def lfsr_sequence_mapper(
     gf_order: int,
     output_file: Optional[TextIO] = None,
     no_progress: bool = False,
+    algorithm: str = "auto",
 ) -> Tuple[Dict[int, List[Any]], Dict[int, int], int, int]:
     """
     Map all possible state vectors to their sequences and periods.
@@ -337,7 +346,7 @@ def lfsr_sequence_mapper(
         if bra_tuple not in visited_set:
             seq += 1
             seq_lst, seq_period = _find_sequence_cycle(
-                bra, state_update_matrix, visited_set
+                bra, state_update_matrix, visited_set, algorithm=algorithm
             )
             seq_dict[seq] = seq_lst
             period_dict[seq] = seq_period

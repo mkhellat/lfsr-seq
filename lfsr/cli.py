@@ -54,6 +54,7 @@ def main(
     quiet: bool = False,
     no_progress: bool = False,
     output_format: str = "text",
+    algorithm: str = "auto",
 ) -> None:
     """Main function to process LFSR coefficient vectors and perform analysis.
 
@@ -160,7 +161,7 @@ def main(
         # Create vector space and analyze sequences
         V = VectorSpace(GF(gf_order), d)
         seq_dict, period_dict, max_period, periods_sum = lfsr_sequence_mapper(
-            C, V, gf_order, output_file, no_progress=no_progress
+            C, V, gf_order, output_file, no_progress=no_progress, algorithm=algorithm
         )
 
         # Finding all sequences of states of the parameterized
@@ -274,6 +275,13 @@ def parse_args(args: Optional[list] = None) -> argparse.Namespace:
     )
 
     parser.add_argument(
+        "--algorithm",
+        choices=["floyd", "enumeration", "auto"],
+        default="auto",
+        help="Cycle detection algorithm: 'floyd' (O(1) space, faster for large periods), 'enumeration' (O(period) space, sometimes faster for small periods), or 'auto' (default: floyd)",
+    )
+
+    parser.add_argument(
         "--version",
         action="version",
         version=f"%(prog)s {__version__}",
@@ -350,6 +358,7 @@ def cli_main() -> None:
                 quiet=args.quiet,
                 no_progress=args.no_progress,
                 output_format=args.format,
+                algorithm=args.algorithm,
             )
 
         if not args.quiet:
