@@ -464,6 +464,51 @@ powers of 2 to find cycles. Like Floyd's, it finds the period :math:`\lambda` in
 * When you want to compare different cycle detection methods
 * Similar use cases as Floyd's algorithm
 
+Period Distribution Statistics
+-------------------------------
+
+The tool computes comprehensive statistical analysis of period distribution across all sequences in an LFSR. This provides insights into how periods are distributed and how they compare with theoretical expectations.
+
+**Distribution Metrics**:
+
+The tool computes:
+- **Mean Period**: Average period across all sequences
+- **Median Period**: Middle value when periods are sorted
+- **Variance**: Measure of how spread out periods are
+- **Standard Deviation**: Square root of variance
+- **Minimum/Maximum Period**: Smallest and largest periods
+- **Period Frequency**: Histogram showing how many sequences have each period value
+
+**Theoretical Bounds**:
+
+For an LFSR of degree :math:`d` over :math:`\mathbb{F}_q`:
+- **Maximum Theoretical Period**: :math:`q^d - 1` (all states except zero)
+- **State Space Size**: :math:`q^d` (total number of possible states)
+
+**Primitive Polynomial Analysis**:
+
+When the characteristic polynomial is primitive:
+- All non-zero states should have period :math:`q^d - 1`
+- The period distribution should show all sequences with the maximum period
+- This is verified automatically in the comparison section
+
+**Period Diversity**:
+
+The period diversity metric is defined as:
+.. math::
+   \text{Diversity} = \frac{\text{Unique Periods}}{\text{Total Sequences}}
+
+A diversity of 1.0 means all sequences have different periods, while lower values indicate more sequences share the same period.
+
+**Comparison with Theoretical Bounds**:
+
+The tool compares:
+- Whether the maximum observed period equals the theoretical maximum
+- The ratio of maximum period to theoretical maximum
+- For primitive polynomials: whether all periods are maximum
+
+This analysis helps validate theoretical predictions and understand the structure of LFSR period distributions.
+
 Polynomial Factorization and Factor Orders
 ------------------------------------------
 

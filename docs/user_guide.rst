@@ -64,6 +64,12 @@ Optional Arguments:
                               Example:
                                 lfsr-seq coefficients.csv 2 --check-primitive
 
+   --show-period-stats        Display detailed period distribution statistics (enabled by default).
+                              Shows mean, median, variance, standard deviation, period frequency
+                              histogram, and comparison with theoretical bounds.
+                              
+   --no-period-stats          Disable period distribution statistics display.
+
 Input Format
 ------------
 

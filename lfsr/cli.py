@@ -56,6 +56,7 @@ def main(
     output_format: str = "text",
     algorithm: str = "auto",
     period_only: bool = False,
+    show_period_stats: bool = True,
 ) -> None:
     """Main function to process LFSR coefficient vectors and perform analysis.
 
@@ -179,6 +180,16 @@ def main(
 
         # Compute characteristic polynomial
         char_poly = characteristic_polynomial(CS, gf_order, output_file)
+        
+        # Display period distribution statistics (if enabled)
+        if show_period_stats:
+            # Check if polynomial is primitive for period distribution analysis
+            from lfsr.polynomial import is_primitive_polynomial
+            is_primitive = is_primitive_polynomial(char_poly, gf_order)
+            
+            # Display period distribution statistics
+            from lfsr.analysis import display_period_distribution
+            display_period_distribution(period_dict, gf_order, d, is_primitive, output_file)
 
         # Export in requested format if not text
         if output_format != "text" and output_file is not None:
@@ -304,6 +315,20 @@ def parse_args(args: Optional[list] = None) -> argparse.Namespace:
     )
 
     parser.add_argument(
+        "--show-period-stats",
+        action="store_true",
+        default=True,
+        help="Display detailed period distribution statistics (mean, median, variance, frequency histogram, theoretical bounds comparison). Enabled by default.",
+    )
+    
+    parser.add_argument(
+        "--no-period-stats",
+        action="store_false",
+        dest="show_period_stats",
+        help="Disable period distribution statistics display",
+    )
+
+    parser.add_argument(
         "--version",
         action="version",
         version=f"%(prog)s {__version__}",
@@ -375,13 +400,14 @@ def cli_main() -> None:
             main(
                 input_file_name,
                 gf_order,
-                output_file,
+                output_file=output_file,
                 verbose=args.verbose,
                 quiet=args.quiet,
                 no_progress=args.no_progress,
                 output_format=args.format,
                 algorithm=args.algorithm,
                 period_only=args.period_only,
+                show_period_stats=args.show_period_stats,
             )
 
         if not args.quiet:

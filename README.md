@@ -6,7 +6,11 @@
 
 **Linear Feedback Shift Register (LFSR) Sequence Analysis Tool**
 
-A comprehensive, production-ready tool for analyzing Linear Feedback Shift Register sequences, computing periods, determining characteristic polynomials, and performing advanced cryptanalysis over finite fields. This tool is useful for cryptographic research, stream cipher analysis, educational purposes, and security evaluation.
+A comprehensive, production-ready tool for analyzing Linear Feedback
+Shift Register sequences, computing periods, determining
+characteristic polynomials, and performing advanced cryptanalysis over
+finite fields. This tool is useful for cryptographic research, stream
+cipher analysis, educational purposes, and security evaluation.
 
 ![LFSR-Seq Logo](artwork/icon.svg)
 
@@ -140,7 +144,9 @@ The bootstrap script will:
    pip install -e ".[dev]"
    ```
 
-   **Note:** If you skip the virtual environment step, packages will be installed system-wide, which may require administrator privileges and can conflict with system packages.
+   **Note:** If you skip the virtual environment step, packages will
+     be installed system-wide, which may require administrator
+     privileges and can conflict with system packages.
 
 ### Using Make
 
@@ -178,7 +184,9 @@ source .venv/bin/activate
 - `make uninstall` - Uninstall the package
 - `make ci` - Run all CI checks (lint, format-check, type-check, test)
 
-**Note:** All Make targets automatically create and use a virtual environment (`.venv`) to ensure PEP 668 compliance on modern Linux distributions.
+**Note:** All Make targets automatically create and use a virtual
+  environment (`.venv`) to ensure PEP 668 compliance on modern Linux
+  distributions.
 
 ## Quick Start
 
@@ -251,7 +259,8 @@ lfsr-seq coefficients.csv 2 --check-primitive
 
 ### Input Format
 
-The CSV file should contain one or more rows of LFSR coefficients. Each row represents a different LFSR configuration:
+The CSV file should contain one or more rows of LFSR
+coefficients. Each row represents a different LFSR configuration:
 
 ```csv
 1,1,1,0,0,0,0,0,1,1
@@ -484,7 +493,8 @@ source .venv/bin/activate
 pip install -e ".[dev]"
 ```
 
-**Important:** Always activate the virtual environment before working on the project:
+**Important:** Always activate the virtual environment before working
+  on the project:
 ```bash
 source .venv/bin/activate
 ```
@@ -537,7 +547,8 @@ This creates distribution packages in the `dist/` directory.
 
 ### Building Documentation
 
-The project uses Sphinx for documentation. See `docs/BUILDING.md` for detailed instructions.
+The project uses Sphinx for documentation. See `docs/BUILDING.md` for
+detailed instructions.
 
 **Quick Start:**
 
@@ -603,7 +614,9 @@ make uninstall
 ./bootstrap --uninstall
 ```
 
-**Note:** The `--clean` and `--uninstall` options in bootstrap do not remove the virtual environment. To remove it, use `make clean-venv` or `rm -rf .venv`.
+**Note:** The `--clean` and `--uninstall` options in bootstrap do not
+  remove the virtual environment. To remove it, use `make clean-venv`
+  or `rm -rf .venv`.
 
 ## Verification
 
@@ -625,7 +638,9 @@ make smoke-test
 
 ### "SageMath not found"
 
-Install SageMath via your system package manager (see Prerequisites section). The tool will skip tests that require SageMath if it's not available.
+Install SageMath via your system package manager (see Prerequisites
+section). The tool will skip tests that require SageMath if it's not
+available.
 
 ### "Permission denied" on script execution
 
@@ -646,7 +661,8 @@ lfsr-seq strange.csv 2
 
 ### "Module not found" after installation
 
-Ensure you're in the project directory, have activated the virtual environment, and the package is installed:
+Ensure you're in the project directory, have activated the virtual
+environment, and the package is installed:
 ```bash
 # Activate virtual environment (if using one)
 source .venv/bin/activate
@@ -673,7 +689,9 @@ pip install -e ".[dev]"
 
 ### Tests fail with "SageMath not available"
 
-This is expected if SageMath is not installed. Tests will automatically skip if SageMath is not available. Install SageMath to run the full test suite.
+This is expected if SageMath is not installed. Tests will
+automatically skip if SageMath is not available. Install SageMath to
+run the full test suite.
 
 ### "File too large" error
 
@@ -688,7 +706,11 @@ If you need to process larger files, you can modify the limits in `lfsr/constant
 This tool is motivated by exercise 2 of Tanja Lange's cryptology course:
 - [Course Website](https://www.hyperelliptic.org/tanja/teaching/CS22/)
 
-The tool finds periods of all possible states with *d* number of entries defined over *GF(gf_order)* for a specific LFSR, and arranges them in sequences. The order of the Characteristic Polynomial of the LFSR is also obtained alongside the orders of its factors to be compared with the periods of the listed sequences.
+The tool finds periods of all possible states with *d* number of
+entries defined over *GF(gf_order)* for a specific LFSR, and arranges
+them in sequences. The order of the Characteristic Polynomial of the
+LFSR is also obtained alongside the orders of its factors to be
+compared with the periods of the listed sequences.
 
 ### Key Concepts
 
@@ -779,11 +801,20 @@ See `.github/workflows/ci.yml` for configuration.
 
 Copyright (C) 2023-2025 Mohammadreza Khellat
 
-This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 3, or (at your option) any later version.
+This program is free software; you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 3, or (at your option)
+any later version.
 
-This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+This program is distributed in the hope that it will be useful, but
+WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+General Public License for more details.
 
-You should have received a copy of the GNU General Public License along with this program; if not, write to the Free Software Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
+You should have received a copy of the GNU General Public License
+along with this program; if not, write to the Free Software
+Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307,
+USA.
 
 See also https://www.gnu.org/licenses/gpl.html
 

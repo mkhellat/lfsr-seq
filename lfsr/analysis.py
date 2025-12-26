@@ -676,3 +676,80 @@ def lfsr_sequence_mapper(
     # This confirms all states have been checked and categorized
 
     return seq_dict, period_dict, max_period, periods_sum
+
+
+def display_period_distribution(
+    period_dict: Dict[int, int],
+    gf_order: int,
+    lfsr_degree: int,
+    is_primitive: bool,
+    output_file: Optional[TextIO] = None,
+) -> None:
+    """
+    Display period distribution statistics for LFSR sequences.
+    
+    Args:
+        period_dict: Dictionary mapping sequence numbers to periods
+        gf_order: The Galois field order
+        lfsr_degree: The degree of the LFSR
+        is_primitive: Whether the characteristic polynomial is primitive
+        output_file: Optional file object for output
+    """
+    from lfsr.formatter import dump, subsection
+    from lfsr.statistics import compute_period_distribution
+    
+    subsec_name = "PERIOD DISTRIBUTION STATISTICS"
+    subsec_desc = "statistical analysis of period distribution across all sequences"
+    subsection(subsec_name, subsec_desc, output_file)
+    
+    # Compute distribution statistics
+    stats = compute_period_distribution(period_dict, gf_order, lfsr_degree, is_primitive)
+    
+    if "error" in stats:
+        dump(f"  Error: {stats['error']}", "mode=all", output_file)
+        return
+    
+    # Basic statistics
+    dump(f"  Total Sequences: {stats['total_sequences']}", "mode=all", output_file)
+    dump(f"  Minimum Period: {stats['min_period']}", "mode=all", output_file)
+    dump(f"  Maximum Period: {stats['max_period']}", "mode=all", output_file)
+    dump(f"  Mean Period: {stats['mean_period']:.2f}", "mode=all", output_file)
+    dump(f"  Median Period: {stats['median_period']:.2f}", "mode=all", output_file)
+    dump(f"  Standard Deviation: {stats['std_deviation']:.2f}", "mode=all", output_file)
+    dump(f"  Variance: {stats['variance']:.2f}", "mode=all", output_file)
+    
+    # Distribution info
+    dist_info = stats['distribution_info']
+    dump(f"  Unique Periods: {dist_info['unique_periods']}", "mode=all", output_file)
+    dump(f"  Period Diversity: {dist_info['period_diversity']:.2%}", "mode=all", output_file)
+    
+    # Theoretical bounds
+    theo_bounds = stats['theoretical_bounds']
+    dump("", "mode=all", output_file)
+    dump("  Theoretical Bounds:", "mode=all", output_file)
+    dump(f"    Maximum Theoretical Period: {theo_bounds['max_theoretical_period']}", "mode=all", output_file)
+    dump(f"    State Space Size: {theo_bounds['state_space_size']}", "mode=all", output_file)
+    dump(f"    Polynomial is Primitive: {theo_bounds['is_primitive']}", "mode=all", output_file)
+    
+    # Comparison
+    comparison = stats['comparison']
+    dump("", "mode=all", output_file)
+    dump("  Comparison with Theoretical Bounds:", "mode=all", output_file)
+    dump(f"    Max Period = Theoretical Max: {comparison['max_period_equals_theoretical']}", "mode=all", output_file)
+    dump(f"    Max Period Ratio: {comparison['max_period_ratio']:.2%}", "mode=all", output_file)
+    
+    if is_primitive:
+        dump(f"    All Periods Maximum: {comparison.get('all_periods_maximum', False)}", "mode=all", output_file)
+        if 'expected_period' in comparison:
+            dump(f"    Expected Period (primitive): {comparison['expected_period']}", "mode=all", output_file)
+            dump(f"    Sequences with Max Period: {comparison.get('actual_sequences_with_max_period', 0)} / {comparison.get('expected_sequences', 0)}", "mode=all", output_file)
+    
+    # Period frequency (top periods)
+    period_freq = stats['period_frequency']
+    if period_freq:
+        dump("", "mode=all", output_file)
+        dump("  Period Frequency (Top 10):", "mode=all", output_file)
+        sorted_freq = sorted(period_freq.items(), key=lambda x: x[1], reverse=True)[:10]
+        for period, frequency in sorted_freq:
+            percentage = (frequency / stats['total_sequences']) * 100
+            dump(f"    Period {period}: {frequency} sequences ({percentage:.1f}%)", "mode=all", output_file)

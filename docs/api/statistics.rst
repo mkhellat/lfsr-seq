@@ -42,6 +42,11 @@ Computes the linear complexity profile of a sequence, showing how complexity evo
 
 Provides a comprehensive statistical summary of a sequence, including multiple tests.
 
+.. autofunction:: lfsr.statistics.compute_period_distribution
+   :no-index:
+
+Computes statistical distribution of LFSR sequence periods, including mean, median, variance, frequency histogram, and comparison with theoretical bounds.
+
 Example
 ~~~~~~~
 
