@@ -17,6 +17,7 @@ A comprehensive, production-ready tool for analyzing Linear Feedback Shift Regis
 ### Core Analysis
 - **Sequence Analysis**: Analyze all possible LFSR state sequences and compute periods
 - **Characteristic Polynomials**: Determine characteristic polynomials and their orders
+- **Primitive Polynomial Detection**: Automatically detect primitive polynomials that yield maximum-period LFSRs
 - **Matrix Operations**: Compute state update matrices and their orders
 - **Polynomial Factorization**: Factor characteristic polynomials and analyze factor orders
 - **Efficient Cycle Detection**: Uses Floyd's algorithm (tortoise and hare) for O(1) space complexity
@@ -215,6 +216,11 @@ Optional arguments:
   --no-progress         Disable progress bar display
   --format {text,json,csv,xml}
                         Output format (default: text)
+  --period-only         Compute periods only, without storing sequences
+  --algorithm {floyd,enumeration,auto}
+                        Cycle detection algorithm (default: auto)
+  --check-primitive     Explicitly check for primitive polynomials
+                        (detection is automatic, flag makes it explicit)
 ```
 
 **Examples:**
@@ -234,6 +240,9 @@ lfsr-seq coefficients.csv 2 --quiet --no-progress
 
 # Analyze over GF(3)
 lfsr-seq coefficients.csv 3
+
+# Check for primitive polynomials (automatic, but flag makes it explicit)
+lfsr-seq coefficients.csv 2 --check-primitive
 ```
 
 ### Input Format
@@ -285,6 +294,7 @@ The tool generates detailed output including:
 - Matrix order (period of state transitions)
 - All possible state sequences with their periods
 - Characteristic polynomial and its order
+- **Primitive polynomial indicator** ([PRIMITIVE] shown when polynomial is primitive)
 - Factorization of the characteristic polynomial
 - Statistical analysis (when using Python API)
 

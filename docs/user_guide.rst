@@ -51,8 +51,16 @@ Optional Arguments:
 
    --check-primitive          Explicitly check and report if characteristic polynomial
                               is primitive. Primitive polynomials yield maximum period
-                              LFSRs (period = q^d - 1). The tool automatically displays
-                              [PRIMITIVE] indicator when a primitive polynomial is detected.
+                              LFSRs (period = q^d - 1). 
+                              
+                              Note: Primitive polynomial detection is automatic - the tool
+                              always checks and displays a [PRIMITIVE] indicator in the
+                              characteristic polynomial output when a primitive polynomial
+                              is detected. This flag makes the check explicit and can be
+                              useful for documentation or scripting purposes.
+                              
+                              Example:
+                                lfsr-seq coefficients.csv 2 --check-primitive
 
 Input Format
 ------------
@@ -196,6 +204,46 @@ Quiet Mode
 ~~~~~~~~~~
 
 Suppress non-essential output (no progress bar):
+
+.. code-block:: bash
+
+   lfsr-seq coefficients.csv 2 --quiet
+
+Primitive Polynomial Detection
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The tool automatically detects primitive polynomials and displays a ``[PRIMITIVE]``
+indicator in the characteristic polynomial output. Primitive polynomials are
+important because they yield LFSRs with maximum period (q^d - 1).
+
+Example with primitive polynomial:
+
+.. code-block:: bash
+
+   # Create a CSV file with coefficients for a primitive polynomial
+   echo "1,0,0,1" > primitive.csv
+   lfsr-seq primitive.csv 2
+
+Output will show:
+::
+
+   ╎ t^4 + t^3 + 1                          ╎ O : 15           ╎
+   ╎                                       ╎ [PRIMITIVE]      ╎
+
+The ``[PRIMITIVE]`` indicator confirms that this polynomial is primitive and
+the LFSR will have maximum period 15 (2^4 - 1) for degree 4 over GF(2).
+
+You can explicitly request primitive checking:
+
+.. code-block:: bash
+
+   lfsr-seq coefficients.csv 2 --check-primitive
+
+Note: Primitive detection is automatic - the flag makes the check explicit
+and is useful for documentation or scripting purposes.
+
+For more information on primitive polynomials and their cryptographic
+significance, see the :doc:`mathematical_background` section.
 
 .. code-block:: bash
 
