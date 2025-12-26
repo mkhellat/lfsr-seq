@@ -131,10 +131,10 @@ Performance Features
 
 The tool implements several performance optimizations:
 
-* **Cycle Detection**: Floyd's (tortoise-and-hare) algorithm is implemented but currently disabled
-  * **Current Method**: Enumeration (works correctly, used until Floyd's algorithm bug is fixed)
-  * **Future**: Floyd's algorithm will provide O(1) space vs O(period) for enumeration
-  * **Scalability**: Once enabled, will support analysis of LFSRs with very large periods (>10^6 states)
+* **Floyd's Cycle Detection**: Uses the tortoise-and-hare algorithm for memory-efficient period finding
+  * **Memory**: O(1) extra space vs O(period) for naive enumeration
+  * **Time**: O(period) with better cache performance
+  * **Scalability**: Enables analysis of LFSRs with very large periods (>10^6 states)
 * **Optimized State Tracking**: Set-based visited state tracking for O(1) membership testing
 * **Efficient Algorithms**: Mathematical optimizations for period computation and sequence analysis
 

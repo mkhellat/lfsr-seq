@@ -17,14 +17,14 @@ The module implements efficient cycle detection algorithms for finding sequence 
 **Floyd's Algorithm** (``_find_sequence_cycle_floyd``):
    Memory-efficient cycle detection using the tortoise-and-hare method.
    Finds period in O(period) time with O(1) extra space.
-   Currently implemented but disabled due to Phase 2 bug (infinite loop in edge cases).
+   Used by default for efficiency, especially for large periods.
 
 **Enumeration Method** (``_find_sequence_cycle_enumeration``):
-   Current method that enumerates all states in the cycle.
-   Used as the default until Floyd's algorithm is fixed.
+   Fallback method that enumerates all states in the cycle.
+   Used when Floyd's algorithm hits limits or when full sequence is needed.
 
-The main function ``_find_sequence_cycle`` currently uses enumeration method.
-Floyd's algorithm will be enabled once the Phase 2 bug is fixed.
+The main function ``_find_sequence_cycle`` automatically selects the appropriate algorithm,
+using Floyd's algorithm by default with automatic fallback to enumeration for safety.
 
 Functions
 ---------
