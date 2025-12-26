@@ -41,13 +41,15 @@ Optional Arguments:
                               Floyd's algorithm uses true O(1) space in this mode.
                               Both algorithms achieve O(1) space, but enumeration is faster.
 
-   --algorithm {floyd,enumeration,auto}
+   --algorithm {floyd,brent,enumeration,auto}
                               Cycle detection algorithm (default: auto)
                               - enumeration: Default, faster for typical periods
-                              - floyd: Available for educational/verification purposes
+                              - floyd: Tortoise-and-hare algorithm, available for
+                                educational/verification purposes
+                              - brent: Powers-of-2 algorithm, alternative to Floyd
                               - auto: Enumeration for full mode, floyd for period-only
-                              Note: In period-only mode, both use O(1) space.
-                              In full mode, both use O(period) space.
+                              Note: In period-only mode, all algorithms use O(1) space.
+                              In full mode, all algorithms use O(period) space.
 
    --check-primitive          Explicitly check and report if characteristic polynomial
                               is primitive. Primitive polynomials yield maximum period
@@ -155,18 +157,22 @@ Performance Features
 
 The tool implements several performance optimizations:
 
-* **Cycle Detection Algorithms**: Two algorithms available for finding cycle periods
+* **Cycle Detection Algorithms**: Three algorithms available for finding cycle periods
   * **Enumeration** (default): Simple, fast, O(1) space in period-only mode
     * Best for typical LFSR periods (< 1000)
-    * 3-5× faster than Floyd for small-to-medium periods
+    * 3-5× faster than Floyd/Brent for small-to-medium periods
     * True O(1) space in period-only mode
   * **Floyd's Algorithm**: Tortoise-and-hare method, available as option
     * Correctly implemented, achieves O(1) space in period-only mode
     * Does ~4× more operations, making it 3-5× slower
     * Useful for educational/verification purposes
+  * **Brent's Algorithm**: Powers-of-2 method, available as option
+    * Alternative to Floyd's, uses powers of 2 to find cycles
+    * Similar performance characteristics to Floyd's
+    * Useful for educational/verification purposes
   * **Algorithm Selection**: Use ``--algorithm`` option to choose
     * Default: Enumeration (faster, simpler)
-    * Period-only mode: Both achieve O(1) space, enumeration recommended
+    * Period-only mode: All achieve O(1) space, enumeration recommended
     * Use ``scripts/performance_profile.py`` for detailed analysis
   * **Performance Details**: See :doc:`mathematical_background` for comprehensive analysis
 * **Optimized State Tracking**: Set-based visited state tracking for O(1) membership testing

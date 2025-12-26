@@ -426,8 +426,43 @@ Phase 2: Reset tortoise, move both one step:
 **Implementation Note**: 
 * **Full Sequence Mode**: Enumeration is the default (faster, simpler). Both algorithms use :math:`O(\lambda)` space since sequences must be stored.
 * **Period-Only Mode** (``--period-only``): Enumeration is default, Floyd available as option. Both achieve true :math:`O(1)` space, but enumeration is typically 3-5× faster.
-* Use ``--algorithm`` to select algorithm, or ``scripts/performance_profile.py`` for detailed analysis.
+* Use ``--algorithm`` to select algorithm (floyd, brent, enumeration, or auto), or ``scripts/performance_profile.py`` for detailed analysis.
 * See :ref:`performance-analysis` for comprehensive performance discussion.
+
+Brent's Cycle Detection Algorithm
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Brent's cycle detection algorithm is an alternative to Floyd's algorithm that uses
+powers of 2 to find cycles. Like Floyd's, it finds the period :math:`\lambda` in
+:math:`O(\lambda)` time using only :math:`O(1)` extra space.
+
+**Algorithm Description**:
+
+1. Initialize tortoise and hare to the starting state
+2. Use a "power" variable that doubles (powers of 2: 1, 2, 4, 8, ...)
+3. Move the hare forward, incrementing the period counter
+4. When the period counter reaches the current power:
+   * Reset the tortoise to the hare's position
+   * Double the power
+   * Reset the period counter
+5. Continue until tortoise and hare meet (cycle detected)
+6. The period counter gives the cycle length
+
+**Key Differences from Floyd's**:
+* Uses powers of 2 instead of moving at different speeds
+* Can be more efficient in some cases due to fewer state comparisons
+* Similar time complexity but different operation pattern
+
+**Performance Characteristics**:
+* Similar to Floyd's algorithm in terms of operation count and time
+* Both perform ~4× more operations than enumeration
+* Both achieve true O(1) space in period-only mode
+* Enumeration is typically 3-5× faster for typical periods
+
+**When to Use**:
+* Educational/verification purposes (alternative to Floyd's)
+* When you want to compare different cycle detection methods
+* Similar use cases as Floyd's algorithm
 
 Polynomial Factorization and Factor Orders
 ------------------------------------------

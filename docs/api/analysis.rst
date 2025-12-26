@@ -22,13 +22,20 @@ The module implements efficient cycle detection algorithms for finding sequence 
    Performs ~4× more operations than enumeration, making it 3-5× slower.
    Useful for educational/verification purposes.
 
+**Brent's Algorithm** (``_find_period_brent``):
+   Period-only version using powers-of-2 method.
+   Finds period in O(period) time with true O(1) space.
+   Similar performance characteristics to Floyd's algorithm.
+   Alternative to Floyd's, useful for educational/verification purposes.
+
 **Enumeration Method** (``_find_period_enumeration``):
    Period-only version that enumerates without storing sequence.
    Finds period in O(period) time with O(1) space.
-   Faster and simpler than Floyd for typical periods.
+   Faster and simpler than Floyd/Brent for typical periods.
 
 **Period Dispatcher** (``_find_period``):
    Selects period-only algorithm based on ``algorithm`` parameter.
+   Supports "floyd", "brent", "enumeration", or "auto".
    Returns only the period, not the sequence.
 
 **Full Sequence Functions** (for normal mode):
@@ -38,13 +45,19 @@ The module implements efficient cycle detection algorithms for finding sequence 
    Uses O(period) space since sequence must be stored.
    Slower than enumeration due to Phase 1+2 overhead.
 
+**Brent's Algorithm** (``_find_sequence_cycle_brent``):
+   Finds period using powers-of-2, then enumerates full sequence.
+   Uses O(period) space since sequence must be stored.
+   Similar performance to Floyd's algorithm.
+
 **Enumeration Method** (``_find_sequence_cycle_enumeration``):
    Enumerates all states in the cycle.
-   Faster and simpler than Floyd.
+   Faster and simpler than Floyd/Brent.
    Default choice for full sequence mode.
 
 **Main Dispatcher** (``_find_sequence_cycle``):
    Selects algorithm based on ``algorithm`` and ``period_only`` parameters.
+   Supports "floyd", "brent", "enumeration", or "auto".
    * Full mode (``period_only=False``): Defaults to enumeration
    * Period-only mode (``period_only=True``): Uses period-only functions
 

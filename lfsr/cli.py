@@ -292,9 +292,9 @@ def parse_args(args: Optional[list] = None) -> argparse.Namespace:
 
     parser.add_argument(
         "--algorithm",
-        choices=["floyd", "enumeration", "auto"],
+        choices=["floyd", "brent", "enumeration", "auto"],
         default="auto",
-        help="Cycle detection algorithm: 'floyd' (better for period-only mode), 'enumeration' (default for full mode, faster), or 'auto' (enumeration for full mode, floyd for period-only)",
+        help="Cycle detection algorithm: 'floyd' (tortoise-and-hare), 'brent' (powers-of-2), 'enumeration' (default for full mode, faster), or 'auto' (enumeration for full mode, floyd for period-only)",
     )
 
     parser.add_argument(

@@ -109,6 +109,56 @@ def _find_period_floyd(
     return lambda_period
 
 
+def _find_period_brent(
+    start_state: Any, state_update_matrix: Any
+) -> int:
+    """
+    Find the period using Brent's cycle detection algorithm in true O(1) space.
+    
+    Brent's algorithm uses powers of 2 to find the cycle, which can be more
+    efficient than Floyd's in some cases. Like Floyd's, this returns ONLY
+    the period without storing the sequence.
+    
+    Args:
+        start_state: The initial state vector to start the cycle from
+        state_update_matrix: The LFSR state update matrix
+
+    Returns:
+        The period (length of the cycle)
+    """
+    # Brent's cycle detection algorithm - period-only version
+    # Uses powers of 2 to find the cycle more efficiently
+    tortoise = start_state
+    hare = start_state * state_update_matrix
+    
+    # Special case: if start_state is a fixed point (period 1)
+    if tortoise == hare:
+        return 1
+    
+    power = 1  # Power of 2
+    lambda_period = 1  # Period (cycle length)
+    max_steps = 10000000  # Safety limit
+    
+    # Brent's algorithm: use powers of 2
+    while tortoise != hare and lambda_period < max_steps:
+        # If we've reached the current power, reset tortoise and double power
+        if lambda_period == power:
+            tortoise = hare
+            power *= 2
+            lambda_period = 0
+        
+        hare = hare * state_update_matrix
+        lambda_period += 1
+    
+    # Safety check: if we hit the limit, fall back to enumeration
+    if lambda_period >= max_steps:
+        return _find_period_enumeration(start_state, state_update_matrix)
+    
+    # Return the period - NO enumeration, NO sequence storage
+    # This is true O(1) space!
+    return lambda_period
+
+
 def _find_period_enumeration(
     start_state: Any, state_update_matrix: Any
 ) -> int:
@@ -153,7 +203,7 @@ def _find_period(
     Args:
         start_state: The initial state vector to start the cycle from
         state_update_matrix: The LFSR state update matrix
-        algorithm: Algorithm to use: "floyd", "enumeration", or "auto" (default: "auto")
+        algorithm: Algorithm to use: "floyd", "brent", "enumeration", or "auto" (default: "auto")
                    "auto" uses Floyd's algorithm by default
 
     Returns:
@@ -165,6 +215,9 @@ def _find_period(
         # Use Floyd's algorithm for efficiency (especially for large periods)
         # Falls back to enumeration if limits are hit or for safety
         return _find_period_floyd(start_state, state_update_matrix)
+    elif algorithm == "brent":
+        # Use Brent's algorithm (powers of 2 approach)
+        return _find_period_brent(start_state, state_update_matrix)
     else:
         # Invalid algorithm, default to Floyd
         return _find_period_floyd(start_state, state_update_matrix)
@@ -262,6 +315,83 @@ def _find_sequence_cycle_floyd(
     return seq_lst, lambda_period
 
 
+def _find_sequence_cycle_brent(
+    start_state: Any, state_update_matrix: Any, visited_set: set
+) -> Tuple[List[Any], int]:
+    """
+    Find the cycle period using Brent's cycle detection algorithm.
+    
+    Brent's algorithm uses powers of 2 to find the cycle, which can be
+    more efficient than Floyd's in some cases. Like Floyd's, it finds the
+    period in O(period) time with O(1) extra space for period detection,
+    but still requires O(period) space to store the sequence.
+    
+    Args:
+        start_state: The initial state vector to start the cycle from
+        state_update_matrix: The LFSR state update matrix
+        visited_set: Set of already processed states (modified in place)
+                     Stores tuples (hashable) instead of vectors (mutable)
+
+    Returns:
+        Tuple of (sequence_list, period) where:
+        - sequence_list: List of all states in the cycle
+        - period: Length of the cycle
+    """
+    # Brent's cycle detection algorithm
+    # Uses powers of 2 to find the cycle
+    tortoise = start_state
+    hare = start_state * state_update_matrix
+    
+    power = 1  # Power of 2
+    lambda_period = 1  # Period (cycle length)
+    max_steps = 10000000  # Safety limit
+    
+    # Brent's algorithm: use powers of 2
+    while tortoise != hare and lambda_period < max_steps:
+        # If we've reached the current power, reset tortoise and double power
+        if lambda_period == power:
+            tortoise = hare
+            power *= 2
+            lambda_period = 0
+        
+        hare = hare * state_update_matrix
+        lambda_period += 1
+    
+    # Safety check: if we hit the limit, fall back to enumeration
+    if lambda_period >= max_steps:
+        return _find_sequence_cycle_enumeration(start_state, state_update_matrix, visited_set)
+    
+    # NOTE: We still need to enumerate the full sequence for output
+    # This means our implementation is NOT O(1) space - it's O(period) space
+    # because we store all states in seq_lst. However, Brent's algorithm
+    # still provides value by finding the period efficiently, which can be
+    # used as a safety limit.
+    # 
+    # For true O(1) space, we would only return the period without storing
+    # the sequence, but that's not compatible with our use case.
+    seq_lst = [start_state]
+    start_state_tuple = tuple(start_state)
+    visited_set.add(start_state_tuple)
+    next_state = start_state * state_update_matrix
+    seq_period = 1
+    
+    # Enumerate until we complete the cycle (we know the period, but need all states)
+    # Use the period as a safety limit to prevent infinite loops
+    while next_state != start_state and seq_period < lambda_period:
+        seq_lst.append(next_state)
+        next_state_tuple = tuple(next_state)
+        visited_set.add(next_state_tuple)
+        seq_period += 1
+        next_state = next_state * state_update_matrix
+    
+    # If we didn't complete the cycle, something is wrong - use enumeration
+    if next_state != start_state:
+        return _find_sequence_cycle_enumeration(start_state, state_update_matrix, visited_set)
+    
+    # Use the period found by Brent (more reliable for large periods)
+    return seq_lst, lambda_period
+
+
 def _find_sequence_cycle_enumeration(
     start_state: Any, state_update_matrix: Any, visited_set: set
 ) -> Tuple[List[Any], int]:
@@ -315,7 +445,7 @@ def _find_sequence_cycle(
         visited_set: Set of already processed states (modified in place)
                      Stores tuples (hashable) instead of vectors (mutable)
                      Not used when period_only=True
-        algorithm: Algorithm to use: "floyd", "enumeration", or "auto" (default: "auto")
+        algorithm: Algorithm to use: "floyd", "brent", "enumeration", or "auto" (default: "auto")
                    "auto" uses enumeration for full mode, Floyd for period-only mode
         period_only: If True, return only the period without storing sequence (default: False)
 
@@ -336,6 +466,10 @@ def _find_sequence_cycle(
             # Use Floyd's algorithm (but still stores sequence, so O(period) space)
             # Falls back to enumeration if limits are hit or for safety
             return _find_sequence_cycle_floyd(start_state, state_update_matrix, visited_set)
+        elif algorithm == "brent":
+            # Use Brent's algorithm (powers of 2 approach)
+            # Falls back to enumeration if limits are hit or for safety
+            return _find_sequence_cycle_brent(start_state, state_update_matrix, visited_set)
         else:
             # Invalid algorithm, default to enumeration
             return _find_sequence_cycle_enumeration(start_state, state_update_matrix, visited_set)
