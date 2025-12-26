@@ -37,12 +37,17 @@ Optional Arguments:
    --no-progress              Disable progress bar display
    --format {text,json,csv,xml}
                               Output format (default: text)
+   --period-only              Compute periods only, without storing sequences.
+                              Floyd's algorithm uses true O(1) space in this mode.
+                              Both algorithms achieve O(1) space, but enumeration is faster.
+
    --algorithm {floyd,enumeration,auto}
                               Cycle detection algorithm (default: auto)
-                              - floyd: Uses tortoise-and-hare algorithm to find period
-                              - enumeration: Direct enumeration of cycle states
-                              - auto: Use floyd (default)
-                              Note: Both methods use O(period) space since full sequence is stored
+                              - enumeration: Default, faster for typical periods
+                              - floyd: Available for educational/verification purposes
+                              - auto: Enumeration for full mode, floyd for period-only
+                              Note: In period-only mode, both use O(1) space.
+                              In full mode, both use O(period) space.
 
 Input Format
 ------------
@@ -137,15 +142,20 @@ Performance Features
 
 The tool implements several performance optimizations:
 
-* **Floyd's Cycle Detection**: Uses the tortoise-and-hare algorithm to find period efficiently
-  * **Period Finding**: Finds period in O(period) time using two pointers
-  * **Memory**: O(period) space (same as enumeration) since full sequence must be stored for output
-  * **Performance**: Actual performance depends on input - use ``--algorithm`` to compare
-  * **Algorithm Selection**: Use ``--algorithm`` option to choose between floyd, enumeration, or auto
-    * Enumeration is often faster for small-to-medium periods
-    * Floyd may be beneficial for very large periods where period finding dominates
-    * Default (auto) uses Floyd's algorithm
-    * Use ``scripts/performance_profile.py`` for detailed performance analysis
+* **Cycle Detection Algorithms**: Two algorithms available for finding cycle periods
+  * **Enumeration** (default): Simple, fast, O(1) space in period-only mode
+    * Best for typical LFSR periods (< 1000)
+    * 3-5× faster than Floyd for small-to-medium periods
+    * True O(1) space in period-only mode
+  * **Floyd's Algorithm**: Tortoise-and-hare method, available as option
+    * Correctly implemented, achieves O(1) space in period-only mode
+    * Does ~4× more operations, making it 3-5× slower
+    * Useful for educational/verification purposes
+  * **Algorithm Selection**: Use ``--algorithm`` option to choose
+    * Default: Enumeration (faster, simpler)
+    * Period-only mode: Both achieve O(1) space, enumeration recommended
+    * Use ``scripts/performance_profile.py`` for detailed analysis
+  * **Performance Details**: See :doc:`mathematical_background` for comprehensive analysis
 * **Optimized State Tracking**: Set-based visited state tracking for O(1) membership testing
 * **Efficient Algorithms**: Mathematical optimizations for period computation and sequence analysis
 

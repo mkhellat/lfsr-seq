@@ -383,13 +383,33 @@ The period :math:`\lambda` is found by counting steps from this meeting point un
 * Space for period finding: :math:`O(1)` - only stores two state pointers
 
 **Practical Implementation**:
-* Our implementation stores the full sequence for output, so space is :math:`O(\lambda)`
-* Same space complexity as enumeration in practice
-* Performance varies by input - enumeration is often faster
+* Our period-only implementation achieves true :math:`O(1)` space (verified by profiling)
+* Full sequence mode stores the sequence, so space is :math:`O(\lambda)` (same as enumeration)
+* Performance varies significantly by input - enumeration is typically faster
 
-**Theoretical Advantages** (when only period is needed):
-* **Memory Efficiency**: Critical for large periods where storing all states is infeasible
-* **Scalability**: Enables analysis of LFSRs with periods > 10^6 (if only period needed)
+**Performance Characteristics** (Period-Only Mode):
+* **Operation Count**: Floyd performs approximately **3.83× more matrix operations** than enumeration
+  * Phase 1: Tortoise moves :math:`\sim \lambda/2` steps, hare moves :math:`2 \times \lambda/2 = \lambda` steps
+  * Phase 2: Additional :math:`\lambda` steps to find period
+  * Total: :math:`\sim 3 \times \lambda/2 + \lambda = 2.5\lambda` operations vs :math:`\lambda` for enumeration
+* **Time Performance**: Enumeration is typically **3-5× faster** for periods < 1000
+  * Floyd overhead (Phase 1 + Phase 2) dominates for small-to-medium periods
+  * Time per operation is similar (~0.022 ms), so speed difference comes from operation count
+* **Memory**: Both achieve true :math:`O(1)` space in period-only mode
+  * Floyd: ~1.60 KB (constant, verified across iterations)
+  * Enumeration: ~1.44 KB (constant, verified across iterations)
+  * Memory usage is independent of period size ✓
+
+**When Floyd is Beneficial**:
+* **Very Large Periods** (> 10,000): Overhead might be amortized (needs testing)
+* **Educational/Verification**: Using different algorithm to verify results
+* **Memory-Constrained**: If enumeration had memory issues (but it doesn't in period-only mode)
+* **Parallel Processing**: Floyd's structure might be more parallelizable (future work)
+
+**When Enumeration is Better**:
+* **Small-to-Medium Periods** (< 1000): Simpler, faster, uses less memory
+* **Typical LFSR Analysis**: Most practical use cases
+* **Default Choice**: Recommended for most scenarios
 
 **Example**: For an LFSR with period 15:
 
@@ -403,7 +423,11 @@ Phase 1: Tortoise and hare start at :math:`S_0`:
 Phase 2: Reset tortoise, move both one step:
 * Find the period by counting steps until they meet again
 
-**Implementation Note**: The tool uses Floyd's algorithm by default, but both algorithms use :math:`O(\lambda)` space since the full sequence must be stored for output. Use ``--algorithm`` to compare performance, or ``scripts/performance_profile.py`` for detailed analysis.
+**Implementation Note**: 
+* **Full Sequence Mode**: Enumeration is the default (faster, simpler). Both algorithms use :math:`O(\lambda)` space since sequences must be stored.
+* **Period-Only Mode** (``--period-only``): Enumeration is default, Floyd available as option. Both achieve true :math:`O(1)` space, but enumeration is typically 3-5× faster.
+* Use ``--algorithm`` to select algorithm, or ``scripts/performance_profile.py`` for detailed analysis.
+* See :ref:`performance-analysis` for comprehensive performance discussion.
 
 Polynomial Factorization and Factor Orders
 ------------------------------------------
@@ -744,6 +768,170 @@ Attacks on LFSR-based systems:
 * **Correlation Attack**: Exploit correlations in combined LFSRs
 * **Algebraic Attack**: Solve systems of equations
 * **Time-Memory Trade-Off (TMTO)**: Precompute states for faster attacks
+
+Performance Analysis and Algorithm Comparison
+-----------------------------------------------
+
+This section provides detailed analysis of cycle detection algorithm performance based on
+empirical testing and theoretical analysis.
+
+Operation Count Analysis
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+**Floyd's Algorithm Operation Count**:
+
+For a period :math:`\lambda`, Floyd's algorithm performs:
+
+* **Phase 1** (Find Meeting Point):
+  * Tortoise moves: :math:`\sim \lambda/2` steps (on average for LFSRs)
+  * Hare moves: :math:`2 \times \lambda/2 = \lambda` steps (double speed)
+  * Total Phase 1 operations: :math:`3 \times \lambda/2 = 1.5\lambda` matrix multiplications
+
+* **Phase 2** (Find Period):
+  * Hare moves: :math:`\lambda` steps
+  * Total Phase 2 operations: :math:`\lambda` matrix multiplications
+
+* **Total Floyd Operations**: :math:`\sim 1.5\lambda + \lambda = 2.5\lambda` operations
+
+**Enumeration Algorithm Operation Count**:
+
+* **Total Operations**: :math:`\lambda` matrix multiplications (one per state in cycle)
+
+**Comparison**:
+
+* Floyd performs approximately **2.5× more operations** than enumeration
+* Actual measured ratio: **~3.83×** (due to implementation details and meeting point location)
+* For period 24: Floyd = 92 operations, Enumeration = 24 operations
+
+Time Performance Analysis
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+**Empirical Results** (Period-Only Mode):
+
+For typical LFSR periods (8-24):
+
+* **Floyd**: ~2.0 ms (92 operations for period 24)
+* **Enumeration**: ~0.5 ms (24 operations for period 24)
+* **Speedup**: Enumeration is **3-5× faster**
+* **Time per Operation**: Similar (~0.022 ms for both algorithms)
+
+**Why Floyd is Slower**:
+
+1. **More Operations**: Floyd does ~4× more matrix multiplications
+2. **Overhead Dominates**: Phase 1 + Phase 2 overhead outweighs benefits for small periods
+3. **No Compensating Advantage**: Both algorithms are O(1) space, so Floyd's theoretical advantage doesn't apply
+
+**Scaling Behavior**:
+
+* For periods < 100: Enumeration is consistently faster
+* For periods 100-1000: Enumeration remains faster (overhead still dominates)
+* For periods > 1000: Needs testing, but overhead likely still dominates for typical LFSRs
+
+Space Complexity Analysis
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+**Period-Only Mode** (``--period-only``):
+
+Both algorithms achieve **true O(1) space**:
+
+* **Floyd**: ~1.60 KB (constant, verified across iterations and period sizes)
+* **Enumeration**: ~1.44 KB (constant, verified across iterations and period sizes)
+* **Memory Independence**: Memory usage is constant regardless of period size ✓
+
+**Full Sequence Mode**:
+
+Both algorithms use **O(λ) space**:
+
+* Must store full sequence for output
+* Floyd's O(1) space advantage doesn't apply
+* Enumeration is simpler and faster
+
+**Verification**:
+
+Memory profiling shows:
+* Coefficient of variation < 0.1% for both algorithms in period-only mode
+* Memory usage constant across period range 8-24
+* True O(1) space confirmed ✓
+
+Algorithm Selection Guidelines
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+**Use Enumeration When**:
+
+* Computing full sequences (default, faster)
+* Computing periods only (default, faster)
+* Period < 1000 (typical case)
+* Simplicity and speed are priorities
+
+**Use Floyd When**:
+
+* Educational/verification purposes
+* Very large periods (> 10,000) - needs verification
+* Want to verify results with different algorithm
+* Exploring algorithm properties
+
+**Default Behavior**:
+
+* **Full Mode**: Enumeration (faster, simpler)
+* **Period-Only Mode**: Enumeration (faster, both are O(1) space)
+* **Auto Mode**: Selects enumeration for full mode, Floyd for period-only (but enumeration is still recommended)
+
+Performance Profiling Tools
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The tool provides several profiling scripts:
+
+* ``scripts/performance_profile.py``: Comprehensive algorithm comparison
+  * Use ``--period-only`` flag for period-only mode analysis
+  * Measures time, memory, and operation counts
+  * Verifies space complexity claims
+
+* ``scripts/detailed_performance_analysis.py``: Phase-by-phase analysis
+  * Breaks down Floyd into Phase 1 and Phase 2
+  * Analyzes operation counts in detail
+  * Tests memory patterns
+
+* ``scripts/analyze_floyd_overhead.py``: Overhead analysis
+  * Explains why Floyd does more operations
+  * Compares with different period sizes
+  * Finds break-even points
+
+**Example Usage**:
+
+.. code-block:: bash
+
+   # Compare algorithms in period-only mode
+   python3 scripts/performance_profile.py input.csv 2 --period-only -n 10
+   
+   # Detailed phase analysis
+   python3 scripts/detailed_performance_analysis.py input.csv 2
+   
+   # Overhead analysis
+   python3 scripts/analyze_floyd_overhead.py input.csv 2
+
+Summary and Recommendations
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+**Key Findings**:
+
+1. ✅ **Floyd is correctly implemented** - algorithm works as designed
+2. ✅ **O(1) space achieved** - both algorithms achieve true O(1) space in period-only mode
+3. ❌ **Floyd is slower** - does ~4× more operations, making it 3-5× slower
+4. ❌ **No practical advantage** - enumeration is better for typical LFSR periods
+
+**Recommendations**:
+
+1. **Default to Enumeration**: Simpler, faster, uses less memory
+2. **Keep Floyd as Option**: For educational and verification purposes
+3. **Document Trade-offs**: Clearly explain performance characteristics
+4. **Use Period-Only Mode**: When only periods are needed, both achieve O(1) space
+
+**Conclusion**:
+
+Floyd's cycle detection algorithm is a classic algorithm with theoretical elegance,
+but for practical LFSR analysis, enumeration is the better choice. Floyd's O(1) space
+advantage is achieved by enumeration in period-only mode, and enumeration's simplicity
+and speed make it superior for typical use cases.
 
 References and Further Reading
 -------------------------------

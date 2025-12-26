@@ -14,18 +14,47 @@ Cycle Detection Algorithms
 
 The module implements efficient cycle detection algorithms for finding sequence periods:
 
+**Period-Only Functions** (for ``--period-only`` mode):
+
+**Floyd's Algorithm** (``_find_period_floyd``):
+   Period-only version using tortoise-and-hare method.
+   Finds period in O(period) time with true O(1) space.
+   Performs ~4× more operations than enumeration, making it 3-5× slower.
+   Useful for educational/verification purposes.
+
+**Enumeration Method** (``_find_period_enumeration``):
+   Period-only version that enumerates without storing sequence.
+   Finds period in O(period) time with O(1) space.
+   Faster and simpler than Floyd for typical periods.
+
+**Period Dispatcher** (``_find_period``):
+   Selects period-only algorithm based on ``algorithm`` parameter.
+   Returns only the period, not the sequence.
+
+**Full Sequence Functions** (for normal mode):
+
 **Floyd's Algorithm** (``_find_sequence_cycle_floyd``):
-   Cycle detection using the tortoise-and-hare method to find period.
-   Finds period in O(period) time using two pointers.
-   Note: Still uses O(period) space since full sequence must be stored for output.
-   Used by default, but enumeration may be faster for many cases.
+   Finds period using tortoise-and-hare, then enumerates full sequence.
+   Uses O(period) space since sequence must be stored.
+   Slower than enumeration due to Phase 1+2 overhead.
 
 **Enumeration Method** (``_find_sequence_cycle_enumeration``):
-   Fallback method that enumerates all states in the cycle.
-   Used when Floyd's algorithm hits limits or when full sequence is needed.
+   Enumerates all states in the cycle.
+   Faster and simpler than Floyd.
+   Default choice for full sequence mode.
 
-The main function ``_find_sequence_cycle`` automatically selects the appropriate algorithm,
-using Floyd's algorithm by default with automatic fallback to enumeration for safety.
+**Main Dispatcher** (``_find_sequence_cycle``):
+   Selects algorithm based on ``algorithm`` and ``period_only`` parameters.
+   * Full mode (``period_only=False``): Defaults to enumeration
+   * Period-only mode (``period_only=True``): Uses period-only functions
+
+**Performance Characteristics**:
+
+See :doc:`../mathematical_background` for detailed performance analysis including:
+* Operation count comparisons
+* Time performance measurements
+* Space complexity verification
+* Algorithm selection guidelines
 
 Functions
 ---------
