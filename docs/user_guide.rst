@@ -39,9 +39,10 @@ Optional Arguments:
                               Output format (default: text)
    --algorithm {floyd,enumeration,auto}
                               Cycle detection algorithm (default: auto)
-                              - floyd: O(1) space, faster for large periods
-                              - enumeration: O(period) space, sometimes faster for small periods
+                              - floyd: Uses tortoise-and-hare algorithm to find period
+                              - enumeration: Direct enumeration of cycle states
                               - auto: Use floyd (default)
+                              Note: Both methods use O(period) space since full sequence is stored
 
 Input Format
 ------------
@@ -136,14 +137,15 @@ Performance Features
 
 The tool implements several performance optimizations:
 
-* **Floyd's Cycle Detection**: Uses the tortoise-and-hare algorithm for memory-efficient period finding
-  * **Memory**: O(1) extra space vs O(period) for naive enumeration
-  * **Time**: O(period) with better cache performance
-  * **Scalability**: Enables analysis of LFSRs with very large periods (>10^6 states)
+* **Floyd's Cycle Detection**: Uses the tortoise-and-hare algorithm to find period efficiently
+  * **Period Finding**: Finds period in O(period) time using two pointers
+  * **Memory**: O(period) space (same as enumeration) since full sequence must be stored for output
+  * **Performance**: Actual performance depends on input - use ``--algorithm`` to compare
   * **Algorithm Selection**: Use ``--algorithm`` option to choose between floyd, enumeration, or auto
-    * For small periods or when memory is not a concern, enumeration may be faster
-    * For large periods or memory-constrained environments, Floyd's algorithm is recommended
+    * Enumeration is often faster for small-to-medium periods
+    * Floyd may be beneficial for very large periods where period finding dominates
     * Default (auto) uses Floyd's algorithm
+    * Use ``scripts/performance_profile.py`` for detailed performance analysis
 * **Optimized State Tracking**: Set-based visited state tracking for O(1) membership testing
 * **Efficient Algorithms**: Mathematical optimizations for period computation and sequence analysis
 

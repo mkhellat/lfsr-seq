@@ -15,9 +15,10 @@ Cycle Detection Algorithms
 The module implements efficient cycle detection algorithms for finding sequence periods:
 
 **Floyd's Algorithm** (``_find_sequence_cycle_floyd``):
-   Memory-efficient cycle detection using the tortoise-and-hare method.
-   Finds period in O(period) time with O(1) extra space.
-   Used by default for efficiency, especially for large periods.
+   Cycle detection using the tortoise-and-hare method to find period.
+   Finds period in O(period) time using two pointers.
+   Note: Still uses O(period) space since full sequence must be stored for output.
+   Used by default, but enumeration may be faster for many cases.
 
 **Enumeration Method** (``_find_sequence_cycle_enumeration``):
    Fallback method that enumerates all states in the cycle.

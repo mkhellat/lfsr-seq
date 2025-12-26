@@ -334,7 +334,8 @@ Continue until :math:`S_k = S_0`. The period is :math:`k`.
 * Space: :math:`O(\lambda)` to store all states in the cycle
 
 **Floyd's Cycle Detection Algorithm (Tortoise and Hare)**:
-A more memory-efficient algorithm that finds the period using only :math:`O(1)` extra space.
+An algorithm that can find the period using only :math:`O(1)` extra space for the period-finding phase.
+Note: Our implementation still uses :math:`O(\lambda)` space because we need to store the full sequence for output.
 
 **Algorithm Description**:
 
