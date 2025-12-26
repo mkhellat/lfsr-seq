@@ -105,8 +105,14 @@ def _find_sequence_cycle_floyd(
     if lambda_period >= max_steps:
         return _find_sequence_cycle_enumeration(start_state, state_update_matrix, visited_set)
     
-    # Now we know the period, enumerate the full sequence for output
-    # This is still needed for displaying the sequence, but we know when to stop
+    # NOTE: We still need to enumerate the full sequence for output
+    # This means our implementation is NOT O(1) space - it's O(period) space
+    # because we store all states in seq_lst. However, Floyd's algorithm
+    # still provides value by finding the period efficiently, which can be
+    # used as a safety limit.
+    # 
+    # For true O(1) space, we would only return the period without storing
+    # the sequence, but that's not compatible with our use case.
     seq_lst = [start_state]
     start_state_tuple = tuple(start_state)
     visited_set.add(start_state_tuple)
