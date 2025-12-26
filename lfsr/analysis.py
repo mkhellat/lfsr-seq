@@ -71,7 +71,7 @@ def _find_sequence_cycle_floyd(
     tortoise = start_state
     hare = start_state * state_update_matrix
     
-    steps = 1
+    steps = 0
     max_steps = 10000000  # Safety limit to prevent infinite loops
     
     # Find meeting point (guaranteed to exist since LFSR sequences are periodic)
@@ -85,17 +85,25 @@ def _find_sequence_cycle_floyd(
         return _find_sequence_cycle_enumeration(start_state, state_update_matrix, visited_set)
     
     # Phase 2: Find the period (lambda)
-    # Move tortoise to start, move both 1 step until they meet
-    # The number of steps is the period
-    tortoise = start_state
-    lambda_period = 0
+    # After Phase 1, tortoise and hare are at the meeting point
+    # Keep tortoise at meeting point, move hare one step, count until they meet again
+    # This gives us the period
+    lambda_period = 1
+    hare = tortoise * state_update_matrix
     
-    while tortoise != hare:
-        tortoise = tortoise * state_update_matrix
+    # If they're already equal after one step, period is 1 (but we already handled that case)
+    # So if we get here and they're equal, something unexpected happened - fall back
+    if tortoise == hare:
+        return _find_sequence_cycle_enumeration(start_state, state_update_matrix, visited_set)
+    
+    # Count steps until they meet again
+    while tortoise != hare and lambda_period < max_steps:
         hare = hare * state_update_matrix
         lambda_period += 1
-        if lambda_period > max_steps:
-            return _find_sequence_cycle_enumeration(start_state, state_update_matrix, visited_set)
+    
+    # Safety check
+    if lambda_period >= max_steps:
+        return _find_sequence_cycle_enumeration(start_state, state_update_matrix, visited_set)
     
     # Now we know the period, enumerate the full sequence for output
     # This is still needed for displaying the sequence, but we know when to stop
@@ -168,7 +176,7 @@ def _find_sequence_cycle(
     Find the complete cycle of states starting from a given state.
     
     Uses Floyd's cycle detection algorithm for efficiency, with fallback to
-    enumeration for small periods or when full sequence is needed.
+    enumeration for safety or when full sequence is needed.
 
     Args:
         start_state: The initial state vector to start the cycle from
@@ -181,10 +189,10 @@ def _find_sequence_cycle(
         - sequence_list: List of all states in the cycle
         - period: Length of the cycle
     """
-    # Use Floyd's algorithm for efficiency (especially for large periods)
-    # For very small periods, enumeration might be faster, but Floyd is still O(period)
-    # and uses O(1) extra space vs O(period) for enumeration
-    return _find_sequence_cycle_floyd(start_state, state_update_matrix, visited_set)
+    # TODO: Fix Floyd's algorithm - Phase 2 has infinite loop bug
+    # Temporarily use enumeration until Floyd's algorithm is properly fixed
+    # The bug is in Phase 2: when tortoise == hare at start, lambda_period stays 0
+    return _find_sequence_cycle_enumeration(start_state, state_update_matrix, visited_set)
 
 
 def _format_sequence_entry(
