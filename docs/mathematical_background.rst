@@ -305,12 +305,100 @@ The algorithm for finding all sequences:
 
 1. **Initialize**: Start with all :math:`q^d` possible state vectors
 2. **Traverse**: For each unvisited state :math:`S_0`:
-   a. Generate sequence :math:`S_0, S_1, S_2, \ldots` using :math:`S_{i+1} = S_i \cdot C`
-   b. Track visited states to detect cycles
-   c. When :math:`S_k = S_0` (cycle detected), record period :math:`k`
+   a. Find the cycle period using cycle detection (see below)
+   b. Generate the full sequence :math:`S_0, S_1, S_2, \ldots` using :math:`S_{i+1} = S_i \cdot C`
+   c. Track visited states to avoid reprocessing
+   d. Record period :math:`k` and sequence
 3. **Categorize**: Group states by their sequence cycles
 
 **Complexity**: :math:`O(q^d)` time and space (visiting each state once).
+
+Cycle Detection Algorithms
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Finding the period of a state sequence is a fundamental operation. Two main approaches are used:
+
+**Naive Enumeration Method**:
+The straightforward approach enumerates all states until the cycle is detected:
+
+.. math::
+
+   \begin{align}
+   S_0, S_1 = S_0 \cdot C, S_2 = S_1 \cdot C, \ldots, S_k = S_{k-1} \cdot C
+   \end{align}
+
+Continue until :math:`S_k = S_0`. The period is :math:`k`.
+
+**Complexity**: 
+* Time: :math:`O(\lambda)` where :math:`\lambda` is the period
+* Space: :math:`O(\lambda)` to store all states in the cycle
+
+**Floyd's Cycle Detection Algorithm (Tortoise and Hare)**:
+A more memory-efficient algorithm that finds the period using only :math:`O(1)` extra space.
+
+**Algorithm Description**:
+
+1. **Phase 1 - Find Meeting Point**:
+   Start two pointers (tortoise and hare) at the initial state :math:`S_0`.
+   Move tortoise one step: :math:`T_{i+1} = T_i \cdot C`
+   Move hare two steps: :math:`H_{i+1} = (H_i \cdot C) \cdot C`
+   Continue until they meet: :math:`T_j = H_j` for some :math:`j`.
+
+2. **Phase 2 - Find Period**:
+   Reset tortoise to :math:`S_0`, keep hare at meeting point.
+   Move both one step at a time: :math:`T_{i+1} = T_i \cdot C`, :math:`H_{i+1} = H_i \cdot C`
+   Count steps until they meet again. The number of steps :math:`\lambda` is the period.
+
+**Mathematical Proof**:
+
+Let :math:`\mu` be the index where the cycle starts (distance from :math:`S_0` to cycle entry) and :math:`\lambda` be the period.
+
+**Phase 1**: After :math:`i` iterations:
+* Tortoise position: :math:`S_i`
+* Hare position: :math:`S_{2i}`
+
+They meet when :math:`S_i = S_{2i}`. Since the sequence is periodic:
+* :math:`S_i = S_{\mu + ((i-\mu) \bmod \lambda)}`
+* :math:`S_{2i} = S_{\mu + ((2i-\mu) \bmod \lambda)}`
+
+For :math:`S_i = S_{2i}`, we need:
+.. math::
+
+   \mu + ((i-\mu) \bmod \lambda) = \mu + ((2i-\mu) \bmod \lambda)
+
+This implies :math:`i \equiv 2i \pmod{\lambda}`, so :math:`i \equiv 0 \pmod{\lambda}`.
+The smallest such :math:`i` is a multiple of :math:`\lambda`, and :math:`i \geq \mu`.
+
+**Phase 2**: After resetting tortoise to :math:`S_0` and moving both one step:
+* Tortoise: :math:`S_k` for :math:`k = 0, 1, 2, \ldots`
+* Hare: :math:`S_{i+k}` where :math:`i` is the meeting point from Phase 1
+
+They meet when :math:`S_k = S_{i+k}`. Since :math:`i` is a multiple of :math:`\lambda`, 
+:math:`S_{i+k} = S_k`, so they meet when :math:`k = \mu` (tortoise enters cycle).
+The period :math:`\lambda` is found by counting steps from this meeting point until the next meeting.
+
+**Complexity**:
+* Time: :math:`O(\lambda)` - same as enumeration, but more cache-friendly
+* Space: :math:`O(1)` - only stores two state pointers, not the entire cycle
+
+**Advantages**:
+* **Memory Efficiency**: Critical for large periods where storing all states is infeasible
+* **Scalability**: Enables analysis of LFSRs with periods > 10^6
+* **Cache Performance**: Better memory access patterns than full enumeration
+
+**Example**: For an LFSR with period 15:
+
+Phase 1: Tortoise and hare start at :math:`S_0`:
+* Step 0: :math:`T = S_0`, :math:`H = S_0`
+* Step 1: :math:`T = S_1`, :math:`H = S_2`
+* Step 2: :math:`T = S_2`, :math:`H = S_4`
+* ...
+* They meet at some point in the cycle
+
+Phase 2: Reset tortoise, move both one step:
+* Find the period by counting steps until they meet again
+
+**Implementation Note**: The tool uses Floyd's algorithm by default, with automatic fallback to enumeration for safety or when the full sequence is needed for output formatting.
 
 Polynomial Factorization and Factor Orders
 ------------------------------------------
@@ -333,7 +421,7 @@ where :math:`f_i(t)` are irreducible polynomials and :math:`e_i` are their multi
    t^4 + t^3 + t + 1 = (t+1)(t^3 + t + 1)
 
 Factor Orders
-~~~~~~~~~~~~
+~~~~~~~~~~~~~
 
 Each factor :math:`f_i(t)` has its own order :math:`n_i` (smallest :math:`n` such that :math:`t^n \equiv 1 \pmod{f_i(t)}`).
 
@@ -374,6 +462,7 @@ The Berlekamp-Massey algorithm is an iterative algorithm that constructs the min
    a. Check if current LFSR correctly predicts the next element
    b. If correct, continue
    c. If incorrect (discrepancy found):
+
       * Update LFSR to correct the discrepancy
       * May need to increase LFSR length
 3. **Output**: Minimal LFSR (coefficients and length)
@@ -624,7 +713,7 @@ Applications in Cryptography
 ----------------------------
 
 Stream Ciphers
-~~~~~~~~~~~~~
+~~~~~~~~~~~~~~
 
 LFSRs are used in stream ciphers (e.g., A5/1, A5/2 in GSM):
 

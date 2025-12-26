@@ -9,6 +9,21 @@ The analysis module provides functions for analyzing LFSR sequences, computing p
    :show-inheritance: False
    :imported-members: False
 
+Cycle Detection Algorithms
+--------------------------
+
+The module implements efficient cycle detection algorithms for finding sequence periods:
+
+**Floyd's Algorithm** (``_find_sequence_cycle_floyd``):
+   Memory-efficient cycle detection using the tortoise-and-hare method.
+   Finds period in O(period) time with O(1) extra space.
+
+**Enumeration Method** (``_find_sequence_cycle_enumeration``):
+   Fallback method that enumerates all states in the cycle.
+   Used when full sequence is needed or Floyd's algorithm hits limits.
+
+The main function ``_find_sequence_cycle`` automatically selects the appropriate algorithm.
+
 Functions
 ---------
 

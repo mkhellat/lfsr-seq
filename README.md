@@ -19,6 +19,7 @@ A comprehensive, production-ready tool for analyzing Linear Feedback Shift Regis
 - **Characteristic Polynomials**: Determine characteristic polynomials and their orders
 - **Matrix Operations**: Compute state update matrices and their orders
 - **Polynomial Factorization**: Factor characteristic polynomials and analyze factor orders
+- **Efficient Cycle Detection**: Uses Floyd's algorithm (tortoise and hare) for O(1) space complexity
 
 ### Advanced Features
 - **Berlekamp-Massey Algorithm**: Synthesize LFSRs from sequences
@@ -36,6 +37,11 @@ A comprehensive, production-ready tool for analyzing Linear Feedback Shift Regis
 - **Progress Tracking**: Real-time progress bars with time estimates
 - **Verbose/Quiet Modes**: Control output verbosity
 - **Security Hardened**: Path traversal protection, file size limits, input sanitization
+
+### Performance Optimizations
+- **Floyd Cycle Detection**: Memory-efficient cycle finding using O(1) space algorithm
+- **Optimized State Tracking**: Set-based visited state tracking for O(1) lookups
+- **Scalable Architecture**: Designed to handle larger LFSRs efficiently
 
 ## Prerequisites
 

@@ -28,6 +28,7 @@ Positional Arguments:
    gf_order                   Galois field order (prime or prime power)
 
 Optional Arguments:
+
    -h, --help                 Show help message and exit
    --version                  Show version and exit
    -o, --output FILE          Specify output file (default: input_file.out)
@@ -113,7 +114,7 @@ Output is written to both:
 * **Output File**: Complete detailed analysis
 
 Security Features
-----------------
+-----------------
 
 The tool includes several security features:
 
@@ -124,6 +125,20 @@ The tool includes several security features:
 * **Sanitization**: Input sanitization to prevent injection attacks
 
 These limits can be adjusted in ``lfsr/constants.py`` if needed for specific use cases.
+
+Performance Features
+--------------------
+
+The tool implements several performance optimizations:
+
+* **Floyd's Cycle Detection**: Uses the tortoise-and-hare algorithm for memory-efficient period finding
+  * **Memory**: O(1) extra space vs O(period) for naive enumeration
+  * **Time**: O(period) with better cache performance
+  * **Scalability**: Enables analysis of LFSRs with very large periods (>10^6 states)
+* **Optimized State Tracking**: Set-based visited state tracking for O(1) membership testing
+* **Efficient Algorithms**: Mathematical optimizations for period computation and sequence analysis
+
+For detailed mathematical background on cycle detection algorithms, see the :doc:`mathematical_background` section.
 
 Examples
 --------
