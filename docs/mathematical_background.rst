@@ -769,6 +769,8 @@ Attacks on LFSR-based systems:
 * **Algebraic Attack**: Solve systems of equations
 * **Time-Memory Trade-Off (TMTO)**: Precompute states for faster attacks
 
+.. _performance-analysis:
+
 Performance Analysis and Algorithm Comparison
 -----------------------------------------------
 
