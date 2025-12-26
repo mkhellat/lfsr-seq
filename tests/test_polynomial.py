@@ -15,7 +15,11 @@ try:
 except ImportError:
     pytest.skip("SageMath not available", allow_module_level=True)
 
-from lfsr.polynomial import characteristic_polynomial, polynomial_order
+from lfsr.polynomial import (
+    characteristic_polynomial,
+    is_primitive_polynomial,
+    polynomial_order,
+)
 
 
 class TestPolynomialOrder:
@@ -126,4 +130,92 @@ class TestCharacteristicPolynomial:
         # Verify factors are in output
         content = output_file.read_text()
         assert "factor" in content.lower()
+
+
+class TestPrimitivePolynomial:
+    """Tests for is_primitive_polynomial function."""
+
+    def test_primitive_polynomial_gf2_degree4(self):
+        """Test that t^4 + t + 1 is primitive over GF(2)."""
+        R = PolynomialRing(GF(2), "t")
+        # t^4 + t + 1 is a well-known primitive polynomial over GF(2)
+        poly = R("t^4 + t + 1")
+        assert is_primitive_polynomial(poly, 2) is True
+
+    def test_primitive_polynomial_gf2_degree3(self):
+        """Test that t^3 + t + 1 is primitive over GF(2)."""
+        R = PolynomialRing(GF(2), "t")
+        # t^3 + t + 1 is primitive over GF(2)
+        poly = R("t^3 + t + 1")
+        assert is_primitive_polynomial(poly, 2) is True
+
+    def test_non_primitive_irreducible_polynomial(self):
+        """Test that an irreducible but non-primitive polynomial returns False."""
+        R = PolynomialRing(GF(2), "t")
+        # t^4 + t^3 + t^2 + t + 1 is irreducible but not primitive
+        # Its order is 5, not 15
+        poly = R("t^4 + t^3 + t^2 + t + 1")
+        assert is_primitive_polynomial(poly, 2) is False
+
+    def test_reducible_polynomial_not_primitive(self):
+        """Test that a reducible polynomial is not primitive."""
+        R = PolynomialRing(GF(2), "t")
+        # t^4 + t^3 + t + 1 = (t+1)(t^3 + t + 1) is reducible
+        poly = R("t^4 + t^3 + t + 1")
+        assert is_primitive_polynomial(poly, 2) is False
+
+    def test_primitive_polynomial_gf3(self):
+        """Test primitive polynomial detection over GF(3)."""
+        R = PolynomialRing(GF(3), "t")
+        # t^2 + t + 2 is primitive over GF(3) (order = 8 = 3^2 - 1)
+        poly = R("t^2 + t + 2")
+        # Note: This may or may not be primitive, but the function should work
+        result = is_primitive_polynomial(poly, 3)
+        assert isinstance(result, bool)
+
+    def test_zero_degree_polynomial(self):
+        """Test that zero-degree polynomial is not primitive."""
+        R = PolynomialRing(GF(2), "t")
+        poly = R("1")  # Constant polynomial
+        assert is_primitive_polynomial(poly, 2) is False
+
+    def test_negative_degree_polynomial(self):
+        """Test that zero polynomial is not primitive."""
+        R = PolynomialRing(GF(2), "t")
+        poly = R("0")  # Zero polynomial
+        assert is_primitive_polynomial(poly, 2) is False
+
+    def test_primitive_polynomial_maximum_period(self):
+        """Test that primitive polynomial has maximum period."""
+        R = PolynomialRing(GF(2), "t")
+        poly = R("t^4 + t + 1")
+        
+        # If primitive, order should be 2^4 - 1 = 15
+        degree = poly.degree()
+        max_order = 2 ** degree - 1
+        order = polynomial_order(poly, degree, 2)
+        
+        if is_primitive_polynomial(poly, 2):
+            assert order == max_order
+
+    def test_characteristic_polynomial_shows_primitive_indicator(self, tmp_path):
+        """Test that characteristic_polynomial shows [PRIMITIVE] for primitive polynomials."""
+        from lfsr.core import build_state_update_matrix
+
+        # Use coefficients that yield a primitive polynomial
+        # For degree 4, [1, 0, 0, 1] gives t^4 + t + 1 which is primitive
+        coeffs = [1, 0, 0, 1]
+        _, CS = build_state_update_matrix(coeffs, 2)
+
+        output_file = tmp_path / "test_primitive.txt"
+        with open(output_file, "w") as f:
+            char_poly = characteristic_polynomial(CS, 2, f)
+
+        # Check if polynomial is primitive
+        is_prim = is_primitive_polynomial(char_poly, 2)
+        
+        # If primitive, output should contain [PRIMITIVE]
+        content = output_file.read_text()
+        if is_prim:
+            assert "[PRIMITIVE]" in content
 

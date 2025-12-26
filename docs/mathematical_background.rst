@@ -708,6 +708,8 @@ Theorem 2: Primitive Polynomials
 
 **Example**: Over :math:`\mathbb{F}_2`, the polynomial :math:`t^4 + t + 1` is primitive and has order 15, giving maximum period.
 
+**Implementation**: The tool automatically detects primitive polynomials and displays a ``[PRIMITIVE]`` indicator in the characteristic polynomial output. This can be explicitly checked using the ``--check-primitive`` command-line flag. The detection uses SageMath's built-in ``is_primitive()`` method when available, or falls back to checking irreducibility and verifying that the polynomial order equals :math:`q^d - 1`.
+
 Theorem 3: Period Divisibility
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 

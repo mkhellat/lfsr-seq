@@ -25,6 +25,9 @@ def polynomial_order(
     The order of a polynomial P(t) is the smallest positive integer n
     such that t^n ≡ 1 (mod P(t)).
 
+    This function uses an optimization: if the polynomial is primitive,
+    the order is immediately known to be q^d - 1 without computation.
+
     Args:
         polynomial: The polynomial over GF(gf_order)
         state_vector_dim: Dimension of the state vector
@@ -34,6 +37,18 @@ def polynomial_order(
         The order of the polynomial (or infinity if not found)
     """
     polynomial_degree = polynomial.degree()
+    
+    # Optimization: If polynomial is primitive, order is q^d - 1
+    # This avoids expensive computation for primitive polynomials
+    if polynomial_degree == state_vector_dim:
+        try:
+            if is_primitive_polynomial(polynomial, gf_order):
+                max_order = int(gf_order) ** polynomial_degree - 1
+                return max_order
+        except (TypeError, ValueError, AttributeError):
+            # If primitive check fails, continue with normal computation
+            pass
+    
     state_vector_space_size = int(gf_order) ** state_vector_dim
     bi = polynomial_degree
     ei = state_vector_space_size
@@ -47,6 +62,80 @@ def polynomial_order(
         elif j == state_vector_space_size:
             poly_order = oo
     return poly_order
+
+
+def is_primitive_polynomial(
+    polynomial: Any, gf_order: int
+) -> bool:
+    """
+    Check if a polynomial is primitive over GF(gf_order).
+
+    A polynomial P(t) of degree d over GF(q) is primitive if:
+    1. P(t) is irreducible
+    2. The order of P(t) is q^d - 1
+
+    Primitive polynomials are important because they generate LFSRs with
+    maximum period q^d - 1, which is optimal for cryptographic applications.
+
+    Args:
+        polynomial: The polynomial over GF(gf_order) to check
+        gf_order: The field order
+
+    Returns:
+        True if the polynomial is primitive, False otherwise
+
+    Example:
+        >>> from sage.all import *
+        >>> F = GF(2)
+        >>> R = PolynomialRing(F, "t")
+        >>> p = R("t^4 + t + 1")
+        >>> is_primitive_polynomial(p, 2)
+        True
+
+    Note:
+        This function uses SageMath's built-in is_primitive() method if available,
+        otherwise falls back to checking irreducibility and order manually.
+    """
+    # Get polynomial degree
+    degree = polynomial.degree()
+    if degree <= 0:
+        return False
+
+    # Maximum order for a primitive polynomial of degree d over GF(q)
+    max_order = int(gf_order) ** degree - 1
+
+    # Try using SageMath's built-in is_primitive() method first
+    # This is the most efficient approach
+    try:
+        if hasattr(polynomial, 'is_primitive'):
+            result = polynomial.is_primitive()
+            if result is not None:
+                return bool(result)
+    except (AttributeError, NotImplementedError, TypeError, ValueError):
+        pass
+
+    # Fallback: Check manually
+    # Step 1: Must be irreducible
+    try:
+        if not polynomial.is_irreducible():
+            return False
+    except (AttributeError, NotImplementedError, TypeError, ValueError):
+        # If we can't check irreducibility, we can't determine primitivity
+        return False
+
+    # Step 2: Order must be q^d - 1
+    # Use our existing polynomial_order function
+    poly_order = polynomial_order(polynomial, degree, gf_order)
+    
+    # Check if order equals maximum (q^d - 1)
+    # Handle both integer and SageMath infinity cases
+    if poly_order == oo:
+        return False
+    
+    try:
+        return int(poly_order) == max_order
+    except (TypeError, ValueError):
+        return False
 
 
 def characteristic_polynomial(
@@ -91,6 +180,11 @@ def characteristic_polynomial(
     A_char_poly_l = textwrap.wrap(str(A_char_poly_gf), width=POLYNOMIAL_DISPLAY_WIDTH)
     A_char_ord_i = polynomial_order(A_char_poly_gf, d, gf_order)
     A_char_ord_s = str(A_char_ord_i)
+    
+    # Check if polynomial is primitive
+    is_primitive = is_primitive_polynomial(A_char_poly_gf, gf_order)
+    primitive_indicator = " [PRIMITIVE]" if is_primitive else ""
+    
     l1 = 13 - len(A_char_ord_s)
     t_border_1 = " " + "\u250e" + "\u2504" * 40 + "\u2530"
     t_border_2 = "\u2504" * 18 + "\u2512"
@@ -105,6 +199,12 @@ def characteristic_polynomial(
             m_border_r_2 = " O : " + A_char_ord_s + " " * l1 + "\u254e"
         m_border = m_border_l + term + m_border_r_1 + m_border_r_2
         dump(m_border, "mode=all", output_file)
+    
+    # Add primitive polynomial indicator if applicable
+    if is_primitive:
+        primitive_line = " " + "\u254e" + " " * (POLYNOMIAL_DISPLAY_WIDTH + 1) + "\u254e" + primitive_indicator + " " * (18 - len(primitive_indicator)) + "\u254e"
+        dump(primitive_line, "mode=all", output_file)
+    
     b_border_1 = " " + "\u2516" + "\u2504" * 40 + "\u2538"
     b_border_2 = "\u2504" * 18 + "\u251a"
     b_border = b_border_1 + b_border_2

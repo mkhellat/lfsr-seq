@@ -49,6 +49,11 @@ Optional Arguments:
                               Note: In period-only mode, both use O(1) space.
                               In full mode, both use O(period) space.
 
+   --check-primitive          Explicitly check and report if characteristic polynomial
+                              is primitive. Primitive polynomials yield maximum period
+                              LFSRs (period = q^d - 1). The tool automatically displays
+                              [PRIMITIVE] indicator when a primitive polynomial is detected.
+
 Input Format
 ------------
 

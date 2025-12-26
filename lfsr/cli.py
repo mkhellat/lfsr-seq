@@ -298,6 +298,12 @@ def parse_args(args: Optional[list] = None) -> argparse.Namespace:
     )
 
     parser.add_argument(
+        "--check-primitive",
+        action="store_true",
+        help="Explicitly check and report if characteristic polynomial is primitive (primitive polynomials yield maximum period LFSRs)",
+    )
+
+    parser.add_argument(
         "--version",
         action="version",
         version=f"%(prog)s {__version__}",

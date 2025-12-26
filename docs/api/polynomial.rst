@@ -22,6 +22,11 @@ Computes the characteristic polynomial of the state update matrix using the dete
 
 Computes the order of a polynomial over a finite field, which is the smallest positive integer n such that the polynomial divides x^n - 1.
 
+.. autofunction:: lfsr.polynomial.is_primitive_polynomial
+   :no-index:
+
+Checks if a polynomial is primitive over a finite field. A primitive polynomial of degree d over GF(q) is irreducible and has order q^d - 1, which yields LFSRs with maximum period.
+
 Example
 ~~~~~~~
 
@@ -42,3 +47,8 @@ Example
    # Compute polynomial order
    order = polynomial_order(char_poly, len(coeffs), 2)
    print(f"Polynomial order: {order}")
+   
+   # Check if polynomial is primitive
+   from lfsr.polynomial import is_primitive_polynomial
+   is_prim = is_primitive_polynomial(char_poly, 2)
+   print(f"Is primitive: {is_prim}")
