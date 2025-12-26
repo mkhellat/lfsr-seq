@@ -44,6 +44,132 @@ def _update_progress_display(
     print(prog_t + prog_info, end="\r")
 
 
+def _find_period_floyd(
+    start_state: Any, state_update_matrix: Any
+) -> int:
+    """
+    Find the period using Floyd's cycle detection algorithm in true O(1) space.
+    
+    This function returns ONLY the period, without storing the sequence.
+    This is where Floyd's algorithm demonstrates its true O(1) space advantage.
+    
+    Args:
+        start_state: The initial state vector to start the cycle from
+        state_update_matrix: The LFSR state update matrix
+
+    Returns:
+        The period (length of the cycle)
+    """
+    # Floyd's cycle detection algorithm - period-only version
+    # Phase 1: Find a meeting point in the cycle
+    # Tortoise moves 1 step, hare moves 2 steps per iteration
+    tortoise = start_state
+    hare = start_state * state_update_matrix
+    
+    # Special case: if start_state is a fixed point (period 1)
+    if tortoise == hare:
+        return 1
+    
+    steps = 0
+    max_steps = 10000000  # Safety limit to prevent infinite loops
+    
+    # Find meeting point (guaranteed to exist since LFSR sequences are periodic)
+    while tortoise != hare and steps < max_steps:
+        tortoise = tortoise * state_update_matrix
+        hare = (hare * state_update_matrix) * state_update_matrix
+        steps += 1
+    
+    # Safety check: if we hit the limit, fall back to enumeration
+    if steps >= max_steps:
+        return _find_period_enumeration(start_state, state_update_matrix)
+    
+    # Phase 2: Find the period (lambda)
+    # After Phase 1, tortoise and hare are at the meeting point
+    # Keep tortoise at meeting point, move hare one step, count until they meet again
+    # This gives us the period
+    meeting_point = tortoise  # Save the meeting point
+    lambda_period = 1
+    hare = meeting_point * state_update_matrix
+    
+    # If they're already equal after one step, period is 1
+    if meeting_point == hare:
+        lambda_period = 1
+    else:
+        # Count steps until hare returns to meeting point
+        while meeting_point != hare and lambda_period < max_steps:
+            hare = hare * state_update_matrix
+            lambda_period += 1
+    
+    # Safety check
+    if lambda_period >= max_steps:
+        return _find_period_enumeration(start_state, state_update_matrix)
+    
+    # Return the period - NO enumeration, NO sequence storage
+    # This is true O(1) space!
+    return lambda_period
+
+
+def _find_period_enumeration(
+    start_state: Any, state_update_matrix: Any
+) -> int:
+    """
+    Find the period by enumeration without storing the sequence.
+    
+    This uses O(1) extra space (just counters) but O(period) time.
+    Unlike the sequence-storing version, this doesn't store states.
+    
+    Args:
+        start_state: The initial state vector to start the cycle from
+        state_update_matrix: The LFSR state update matrix
+
+    Returns:
+        The period (length of the cycle)
+    """
+    # Enumerate until we complete the cycle, but don't store states
+    # Only count steps - this is O(1) space
+    next_state = start_state * state_update_matrix
+    period = 1
+    
+    while next_state != start_state:
+        period += 1
+        next_state = next_state * state_update_matrix
+        
+        # Safety limit
+        if period > 10000000:
+            raise ValueError("Period exceeds maximum limit (possible infinite loop)")
+    
+    return period
+
+
+def _find_period(
+    start_state: Any, state_update_matrix: Any, algorithm: str = "auto"
+) -> int:
+    """
+    Find the period of a cycle starting from a given state.
+    
+    This is the period-only version that doesn't store sequences.
+    Use this when you only need the period, not the full sequence.
+    
+    Args:
+        start_state: The initial state vector to start the cycle from
+        state_update_matrix: The LFSR state update matrix
+        algorithm: Algorithm to use: "floyd", "enumeration", or "auto" (default: "auto")
+                   "auto" uses Floyd's algorithm by default
+
+    Returns:
+        The period (length of the cycle)
+    """
+    if algorithm == "enumeration":
+        return _find_period_enumeration(start_state, state_update_matrix)
+    elif algorithm == "floyd" or algorithm == "auto":
+        # Use Floyd's algorithm for efficiency (especially for large periods)
+        # Falls back to enumeration if limits are hit or for safety
+        return _find_period_floyd(start_state, state_update_matrix)
+    else:
+        # Invalid algorithm, default to Floyd
+        return _find_period_floyd(start_state, state_update_matrix)
+
+
 def _find_sequence_cycle_floyd(
     start_state: Any, state_update_matrix: Any, visited_set: set
 ) -> Tuple[List[Any], int]:
@@ -175,36 +301,44 @@ def _find_sequence_cycle_enumeration(
 
 
 def _find_sequence_cycle(
-    start_state: Any, state_update_matrix: Any, visited_set: set, algorithm: str = "auto"
+    start_state: Any, state_update_matrix: Any, visited_set: set, algorithm: str = "auto", period_only: bool = False
 ) -> Tuple[List[Any], int]:
     """
-    Find the complete cycle of states starting from a given state.
+    Find the complete cycle of states starting from a given state, or just the period.
     
-    Uses Floyd's cycle detection algorithm for efficiency, with fallback to
-    enumeration for safety or when full sequence is needed.
+    When period_only=True, uses period-only functions that don't store sequences.
+    When period_only=False, stores the full sequence (default behavior).
 
     Args:
         start_state: The initial state vector to start the cycle from
         state_update_matrix: The LFSR state update matrix
         visited_set: Set of already processed states (modified in place)
                      Stores tuples (hashable) instead of vectors (mutable)
+                     Not used when period_only=True
         algorithm: Algorithm to use: "floyd", "enumeration", or "auto" (default: "auto")
-                   "auto" uses Floyd's algorithm by default
+                   "auto" uses enumeration for full mode, Floyd for period-only mode
+        period_only: If True, return only the period without storing sequence (default: False)
 
     Returns:
         Tuple of (sequence_list, period) where:
-        - sequence_list: List of all states in the cycle
+        - sequence_list: List of all states in the cycle (empty list if period_only=True)
         - period: Length of the cycle
     """
-    if algorithm == "enumeration":
-        return _find_sequence_cycle_enumeration(start_state, state_update_matrix, visited_set)
-    elif algorithm == "floyd" or algorithm == "auto":
-        # Use Floyd's algorithm for efficiency (especially for large periods)
-        # Falls back to enumeration if limits are hit or for safety
-        return _find_sequence_cycle_floyd(start_state, state_update_matrix, visited_set)
+    if period_only:
+        # Period-only mode: use period-only functions (true O(1) space for Floyd)
+        period = _find_period(start_state, state_update_matrix, algorithm=algorithm)
+        return [], period
     else:
-        # Invalid algorithm, default to Floyd
-        return _find_sequence_cycle_floyd(start_state, state_update_matrix, visited_set)
+        # Full sequence mode: store the sequence
+        if algorithm == "enumeration":
+            return _find_sequence_cycle_enumeration(start_state, state_update_matrix, visited_set)
+        elif algorithm == "floyd" or algorithm == "auto":
+            # Use Floyd's algorithm (but still stores sequence, so O(period) space)
+            # Falls back to enumeration if limits are hit or for safety
+            return _find_sequence_cycle_floyd(start_state, state_update_matrix, visited_set)
+        else:
+            # Invalid algorithm, default to enumeration
+            return _find_sequence_cycle_enumeration(start_state, state_update_matrix, visited_set)
 
 
 def _format_sequence_entry(
@@ -271,6 +405,7 @@ def lfsr_sequence_mapper(
     output_file: Optional[TextIO] = None,
     no_progress: bool = False,
     algorithm: str = "auto",
+    period_only: bool = False,
 ) -> Tuple[Dict[int, List[Any]], Dict[int, int], int, int]:
     """
     Map all possible state vectors to their sequences and periods.
@@ -286,11 +421,16 @@ def lfsr_sequence_mapper(
         state_vector_space: Vector space of all possible states
         gf_order: The field order
         output_file: Optional file object for output
+        no_progress: If True, disable progress bar display
+        algorithm: Algorithm to use: "floyd", "enumeration", or "auto"
+        period_only: If True, compute periods only without storing sequences (default: False)
+                    When True, Floyd's algorithm uses true O(1) space
 
     Returns:
         Tuple of (seq_dict, period_dict, max_period, periods_sum)
         where:
         - seq_dict: Dictionary mapping sequence numbers to lists of state vectors
+                   (empty lists if period_only=True)
         - period_dict: Dictionary mapping sequence numbers to periods
         - max_period: Maximum period found
         - periods_sum: Sum of all periods
@@ -352,33 +492,45 @@ def lfsr_sequence_mapper(
         if bra_tuple not in visited_set:
             seq += 1
             seq_lst, seq_period = _find_sequence_cycle(
-                bra, state_update_matrix, visited_set, algorithm=algorithm
+                bra, state_update_matrix, visited_set, algorithm=algorithm, period_only=period_only
             )
-            seq_dict[seq] = seq_lst
+            if period_only:
+                # Period-only mode: don't store sequences, only periods
+                seq_dict[seq] = []  # Empty list to maintain structure
+            else:
+                # Full mode: store sequences
+                seq_dict[seq] = seq_lst
             period_dict[seq] = seq_period
             if seq_period > max_period:
                 max_period = seq_period
 
-    # Display sequences
+    # Display sequences (or periods only if period_only mode)
     print("\n")
     periods_sum = sum(period_dict.values())
     num_sequences = len(period_dict)
     row_width = TABLE_ROW_WIDTH
     special_state = vector({d - 1: 1})  # Special state vector to highlight
 
-    for seq_num, sequence in seq_dict.items():
-        period = period_dict[seq_num]
-        seq_entry, seq_all_v = _format_sequence_entry(
-            seq_num, sequence, period, max_period, special_state, row_width
-        )
+    if period_only:
+        # Period-only mode: display only periods, not sequences
+        for seq_num, period in period_dict.items():
+            seq_entry = f" | ** sequence {seq_num:3d} | T : {period:3d} | (period only)  |"
+            dump(seq_entry, "mode=all", output_file)
+    else:
+        # Full mode: display sequences
+        for seq_num, sequence in seq_dict.items():
+            period = period_dict[seq_num]
+            seq_entry, seq_all_v = _format_sequence_entry(
+                seq_num, sequence, period, max_period, special_state, row_width
+            )
 
-        # Display shortened version to console, full version to file
-        dump_seq_row(
-            seq_num, seq_entry, num_sequences, row_width, "mode=console", output_file
-        )
-        dump_seq_row(
-            seq_num, seq_all_v, num_sequences, row_width, "mode=file", output_file
-        )
+            # Display shortened version to console, full version to file
+            dump_seq_row(
+                seq_num, seq_entry, num_sequences, row_width, "mode=console", output_file
+            )
+            dump_seq_row(
+                seq_num, seq_all_v, num_sequences, row_width, "mode=file", output_file
+            )
 
     dump("  PERIOD VALUES SUMMED : " + str(periods_sum), "mode=all", output_file)
     dump(

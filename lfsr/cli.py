@@ -55,6 +55,7 @@ def main(
     no_progress: bool = False,
     output_format: str = "text",
     algorithm: str = "auto",
+    period_only: bool = False,
 ) -> None:
     """Main function to process LFSR coefficient vectors and perform analysis.
 
@@ -160,8 +161,17 @@ def main(
 
         # Create vector space and analyze sequences
         V = VectorSpace(GF(gf_order), d)
+        
+        # Auto-select algorithm based on mode
+        effective_algorithm = algorithm
+        if algorithm == "auto":
+            if period_only:
+                effective_algorithm = "floyd"  # Floyd is better for period-only
+            else:
+                effective_algorithm = "enumeration"  # Enumeration is better for full mode
+        
         seq_dict, period_dict, max_period, periods_sum = lfsr_sequence_mapper(
-            C, V, gf_order, output_file, no_progress=no_progress, algorithm=algorithm
+            C, V, gf_order, output_file, no_progress=no_progress, algorithm=effective_algorithm, period_only=period_only
         )
 
         # Finding all sequences of states of the parameterized
@@ -275,10 +285,16 @@ def parse_args(args: Optional[list] = None) -> argparse.Namespace:
     )
 
     parser.add_argument(
+        "--period-only",
+        action="store_true",
+        help="Compute periods only, without storing sequences. Floyd's algorithm uses true O(1) space in this mode.",
+    )
+
+    parser.add_argument(
         "--algorithm",
         choices=["floyd", "enumeration", "auto"],
         default="auto",
-        help="Cycle detection algorithm: 'floyd' (O(1) space, faster for large periods), 'enumeration' (O(period) space, sometimes faster for small periods), or 'auto' (default: floyd)",
+        help="Cycle detection algorithm: 'floyd' (better for period-only mode), 'enumeration' (default for full mode, faster), or 'auto' (enumeration for full mode, floyd for period-only)",
     )
 
     parser.add_argument(
@@ -359,6 +375,7 @@ def cli_main() -> None:
                 no_progress=args.no_progress,
                 output_format=args.format,
                 algorithm=args.algorithm,
+                period_only=args.period_only,
             )
 
         if not args.quiet:
