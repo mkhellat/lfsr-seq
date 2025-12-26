@@ -378,14 +378,18 @@ They meet when :math:`S_k = S_{i+k}`. Since :math:`i` is a multiple of :math:`\l
 :math:`S_{i+k} = S_k`, so they meet when :math:`k = \mu` (tortoise enters cycle).
 The period :math:`\lambda` is found by counting steps from this meeting point until the next meeting.
 
-**Complexity**:
-* Time: :math:`O(\lambda)` - same as enumeration, but more cache-friendly
-* Space: :math:`O(1)` - only stores two state pointers, not the entire cycle
+**Theoretical Complexity**:
+* Time: :math:`O(\lambda)` - same as enumeration
+* Space for period finding: :math:`O(1)` - only stores two state pointers
 
-**Advantages**:
+**Practical Implementation**:
+* Our implementation stores the full sequence for output, so space is :math:`O(\lambda)`
+* Same space complexity as enumeration in practice
+* Performance varies by input - enumeration is often faster
+
+**Theoretical Advantages** (when only period is needed):
 * **Memory Efficiency**: Critical for large periods where storing all states is infeasible
-* **Scalability**: Enables analysis of LFSRs with periods > 10^6
-* **Cache Performance**: Better memory access patterns than full enumeration
+* **Scalability**: Enables analysis of LFSRs with periods > 10^6 (if only period needed)
 
 **Example**: For an LFSR with period 15:
 
@@ -399,7 +403,7 @@ Phase 1: Tortoise and hare start at :math:`S_0`:
 Phase 2: Reset tortoise, move both one step:
 * Find the period by counting steps until they meet again
 
-**Implementation Note**: The tool uses Floyd's algorithm by default, with automatic fallback to enumeration for safety or when the full sequence is needed for output formatting.
+**Implementation Note**: The tool uses Floyd's algorithm by default, but both algorithms use :math:`O(\lambda)` space since the full sequence must be stored for output. Use ``--algorithm`` to compare performance, or ``scripts/performance_profile.py`` for detailed analysis.
 
 Polynomial Factorization and Factor Orders
 ------------------------------------------
