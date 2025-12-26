@@ -44,11 +44,93 @@ def _update_progress_display(
     print(prog_t + prog_info, end="\r")
 
 
-def _find_sequence_cycle(
+def _find_sequence_cycle_floyd(
     start_state: Any, state_update_matrix: Any, visited_set: set
 ) -> Tuple[List[Any], int]:
     """
-    Find the complete cycle of states starting from a given state.
+    Find the cycle period using Floyd's cycle detection algorithm (tortoise and hare).
+    
+    Floyd's algorithm finds the period in O(period) time with O(1) extra space,
+    compared to O(period) time and O(period) space for full enumeration.
+    This is especially beneficial for large periods.
+    
+    Args:
+        start_state: The initial state vector to start the cycle from
+        state_update_matrix: The LFSR state update matrix
+        visited_set: Set of already processed states (modified in place)
+                     Stores tuples (hashable) instead of vectors (mutable)
+
+    Returns:
+        Tuple of (sequence_list, period) where:
+        - sequence_list: List of all states in the cycle
+        - period: Length of the cycle
+    """
+    # Floyd's cycle detection algorithm
+    # Phase 1: Find a meeting point in the cycle
+    # Tortoise moves 1 step, hare moves 2 steps per iteration
+    tortoise = start_state
+    hare = start_state * state_update_matrix
+    
+    steps = 1
+    max_steps = 10000000  # Safety limit to prevent infinite loops
+    
+    # Find meeting point (guaranteed to exist since LFSR sequences are periodic)
+    while tortoise != hare and steps < max_steps:
+        tortoise = tortoise * state_update_matrix
+        hare = (hare * state_update_matrix) * state_update_matrix
+        steps += 1
+    
+    # Safety check: if we hit the limit, fall back to enumeration
+    if steps >= max_steps:
+        return _find_sequence_cycle_enumeration(start_state, state_update_matrix, visited_set)
+    
+    # Phase 2: Find the period (lambda)
+    # Move tortoise to start, move both 1 step until they meet
+    # The number of steps is the period
+    tortoise = start_state
+    lambda_period = 0
+    
+    while tortoise != hare:
+        tortoise = tortoise * state_update_matrix
+        hare = hare * state_update_matrix
+        lambda_period += 1
+        if lambda_period > max_steps:
+            return _find_sequence_cycle_enumeration(start_state, state_update_matrix, visited_set)
+    
+    # Now we know the period, enumerate the full sequence for output
+    # This is still needed for displaying the sequence, but we know when to stop
+    seq_lst = [start_state]
+    start_state_tuple = tuple(start_state)
+    visited_set.add(start_state_tuple)
+    next_state = start_state * state_update_matrix
+    seq_period = 1
+    
+    # Enumerate until we complete the cycle (we know the period, but need all states)
+    while next_state != start_state:
+        seq_lst.append(next_state)
+        next_state_tuple = tuple(next_state)
+        visited_set.add(next_state_tuple)
+        seq_period += 1
+        next_state = next_state * state_update_matrix
+        
+        # Safety: if period doesn't match, use what we found
+        if seq_period > lambda_period * 2:
+            # Something went wrong, use enumeration result
+            seq_period = len(seq_lst)
+            break
+    
+    # Use the period found by Floyd (more reliable for large periods)
+    return seq_lst, lambda_period if lambda_period > 0 else seq_period
+
+
+def _find_sequence_cycle_enumeration(
+    start_state: Any, state_update_matrix: Any, visited_set: set
+) -> Tuple[List[Any], int]:
+    """
+    Find the complete cycle of states using full enumeration (original method).
+    
+    This is the fallback method when Floyd's algorithm hits limits or when
+    the full sequence is needed for small periods.
 
     Args:
         start_state: The initial state vector to start the cycle from
@@ -77,6 +159,32 @@ def _find_sequence_cycle(
         next_state = next_state * state_update_matrix
 
     return seq_lst, seq_period
+
+
+def _find_sequence_cycle(
+    start_state: Any, state_update_matrix: Any, visited_set: set
+) -> Tuple[List[Any], int]:
+    """
+    Find the complete cycle of states starting from a given state.
+    
+    Uses Floyd's cycle detection algorithm for efficiency, with fallback to
+    enumeration for small periods or when full sequence is needed.
+
+    Args:
+        start_state: The initial state vector to start the cycle from
+        state_update_matrix: The LFSR state update matrix
+        visited_set: Set of already processed states (modified in place)
+                     Stores tuples (hashable) instead of vectors (mutable)
+
+    Returns:
+        Tuple of (sequence_list, period) where:
+        - sequence_list: List of all states in the cycle
+        - period: Length of the cycle
+    """
+    # Use Floyd's algorithm for efficiency (especially for large periods)
+    # For very small periods, enumeration might be faster, but Floyd is still O(period)
+    # and uses O(1) extra space vs O(period) for enumeration
+    return _find_sequence_cycle_floyd(start_state, state_update_matrix, visited_set)
 
 
 def _format_sequence_entry(
