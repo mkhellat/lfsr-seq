@@ -398,7 +398,7 @@ Phase 1: Tortoise and hare start at :math:`S_0`:
 Phase 2: Reset tortoise, move both one step:
 * Find the period by counting steps until they meet again
 
-**Implementation Note**: The tool uses Floyd's algorithm by default, with automatic fallback to enumeration for safety or when the full sequence is needed for output formatting.
+**Implementation Note**: The tool currently uses enumeration method. Floyd's algorithm is implemented but temporarily disabled due to a Phase 2 bug that causes infinite loops in certain edge cases. Once fixed, it will be enabled by default with automatic fallback to enumeration for safety.
 
 Polynomial Factorization and Factor Orders
 ------------------------------------------
