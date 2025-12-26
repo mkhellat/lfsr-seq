@@ -238,11 +238,12 @@ python3 scripts/performance_profile.py strange.csv 2 --period-only -n 10
 
 1. ✅ `--period-only` flag works correctly
 2. ✅ Enumeration is default for full mode
-3. ✅ Floyd shows O(1) space in period-only mode
-4. ✅ Floyd is faster than enumeration in period-only mode
-5. ✅ Performance profiling demonstrates advantages
-6. ✅ Documentation is updated
+3. ✅ Floyd shows O(1) space in period-only mode (verified)
+4. ⚠️ Floyd is NOT faster than enumeration (enumeration is 3-5× faster) - documented
+5. ✅ Performance profiling demonstrates characteristics (both advantages and disadvantages)
+6. ✅ Documentation is updated with comprehensive performance analysis
 7. ✅ Backward compatibility maintained
+8. ✅ Unit tests added for period-only functions
 
 ## Files to Modify
 
