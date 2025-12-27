@@ -74,6 +74,26 @@ from collections import Counter
 from dataclasses import dataclass, field
 from typing import Callable, Dict, List, Optional, Tuple, Any
 
+try:
+    from scipy.stats import norm
+    SCIPY_AVAILABLE = True
+except ImportError:
+    SCIPY_AVAILABLE = False
+    # Fallback: simple normal approximation
+    def norm_ppf(p):
+        """Simple approximation of normal quantile function."""
+        # Approximation using inverse error function
+        import math
+        if p < 0.5:
+            return -math.sqrt(2) * math.erfinv(2 * p)
+        else:
+            return math.sqrt(2) * math.erfinv(2 * (1 - p))
+    
+    def norm_cdf(x):
+        """Simple approximation of normal CDF."""
+        import math
+        return 0.5 * (1 + math.erf(x / math.sqrt(2)))
+
 from sage.all import *
 
 
@@ -224,6 +244,7 @@ class CorrelationAttackResult:
         correlation_coefficient: Measured correlation coefficient (range: -1 to +1)
         p_value: Statistical significance (probability that correlation is due to chance)
         attack_successful: Whether the attack succeeded (correlation is significant)
+        success_probability: Estimated probability that the attack will succeed
         required_keystream_bits: Estimated number of keystream bits needed for attack
         complexity_estimate: Estimated computational complexity of full attack
         matches: Number of matching bits between keystream and LFSR sequence
@@ -234,6 +255,7 @@ class CorrelationAttackResult:
     correlation_coefficient: float
     p_value: float
     attack_successful: bool
+    success_probability: float
     required_keystream_bits: int
     complexity_estimate: float
     matches: int
@@ -326,6 +348,160 @@ def compute_correlation_coefficient(
     }
     
     return correlation, p_value, detailed_stats
+
+
+def estimate_attack_success_probability(
+    correlation_coefficient: float,
+    keystream_length: int,
+    lfsr_degree: int,
+    field_order: int = 2,
+    significance_level: float = 0.05,
+    target_success_probability: float = 0.95
+) -> Dict[str, Any]:
+    """
+    Estimate the probability that a correlation attack will succeed.
+    
+    The attack success probability depends on:
+    1. **Detection Probability**: Probability of detecting the correlation
+       (statistical power)
+    2. **Recovery Probability**: Probability of recovering the LFSR state
+       (computational feasibility)
+    
+    The overall success probability is the product of these two factors.
+    
+    **Detection Probability**:
+    The probability of detecting a correlation depends on:
+    - The correlation coefficient strength (|ρ|)
+    - The amount of keystream available (n)
+    - The statistical significance level (α)
+    
+    For a given correlation coefficient ρ and keystream length n, the detection
+    probability increases with n and |ρ|. Using normal approximation:
+    
+    .. math::
+    
+       P_{\\text{detect}} = 1 - \\Phi\\left(\\frac{z_{\\alpha/2} - |\\rho|\\sqrt{n}}{\\sqrt{1-\\rho^2}}\\right)
+    
+    where :math:`z_{\\alpha/2}` is the critical value for significance level α.
+    
+    **Recovery Probability**:
+    The probability of recovering the state depends on:
+    - The state space size (:math:`q^d`)
+    - Whether the correlation is strong enough to distinguish the correct state
+    
+    For correlation attacks, recovery is typically feasible if:
+    - The state space is not too large (< 2^40 for practical attacks)
+    - The correlation is significant (|ρ| > threshold)
+    
+    Args:
+        correlation_coefficient: Measured correlation coefficient (-1 to +1)
+        keystream_length: Number of keystream bits available
+        lfsr_degree: Degree of the target LFSR
+        field_order: Field order (default: 2 for binary)
+        significance_level: Statistical significance level (default: 0.05)
+        target_success_probability: Target success probability for estimation
+            (default: 0.95)
+    
+    Returns:
+        Dictionary with:
+        - 'detection_probability': Probability of detecting correlation
+        - 'recovery_probability': Probability of recovering state
+        - 'overall_success_probability': Overall attack success probability
+        - 'required_keystream_bits': Estimated keystream bits needed for target
+          success probability
+        - 'feasible': Whether attack is computationally feasible
+    
+    Example:
+        >>> result = estimate_attack_success_probability(
+        ...     correlation_coefficient=0.3,
+        ...     keystream_length=1000,
+        ...     lfsr_degree=10,
+        ...     field_order=2
+        ... )
+        >>> print(f"Success probability: {result['overall_success_probability']:.2%}")
+    """
+    abs_correlation = abs(correlation_coefficient)
+    
+    # State space size
+    state_space_size = field_order ** lfsr_degree
+    
+    # Detection probability using normal approximation
+    # For binary sequences, under null hypothesis: E[matches] = n/2, Var = n/4
+    # Under alternative: E[matches] = n * (1 + ρ)/2, Var ≈ n/4
+    
+    if abs_correlation == 0 or keystream_length == 0:
+        detection_prob = 0.0
+    else:
+        # Z-score for significance level (two-tailed)
+        if SCIPY_AVAILABLE:
+            z_critical = abs(norm.ppf(significance_level / 2))
+        else:
+            z_critical = abs(norm_ppf(significance_level / 2))
+        
+        # Effect size: correlation coefficient
+        # Standard error under null hypothesis
+        se_null = 1.0 / math.sqrt(keystream_length)
+        
+        # Z-score for observed correlation
+        z_observed = abs_correlation / se_null
+        
+        # Detection probability: probability that z_observed > z_critical
+        # Using normal approximation
+        if SCIPY_AVAILABLE:
+            detection_prob = 1.0 - norm.cdf(z_critical - z_observed)
+        else:
+            detection_prob = 1.0 - norm_cdf(z_critical - z_observed)
+        detection_prob = max(0.0, min(1.0, detection_prob))  # Clamp to [0, 1]
+    
+    # Recovery probability
+    # For correlation attacks, recovery is feasible if:
+    # 1. State space is not too large
+    # 2. Correlation is strong enough
+    
+    # Rough feasibility threshold: state space < 2^40
+    max_feasible_state_space = 2 ** 40
+    
+    if state_space_size > max_feasible_state_space:
+        recovery_prob = 0.0
+        feasible = False
+    elif abs_correlation < 0.01:  # Very weak correlation
+        recovery_prob = 0.0
+        feasible = False
+    elif abs_correlation < 0.1:  # Weak correlation
+        recovery_prob = 0.1  # Low probability even if detectable
+        feasible = True
+    elif abs_correlation < 0.3:  # Moderate correlation
+        recovery_prob = 0.5  # Moderate probability
+        feasible = True
+    else:  # Strong correlation
+        recovery_prob = 0.9  # High probability
+        feasible = True
+    
+    # Overall success probability
+    overall_success_prob = detection_prob * recovery_prob
+    
+    # Estimate required keystream bits for target success probability
+    # Using approximation: n ≈ (z_α/2 / |ρ|)^2 for detection
+    if abs_correlation > 0:
+        # For target detection probability, we need:
+        # P_detect = 1 - Φ(z_critical - |ρ|√n / se)
+        # Solving for n:
+        if SCIPY_AVAILABLE:
+            z_target = abs(norm.ppf((1 - target_success_probability) / 2))
+        else:
+            z_target = abs(norm_ppf((1 - target_success_probability) / 2))
+        required_bits = int((z_target / abs_correlation) ** 2) if abs_correlation > 0.001 else 1000000
+    else:
+        required_bits = 1000000  # Very large if no correlation
+    
+    return {
+        'detection_probability': detection_prob,
+        'recovery_probability': recovery_prob,
+        'overall_success_probability': overall_success_prob,
+        'required_keystream_bits': required_bits,
+        'feasible': feasible,
+        'state_space_size': state_space_size
+    }
 
 
 def siegenthaler_correlation_attack(
@@ -427,11 +603,25 @@ def siegenthaler_correlation_attack(
     state_space_size = lfsr_config.field_order ** lfsr_config.degree
     complexity_estimate = float(state_space_size)
     
+    # Estimate attack success probability
+    prob_estimate = estimate_attack_success_probability(
+        correlation_coefficient=correlation,
+        keystream_length=n,
+        lfsr_degree=lfsr_config.degree,
+        field_order=lfsr_config.field_order,
+        significance_level=significance_level
+    )
+    
+    # Use more accurate required bits from probability estimation if available
+    if prob_estimate['required_keystream_bits'] < required_bits:
+        required_bits = prob_estimate['required_keystream_bits']
+    
     return CorrelationAttackResult(
         target_lfsr_index=target_lfsr_index,
         correlation_coefficient=correlation,
         p_value=p_value,
         attack_successful=attack_successful,
+        success_probability=prob_estimate['overall_success_probability'],
         required_keystream_bits=required_bits,
         complexity_estimate=complexity_estimate,
         matches=stats["matches"],

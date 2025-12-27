@@ -272,6 +272,7 @@ def perform_correlation_attack_cli(
         print(f"  P-value: {result.p_value:.6f}", file=output_file)
         print(f"  Match ratio: {result.match_ratio:.4f} ({result.matches}/{result.total_bits})", file=output_file)
         print(f"  Attack successful: {result.attack_successful}", file=output_file)
+        print(f"  Success probability: {result.success_probability:.2%}", file=output_file)
         if result.attack_successful:
             print(f"  ⚠ VULNERABLE: Significant correlation detected!", file=output_file)
         print(f"  Required keystream bits: {result.required_keystream_bits}", file=output_file)

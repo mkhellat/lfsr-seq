@@ -150,6 +150,25 @@ The computational complexity is roughly :math:`O(2^d)` where :math:`d` is the
 degree of the target LFSR. This is because we need to search through all
 possible initial states.
 
+**Attack Success Probability**:
+
+The probability that a correlation attack will succeed depends on two factors:
+
+1. **Detection Probability**: The probability of detecting the correlation
+   (statistical power). This depends on:
+   - The correlation coefficient strength (|ρ|)
+   - The amount of keystream available (n)
+   - The statistical significance level (α)
+
+2. **Recovery Probability**: The probability of recovering the LFSR state
+   (computational feasibility). This depends on:
+   - The state space size (:math:`q^d`)
+   - Whether the correlation is strong enough to distinguish the correct state
+
+The overall success probability is the product of these two factors. For
+practical attacks, the state space should be less than :math:`2^{40}` and the
+correlation coefficient should be at least 0.1 for reasonable success probability.
+
 **Limitations**:
 
 - Requires knowledge of the LFSR structure (feedback polynomial)

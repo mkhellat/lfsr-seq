@@ -82,7 +82,7 @@ def example_basic_correlation_attack():
         
         success_str = "✓ Yes" if result.attack_successful else "✗ No"
         print(f"{i+1:<6} {result.correlation_coefficient:>13.6f}  "
-              f"{result.p_value:>10.6f}  {success_str:<10}")
+              f"{result.p_value:>10.6f}  {success_str:<10}  {result.success_probability:>6.2%}")
     
     # Detailed analysis of first LFSR
     print(f"\n{'─'*70}")
@@ -93,6 +93,7 @@ def example_basic_correlation_attack():
     print(f"  P-value: {result.p_value:.6f}")
     print(f"  Match ratio: {result.match_ratio:.4f} ({result.matches}/{result.total_bits})")
     print(f"  Attack successful: {result.attack_successful}")
+    print(f"  Success probability: {result.success_probability:.2%}")
     print(f"  Required keystream bits: {result.required_keystream_bits}")
     print(f"  Complexity estimate: {result.complexity_estimate:.0f} operations")
 
@@ -218,6 +219,7 @@ def example_vulnerable_combination():
         print(f"  Correlation: {result.correlation_coefficient:.6f}")
         print(f"  P-value: {result.p_value:.6f}")
         print(f"  Attack successful: {result.attack_successful}")
+        print(f"  Success probability: {result.success_probability:.2%}")
         if result.attack_successful:
             print(f"  ⚠ VULNERABLE: Significant correlation detected!")
 

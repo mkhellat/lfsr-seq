@@ -85,6 +85,7 @@ Results from a correlation attack.
 - ``correlation_coefficient``: Measured correlation (range: -1 to +1)
 - ``p_value``: Statistical significance (probability correlation is due to chance)
 - ``attack_successful``: Whether the attack succeeded
+- ``success_probability``: Estimated probability that attack will succeed
 - ``required_keystream_bits``: Estimated keystream bits needed
 - ``complexity_estimate``: Estimated computational complexity
 - ``matches``: Number of matching bits
@@ -172,6 +173,42 @@ analyze_combining_function
 
 .. autofunction:: lfsr.attacks.analyze_combining_function
    :no-index:
+
+estimate_attack_success_probability
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. autofunction:: lfsr.attacks.estimate_attack_success_probability
+   :no-index:
+
+Estimate the probability that a correlation attack will succeed.
+
+**Parameters**:
+- ``correlation_coefficient``: Measured correlation coefficient
+- ``keystream_length``: Number of keystream bits available
+- ``lfsr_degree``: Degree of the target LFSR
+- ``field_order``: Field order (default: 2)
+- ``significance_level``: Statistical significance level (default: 0.05)
+- ``target_success_probability``: Target success probability (default: 0.95)
+
+**Returns**:
+Dictionary with detection probability, recovery probability, overall
+success probability, required keystream bits, and feasibility.
+
+**Example**:
+
+.. code-block:: python
+
+   from lfsr.attacks import estimate_attack_success_probability
+   
+   result = estimate_attack_success_probability(
+       correlation_coefficient=0.3,
+       keystream_length=1000,
+       lfsr_degree=10,
+       field_order=2
+   )
+   
+   print(f"Success probability: {result['overall_success_probability']:.2%}")
+   print(f"Feasible: {result['feasible']}")
 
 Analyze correlation properties of a combining function.
 
