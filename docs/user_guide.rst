@@ -35,13 +35,13 @@ Optional Arguments:
    -v, --verbose              Enable verbose output
    -q, --quiet                Enable quiet mode (suppress non-essential output)
    --no-progress              Disable progress bar display
-   --format \{text,json,csv,xml\}
+   --format {text,json,csv,xml}
                               Output format (default: text)
    --period-only              Compute periods only, without storing sequences.
                               Floyd's algorithm uses true O(1) space in this mode.
                               Both algorithms achieve O(1) space, but enumeration is faster.
 
-   --algorithm \{floyd,brent,enumeration,auto\}
+   --algorithm {floyd,brent,enumeration,auto}
                               Cycle detection algorithm (default: auto)
 
                               - enumeration: Default, faster for typical periods
@@ -543,11 +543,22 @@ these formats:
 - One bit per line
 - Space-separated bits on one or multiple lines
 
+**Export Formats**:
+
+The NIST test suite supports multiple export formats for results:
+
+- **text** (default): Human-readable text output
+- **json**: JSON format for programmatic processing
+- **csv**: CSV format for spreadsheet analysis
+- **xml**: XML format for structured data
+- **html**: HTML format with styling for viewing in browser
+
 **Python API Usage**:
 
 .. code-block:: python
 
    from lfsr.nist import run_nist_test_suite, frequency_test
+   from lfsr.export import export_nist_to_json, export_nist_to_html
    
    # Load or generate sequence
    sequence = [1, 0, 1, 0] * 250  # 1000 bits
@@ -558,6 +569,14 @@ these formats:
    # Run complete suite
    suite_result = run_nist_test_suite(sequence, significance_level=0.01)
    print(f"Tests passed: {suite_result.tests_passed}/{suite_result.total_tests}")
+   
+   # Export to JSON
+   with open('results.json', 'w') as f:
+       export_nist_to_json(suite_result, f)
+   
+   # Export to HTML
+   with open('results.html', 'w') as f:
+       export_nist_to_html(suite_result, f)
 
 **Key Concepts**:
 

@@ -658,6 +658,83 @@ Glossary
    A standardized value indicating how many standard deviations an observation
    is from the mean. :math:`z = \frac{X - \mu}{\sigma}`.
 
+Test Report Generation
+------------------------
+
+The NIST test suite provides comprehensive report generation in multiple formats
+for analysis, documentation, and integration with other tools.
+
+**Supported Formats**:
+
+- **Text** (default): Human-readable console output with detailed results
+- **JSON**: Structured data format for programmatic processing and integration
+- **CSV**: Tabular format for spreadsheet analysis and data processing
+- **XML**: Structured XML format for data exchange and parsing
+- **HTML**: Professional HTML report with CSS styling for viewing in browser
+
+**CLI Usage**:
+
+Export results to different formats:
+
+.. code-block:: bash
+
+   # JSON export
+   lfsr-seq dummy.csv 2 --nist-test --sequence-file seq.txt \
+       --nist-output-format json
+
+   # HTML export (view in browser)
+   lfsr-seq dummy.csv 2 --nist-test --sequence-file seq.txt \
+       --nist-output-format html
+
+   # CSV export (for spreadsheet analysis)
+   lfsr-seq dummy.csv 2 --nist-test --sequence-file seq.txt \
+       --nist-output-format csv
+
+**Python API Usage**:
+
+.. code-block:: python
+
+   from lfsr.nist import run_nist_test_suite
+   from lfsr.export import (
+       export_nist_to_json,
+       export_nist_to_csv,
+       export_nist_to_xml,
+       export_nist_to_html,
+       get_nist_export_function
+   )
+   
+   # Run test suite
+   suite_result = run_nist_test_suite(sequence)
+   
+   # Export to JSON
+   with open('results.json', 'w') as f:
+       export_nist_to_json(suite_result, f)
+   
+   # Export to HTML
+   with open('results.html', 'w') as f:
+       export_nist_to_html(suite_result, f)
+   
+   # Or use the getter function
+   export_func = get_nist_export_function('json')
+   with open('results.json', 'w') as f:
+       export_func(suite_result, f)
+
+**Report Contents**:
+
+All export formats include:
+
+- **Metadata**: Timestamp, test suite version, sequence information
+- **Test Parameters**: Significance level, block sizes, etc.
+- **Summary Statistics**: Total tests, pass/fail counts, pass rate, overall assessment
+- **Individual Test Results**: Test name, p-value, pass/fail status, statistic, details
+
+The HTML format additionally provides:
+
+- Color-coded assessment (green for PASSED, red for FAILED)
+- Professional styling with CSS
+- Responsive table layout
+- Easy-to-read summary section
+
 Further Reading
 ---------------
 
