@@ -22,9 +22,24 @@ from lfsr.ciphers.base import (
     CipherStructure
 )
 
+# Import cipher implementations
+from lfsr.ciphers.a5_1 import A5_1
+from lfsr.ciphers.a5_2 import A5_2
+from lfsr.ciphers.e0 import E0
+from lfsr.ciphers.trivium import Trivium
+from lfsr.ciphers.grain import Grain128, Grain128a
+from lfsr.ciphers.lili128 import LILI128
+
 __all__ = [
     "StreamCipher",
     "CipherConfig",
     "CipherAnalysisResult",
     "CipherStructure",
+    "A5_1",
+    "A5_2",
+    "E0",
+    "Trivium",
+    "Grain128",
+    "Grain128a",
+    "LILI128",
 ]
