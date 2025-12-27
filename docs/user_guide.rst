@@ -496,6 +496,77 @@ Supported combining function types: ``majority``, ``xor``, ``and``, ``or``, ``cu
 - ``examples/combination_generator_config.json`` for configuration example
 
 NIST SP 800-22 Statistical Test Suite
+---------------------------------------
+
+The tool includes the NIST SP 800-22 Statistical Test Suite for evaluating
+the randomness of binary sequences. This is an industry-standard test suite
+used in cryptographic evaluation.
+
+**What is NIST SP 800-22?**
+
+NIST SP 800-22 is a collection of 15 statistical tests developed by the
+National Institute of Standards and Technology (NIST) for testing the
+randomness of binary sequences. It is widely used to evaluate:
+
+- Random number generators (RNGs)
+- Pseudorandom number generators (PRNGs)
+- Stream cipher outputs
+- Any binary sequence that should appear random
+
+**CLI Usage**:
+
+Run NIST tests from the command line:
+
+.. code-block:: bash
+
+   # Run NIST test suite on a sequence file
+   lfsr-seq dummy.csv 2 --nist-test --sequence-file sequence.txt
+
+   # With custom significance level
+   lfsr-seq dummy.csv 2 --nist-test --sequence-file sequence.txt \
+       --nist-significance-level 0.05
+
+   # With custom block size
+   lfsr-seq dummy.csv 2 --nist-test --sequence-file sequence.txt \
+       --nist-block-size 256
+
+**Sequence File Format**:
+
+The ``--sequence-file`` should contain binary bits (0s and 1s) in one of
+these formats:
+- One bit per line
+- Space-separated bits on one or multiple lines
+
+**Python API Usage**:
+
+.. code-block:: python
+
+   from lfsr.nist import run_nist_test_suite, frequency_test
+   
+   # Load or generate sequence
+   sequence = [1, 0, 1, 0] * 250  # 1000 bits
+   
+   # Run single test
+   result = frequency_test(sequence)
+   
+   # Run complete suite
+   suite_result = run_nist_test_suite(sequence, significance_level=0.01)
+   print(f"Tests passed: {suite_result.tests_passed}/{suite_result.total_tests}")
+
+**Key Concepts**:
+
+- **P-value**: Probability that a random sequence would produce this result
+- **Significance Level**: Threshold for rejecting randomness (default: 0.01)
+- **Test Suite**: Collection of 15 tests evaluating different aspects of randomness
+- **Overall Assessment**: PASSED if most tests pass, FAILED otherwise
+
+**See Also**:
+
+- :doc:`nist_sp800_22` for comprehensive introduction and theory
+- :doc:`api/nist` for complete API documentation
+- ``examples/nist_test_example.py`` for working examples
+
+NIST SP 800-22 Statistical Test Suite
 --------------------------------------
 
 The tool includes the NIST SP 800-22 Statistical Test Suite for evaluating

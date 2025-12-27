@@ -261,16 +261,126 @@ Test 5: Binary Matrix Rank Test
 - Matrix size: Typically 32×32
 - Minimum sequence length: M × Q × 38 (recommended: M × Q × 100)
 
-Tests 6-15 (To Be Implemented)
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Test 6: Discrete Fourier Transform (Spectral) Test
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The remaining 10 tests will be implemented in subsequent phases:
+**Purpose**: Detects periodic features in the sequence that would indicate
+a deviation from the assumption of randomness.
 
-- **Test 6**: Discrete Fourier Transform (Spectral) Test
-- **Test 7**: Non-overlapping Template Matching Test
-- **Test 8**: Overlapping Template Matching Test
-- **Test 9**: Maurer's "Universal Statistical" Test
-- **Test 10**: Linear Complexity Test
+**What it measures**: Periodic patterns using Fourier analysis (frequency domain).
+
+**How it works**:
+1. Convert sequence to values -1 and +1 (0 → -1, 1 → +1)
+2. Compute Discrete Fourier Transform (DFT) of the sequence
+3. Compute the modulus of each DFT coefficient
+4. Count how many coefficients are below a threshold (expected: 95% for random)
+5. Compute p-value using normal distribution
+
+**Interpretation**:
+- Random sequences should not have periodic patterns
+- If p-value < 0.01, the sequence shows periodic features
+- This test detects sequences with repeating patterns
+
+**Minimum sequence length**: 1000 bits (recommended: 10000+ bits)
+
+Test 7: Non-overlapping Template Matching Test
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+**Purpose**: Tests for occurrences of specific m-bit patterns (templates) in
+the sequence. Detects over-represented patterns that would indicate non-randomness.
+
+**What it measures**: Frequency of specific m-bit patterns in non-overlapping blocks.
+
+**How it works**:
+1. Divide the sequence into non-overlapping blocks of M bits
+2. For each block, check if it matches the template pattern
+3. Count the number of matches
+4. Compare observed frequency with expected frequency using chi-square test
+
+**Interpretation**:
+- Random sequences should not have over-represented patterns
+- If p-value < 0.01, the sequence shows pattern clustering
+- This test detects sequences with specific repeating patterns
+
+**Parameters**:
+- Template: The m-bit pattern to search for (default: 9-bit pattern)
+- Block size (M): Typically 8 bits
+
+Test 8: Overlapping Template Matching Test
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+**Purpose**: Similar to Test 7, but searches for overlapping occurrences of
+a template pattern. Detects pattern clustering that would indicate non-randomness.
+
+**What it measures**: Frequency of overlapping m-bit patterns in blocks.
+
+**How it works**:
+1. Divide the sequence into N blocks of M bits each
+2. For each block, count overlapping occurrences of the template
+3. Count how many blocks have k occurrences (k = 0, 1, 2, ...)
+4. Compare observed frequencies with expected frequencies using chi-square test
+
+**Interpretation**:
+- Random sequences should have template occurrences distributed according to theory
+- If p-value < 0.01, the sequence shows pattern clustering
+- This test detects sequences with clustered patterns
+
+**Parameters**:
+- Template: The m-bit pattern to search for (default: 9 ones)
+- Block size (M): Typically 1032 bits
+
+Test 9: Maurer's "Universal Statistical" Test
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+**Purpose**: Tests whether the sequence can be significantly compressed without
+loss of information. A random sequence should not be compressible.
+
+**What it measures**: Compressibility of the sequence (ability to predict future
+bits from past bits).
+
+**How it works**:
+1. Divide the sequence into blocks of L bits
+2. Use first Q blocks to initialize a table of block positions
+3. For each subsequent block, compute the distance to its last occurrence
+4. Compute the test statistic from these distances
+5. Compute p-value using normal distribution
+
+**Interpretation**:
+- Random sequences should not be compressible
+- If p-value < 0.01, the sequence shows compressibility (non-random)
+- This test detects sequences with predictable patterns
+
+**Parameters**:
+- Block size (L): Typically 6 bits
+- Initialization blocks (Q): Typically 10 blocks
+
+Test 10: Linear Complexity Test
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+**Purpose**: Tests whether the sequence is complex enough to be considered random.
+Sequences with low linear complexity are predictable and non-random.
+
+**What it measures**: Linear complexity of blocks using the Berlekamp-Massey algorithm.
+
+**How it works**:
+1. Divide the sequence into N blocks of M bits each
+2. For each block, compute the linear complexity using Berlekamp-Massey
+3. Compute deviations from expected complexity
+4. Compare observed distribution with expected distribution using chi-square test
+
+**Interpretation**:
+- Random sequences should have high linear complexity
+- If p-value < 0.01, the sequence has lower complexity than expected
+- This test detects sequences that are too predictable
+
+**Parameters**:
+- Block size (M): Typically 500 bits
+
+Tests 11-15 (To Be Implemented)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The remaining 5 tests will be implemented in subsequent phases:
+
 - **Test 11**: Serial Test
 - **Test 12**: Approximate Entropy Test
 - **Test 13**: Cumulative Sums (Cusum) Test

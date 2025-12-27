@@ -201,6 +201,93 @@ NISTTestResult with test results
    result = binary_matrix_rank_test([1, 0] * 1000, matrix_rows=32, matrix_cols=32)
    print(f"P-value: {result.p_value:.6f}, Passed: {result.passed}")
 
+discrete_fourier_transform_test
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. autofunction:: lfsr.nist.discrete_fourier_transform_test
+   :no-index:
+
+Test 6: Discrete Fourier Transform (Spectral) Test.
+
+Detects periodic features using Fourier analysis.
+
+**Parameters**:
+- ``sequence``: Binary sequence (list of 0s and 1s)
+
+**Returns**:
+NISTTestResult with test results
+
+non_overlapping_template_matching_test
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. autofunction:: lfsr.nist.non_overlapping_template_matching_test
+   :no-index:
+
+Test 7: Non-overlapping Template Matching Test.
+
+Tests for occurrences of specific m-bit patterns in non-overlapping blocks.
+
+**Parameters**:
+- ``sequence``: Binary sequence (list of 0s and 1s)
+- ``template``: Template pattern to search for (optional)
+- ``block_size``: Size of each block (default: 8)
+
+**Returns**:
+NISTTestResult with test results
+
+overlapping_template_matching_test
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. autofunction:: lfsr.nist.overlapping_template_matching_test
+   :no-index:
+
+Test 8: Overlapping Template Matching Test.
+
+Tests for overlapping occurrences of template patterns.
+
+**Parameters**:
+- ``sequence``: Binary sequence (list of 0s and 1s)
+- ``template``: Template pattern to search for (optional)
+- ``block_size``: Size of each block (default: 1032)
+
+**Returns**:
+NISTTestResult with test results
+
+maurers_universal_test
+~~~~~~~~~~~~~~~~~~~~~~
+
+.. autofunction:: lfsr.nist.maurers_universal_test
+   :no-index:
+
+Test 9: Maurer's "Universal Statistical" Test.
+
+Tests whether the sequence can be significantly compressed.
+
+**Parameters**:
+- ``sequence``: Binary sequence (list of 0s and 1s)
+- ``block_size``: Size of each block (default: 6)
+- ``init_blocks``: Number of initialization blocks (default: 10)
+
+**Returns**:
+NISTTestResult with test results
+
+linear_complexity_test
+~~~~~~~~~~~~~~~~~~~~~~
+
+.. autofunction:: lfsr.nist.linear_complexity_test
+   :no-index:
+
+Test 10: Linear Complexity Test.
+
+Tests whether the sequence has sufficient linear complexity.
+
+**Parameters**:
+- ``sequence``: Binary sequence (list of 0s and 1s)
+- ``block_size``: Size of each block (default: 500)
+
+**Returns**:
+NISTTestResult with test results
+
 run_nist_test_suite
 ~~~~~~~~~~~~~~~~~~~
 
