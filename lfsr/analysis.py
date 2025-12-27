@@ -424,21 +424,43 @@ def _find_sequence_cycle_enumeration(
         - sequence_list: List of all states in the cycle
         - period: Length of the cycle
     """
+    # Add debug logging
+    import sys
+    import os
+    try:
+        debug_log = lambda msg: print(f'[_find_sequence_cycle_enumeration PID {os.getpid()}] {msg}', file=sys.stderr, flush=True)
+        debug_log('Starting enumeration...')
+    except:
+        debug_log = lambda msg: None
+    
     seq_lst = [start_state]
     # Convert vector to tuple for hashing (SageMath vectors are mutable and unhashable)
     start_state_tuple = tuple(start_state)
     visited_set.add(start_state_tuple)
+    debug_log('Computing first state transition...')
     next_state = start_state * state_update_matrix
+    debug_log('First transition done')
     seq_period = 1
+    iteration = 0
 
+    debug_log('Starting enumeration loop...')
     while next_state != start_state:
         seq_lst.append(next_state)
         # Convert vector to tuple for hashing
         next_state_tuple = tuple(next_state)
         visited_set.add(next_state_tuple)
         seq_period += 1
+        iteration += 1
+        if iteration % 100 == 0:
+            debug_log(f'Iteration {iteration}, period={seq_period}')
+        debug_log(f'Computing next state transition (iteration {iteration})...')
         next_state = next_state * state_update_matrix
+        debug_log(f'Transition {iteration} complete')
+        if iteration > 1000000:  # Safety limit
+            debug_log('Safety limit exceeded!')
+            break
 
+    debug_log(f'Enumeration complete: period={seq_period}, length={len(seq_lst)}')
     return seq_lst, seq_period
 
 
@@ -466,14 +488,29 @@ def _find_sequence_cycle(
         - sequence_list: List of all states in the cycle (empty list if period_only=True)
         - period: Length of the cycle
     """
+    # Add debug logging for multiprocessing
+    import sys
+    import os
+    try:
+        debug_log = lambda msg: print(f'[_find_sequence_cycle PID {os.getpid()}] {msg}', file=sys.stderr, flush=True)
+        debug_log(f'_find_sequence_cycle called: period_only={period_only}, algorithm={algorithm}')
+    except:
+        debug_log = lambda msg: None
+    
     if period_only:
         # Period-only mode: use period-only functions (true O(1) space for Floyd)
+        debug_log('Period-only mode: calling _find_period...')
         period = _find_period(start_state, state_update_matrix, algorithm=algorithm)
+        debug_log(f'_find_period returned: period={period}')
         return [], period
     else:
         # Full sequence mode: store the sequence
+        debug_log('Full sequence mode')
         if algorithm == "enumeration":
-            return _find_sequence_cycle_enumeration(start_state, state_update_matrix, visited_set)
+            debug_log('Calling _find_sequence_cycle_enumeration...')
+            result = _find_sequence_cycle_enumeration(start_state, state_update_matrix, visited_set)
+            debug_log(f'_find_sequence_cycle_enumeration returned: period={result[1]}, length={len(result[0])}')
+            return result
         elif algorithm == "floyd" or algorithm == "auto":
             # Use Floyd's algorithm (but still stores sequence, so O(period) space)
             # Falls back to enumeration if limits are hit or for safety
@@ -874,13 +911,20 @@ def _process_state_chunk(
     # Import SageMath in worker
     # With 'fork' method (Linux default), workers inherit parent's memory
     # so SageMath should already be imported. Just import what we need.
+    # Add debug logging to identify hang point
+    import sys
+    import os
+    debug_log = lambda msg: print(f'[Worker {worker_id} PID {os.getpid()}] {msg}', file=sys.stderr, flush=True)
+    
+    debug_log('Starting worker function')
     try:
+        debug_log('Attempting SageMath import...')
         from sage.all import VectorSpace, GF, vector
+        debug_log('SageMath import successful')
     except ImportError:
+        debug_log('SageMath import failed, trying fallback...')
         # If import fails, try to set up SageMath path (for spawn method)
-        import sys
-        import subprocess
-        import os
+        debug_log('Setting up SageMath path...')
         try:
             result = subprocess.run(
                 ["sage", "-c", "import sys; print('\\n'.join(sys.path))"],
@@ -905,10 +949,13 @@ def _process_state_chunk(
             }
     
     # Reconstruct state update matrix in worker
+    debug_log('Reconstructing state update matrix...')
     try:
         from lfsr.core import build_state_update_matrix
         state_update_matrix, _ = build_state_update_matrix(coeffs_vector, gf_order)
+        debug_log('State update matrix reconstructed successfully')
     except Exception as e:
+        debug_log(f'Failed to build state update matrix: {e}')
         return {
             'sequences': [],
             'max_period': 0,
@@ -926,19 +973,26 @@ def _process_state_chunk(
     local_visited = set()
     
     # Process each state in chunk
-    for state_tuple, _ in state_chunk:
+    debug_log(f'Processing {len(state_chunk)} states in chunk...')
+    for idx, (state_tuple, _) in enumerate(state_chunk):
         try:
+            debug_log(f'Processing state {idx+1}/{len(state_chunk)}: {state_tuple}')
+            
             # Skip if already visited in this worker's processing
             if state_tuple in local_visited:
+                debug_log(f'State {idx+1} already visited, skipping')
                 continue
             
             # Reconstruct state vector from tuple
             # Create the finite field and vector space
+            debug_log(f'State {idx+1}: Creating finite field and vector space...')
             F = GF(gf_order)
             V = VectorSpace(F, lfsr_degree)
             # Convert tuple to list and create vector
+            debug_log(f'State {idx+1}: Converting tuple to vector...')
             state_list = [F(x) for x in state_tuple]
             state = vector(F, state_list)
+            debug_log(f'State {idx+1}: State vector reconstructed')
             
             # Find cycle for this state using local visited set
             # Note: We pass an empty set here since each worker processes independently
@@ -951,7 +1005,9 @@ def _process_state_chunk(
             # In multiprocessing with 'fork', functions from the same module should be available
             # But to be safe, we'll import it explicitly
             # Note: This creates a reference that should work in forked processes
+            debug_log(f'State {idx+1}: Calling _find_sequence_cycle...')
             from lfsr.analysis import _find_sequence_cycle
+            debug_log(f'State {idx+1}: Calling _find_sequence_cycle with period_only={period_only}, algorithm={algorithm}')
             seq_lst, seq_period = _find_sequence_cycle(
                 state,
                 state_update_matrix,
@@ -959,6 +1015,8 @@ def _process_state_chunk(
                 algorithm=algorithm,
                 period_only=period_only,
             )
+            debug_log(f'State {idx+1}: _find_sequence_cycle returned: period={seq_period}, length={len(seq_lst)}')
+            debug_log(f'State {idx+1}: Cycle found: period={seq_period}, length={len(seq_lst)}')
             
             # Mark all states in this cycle as visited (for this worker's local processing)
             # This prevents processing the same cycle multiple times within this worker's chunk
@@ -988,9 +1046,12 @@ def _process_state_chunk(
             processed_count += 1
             
         except Exception as e:
+            if idx == 0:
+                debug_log(f'Error processing state: {e}')
             errors.append(f'Error processing state {state_tuple}: {str(e)}')
             continue
     
+    debug_log(f'Worker completed: {processed_count} states processed, {len(sequences)} sequences found')
     return {
         'sequences': sequences,
         'max_period': worker_max_period,
