@@ -70,7 +70,7 @@ applying this function to the LFSR outputs.
 Correlation Coefficient
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The **correlation coefficient** (denoted ρ, "rho") measures the linear relationship
+The **correlation coefficient** (denoted |rho|, "rho") measures the linear relationship
 between two binary sequences. It ranges from -1 to +1:
 
 - **+1**: Perfect positive correlation (sequences are identical)
@@ -89,9 +89,9 @@ where :math:`\Pr[X = Y]` is the probability that corresponding bits match.
 
 **Interpretation**:
 - A correlation coefficient close to 0 indicates no relationship
-- A positive correlation (ρ > 0) means sequences tend to match
-- A negative correlation (ρ < 0) means sequences tend to be complements
-- A significant correlation (|ρ| > threshold) indicates a vulnerability
+- A positive correlation (|rho| > 0) means sequences tend to match
+- A negative correlation (|rho| < 0) means sequences tend to be complements
+- A significant correlation (|rho| > threshold) indicates a vulnerability
 
 **Statistical Significance**:
 
@@ -156,7 +156,7 @@ The probability that a correlation attack will succeed depends on two factors:
 
 1. **Detection Probability**: The probability of detecting the correlation
    (statistical power). This depends on:
-   - The correlation coefficient strength (|ρ|)
+   - The correlation coefficient strength (|rho|)
    - The amount of keystream available (n)
    - The statistical significance level (α)
 

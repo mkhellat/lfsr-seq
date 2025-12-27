@@ -280,7 +280,7 @@ def compute_correlation_coefficient(
     The correlation coefficient measures the linear relationship between two
     sequences. For binary sequences, it's computed as:
     
-    ρ = 2·Pr[X = Y] - 1
+    |rho| = 2·Pr[X = Y] - 1
     
     where Pr[X = Y] is the probability that corresponding bits match.
     
@@ -319,7 +319,7 @@ def compute_correlation_coefficient(
     matches = sum(1 for a, b in zip(sequence1, sequence2) if a == b)
     match_ratio = matches / n
     
-    # Correlation coefficient: ρ = 2·Pr[match] - 1
+    # Correlation coefficient: |rho| = 2·Pr[match] - 1
     correlation = 2.0 * match_ratio - 1.0
     
     # Statistical significance test (two-tailed binomial test)
@@ -369,6 +369,7 @@ def estimate_attack_success_probability(
     Estimate the probability that a correlation attack will succeed.
     
     The attack success probability depends on:
+    
     1. **Detection Probability**: Probability of detecting the correlation
        (statistical power)
     2. **Recovery Probability**: Probability of recovering the LFSR state
@@ -377,13 +378,15 @@ def estimate_attack_success_probability(
     The overall success probability is the product of these two factors.
     
     **Detection Probability**:
+    
     The probability of detecting a correlation depends on:
-    - The correlation coefficient strength (|ρ|)
+    
+    - The correlation coefficient strength (|rho|)
     - The amount of keystream available (n)
     - The statistical significance level (α)
     
-    For a given correlation coefficient ρ and keystream length n, the detection
-    probability increases with n and |ρ|. Using normal approximation:
+    For a given correlation coefficient |rho| and keystream length n, the detection
+    probability increases with n and |rho|. Using normal approximation:
     
     .. math::
     
@@ -392,13 +395,16 @@ def estimate_attack_success_probability(
     where :math:`z_{\\alpha/2}` is the critical value for significance level α.
     
     **Recovery Probability**:
+    
     The probability of recovering the state depends on:
+    
     - The state space size (:math:`q^d`)
     - Whether the correlation is strong enough to distinguish the correct state
     
     For correlation attacks, recovery is typically feasible if:
+    
     - The state space is not too large (< 2^40 for practical attacks)
-    - The correlation is significant (|ρ| > threshold)
+    - The correlation is significant (|rho| > threshold)
     
     Args:
         correlation_coefficient: Measured correlation coefficient (-1 to +1)
@@ -434,7 +440,7 @@ def estimate_attack_success_probability(
     
     # Detection probability using normal approximation
     # For binary sequences, under null hypothesis: E[matches] = n/2, Var = n/4
-    # Under alternative: E[matches] = n * (1 + ρ)/2, Var ≈ n/4
+    # Under alternative: E[matches] = n * (1 + |rho|)/2, Var ≈ n/4
     
     if abs_correlation == 0 or keystream_length == 0:
         detection_prob = 0.0
@@ -482,10 +488,10 @@ def estimate_attack_success_probability(
     overall_success_prob = detection_prob * recovery_prob
     
     # Estimate required keystream bits for target success probability
-    # Using approximation: n ≈ (z_α/2 / |ρ|)^2 for detection
+    # Using approximation: n ≈ (z_α/2 / |rho|)^2 for detection
     if abs_correlation > 0:
         # For target detection probability, we need:
-        # P_detect = 1 - Φ(z_critical - |ρ|√n / se)
+        # P_detect = 1 - Φ(z_critical - |rho|√n / se)
         # Solving for n:
         z_target = abs(norm.ppf((1 - target_success_probability) / 2))
         required_bits = int((z_target / abs_correlation) ** 2) if abs_correlation > 0.001 else 1000000

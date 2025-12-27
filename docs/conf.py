@@ -89,6 +89,11 @@ html_static_path = ["_static"]
 
 # -- Extension configuration -------------------------------------------------
 
+# RST substitutions for special characters
+rst_epilog = """
+.. |rho| unicode:: U+03C1 .. Greek small letter rho
+"""
+
 # Napoleon settings for Google-style docstrings
 napoleon_google_docstring = True
 napoleon_numpy_docstring = False

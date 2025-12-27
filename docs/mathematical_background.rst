@@ -99,6 +99,7 @@ For LFSR with coefficients :math:`c_0, c_1, \ldots, c_{d-1}`, the companion matr
    \end{pmatrix}
 
 **Structure**:
+
 * First :math:`d-1` rows: Identity-like structure with 1s on the subdiagonal
 * Last column (column :math:`d-1`): Contains the LFSR feedback coefficients
   :math:`c_0, c_1, \ldots, c_{d-1}` at positions :math:`(i, d-1)` for
@@ -392,13 +393,18 @@ The period :math:`\lambda` is found by counting steps from this meeting point un
 * Performance varies significantly by input - enumeration is typically faster
 
 **Performance Characteristics** (Period-Only Mode):
+
 * **Operation Count**: Floyd performs approximately **3.83× more matrix operations** than enumeration
+
   * Phase 1: Tortoise moves :math:`\sim \lambda/2` steps, hare moves :math:`2 \times \lambda/2 = \lambda` steps
   * Phase 2: Additional :math:`\lambda` steps to find period
   * Total: :math:`\sim 3 \times \lambda/2 + \lambda = 2.5\lambda` operations vs :math:`\lambda` for enumeration
+
 * **Time Performance**: Enumeration is typically **3-5× faster** for periods < 1000
+
   * Floyd overhead (Phase 1 + Phase 2) dominates for small-to-medium periods
   * Time per operation is similar (~0.022 ms), so speed difference comes from operation count
+
 * **Memory**: Both achieve true :math:`O(1)` space in period-only mode
   * Floyd: ~1.60 KB (constant, verified across iterations)
   * Enumeration: ~1.44 KB (constant, verified across iterations)
@@ -533,6 +539,7 @@ Each worker process:
    coefficients :math:`c_0, c_1, \ldots, c_{d-1}` in column :math:`d-1` at positions
    :math:`(i, d-1)` for :math:`i = 0, \ldots, d-1`.
 3. Processes each state in its chunk:
+
    - Reconstructs state vector from tuple
    - **Period Computation**: Uses Floyd's algorithm (``_find_period_floyd``) to compute
      the period. Enumeration-based methods are avoided due to matrix multiplication
@@ -715,7 +722,9 @@ When the characteristic polynomial is primitive:
 **Period Diversity**:
 
 The period diversity metric is defined as:
+
 .. math::
+
    \text{Diversity} = \frac{\text{Unique Periods}}{\text{Total Sequences}}
 
 A diversity of 1.0 means all sequences have different periods, while lower values indicate more sequences share the same period.

@@ -26,23 +26,24 @@ def load_combination_generator_from_json(config_file: str) -> CombinationGenerat
     """
     Load combination generator configuration from JSON file.
     
-    Expected JSON format:
-    {
-        "lfsrs": [
-            {
-                "coefficients": [1, 0, 0, 1],
-                "field_order": 2,
-                "degree": 4,
-                "initial_state": [1, 0, 0, 0]  // optional
-            },
-            ...
-        ],
-        "combining_function": {
-            "type": "majority",  // or "xor", "and", "or", "custom"
-            "num_inputs": 3,
-            "code": "def f(a, b, c): return 1 if (a + b + c) >= 2 else 0"  // for custom
+    Expected JSON format::
+    
+        {
+            "lfsrs": [
+                {
+                    "coefficients": [1, 0, 0, 1],
+                    "field_order": 2,
+                    "degree": 4,
+                    "initial_state": [1, 0, 0, 0]  // optional
+                },
+                ...
+            ],
+            "combining_function": {
+                "type": "majority",  // or "xor", "and", "or", "custom"
+                "num_inputs": 3,
+                "code": "def f(a, b, c): return 1 if (a + b + c) >= 2 else 0"  // for custom
+            }
         }
-    }
     
     Args:
         config_file: Path to JSON configuration file

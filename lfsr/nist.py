@@ -441,10 +441,11 @@ def longest_run_of_ones_test(sequence: List[int], block_size: int = 8) -> NISTTe
     - This test detects sequences with unusually long or short runs of ones
     
     **Parameters**:
-    - block_size (M): Size of each block
-      - M = 8 for sequences of length >= 128
-      - M = 128 for sequences of length >= 6272
-      - M = 10000 for sequences of length >= 750000
+    
+    - block_size (M): Size of each block. Options:
+      * M = 8 for sequences of length >= 128
+      * M = 128 for sequences of length >= 6272
+      * M = 10000 for sequences of length >= 750000
     - Minimum sequence length: M * 16 (recommended: M * 100)
     
     Args:

@@ -610,10 +610,10 @@ def lfsr_sequence_mapper(
                     When True, Floyd's algorithm uses true O(1) space
 
     Returns:
-        Tuple of (seq_dict, period_dict, max_period, periods_sum)
-        where:
+        Tuple of (seq_dict, period_dict, max_period, periods_sum) where:
+        
         - seq_dict: Dictionary mapping sequence numbers to lists of state vectors
-                   (empty lists if period_only=True)
+          (empty lists if period_only=True)
         - period_dict: Dictionary mapping sequence numbers to periods
         - max_period: Maximum period found
         - periods_sum: Sum of all periods

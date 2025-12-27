@@ -43,11 +43,13 @@ Optional Arguments:
 
    --algorithm {floyd,brent,enumeration,auto}
                               Cycle detection algorithm (default: auto)
+
                               - enumeration: Default, faster for typical periods
                               - floyd: Tortoise-and-hare algorithm, available for
                                 educational/verification purposes
                               - brent: Powers-of-2 algorithm, alternative to Floyd
                               - auto: Enumeration for full mode, floyd for period-only
+
                               Note: In period-only mode, all algorithms use O(1) space.
                               In full mode, all algorithms use O(period) space.
 
@@ -185,11 +187,15 @@ Performance Features
 The tool implements several performance optimizations:
 
 * **Cycle Detection Algorithms**: Three algorithms available for finding cycle periods
+
   * **Enumeration** (default): Simple, fast, O(1) space in period-only mode
+
     * Best for typical LFSR periods (< 1000)
     * 3-5× faster than Floyd/Brent for small-to-medium periods
     * True O(1) space in period-only mode
+
   * **Floyd's Algorithm**: Tortoise-and-hare method, available as option
+
     * Correctly implemented, achieves O(1) space in period-only mode
     * Does ~4× more operations, making it 3-5× slower
     * Useful for educational/verification purposes

@@ -234,7 +234,9 @@ with that expected for a random sequence.
 - This test detects sequences with unusually long or short runs of ones
 
 **Parameters**:
+
 - Block size depends on sequence length:
+
   - M = 8 for sequences ≥ 128 bits
   - M = 128 for sequences ≥ 6272 bits
   - M = 10000 for sequences ≥ 750000 bits
@@ -660,6 +662,7 @@ Further Reading
 ---------------
 
 **Primary Reference**:
+
 - NIST Special Publication 800-22 Revision 1a: "A Statistical Test Suite for Random
   and Pseudorandom Number Generators for Cryptographic Applications"
 - Available at: https://csrc.nist.gov/publications/detail/sp/800-22/rev-1a/final
