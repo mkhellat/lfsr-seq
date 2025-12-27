@@ -42,6 +42,7 @@ Documentation Contents
    examples
    mathematical_background
    correlation_attacks
+   algebraic_attacks
    nist_sp800_22
    optimization_techniques
 

@@ -266,7 +266,52 @@ Optimization Techniques
    stats = cache.get_stats()
    print(f"Cache hit rate: {stats['hit_rate']:.2%}")
 
-For complete examples, see ``examples/optimization_example.py`` (to be created).
+For complete examples, see ``examples/optimization_example.py``.
+
+Algebraic Attacks
+-----------------
+
+**Algebraic Immunity Computation**:
+
+.. code-block:: python
+
+   from lfsr.attacks import compute_algebraic_immunity
+   
+   def filtering_function(x0, x1, x2, x3):
+       return x0 & x1  # Example filtering function
+   
+   result = compute_algebraic_immunity(filtering_function, 4)
+   print(f"Algebraic immunity: {result['algebraic_immunity']}")
+   print(f"Optimal: {result['optimal']}")
+
+**Gröbner Basis Attack**:
+
+.. code-block:: python
+
+   from lfsr.attacks import LFSRConfig, groebner_basis_attack
+   
+   lfsr = LFSRConfig(coefficients=[1, 0, 0, 1], field_order=2, degree=4)
+   keystream = [1, 0, 1, 1, 0, 1, 0, 0, 1, 1]
+   
+   result = groebner_basis_attack(lfsr, keystream)
+   if result.attack_successful:
+       print(f"Recovered state: {result.recovered_state}")
+
+**Cube Attack**:
+
+.. code-block:: python
+
+   from lfsr.attacks import LFSRConfig, cube_attack
+   
+   lfsr = LFSRConfig(coefficients=[1, 0, 0, 1], field_order=2, degree=4)
+   keystream = [1, 0, 1, 1, 0, 1, 0, 0, 1, 1]
+   
+   result = cube_attack(lfsr, keystream, max_cube_size=5)
+   if result.attack_successful:
+       print(f"Cubes found: {result.cubes_found}")
+       print(f"Recovered bits: {result.recovered_bits}")
+
+For complete examples, see ``examples/algebraic_attack_example.py`` (to be created).
 
 NIST SP 800-22 Test Suite
 --------------------------
