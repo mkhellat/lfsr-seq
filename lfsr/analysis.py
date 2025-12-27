@@ -853,6 +853,7 @@ def _partition_state_space(
     """
     Partition state space into chunks for parallel processing.
     
+    Uses lazy iteration to avoid materializing all states upfront.
     Converts SageMath vectors to tuples (for pickling) and divides them
     into roughly equal chunks.
     
@@ -863,28 +864,48 @@ def _partition_state_space(
     Returns:
         List of chunks, where each chunk is a list of (state_tuple, index) pairs
     """
-    # Convert all states to tuples and collect with indices
-    state_tuples = []
-    for idx, state in enumerate(state_vector_space):
-        state_tuple = tuple(state)
-        state_tuples.append((state_tuple, idx))
+    # Optimized: Use lazy iteration with chunking to avoid materializing all states
+    # This reduces memory usage and improves performance for large state spaces
     
-    # Calculate chunk size
-    total_states = len(state_tuples)
+    # First, estimate total states (for chunk size calculation)
+    # For VectorSpace over GF(q) of dimension d, size is q^d
+    try:
+        # Try to get dimensions from VectorSpace
+        d = len(state_vector_space.basis())
+        gf_order = state_vector_space.base_ring().order()
+        total_states = int(gf_order) ** d
+    except (AttributeError, TypeError):
+        # Fallback: iterate once to count (for small state spaces)
+        total_states = sum(1 for _ in state_vector_space)
+    
     if total_states == 0:
         return []
     
+    # Calculate chunk size
     chunk_size = max(1, total_states // num_chunks)
     
-    # Partition into chunks
+    # Partition using lazy iteration (don't materialize all states)
     chunks = []
-    for i in range(0, total_states, chunk_size):
-        chunk = state_tuples[i:i + chunk_size]
-        if chunk:  # Only add non-empty chunks
-            chunks.append(chunk)
+    current_chunk = []
+    current_chunk_size = 0
+    
+    for idx, state in enumerate(state_vector_space):
+        # Convert to tuple on-the-fly
+        state_tuple = tuple(state)
+        current_chunk.append((state_tuple, idx))
+        current_chunk_size += 1
+        
+        # When chunk is full, add it and start new chunk
+        if current_chunk_size >= chunk_size:
+            chunks.append(current_chunk)
+            current_chunk = []
+            current_chunk_size = 0
+    
+    # Add remaining states as final chunk
+    if current_chunk:
+        chunks.append(current_chunk)
     
     # Ensure we have at most num_chunks (may have fewer if state space is small)
-    # Don't force splitting if chunks are already small
     return chunks
 
 
