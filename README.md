@@ -420,6 +420,33 @@ print(f"Distinguishable: {dist_result.distinguishable}")
    nist_result = run_nist_test_suite(keystream)
    print(f"Tests passed: {nist_result.passed_count}/{nist_result.total_tests}")
    
+   # Algebraic attacks
+   from lfsr.attacks import (
+       LFSRConfig,
+       compute_algebraic_immunity,
+       groebner_basis_attack,
+       cube_attack
+   )
+   
+   lfsr = LFSRConfig(coefficients=[1, 0, 0, 1], field_order=2, degree=4)
+   
+   # Compute algebraic immunity
+   def filtering_function(x0, x1, x2, x3):
+       return x0 & x1
+   
+   ai_result = compute_algebraic_immunity(filtering_function, 4)
+   print(f"Algebraic immunity: {ai_result['algebraic_immunity']}")
+   
+   # Gröbner basis attack
+   gb_result = groebner_basis_attack(lfsr, keystream)
+   if gb_result.attack_successful:
+       print(f"Recovered state: {gb_result.recovered_state}")
+   
+   # Cube attack
+   cube_result = cube_attack(lfsr, keystream, max_cube_size=5)
+   if cube_result.attack_successful:
+       print(f"Cubes found: {cube_result.cubes_found}")
+   
    # Optimization techniques
    from lfsr.polynomial import (
        compute_period_via_factorization,
@@ -572,8 +599,9 @@ lfsr-seq/
 │   ├── statistics.py       # Statistical analysis tools
 │   ├── export.py           # Multi-format export functions
 │   ├── optimization.py     # Result caching & optimization utilities
-│   ├── attacks.py          # Correlation attack framework
+│   ├── attacks.py          # Correlation & algebraic attack framework
 │   ├── cli_correlation.py  # CLI for correlation attacks
+│   ├── cli_algebraic.py    # CLI for algebraic attacks
 │   ├── cli_nist.py         # CLI for NIST tests
 │   ├── nist.py             # NIST SP 800-22 test suite
 │   └── constants.py        # Named constants
@@ -873,6 +901,10 @@ compared with the periods of the listed sequences.
 - **Correlation Attack**: Cryptanalytic technique exploiting correlations in combination generators
 - **Fast Correlation Attack**: Advanced attack using iterative decoding for state recovery
 - **Distinguishing Attack**: Technique to detect if keystream is distinguishable from random
+- **Algebraic Attack**: Technique exploiting algebraic relationships to recover secrets
+- **Algebraic Immunity**: Security measure for Boolean functions against algebraic attacks
+- **Gröbner Basis**: Mathematical tool for solving polynomial systems
+- **Cube Attack**: Algebraic attack exploiting low-degree relations
 - **NIST SP 800-22**: Industry-standard statistical test suite for randomness
 - **Period Computation via Factorization**: Efficient period computation using polynomial factorization
 - **Result Caching**: Storing computed results for reuse without recomputation
@@ -880,6 +912,7 @@ compared with the periods of the listed sequences.
 
 For detailed mathematical background, see the [documentation](docs/mathematical_background.rst).
 For correlation attack theory and usage, see [Correlation Attacks Guide](docs/correlation_attacks.rst).
+For algebraic attack theory and usage, see [Algebraic Attacks Guide](docs/algebraic_attacks.rst).
 For NIST test suite documentation, see [NIST SP 800-22 Guide](docs/nist_sp800_22.rst).
 For optimization techniques, see [Optimization Techniques Guide](docs/optimization_techniques.rst).
 
