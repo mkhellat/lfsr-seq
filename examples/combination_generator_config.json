@@ -1,0 +1,26 @@
+{
+    "lfsrs": [
+        {
+            "coefficients": [1, 0, 0, 1],
+            "field_order": 2,
+            "degree": 4,
+            "initial_state": [1, 0, 0, 0]
+        },
+        {
+            "coefficients": [1, 1, 0, 1],
+            "field_order": 2,
+            "degree": 4,
+            "initial_state": [1, 0, 0, 0]
+        },
+        {
+            "coefficients": [1, 0, 1, 1],
+            "field_order": 2,
+            "degree": 4,
+            "initial_state": [1, 0, 0, 0]
+        }
+    ],
+    "combining_function": {
+        "type": "majority",
+        "num_inputs": 3
+    }
+}

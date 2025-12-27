@@ -447,11 +447,53 @@ Correlation attacks are performed programmatically using the Python API:
 - **Siegenthaler's Attack**: Fundamental correlation attack technique
 - **Statistical Significance**: P-values test if correlation is significant
 
+**CLI Usage**:
+
+Correlation attacks can be performed from the command line:
+
+.. code-block:: bash
+
+   # Perform correlation attack using JSON configuration
+   lfsr-seq dummy.csv 2 --correlation-attack --lfsr-configs config.json
+
+   # Attack specific LFSR with custom significance level
+   lfsr-seq dummy.csv 2 --correlation-attack --lfsr-configs config.json \
+       --target-lfsr 0 --significance-level 0.01
+
+   # Use pre-computed keystream from file
+   lfsr-seq dummy.csv 2 --correlation-attack --lfsr-configs config.json \
+       --keystream-file keystream.txt
+
+**Configuration File Format**:
+
+The ``--lfsr-configs`` file should be JSON with this structure:
+
+.. code-block:: json
+
+   {
+       "lfsrs": [
+           {
+               "coefficients": [1, 0, 0, 1],
+               "field_order": 2,
+               "degree": 4,
+               "initial_state": [1, 0, 0, 0]
+           },
+           ...
+       ],
+       "combining_function": {
+           "type": "majority",
+           "num_inputs": 3
+       }
+   }
+
+Supported combining function types: ``majority``, ``xor``, ``and``, ``or``, ``custom``.
+
 **See Also**:
 
 - :doc:`correlation_attacks` for comprehensive introduction
 - :doc:`api/attacks` for complete API documentation
 - ``examples/correlation_attack_example.py`` for working examples
+- ``examples/combination_generator_config.json`` for configuration example
 
 For more technical details on parallel state enumeration, see the
 :doc:`mathematical_background` section.

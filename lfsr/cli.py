@@ -453,21 +453,40 @@ def cli_main() -> None:
 
         # Open output file with context manager for proper resource management
         with open(output_file_name, "w", encoding="utf-8") as output_file:
-            # Pass flags to main function
-            main(
-                input_file_name,
-                gf_order,
-                output_file=output_file,
-                verbose=args.verbose,
-                quiet=args.quiet,
-                no_progress=args.no_progress,
-                output_format=args.format,
-                algorithm=args.algorithm,
-                period_only=args.period_only,
-                show_period_stats=args.show_period_stats,
-                use_parallel=args.use_parallel,
-                num_workers=args.num_workers,
-            )
+            # Check if correlation attack mode
+            if args.correlation_attack:
+                from lfsr.cli_correlation import perform_correlation_attack_cli
+                
+                if not args.lfsr_configs:
+                    print("ERROR: --correlation-attack requires --lfsr-configs", file=sys.stderr)
+                    sys.exit(1)
+                
+                perform_correlation_attack_cli(
+                    config_file=args.lfsr_configs,
+                    output_file=output_file,
+                    keystream_file=args.keystream_file,
+                    keystream_length=1000,  # Default, could be made configurable
+                    target_lfsr_index=args.target_lfsr,
+                    significance_level=args.significance_level,
+                    analyze_all_lfsrs=False,  # Could add --all-lfsrs flag
+                    analyze_function=True,  # Always analyze function
+                )
+            else:
+                # Pass flags to main function
+                main(
+                    input_file_name,
+                    gf_order,
+                    output_file=output_file,
+                    verbose=args.verbose,
+                    quiet=args.quiet,
+                    no_progress=args.no_progress,
+                    output_format=args.format,
+                    algorithm=args.algorithm,
+                    period_only=args.period_only,
+                    show_period_stats=args.show_period_stats,
+                    use_parallel=args.use_parallel,
+                    num_workers=args.num_workers,
+                )
 
         if not args.quiet:
             print(f"\nAnalysis complete. Results written to: {output_file_name}")
