@@ -311,7 +311,54 @@ Algebraic Attacks
        print(f"Cubes found: {result.cubes_found}")
        print(f"Recovered bits: {result.recovered_bits}")
 
-For complete examples, see ``examples/algebraic_attack_example.py`` (to be created).
+For complete examples, see ``examples/algebraic_attack_example.py``.
+
+Time-Memory Trade-Off Attacks
+------------------------------
+
+**Hellman Table Attack**:
+
+.. code-block:: python
+
+   from lfsr.attacks import LFSRConfig
+   from lfsr.tmto import tmto_attack
+   
+   lfsr = LFSRConfig(coefficients=[1, 0, 0, 1], field_order=2, degree=4)
+   target_state = [1, 0, 1, 1]
+   
+   result = tmto_attack(lfsr, target_state, method="hellman")
+   if result.attack_successful:
+       print(f"Recovered state: {result.recovered_state}")
+       print(f"Coverage: {result.coverage:.2%}")
+
+**Rainbow Table Attack**:
+
+.. code-block:: python
+
+   from lfsr.tmto import tmto_attack
+   
+   result = tmto_attack(
+       lfsr_config=lfsr,
+       target_state=target_state,
+       method="rainbow",
+       chain_count=2000,
+       chain_length=150
+   )
+
+**Parameter Optimization**:
+
+.. code-block:: python
+
+   from lfsr.tmto import optimize_tmto_parameters
+   
+   params = optimize_tmto_parameters(
+       state_space_size=16,
+       available_memory=100000
+   )
+   print(f"Optimal chain count: {params['chain_count']}")
+   print(f"Optimal chain length: {params['chain_length']}")
+
+For complete examples, see ``examples/tmto_attack_example.py`` (to be created).
 
 NIST SP 800-22 Test Suite
 --------------------------

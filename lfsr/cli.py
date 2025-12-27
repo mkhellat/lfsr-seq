@@ -497,6 +497,50 @@ def parse_args(args: Optional[list] = None) -> argparse.Namespace:
         help="Maximum number of equations for Gröbner basis attack (default: 1000)."
     )
     
+    # Time-Memory Trade-Off attack options
+    tmto_group = parser.add_argument_group(
+        "time-memory trade-off attack options",
+        "Options for time-memory trade-off (TMTO) attacks on LFSRs"
+    )
+    
+    tmto_group.add_argument(
+        "--tmto-attack",
+        action="store_true",
+        help="Perform time-memory trade-off attack. Precomputes tables for faster state recovery."
+    )
+    
+    tmto_group.add_argument(
+        "--tmto-method",
+        type=str,
+        default="hellman",
+        choices=["hellman", "rainbow"],
+        metavar="METHOD",
+        help="TMTO method: 'hellman' or 'rainbow' (default: hellman)."
+    )
+    
+    tmto_group.add_argument(
+        "--chain-count",
+        type=int,
+        default=1000,
+        metavar="N",
+        help="Number of chains in TMTO table (default: 1000)."
+    )
+    
+    tmto_group.add_argument(
+        "--chain-length",
+        type=int,
+        default=100,
+        metavar="N",
+        help="Length of each chain in TMTO table (default: 100)."
+    )
+    
+    tmto_group.add_argument(
+        "--tmto-table-file",
+        type=str,
+        metavar="FILE",
+        help="File containing precomputed TMTO table (JSON format). If not provided, table is generated."
+    )
+    
     # NIST test suite options
     nist_group = parser.add_argument_group(
         "NIST SP 800-22 test suite options",
@@ -622,6 +666,33 @@ def cli_main() -> None:
                     significance_level=args.nist_significance_level,
                     block_size=args.nist_block_size,
                     output_format=args.nist_output_format
+                )
+            # Check if TMTO attack mode
+            elif args.tmto_attack:
+                from lfsr.cli_tmto import perform_tmto_attack_cli
+                
+                # Load coefficients from input file
+                if not args.input_file:
+                    print("ERROR: --tmto-attack requires input file with LFSR coefficients", file=sys.stderr)
+                    sys.exit(1)
+                
+                from lfsr.io import read_coefficient_vectors
+                coeffs_list = read_coefficient_vectors(args.input_file, args.gf_order)
+                if not coeffs_list:
+                    print("ERROR: No valid coefficients found in input file", file=sys.stderr)
+                    sys.exit(1)
+                
+                # Use first set of coefficients
+                coefficients = coeffs_list[0]
+                
+                perform_tmto_attack_cli(
+                    lfsr_coefficients=coefficients,
+                    field_order=args.gf_order,
+                    method=args.tmto_method,
+                    chain_count=args.chain_count,
+                    chain_length=args.chain_length,
+                    table_file=args.tmto_table_file,
+                    output_file=output_file
                 )
             # Check if algebraic attack mode
             elif args.algebraic_attack:
