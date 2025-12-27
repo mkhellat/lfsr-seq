@@ -549,28 +549,6 @@ def cli_main() -> None:
                 )
             # Check if correlation attack mode
             elif args.correlation_attack:
-                
-                # Try to get LFSR coefficients if available
-                lfsr_coeffs = None
-                try:
-                    coeffs_list = read_and_validate_csv(input_file_name)
-                    if coeffs_list:
-                        lfsr_coeffs = coeffs_list[0]  # Use first LFSR
-                except Exception:
-                    pass  # Will use sequence file or error
-                
-                perform_nist_test_cli(
-                    sequence=None,
-                    sequence_file=args.sequence_file,
-                    lfsr_coefficients=lfsr_coeffs,
-                    field_order=int(gf_order) if gf_order.isdigit() else 2,
-                    sequence_length=10000,  # Default, could be made configurable
-                    output_file=output_file,
-                    significance_level=args.nist_significance_level,
-                    block_size=args.nist_block_size
-                )
-            # Check if correlation attack mode
-            elif args.correlation_attack:
                 from lfsr.cli_correlation import perform_correlation_attack_cli
                 
                 if not args.lfsr_configs:

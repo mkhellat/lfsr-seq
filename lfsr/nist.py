@@ -1314,6 +1314,587 @@ def linear_complexity_test(sequence: List[int], block_size: int = 500) -> NISTTe
     )
 
 
+def serial_test(sequence: List[int], block_size: int = 2) -> NISTTestResult:
+    """
+    Test 11: Serial Test.
+    
+    **Purpose**: Tests whether the number of occurrences of 2^m m-bit overlapping
+    patterns is approximately the same as would be expected for a random sequence.
+    
+    **What it measures**: Frequency distribution of m-bit overlapping patterns.
+    
+    **How it works**:
+    1. Count occurrences of all possible m-bit patterns (overlapping)
+    2. Count occurrences of all possible (m-1)-bit patterns
+    3. Count occurrences of all possible (m-2)-bit patterns
+    4. Compute chi-square statistics for each pattern length
+    5. Compute p-value using chi-square distribution
+    
+    **Interpretation**:
+    - Random sequences should have uniform pattern distribution
+    - If p-value < 0.01, the sequence shows non-uniform pattern distribution
+    - This test detects sequences with pattern bias
+    
+    **Parameters**:
+    - block_size (m): Pattern length (default: 2)
+    
+    **Minimum sequence length**: 2^m × 100 (recommended: 2^m × 1000)
+    
+    Args:
+        sequence: Binary sequence (list of 0s and 1s)
+        block_size: Pattern length m (default: 2)
+    
+    Returns:
+        NISTTestResult with test results
+    
+    Example:
+        >>> result = serial_test([1, 0, 1, 0] * 500, block_size=2)
+        >>> print(f"P-value: {result.p_value:.6f}, Passed: {result.passed}")
+    """
+    n = len(sequence)
+    m = block_size
+    
+    # Minimum length: 2^m * 100
+    min_length = (2 ** m) * 100
+    if n < min_length:
+        return NISTTestResult(
+            test_name="Serial Test",
+            p_value=0.0,
+            passed=False,
+            statistic=0.0,
+            details={"error": f"Sequence too short: {n} bits (minimum: {min_length})"}
+        )
+    
+    # Count patterns for m, m-1, m-2
+    pattern_counts_m = {}
+    pattern_counts_m1 = {}
+    pattern_counts_m2 = {}
+    
+    # Count m-bit patterns
+    for i in range(n - m + 1):
+        pattern = tuple(sequence[i:i + m])
+        pattern_counts_m[pattern] = pattern_counts_m.get(pattern, 0) + 1
+    
+    # Count (m-1)-bit patterns
+    if m > 1:
+        for i in range(n - m + 2):
+            pattern = tuple(sequence[i:i + m - 1])
+            pattern_counts_m1[pattern] = pattern_counts_m1.get(pattern, 0) + 1
+    
+    # Count (m-2)-bit patterns
+    if m > 2:
+        for i in range(n - m + 3):
+            pattern = tuple(sequence[i:i + m - 2])
+            pattern_counts_m2[pattern] = pattern_counts_m2.get(pattern, 0) + 1
+    
+    # Compute chi-square statistics
+    # For m-bit patterns
+    expected_m = (n - m + 1) / (2 ** m)
+    chi_square_m = sum(((count - expected_m) ** 2) / expected_m for count in pattern_counts_m.values())
+    
+    # For (m-1)-bit patterns
+    chi_square_m1 = 0.0
+    if m > 1:
+        expected_m1 = (n - m + 2) / (2 ** (m - 1))
+        chi_square_m1 = sum(((count - expected_m1) ** 2) / expected_m1 for count in pattern_counts_m1.values())
+    
+    # For (m-2)-bit patterns
+    chi_square_m2 = 0.0
+    if m > 2:
+        expected_m2 = (n - m + 3) / (2 ** (m - 2))
+        chi_square_m2 = sum(((count - expected_m2) ** 2) / expected_m2 for count in pattern_counts_m2.values())
+    
+    # Compute delta chi-square
+    delta_chi_square = chi_square_m - chi_square_m1
+    delta2_chi_square = chi_square_m - 2 * chi_square_m1 + chi_square_m2 if m > 2 else chi_square_m - chi_square_m1
+    
+    # Compute p-values
+    df1 = 2 ** (m - 1)  # Degrees of freedom for delta
+    df2 = 2 ** (m - 2) if m > 2 else 2 ** (m - 1)  # Degrees of freedom for delta2
+    
+    p_value1 = chi2.sf(delta_chi_square, df1) if df1 > 0 else 1.0
+    p_value2 = chi2.sf(delta2_chi_square, df2) if df2 > 0 and m > 2 else 1.0
+    
+    # Use the minimum p-value (more conservative)
+    p_value = min(p_value1, p_value2) if m > 2 else p_value1
+    p_value = max(0.0, min(1.0, p_value))  # Clamp to [0, 1]
+    
+    # Test passes if p-value >= 0.01
+    passed = p_value >= 0.01
+    
+    return NISTTestResult(
+        test_name="Serial Test",
+        p_value=p_value,
+        passed=passed,
+        statistic=delta_chi_square,
+        details={
+            "block_size": m,
+            "chi_square_m": chi_square_m,
+            "chi_square_m1": chi_square_m1,
+            "chi_square_m2": chi_square_m2,
+            "delta_chi_square": delta_chi_square,
+            "delta2_chi_square": delta2_chi_square,
+            "p_value1": p_value1,
+            "p_value2": p_value2
+        }
+    )
+
+
+def approximate_entropy_test(sequence: List[int], block_size: int = 2) -> NISTTestResult:
+    """
+    Test 12: Approximate Entropy Test.
+    
+    **Purpose**: Tests the frequency of all possible overlapping m-bit patterns.
+    Compares the frequency of overlapping blocks of two consecutive lengths (m and m+1)
+    against the expected result for a random sequence.
+    
+    **What it measures**: Entropy (randomness) of overlapping patterns.
+    
+    **How it works**:
+    1. Count occurrences of all possible m-bit patterns
+    2. Count occurrences of all possible (m+1)-bit patterns
+    3. Compute approximate entropy from pattern frequencies
+    4. Compute chi-square statistic
+    5. Compute p-value using chi-square distribution
+    
+    **Interpretation**:
+    - Random sequences should have high entropy (uniform pattern distribution)
+    - If p-value < 0.01, the sequence shows low entropy (non-random)
+    - This test detects sequences with pattern bias
+    
+    **Parameters**:
+    - block_size (m): Pattern length (default: 2)
+    
+    **Minimum sequence length**: 2^m × 10 (recommended: 2^m × 100)
+    
+    Args:
+        sequence: Binary sequence (list of 0s and 1s)
+        block_size: Pattern length m (default: 2)
+    
+    Returns:
+        NISTTestResult with test results
+    
+    Example:
+        >>> result = approximate_entropy_test([1, 0, 1, 0] * 500, block_size=2)
+        >>> print(f"P-value: {result.p_value:.6f}, Passed: {result.passed}")
+    """
+    n = len(sequence)
+    m = block_size
+    
+    # Minimum length: 2^m * 10
+    min_length = (2 ** m) * 10
+    if n < min_length:
+        return NISTTestResult(
+            test_name="Approximate Entropy Test",
+            p_value=0.0,
+            passed=False,
+            statistic=0.0,
+            details={"error": f"Sequence too short: {n} bits (minimum: {min_length})"}
+        )
+    
+    # Count m-bit patterns
+    pattern_counts_m = {}
+    for i in range(n - m + 1):
+        pattern = tuple(sequence[i:i + m])
+        pattern_counts_m[pattern] = pattern_counts_m.get(pattern, 0) + 1
+    
+    # Count (m+1)-bit patterns
+    pattern_counts_m1 = {}
+    for i in range(n - m):
+        pattern = tuple(sequence[i:i + m + 1])
+        pattern_counts_m1[pattern] = pattern_counts_m1.get(pattern, 0) + 1
+    
+    # Compute approximate entropy
+    # Phi(m) = sum of (count / (n-m+1)) * log2(count / (n-m+1))
+    phi_m = 0.0
+    for count in pattern_counts_m.values():
+        if count > 0:
+            prob = count / (n - m + 1)
+            phi_m += prob * math.log2(prob)
+    
+    phi_m1 = 0.0
+    for count in pattern_counts_m1.values():
+        if count > 0:
+            prob = count / (n - m)
+            phi_m1 += prob * math.log2(prob)
+    
+    # Approximate entropy
+    ap_en = phi_m - phi_m1
+    
+    # Compute chi-square statistic
+    # chi_square = 2 * n * (ln(2) - ap_en)
+    chi_square = 2.0 * n * (math.log(2) - ap_en)
+    
+    # Degrees of freedom: 2^m
+    df = 2 ** m
+    
+    # Compute p-value using chi-square distribution
+    p_value = chi2.sf(chi_square, df)
+    p_value = max(0.0, min(1.0, p_value))  # Clamp to [0, 1]
+    
+    # Test passes if p-value >= 0.01
+    passed = p_value >= 0.01
+    
+    return NISTTestResult(
+        test_name="Approximate Entropy Test",
+        p_value=p_value,
+        passed=passed,
+        statistic=chi_square,
+        details={
+            "block_size": m,
+            "phi_m": phi_m,
+            "phi_m1": phi_m1,
+            "approximate_entropy": ap_en,
+            "chi_square": chi_square
+        }
+    )
+
+
+def cumulative_sums_test(sequence: List[int], mode: str = "forward") -> NISTTestResult:
+    """
+    Test 13: Cumulative Sums (Cusum) Test.
+    
+    **Purpose**: Tests whether the cumulative sum of the partial sequences occurring
+    in the tested sequence is too large or too small relative to what would be
+    expected for a random sequence.
+    
+    **What it measures**: Maximum deviation of cumulative sums from zero.
+    
+    **How it works**:
+    1. Convert sequence to -1, +1 (0 -> -1, 1 -> +1)
+    2. Compute cumulative sums
+    3. Find maximum absolute cumulative sum
+    4. Compute p-value using normal distribution approximation
+    
+    **Interpretation**:
+    - Random sequences should have cumulative sums that stay close to zero
+    - If p-value < 0.01, the sequence shows significant bias in cumulative sums
+    - This test detects sequences with long runs or trends
+    
+    **Parameters**:
+    - mode: "forward" or "backward" (default: "forward")
+    
+    **Minimum sequence length**: 100 bits (recommended: 1000+ bits)
+    
+    Args:
+        sequence: Binary sequence (list of 0s and 1s)
+        mode: "forward" or "backward" (default: "forward")
+    
+    Returns:
+        NISTTestResult with test results
+    
+    Example:
+        >>> result = cumulative_sums_test([1, 0, 1, 0] * 250, mode="forward")
+        >>> print(f"P-value: {result.p_value:.6f}, Passed: {result.passed}")
+    """
+    n = len(sequence)
+    
+    if n < 100:
+        return NISTTestResult(
+            test_name="Cumulative Sums (Cusum) Test",
+            p_value=0.0,
+            passed=False,
+            statistic=0.0,
+            details={"error": f"Sequence too short: {n} bits (minimum: 100)"}
+        )
+    
+    # Convert to -1, +1
+    X = [1 if bit == 1 else -1 for bit in sequence]
+    
+    if mode == "backward":
+        X = X[::-1]
+    
+    # Compute cumulative sums
+    S = [0]
+    for x in X:
+        S.append(S[-1] + x)
+    
+    # Find maximum absolute cumulative sum
+    max_abs_sum = max(abs(s) for s in S)
+    
+    # Compute p-value using normal distribution approximation
+    # P-value = 1 - sum of probabilities for |z| <= max_abs_sum
+    # Using approximation from NIST specification
+    z = max_abs_sum / math.sqrt(n)
+    
+    # Compute p-value using normal distribution (two-tailed)
+    # P(|Z| > z) = 2 * (1 - Phi(z))
+    p_value = 2.0 * norm.sf(z)
+    p_value = max(0.0, min(1.0, p_value))  # Clamp to [0, 1]
+    
+    # Test passes if p-value >= 0.01
+    passed = p_value >= 0.01
+    
+    return NISTTestResult(
+        test_name="Cumulative Sums (Cusum) Test",
+        p_value=p_value,
+        passed=passed,
+        statistic=z,
+        details={
+            "mode": mode,
+            "max_absolute_sum": max_abs_sum,
+            "z_score": z
+        }
+    )
+
+
+def random_excursions_test(sequence: List[int]) -> NISTTestResult:
+    """
+    Test 14: Random Excursions Test.
+    
+    **Purpose**: Tests the number of cycles having exactly K visits in a cumulative
+    sum random walk. The test detects deviations from the expected number of visits
+    to various states in the random walk.
+    
+    **What it measures**: Distribution of visits to states in a random walk.
+    
+    **How it works**:
+    1. Convert sequence to -1, +1 (0 -> -1, 1 -> +1)
+    2. Compute cumulative sums (random walk)
+    3. Identify cycles (return to zero)
+    4. Count visits to each state (-4, -3, -2, -1, +1, +2, +3, +4)
+    5. Compute chi-square statistic for each state
+    6. Compute p-value using chi-square distribution
+    
+    **Interpretation**:
+    - Random sequences should have expected distribution of state visits
+    - If p-value < 0.01, the sequence shows non-random state visit distribution
+    - This test detects sequences with bias in random walk behavior
+    
+    **Minimum sequence length**: 1000 bits (recommended: 10000+ bits)
+    
+    Args:
+        sequence: Binary sequence (list of 0s and 1s)
+    
+    Returns:
+        NISTTestResult with test results
+    
+    Example:
+        >>> result = random_excursions_test([1, 0, 1, 0] * 500)
+        >>> print(f"P-value: {result.p_value:.6f}, Passed: {result.passed}")
+    """
+    n = len(sequence)
+    
+    if n < 1000:
+        return NISTTestResult(
+            test_name="Random Excursions Test",
+            p_value=0.0,
+            passed=False,
+            statistic=0.0,
+            details={"error": f"Sequence too short: {n} bits (minimum: 1000)"}
+        )
+    
+    # Convert to -1, +1
+    X = [1 if bit == 1 else -1 for bit in sequence]
+    
+    # Compute cumulative sums
+    S = [0]
+    for x in X:
+        S.append(S[-1] + x)
+    
+    # Find cycles (return to zero)
+    cycles = []
+    current_cycle = []
+    for i, s in enumerate(S):
+        if s == 0:
+            if current_cycle:
+                cycles.append(current_cycle)
+            current_cycle = []
+        else:
+            current_cycle.append(s)
+    
+    # If sequence doesn't end at zero, add last cycle
+    if current_cycle:
+        cycles.append(current_cycle)
+    
+    # States to test: -4, -3, -2, -1, +1, +2, +3, +4
+    states = [-4, -3, -2, -1, 1, 2, 3, 4]
+    
+    # Count visits to each state in each cycle
+    state_visit_counts = {state: [] for state in states}
+    
+    for cycle in cycles:
+        if len(cycle) == 0:
+            continue
+        
+        # Count visits to each state in this cycle
+        for state in states:
+            count = cycle.count(state)
+            state_visit_counts[state].append(count)
+    
+    # Compute chi-square statistics for each state
+    chi_square_values = {}
+    p_values = {}
+    
+    # Expected probabilities for each state (from NIST specification)
+    # P(x) = probability of visiting state x
+    expected_probs = {
+        -4: 0.03125, -3: 0.0625, -2: 0.125, -1: 0.25,
+        1: 0.25, 2: 0.125, 3: 0.0625, 4: 0.03125
+    }
+    
+    for state in states:
+        visits = state_visit_counts[state]
+        if len(visits) == 0:
+            continue
+        
+        # Count cycles with k visits (k = 0, 1, 2, 3, 4, 5+)
+        visit_counts = [0, 0, 0, 0, 0, 0]  # 0, 1, 2, 3, 4, 5+
+        for v in visits:
+            if v < 5:
+                visit_counts[v] += 1
+            else:
+                visit_counts[5] += 1
+        
+        # Expected frequencies
+        num_cycles = len(visits)
+        expected = [
+            num_cycles * expected_probs[state] * (1 - expected_probs[state]) ** k
+            for k in range(5)
+        ]
+        expected.append(num_cycles * (1 - sum(expected[:5]) / num_cycles if num_cycles > 0 else 0))
+        
+        # Compute chi-square
+        chi_square = 0.0
+        for i in range(6):
+            if expected[i] > 0:
+                chi_square += ((visit_counts[i] - expected[i]) ** 2) / expected[i]
+        
+        chi_square_values[state] = chi_square
+        # Degrees of freedom: 5
+        p_values[state] = chi2.sf(chi_square, 5)
+    
+    # Use minimum p-value (most conservative)
+    if p_values:
+        min_p_value = min(p_values.values())
+        min_p_value = max(0.0, min(1.0, min_p_value))  # Clamp to [0, 1]
+    else:
+        min_p_value = 1.0
+    
+    # Test passes if p-value >= 0.01
+    passed = min_p_value >= 0.01
+    
+    return NISTTestResult(
+        test_name="Random Excursions Test",
+        p_value=min_p_value,
+        passed=passed,
+        statistic=min(chi_square_values.values()) if chi_square_values else 0.0,
+        details={
+            "num_cycles": len(cycles),
+            "chi_square_values": chi_square_values,
+            "p_values": p_values,
+            "states_tested": states
+        }
+    )
+
+
+def random_excursions_variant_test(sequence: List[int]) -> NISTTestResult:
+    """
+    Test 15: Random Excursions Variant Test.
+    
+    **Purpose**: Tests the total number of times that a particular state is visited
+    in a cumulative sum random walk. This is a variant of Test 14 that focuses
+    on the total number of visits rather than the distribution of visits per cycle.
+    
+    **What it measures**: Total number of visits to each state in a random walk.
+    
+    **How it works**:
+    1. Convert sequence to -1, +1 (0 -> -1, 1 -> +1)
+    2. Compute cumulative sums (random walk)
+    3. Count total visits to each state (-9 to +9, excluding 0)
+    4. Compute chi-square statistic for each state
+    5. Compute p-value using chi-square distribution
+    
+    **Interpretation**:
+    - Random sequences should have expected total visits to each state
+    - If p-value < 0.01, the sequence shows non-random state visit counts
+    - This test detects sequences with bias in random walk behavior
+    
+    **Minimum sequence length**: 1000 bits (recommended: 10000+ bits)
+    
+    Args:
+        sequence: Binary sequence (list of 0s and 1s)
+    
+    Returns:
+        NISTTestResult with test results
+    
+    Example:
+        >>> result = random_excursions_variant_test([1, 0, 1, 0] * 500)
+        >>> print(f"P-value: {result.p_value:.6f}, Passed: {result.passed}")
+    """
+    n = len(sequence)
+    
+    if n < 1000:
+        return NISTTestResult(
+            test_name="Random Excursions Variant Test",
+            p_value=0.0,
+            passed=False,
+            statistic=0.0,
+            details={"error": f"Sequence too short: {n} bits (minimum: 1000)"}
+        )
+    
+    # Convert to -1, +1
+    X = [1 if bit == 1 else -1 for bit in sequence]
+    
+    # Compute cumulative sums
+    S = [0]
+    for x in X:
+        S.append(S[-1] + x)
+    
+    # States to test: -9, -8, ..., -1, +1, ..., +8, +9
+    states = list(range(-9, 0)) + list(range(1, 10))
+    
+    # Count total visits to each state
+    state_visit_totals = {state: 0 for state in states}
+    
+    for s in S:
+        if s in state_visit_totals:
+            state_visit_totals[s] += 1
+    
+    # Compute chi-square statistics for each state
+    chi_square_values = {}
+    p_values = {}
+    
+    # Expected number of visits (from NIST specification)
+    # For state x, expected visits = n / (2 * |x| * (|x| + 1))
+    for state in states:
+        abs_state = abs(state)
+        expected_visits = n / (2 * abs_state * (abs_state + 1))
+        observed_visits = state_visit_totals[state]
+        
+        # Compute chi-square
+        if expected_visits > 0:
+            chi_square = ((observed_visits - expected_visits) ** 2) / expected_visits
+        else:
+            chi_square = 0.0
+        
+        chi_square_values[state] = chi_square
+        # Degrees of freedom: 1
+        p_values[state] = chi2.sf(chi_square, 1)
+    
+    # Use minimum p-value (most conservative)
+    if p_values:
+        min_p_value = min(p_values.values())
+        min_p_value = max(0.0, min(1.0, min_p_value))  # Clamp to [0, 1]
+    else:
+        min_p_value = 1.0
+    
+    # Test passes if p-value >= 0.01
+    passed = min_p_value >= 0.01
+    
+    return NISTTestResult(
+        test_name="Random Excursions Variant Test",
+        p_value=min_p_value,
+        passed=passed,
+        statistic=min(chi_square_values.values()) if chi_square_values else 0.0,
+        details={
+            "state_visit_totals": state_visit_totals,
+            "chi_square_values": {k: v for k, v in list(chi_square_values.items())[:5]},  # Show first 5
+            "p_values": {k: v for k, v in list(p_values.items())[:5]}  # Show first 5
+        }
+    )
+
+
 def run_nist_test_suite(
     sequence: List[int],
     significance_level: float = 0.01,
