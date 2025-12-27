@@ -789,8 +789,22 @@ def run_nist_test_suite(
     # Test 5: Binary Matrix Rank Test
     results.append(binary_matrix_rank_test(sequence, matrix_rows=matrix_rows, matrix_cols=matrix_cols))
     
-    # TODO: Implement remaining tests (6-15)
-    # Tests 6-15 will be added in subsequent phases
+    # Test 6: Discrete Fourier Transform (Spectral) Test
+    # TODO: Implement in next phase
+    
+    # Test 7: Non-overlapping Template Matching Test
+    # TODO: Implement in next phase
+    
+    # Test 8: Overlapping Template Matching Test
+    # TODO: Implement in next phase
+    
+    # Test 9: Maurer's "Universal Statistical" Test
+    # TODO: Implement in next phase
+    
+    # Test 10: Linear Complexity Test
+    # TODO: Implement in next phase
+    
+    # Tests 11-15 will be added in subsequent phases
     
     # Update significance level for all results
     for result in results:

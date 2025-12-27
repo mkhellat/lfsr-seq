@@ -495,6 +495,76 @@ Supported combining function types: ``majority``, ``xor``, ``and``, ``or``, ``cu
 - ``examples/correlation_attack_example.py`` for working examples
 - ``examples/combination_generator_config.json`` for configuration example
 
+NIST SP 800-22 Test Suite
+-------------------------
+
+The tool includes the NIST SP 800-22 Statistical Test Suite for evaluating
+the randomness of binary sequences. This is an industry-standard test suite
+used in cryptographic evaluation.
+
+**What is NIST SP 800-22?**
+
+NIST SP 800-22 is a collection of 15 statistical tests developed by the
+National Institute of Standards and Technology (NIST) for testing randomness.
+It is widely used to evaluate random number generators, pseudorandom number
+generators, and stream cipher outputs.
+
+**Basic Usage**:
+
+NIST tests can be performed programmatically using the Python API:
+
+.. code-block:: python
+
+   from lfsr.nist import run_nist_test_suite, frequency_test
+   
+   # Generate or load a binary sequence
+   sequence = [1, 0, 1, 0] * 250  # 1000 bits
+   
+   # Run a single test
+   result = frequency_test(sequence)
+   print(f"P-value: {result.p_value:.6f}, Passed: {result.passed}")
+   
+   # Run the complete test suite
+   suite_result = run_nist_test_suite(sequence)
+   print(f"Tests passed: {suite_result.tests_passed}/{suite_result.total_tests}")
+
+**CLI Usage**:
+
+NIST tests can be performed from the command line:
+
+.. code-block:: bash
+
+   # Run NIST tests on sequence from file
+   lfsr-seq dummy.csv 2 --nist-test --sequence-file sequence.txt
+
+   # Run NIST tests on sequence generated from LFSR
+   lfsr-seq coefficients.csv 2 --nist-test
+
+   # Custom significance level and block size
+   lfsr-seq coefficients.csv 2 --nist-test \
+       --nist-significance-level 0.05 --nist-block-size 256
+
+**Key Concepts**:
+
+- **P-value**: Probability that a random sequence would produce this result
+- **Significance Level**: Threshold for rejecting randomness (default: 0.01)
+- **Test Suite**: Collection of 15 tests evaluating different aspects of randomness
+- **Overall Assessment**: PASSED if most tests pass, FAILED otherwise
+
+**Interpretation**:
+
+- p-value ≥ 0.01: Test passes (sequence appears random)
+- p-value < 0.01: Test fails (sequence appears non-random)
+- A single test failure does not necessarily mean the sequence is non-random
+- For cryptographic applications, sequences should pass all or nearly all tests
+
+**See Also**:
+
+- :doc:`nist_sp800_22` for comprehensive introduction and theory
+- :doc:`api/nist` for complete API documentation
+- ``examples/nist_test_example.py`` for working examples
+- `NIST SP 800-22 <https://csrc.nist.gov/publications/detail/sp/800-22/rev-1a/final>`_ for official specification
+
 For more technical details on parallel state enumeration, see the
 :doc:`mathematical_background` section.
 

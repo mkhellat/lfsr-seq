@@ -430,6 +430,40 @@ def parse_args(args: Optional[list] = None) -> argparse.Namespace:
         metavar="ALPHA",
         help="Statistical significance level for correlation test (default: 0.05)."
     )
+    
+    # NIST test suite options
+    nist_group = parser.add_argument_group(
+        "NIST SP 800-22 test suite options",
+        "Options for NIST statistical test suite analysis"
+    )
+    
+    nist_group.add_argument(
+        "--nist-test",
+        action="store_true",
+        help="Run NIST SP 800-22 statistical test suite on sequence. Requires sequence file or generates from LFSR."
+    )
+    
+    nist_group.add_argument(
+        "--sequence-file",
+        metavar="SEQUENCE_FILE",
+        help="File containing binary sequence (one bit per line, or space-separated). Required for --nist-test if not generating from LFSR."
+    )
+    
+    nist_group.add_argument(
+        "--nist-significance-level",
+        type=float,
+        default=0.01,
+        metavar="ALPHA",
+        help="Statistical significance level for NIST tests (default: 0.01)."
+    )
+    
+    nist_group.add_argument(
+        "--nist-block-size",
+        type=int,
+        default=128,
+        metavar="SIZE",
+        help="Block size for block-based NIST tests (default: 128)."
+    )
 
     parsed_args = parser.parse_args(args)
 
@@ -493,8 +527,32 @@ def cli_main() -> None:
 
         # Open output file with context manager for proper resource management
         with open(output_file_name, "w", encoding="utf-8") as output_file:
+            # Check if NIST test mode
+            if args.nist_test:
+                from lfsr.cli_nist import perform_nist_test_cli
+                from lfsr.io import read_and_validate_csv
+                
+                # Try to get LFSR coefficients if available
+                lfsr_coeffs = None
+                try:
+                    coeffs_list = read_and_validate_csv(input_file_name)
+                    if coeffs_list:
+                        lfsr_coeffs = coeffs_list[0]  # Use first LFSR
+                except Exception:
+                    pass  # Will use sequence file or error
+                
+                perform_nist_test_cli(
+                    sequence=None,
+                    sequence_file=args.sequence_file,
+                    lfsr_coefficients=lfsr_coeffs,
+                    field_order=int(gf_order) if gf_order.isdigit() else 2,
+                    sequence_length=10000,  # Default, could be made configurable
+                    output_file=output_file,
+                    significance_level=args.nist_significance_level,
+                    block_size=args.nist_block_size
+                )
             # Check if correlation attack mode
-            if args.correlation_attack:
+            elif args.correlation_attack:
                 from lfsr.cli_correlation import perform_correlation_attack_cli
                 
                 if not args.lfsr_configs:
