@@ -459,6 +459,28 @@ print(f"Distinguishable: {dist_result.distinguishable}")
    if cube_result.attack_successful:
        print(f"Cubes found: {cube_result.cubes_found}")
    
+   # Time-Memory Trade-Off attacks
+   from lfsr.tmto import tmto_attack, optimize_tmto_parameters
+   
+   target_state = [1, 0, 1, 1]
+   tmto_result = tmto_attack(
+       lfsr_config=lfsr,
+       target_state=target_state,
+       method="hellman",
+       chain_count=1000,
+       chain_length=100
+   )
+   if tmto_result.attack_successful:
+       print(f"Recovered state: {tmto_result.recovered_state}")
+       print(f"Coverage: {tmto_result.coverage:.2%}")
+   
+   # Parameter optimization
+   params = optimize_tmto_parameters(
+       state_space_size=16,
+       available_memory=100000
+   )
+   print(f"Optimal chain count: {params['chain_count']}")
+   
    # Optimization techniques
    from lfsr.polynomial import (
        compute_period_via_factorization,
@@ -626,8 +648,10 @@ lfsr-seq/
 │   ├── export.py           # Multi-format export functions
 │   ├── optimization.py     # Result caching & optimization utilities
 │   ├── attacks.py          # Correlation & algebraic attack framework
+│   ├── tmto.py             # Time-memory trade-off attacks
 │   ├── cli_correlation.py  # CLI for correlation attacks
 │   ├── cli_algebraic.py    # CLI for algebraic attacks
+│   ├── cli_tmto.py         # CLI for TMTO attacks
 │   ├── cli_nist.py         # CLI for NIST tests
 │   ├── nist.py             # NIST SP 800-22 test suite
 │   └── constants.py        # Named constants
@@ -931,6 +955,9 @@ compared with the periods of the listed sequences.
 - **Algebraic Immunity**: Security measure for Boolean functions against algebraic attacks
 - **Gröbner Basis**: Mathematical tool for solving polynomial systems
 - **Cube Attack**: Algebraic attack exploiting low-degree relations
+- **Time-Memory Trade-Off (TMTO)**: Technique trading memory for computation time
+- **Hellman Table**: Precomputed table for fast state recovery
+- **Rainbow Table**: Improved TMTO table with multiple reduction functions
 - **NIST SP 800-22**: Industry-standard statistical test suite for randomness
 - **Period Computation via Factorization**: Efficient period computation using polynomial factorization
 - **Result Caching**: Storing computed results for reuse without recomputation
@@ -939,6 +966,7 @@ compared with the periods of the listed sequences.
 For detailed mathematical background, see the [documentation](docs/mathematical_background.rst).
 For correlation attack theory and usage, see [Correlation Attacks Guide](docs/correlation_attacks.rst).
 For algebraic attack theory and usage, see [Algebraic Attacks Guide](docs/algebraic_attacks.rst).
+For time-memory trade-off attacks, see [TMTO Attacks Guide](docs/time_memory_tradeoff.rst).
 For NIST test suite documentation, see [NIST SP 800-22 Guide](docs/nist_sp800_22.rst).
 For optimization techniques, see [Optimization Techniques Guide](docs/optimization_techniques.rst).
 

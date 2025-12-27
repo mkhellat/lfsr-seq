@@ -675,7 +675,15 @@ With these improvements, lfsr-seq can become a valuable research tool for stream
   - Distinguishing attacks
 - Combining function analysis
 - Attack success probability estimation
-- See `plans/CORRELATION_ATTACK_FRAMEWORK_PLAN.md` and `plans/FAST_CORRELATION_ATTACK_PLAN.md` for details
+- Algebraic Attacks implemented
+  - Algebraic immunity computation
+  - Gröbner basis attacks
+  - Cube attacks
+- Time-Memory Trade-Off Attacks implemented
+  - Hellman tables
+  - Rainbow tables
+  - Parameter optimization
+- See `plans/CORRELATION_ATTACK_FRAMEWORK_PLAN.md`, `plans/FAST_CORRELATION_ATTACK_PLAN.md`, `plans/ALGEBRAIC_ATTACKS_PLAN.md`, and `plans/TIME_MEMORY_TRADEOFF_PLAN.md` for details
 
 #### 2.2 Stream Cipher Analysis ⏳ **PENDING**
 - **Status**: ⏳ **PENDING**
