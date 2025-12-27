@@ -228,10 +228,15 @@ def export_nist_to_json(
         "test_results": [
             {
                 "test_name": test_result.test_name,
-                "p_value": test_result.p_value,
-                "passed": test_result.passed,
-                "statistic": test_result.statistic,
-                "details": test_result.details,
+                "p_value": float(test_result.p_value),
+                "passed": bool(test_result.passed),
+                "statistic": float(test_result.statistic),
+                "details": {
+                    k: (float(v) if isinstance(v, (int, float)) else 
+                        bool(v) if isinstance(v, bool) else 
+                        str(v) if not isinstance(v, (dict, list)) else v)
+                    for k, v in test_result.details.items()
+                } if test_result.details else {},
             }
             for test_result in suite_result.results
         ],

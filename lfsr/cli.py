@@ -554,7 +554,8 @@ def cli_main() -> None:
                     sequence=sequence,
                     output_file=output_file,
                     significance_level=args.nist_significance_level,
-                    block_size=args.nist_block_size
+                    block_size=args.nist_block_size,
+                    output_format=args.nist_output_format
                 )
             # Check if correlation attack mode
             elif args.correlation_attack:
