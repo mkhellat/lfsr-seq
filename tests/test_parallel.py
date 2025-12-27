@@ -17,10 +17,33 @@ import pytest
 import tempfile
 from pathlib import Path
 
-# Import SageMath - will be skipped if not available via conftest
+# Import SageMath - use same mechanism as other tests
+_sage_available = False
 try:
     from sage.all import *
+    _sage_available = True
 except ImportError:
+    # Try to find SageMath via 'sage' command (same as CLI)
+    import subprocess
+    import os
+    try:
+        result = subprocess.run(
+            ["sage", "-c", "import sys; print('\\n'.join(sys.path))"],
+            capture_output=True,
+            text=True,
+            timeout=5,
+        )
+        if result.returncode == 0:
+            sage_paths = result.stdout.strip().split("\n")
+            for path in sage_paths:
+                if path and path not in sys.path and os.path.isdir(path):
+                    sys.path.insert(0, path)
+            from sage.all import *
+            _sage_available = True
+    except (subprocess.TimeoutExpired, subprocess.SubprocessError, FileNotFoundError, ImportError):
+        pass
+
+if not _sage_available:
     pytest.skip("SageMath not available", allow_module_level=True)
 
 from lfsr.analysis import (
@@ -197,10 +220,14 @@ class TestMergeParallelResults:
     def test_merge_with_duplicates(self):
         """Test merging correctly handles duplicate cycles."""
         # Create results with same cycle found by different workers
+        # For small periods (<=100), full sequences are computed for deduplication
+        cycle_states = [(0, 0, 0, 1), (1, 0, 0, 0), (0, 1, 0, 0)]
+        cycle_states_sorted = tuple(sorted(cycle_states))
+        
         worker_results = [
             {
                 'sequences': [
-                    {'states': [(0, 0, 0, 1), (1, 0, 0, 0), (0, 1, 0, 0)], 'period': 3, 'start_state': (0, 0, 0, 1), 'period_only': True},
+                    {'states': list(cycle_states), 'period': 3, 'start_state': (0, 0, 0, 1), 'period_only': True},
                 ],
                 'max_period': 3,
                 'processed_count': 1,
@@ -208,7 +235,7 @@ class TestMergeParallelResults:
             },
             {
                 'sequences': [
-                    {'states': [(1, 0, 0, 0), (0, 1, 0, 0), (0, 0, 0, 1)], 'period': 3, 'start_state': (1, 0, 0, 0), 'period_only': True},
+                    {'states': list(reversed(cycle_states)), 'period': 3, 'start_state': (1, 0, 0, 0), 'period_only': True},
                 ],
                 'max_period': 3,
                 'processed_count': 1,
@@ -221,7 +248,7 @@ class TestMergeParallelResults:
         )
         
         # Should deduplicate - same cycle found by both workers
-        # Exact count depends on deduplication logic
+        # With full sequences, deduplication should work correctly
         assert len(seq_dict) >= 1
         assert max_period == 3
 

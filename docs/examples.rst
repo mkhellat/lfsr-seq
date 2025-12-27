@@ -53,6 +53,25 @@ Export results in JSON format:
 
 The JSON file will contain structured data suitable for programmatic processing.
 
+Parallel Processing
+-------------------
+
+Use parallel processing for faster analysis of larger LFSRs:
+
+.. code-block:: bash
+
+   # Enable parallel processing explicitly
+   lfsr-seq coefficients.csv 2 --parallel --period-only
+
+   # Use specific number of workers
+   lfsr-seq coefficients.csv 2 --parallel --num-workers 4 --period-only
+
+   # Auto-detection (enabled for large state spaces)
+   lfsr-seq large_lfsr.csv 2 --period-only
+
+**Note**: Parallel processing requires ``--period-only`` mode. The tool automatically
+forces period-only mode when parallel is enabled, displaying a warning.
+
 Python API Usage
 ----------------
 
@@ -99,4 +118,40 @@ Use the library programmatically:
    # Field validation
    gf_order = validate_gf_order("4")  # Returns 4
    validate_coefficient_vector([1, 2, 3], 4)  # Validates coefficients for GF(4)
+
+Parallel Processing API
+------------------------
+
+Use parallel processing programmatically:
+
+.. code-block:: python
+
+   from sage.all import *
+   from lfsr.analysis import lfsr_sequence_mapper_parallel
+   from lfsr.core import build_state_update_matrix
+
+   # Build state update matrix
+   coeffs = [1, 0, 0, 1]
+   C, CS = build_state_update_matrix(coeffs, 2)
+   V = VectorSpace(GF(2), 4)
+
+   # Parallel processing with 2 workers
+   seq_dict, period_dict, max_period, periods_sum = lfsr_sequence_mapper_parallel(
+       C, V, 2, output_file=None, no_progress=True,
+       period_only=True, num_workers=2
+   )
+
+   print(f"Found {len(seq_dict)} sequences")
+   print(f"Maximum period: {max_period}")
+   print(f"Period sum: {periods_sum} (should equal state space size)")
+
+   # Compare with sequential
+   from lfsr.analysis import lfsr_sequence_mapper
+   seq_dict_seq, period_dict_seq, max_period_seq, periods_sum_seq = lfsr_sequence_mapper(
+       C, V, 2, output_file=None, no_progress=True, period_only=True
+   )
+
+   # Verify correctness
+   assert max_period == max_period_seq
+   assert periods_sum == 16  # State space size for 4-bit LFSR
 
