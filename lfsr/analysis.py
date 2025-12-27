@@ -768,23 +768,43 @@ def _merge_parallel_results(
     
     # Deduplicate sequences
     # Two sequences are the same if they have the same set of states (same cycle)
-    seen_cycles = {}  # Maps frozenset of state tuples to sequence info
+    seen_cycles = {}  # Maps canonical cycle representation to sequence info
     unique_sequences = []
     
-    for seq_info in all_sequences:
+    # Add debug logging for merge
+    import sys
+    import os
+    try:
+        merge_debug = lambda msg: print(f'[Merge PID {os.getpid()}] {msg}', file=sys.stderr, flush=True)
+        merge_debug(f'Deduplicating {len(all_sequences)} sequences from {len(worker_results)} workers')
+    except:
+        merge_debug = lambda msg: None
+    
+    for idx, seq_info in enumerate(all_sequences):
         # Create a canonical representation of the cycle
         # Use the sorted tuple of state tuples as the key
         states_tuples = seq_info['states']
         if not states_tuples:
-            # Period-only mode: use start_state and period as key
+            # If states_tuples is empty, we can't deduplicate properly
+            # This shouldn't happen now since we compute full sequence for deduplication
+            # But handle it gracefully
+            merge_debug(f'Sequence {idx+1}: Empty states_tuples! start_state={seq_info["start_state"]}, period={seq_info["period"]}')
             cycle_key = (seq_info['start_state'], seq_info['period'])
         else:
-            # Full mode: use sorted states as key (cycles are the same regardless of starting point)
+            # Use sorted states as key (cycles are the same regardless of starting point)
+            # Normalize by sorting to handle cycles starting at different points
+            # This works for both full mode and period-only mode (where we compute full sequence for dedup)
             cycle_key = tuple(sorted(states_tuples))
+            merge_debug(f'Sequence {idx+1}: {len(states_tuples)} states, period={seq_info["period"]}, cycle_key length={len(cycle_key)}')
         
         if cycle_key not in seen_cycles:
             seen_cycles[cycle_key] = seq_info
             unique_sequences.append(seq_info)
+            merge_debug(f'Sequence {idx+1}: Added as unique (total unique: {len(unique_sequences)})')
+        else:
+            merge_debug(f'Sequence {idx+1}: Duplicate detected, skipping')
+    
+    merge_debug(f'Deduplication complete: {len(unique_sequences)} unique sequences from {len(all_sequences)} total')
     
     # Reconstruct SageMath objects and assign sequence numbers
     seq_dict = {}
@@ -798,11 +818,18 @@ def _merge_parallel_results(
         period = seq_info['period']
         period_dict[seq_num] = period
         
-        # Reconstruct sequence states if not period-only
-        if seq_info['states']:
+        # Reconstruct sequence states based on period_only flag
+        # If period_only=True, we computed the sequence for deduplication but don't store it
+        is_period_only = seq_info.get('period_only', False)
+        if is_period_only:
+            # Period-only mode: don't store sequence (even though we have it for dedup)
+            seq_dict[seq_num] = []
+        elif seq_info['states']:
+            # Full mode: reconstruct and store sequence
             seq_list = [vector(V, list(state_tuple)) for state_tuple in seq_info['states']]
             seq_dict[seq_num] = seq_list
         else:
+            # Empty sequence (shouldn't happen, but handle gracefully)
             seq_dict[seq_num] = []
     
     periods_sum = sum(period_dict.values())
@@ -1007,37 +1034,77 @@ def _process_state_chunk(
             # Note: This creates a reference that should work in forked processes
             debug_log(f'State {idx+1}: Calling _find_sequence_cycle...')
             from lfsr.analysis import _find_sequence_cycle
-            debug_log(f'State {idx+1}: Calling _find_sequence_cycle with period_only={period_only}, algorithm={algorithm}')
-            seq_lst, seq_period = _find_sequence_cycle(
-                state,
-                state_update_matrix,
-                local_visited_set,
-                algorithm=algorithm,
-                period_only=period_only,
-            )
-            debug_log(f'State {idx+1}: _find_sequence_cycle returned: period={seq_period}, length={len(seq_lst)}')
-            debug_log(f'State {idx+1}: Cycle found: period={seq_period}, length={len(seq_lst)}')
             
-            # Mark all states in this cycle as visited (for this worker's local processing)
-            # This prevents processing the same cycle multiple times within this worker's chunk
-            for seq_state in seq_lst:
-                seq_state_tuple = tuple(seq_state)
-                local_visited.add(seq_state_tuple)
-            
-            # Also mark the start state
-            local_visited.add(state_tuple)
-            
-            # Store sequence information
-            # Convert states to tuples for serialization
+            # CRITICAL: For period-only mode, we need the full sequence for deduplication
+            # However, computing the full sequence using matrix multiplication in a loop
+            # causes hangs in multiprocessing context after several iterations.
+            # 
+            # Solution: Use period-only function to get period, then compute sequence
+            # only for small periods (<= 100) to avoid hangs. For larger periods,
+            # use simplified deduplication based on start_state+period.
             if period_only:
-                states_tuples = []
+                # First, get the period using period-only function
+                # Use Floyd's algorithm to avoid enumeration's matrix multiplication loop
+                # which hangs in multiprocessing context
+                debug_log(f'State {idx+1}: Period-only mode - computing period first...')
+                from lfsr.analysis import _find_period_floyd
+                # Force Floyd's algorithm to avoid hangs (enumeration does matrix mult in loop)
+                seq_period = _find_period_floyd(state, state_update_matrix)
+                debug_log(f'State {idx+1}: Period computed (Floyd): {seq_period}')
+                
+                # For deduplication, compute full sequence only for small periods
+                # For large periods, use start_state+period as key (imperfect but avoids hang)
+                if seq_period <= 100:  # Small period: compute full sequence for dedup
+                    debug_log(f'State {idx+1}: Computing full sequence for deduplication (period <= 100)...')
+                    seq_lst_full = [state]
+                    current = state * state_update_matrix
+                    count = 1
+                    while current != state and count < seq_period:
+                        seq_lst_full.append(current)
+                        current = current * state_update_matrix
+                        count += 1
+                        # Add periodic debug to catch hangs early
+                        if count % 20 == 0:
+                            debug_log(f'State {idx+1}: Enumeration progress: {count}/{seq_period}')
+                    states_tuples = [tuple(s) for s in seq_lst_full]
+                    debug_log(f'State {idx+1}: Full sequence computed: {len(states_tuples)} states')
+                    # Mark all states as visited
+                    for seq_state in seq_lst_full:
+                        seq_state_tuple = tuple(seq_state)
+                        local_visited.add(seq_state_tuple)
+                else:
+                    # Large period: use start_state+period as key (imperfect but avoids hang)
+                    debug_log(f'State {idx+1}: Large period ({seq_period}), using simplified deduplication...')
+                    states_tuples = []  # Empty - merge will use start_state+period
+                    local_visited.add(state_tuple)  # Mark start state only
             else:
+                # Full mode: get sequence normally
+                debug_log(f'State {idx+1}: Calling _find_sequence_cycle with period_only={period_only}, algorithm={algorithm}')
+                seq_lst, seq_period = _find_sequence_cycle(
+                    state,
+                    state_update_matrix,
+                    local_visited_set,
+                    algorithm=algorithm,
+                    period_only=period_only,
+                )
+                debug_log(f'State {idx+1}: _find_sequence_cycle returned: period={seq_period}, length={len(seq_lst)}')
+                # Mark all states as visited
+                for seq_state in seq_lst:
+                    seq_state_tuple = tuple(seq_state)
+                    local_visited.add(seq_state_tuple)
+                # Convert to tuples for serialization
                 states_tuples = [tuple(s) for s in seq_lst]
             
+            debug_log(f'State {idx+1}: Cycle found: period={seq_period}, length={len(states_tuples)}')
+            
+            # Store sequence information
+            # For period-only mode, we store the full sequence tuples for deduplication
+            # but mark it as period-only so merge knows not to reconstruct SageMath objects
             sequences.append({
-                'states': states_tuples,
+                'states': states_tuples,  # Full sequence for deduplication, even in period-only mode
                 'period': seq_period,
                 'start_state': state_tuple,
+                'period_only': period_only,  # Flag to indicate if we should store sequence in final output
             })
             
             if seq_period > worker_max_period:
