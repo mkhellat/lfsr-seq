@@ -46,6 +46,15 @@ cipher analysis, educational purposes, and security evaluation.
   - **Rainbow Tables**: Improved TMTO with multiple reduction functions
   - **Parameter Optimization**: Find optimal trade-off parameters
   - **Precomputation Support**: Generate and reuse tables for multiple attacks
+- **Stream Cipher Analysis**: Real-world stream cipher analysis framework
+  - **A5/1 and A5/2**: GSM mobile phone encryption ciphers (3-4 LFSRs with irregular clocking)
+  - **E0**: Bluetooth encryption cipher (4 LFSRs with FSM combiner)
+  - **Trivium**: eSTREAM finalist (3 shift registers with non-linear feedback)
+  - **Grain Family**: Grain-128 and Grain-128a eSTREAM finalists (LFSR + NFSR with filter function)
+  - **LILI-128**: Academic design demonstrating clock-controlled LFSRs
+  - **Cipher Comparison**: Side-by-side analysis of multiple cipher designs
+  - **Structure Analysis**: Analyze LFSR configurations, clocking mechanisms, combining functions
+  - **Keystream Generation**: Generate keystreams from keys and IVs
 - **NIST SP 800-22 Test Suite**: Industry-standard statistical tests for randomness (all 15 tests)
   - Frequency tests, runs tests, matrix rank, spectral tests
   - Template matching, Maurer's universal test, linear complexity test
@@ -283,6 +292,14 @@ Optional arguments:
   --chain-length N     Length of each chain (default: 100)
   --tmto-table-file FILE
                         File with precomputed TMTO table (JSON format)
+  --cipher NAME         Select stream cipher: a5_1, a5_2, e0, trivium,
+                        grain128, grain128a, or lili128
+  --analyze-cipher      Analyze cipher structure (LFSRs, clocking, etc.)
+  --generate-keystream  Generate keystream from key and IV
+  --keystream-length N  Length of keystream to generate (default: 1000)
+  --key-file FILE       File containing key bits (binary or text format)
+  --iv-file FILE        File containing IV bits (binary or text format)
+  --compare-ciphers     Compare multiple ciphers side-by-side
 ```
 
 **Examples:**
@@ -481,6 +498,26 @@ print(f"Distinguishable: {dist_result.distinguishable}")
    )
    print(f"Optimal chain count: {params['chain_count']}")
    
+   # Stream cipher analysis
+   from lfsr.ciphers import A5_1, E0, Trivium, Grain128
+   from lfsr.ciphers.comparison import compare_ciphers, generate_comparison_report
+   
+   # Analyze A5/1 cipher
+   a5_1 = A5_1()
+   structure = a5_1.analyze_structure()
+   print(f"A5/1 has {len(structure.lfsr_configs)} LFSRs")
+   
+   # Generate keystream
+   key = [1] * 64
+   iv = [0] * 22
+   keystream = a5_1.generate_keystream(key, iv, 1000)
+   print(f"Generated {len(keystream)} keystream bits")
+   
+   # Compare ciphers
+   comparison = compare_ciphers([A5_1(), E0(), Trivium()])
+   report = generate_comparison_report(comparison)
+   print(report)
+   
    # Optimization techniques
    from lfsr.polynomial import (
        compute_period_via_factorization,
@@ -630,6 +667,23 @@ lfsr-seq coefficients.csv 2 --tmto-attack --tmto-method rainbow \
 lfsr-seq coefficients.csv 2 --tmto-attack --tmto-table-file table.json
 ```
 
+### Example 10: Stream Cipher Analysis
+
+```bash
+# Analyze A5/1 cipher structure
+lfsr-seq --cipher a5_1 --analyze-cipher
+
+# Generate keystream from key and IV
+lfsr-seq --cipher a5_1 --generate-keystream \
+    --key-file key.bin --iv-file iv.bin --keystream-length 1000
+
+# Compare multiple ciphers
+lfsr-seq --cipher a5_1 --compare-ciphers
+
+# Analyze E0 Bluetooth cipher
+lfsr-seq --cipher e0 --analyze-cipher --generate-keystream
+```
+
 ## Project Structure
 
 ```
@@ -649,9 +703,20 @@ lfsr-seq/
 │   ├── optimization.py     # Result caching & optimization utilities
 │   ├── attacks.py          # Correlation & algebraic attack framework
 │   ├── tmto.py             # Time-memory trade-off attacks
+│   ├── ciphers/            # Stream cipher analysis
+│   │   ├── __init__.py     # Cipher module initialization
+│   │   ├── base.py         # Base classes and interfaces
+│   │   ├── a5_1.py         # A5/1 GSM cipher
+│   │   ├── a5_2.py         # A5/2 GSM cipher
+│   │   ├── e0.py           # E0 Bluetooth cipher
+│   │   ├── trivium.py      # Trivium eSTREAM finalist
+│   │   ├── grain.py        # Grain family
+│   │   ├── lili128.py      # LILI-128 academic design
+│   │   └── comparison.py   # Cipher comparison framework
 │   ├── cli_correlation.py  # CLI for correlation attacks
 │   ├── cli_algebraic.py    # CLI for algebraic attacks
 │   ├── cli_tmto.py         # CLI for TMTO attacks
+│   ├── cli_ciphers.py      # CLI for stream cipher analysis
 │   ├── cli_nist.py         # CLI for NIST tests
 │   ├── nist.py             # NIST SP 800-22 test suite
 │   └── constants.py        # Named constants
@@ -958,6 +1023,11 @@ compared with the periods of the listed sequences.
 - **Time-Memory Trade-Off (TMTO)**: Technique trading memory for computation time
 - **Hellman Table**: Precomputed table for fast state recovery
 - **Rainbow Table**: Improved TMTO table with multiple reduction functions
+- **Stream Cipher**: Symmetric encryption algorithm encrypting data one bit at a time
+- **Keystream**: Pseudorandom sequence generated by stream cipher
+- **Irregular Clocking**: LFSRs don't always advance (clock control mechanism)
+- **Finite State Machine (FSM)**: Memory element providing non-linear combining
+- **NFSR**: Non-Linear Feedback Shift Register (generalizes LFSR)
 - **NIST SP 800-22**: Industry-standard statistical test suite for randomness
 - **Period Computation via Factorization**: Efficient period computation using polynomial factorization
 - **Result Caching**: Storing computed results for reuse without recomputation
@@ -967,6 +1037,7 @@ For detailed mathematical background, see the [documentation](docs/mathematical_
 For correlation attack theory and usage, see [Correlation Attacks Guide](docs/correlation_attacks.rst).
 For algebraic attack theory and usage, see [Algebraic Attacks Guide](docs/algebraic_attacks.rst).
 For time-memory trade-off attacks, see [TMTO Attacks Guide](docs/time_memory_tradeoff.rst).
+For stream cipher analysis, see [Stream Ciphers Guide](docs/stream_ciphers.rst).
 For NIST test suite documentation, see [NIST SP 800-22 Guide](docs/nist_sp800_22.rst).
 For optimization techniques, see [Optimization Techniques Guide](docs/optimization_techniques.rst).
 
