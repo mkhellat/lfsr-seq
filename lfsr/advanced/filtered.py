@@ -1,0 +1,268 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
+"""
+Filtered LFSR Analysis
+
+This module provides analysis capabilities for filtered LFSRs, which are LFSRs
+with non-linear filtering functions applied to the state to produce output.
+
+**Historical Context**:
+
+Filtered LFSRs were developed to combine the good statistical properties of
+LFSRs with the security benefits of non-linearity. The LFSR provides the
+underlying structure, while the filter function introduces non-linearity in
+the output, making the generator more resistant to linear and algebraic attacks.
+
+**Key Terminology**:
+
+- **Filtered LFSR**: An LFSR with a non-linear filtering function applied to
+  the state. The filter function maps the LFSR state to output bits, providing
+  non-linearity in the output while maintaining the LFSR's good statistical
+  properties.
+
+- **Filter Function**: A non-linear function f: GF(q)^d → GF(q) that maps the
+  LFSR state to an output bit. The filter function is applied to the current
+  state to produce each output bit.
+
+- **Algebraic Immunity**: The minimum degree of a non-zero annihilator of the
+  filter function. Higher algebraic immunity provides better resistance to
+  algebraic attacks.
+
+- **Correlation Immunity**: A measure of resistance to correlation attacks.
+  A filter function is correlation-immune of order m if its output is
+  statistically independent of any m input bits.
+
+- **Non-Linear Filtering**: Applying a non-linear function to the LFSR state
+  to produce output, rather than using the state bits directly.
+
+**Mathematical Foundation**:
+
+A filtered LFSR consists of:
+1. Base LFSR with state S_t = (s_0, s_1, ..., s_{d-1})
+2. Filter function f: GF(q)^d → GF(q)
+3. Output: z_t = f(S_t)
+
+The LFSR state updates linearly, but the output is non-linear in the state.
+This combines linear structure with non-linear output.
+"""
+
+from typing import List, Callable, Optional
+
+from sage.all import *
+
+from lfsr.attacks import LFSRConfig
+from lfsr.advanced.base import (
+    AdvancedLFSR,
+    AdvancedLFSRConfig
+)
+from lfsr.core import build_state_update_matrix
+
+
+class FilteredLFSR(AdvancedLFSR):
+    """
+    Filtered LFSR implementation.
+    
+    A filtered LFSR uses a non-linear filter function applied to the LFSR
+    state to produce output. The LFSR state updates linearly, but the
+    output is non-linear in the state.
+    
+    **Key Terminology**:
+    
+    - **Filtered LFSR**: LFSR with non-linear filter function applied to state
+    
+    - **Filter Function**: Non-linear function mapping state to output bit
+    
+    - **State Update**: Linear (standard LFSR update)
+    
+    - **Output Generation**: Non-linear (filter function applied to state)
+    
+    **Cipher Structure**:
+    
+    A filtered LFSR of degree d has:
+    - Base LFSR: Linear state update
+    - Filter function: f(state) → output bit
+    - Output: z_t = f(S_t) where S_t is current state
+    
+    **Example Usage**:
+    
+        >>> from lfsr.advanced.filtered import FilteredLFSR
+        >>> from lfsr.attacks import LFSRConfig
+        >>> 
+        >>> base_config = LFSRConfig(coefficients=[1, 0, 0, 1], field_order=2, degree=4)
+        >>> 
+        >>> # Define filter function (non-linear combination of state bits)
+        >>> def filter_func(state):
+        ...     return (state[0] & state[1]) ^ state[2]  # Non-linear filter
+        >>> 
+        >>> filtered_lfsr = FilteredLFSR(base_config, filter_func)
+        >>> sequence = filtered_lfsr.generate_sequence([1, 0, 1, 1], 100)
+    """
+    
+    def __init__(
+        self,
+        base_lfsr_config: LFSRConfig,
+        filter_function: Callable[[List[int]], int]
+    ):
+        """
+        Initialize filtered LFSR.
+        
+        Args:
+            base_lfsr_config: Base LFSR configuration
+            filter_function: Non-linear filter function mapping state to output
+        """
+        self.base_lfsr_config = base_lfsr_config
+        self.filter_function = filter_function
+        self.degree = base_lfsr_config.degree
+        self.field_order = base_lfsr_config.field_order
+        
+        # Build state update matrix for linear update
+        F = GF(self.field_order)
+        self.C, self.CS = build_state_update_matrix(
+            base_lfsr_config.coefficients,
+            self.field_order
+        )
+    
+    def get_config(self) -> AdvancedLFSRConfig:
+        """Get filtered LFSR configuration."""
+        return AdvancedLFSRConfig(
+            structure_type="filtered",
+            base_lfsr_config=self.base_lfsr_config,
+            parameters={
+                'degree': self.degree,
+                'field_order': self.field_order,
+                'filter_type': 'non-linear'
+            }
+        )
+    
+    def generate_sequence(
+        self,
+        initial_state: List[int],
+        length: int
+    ) -> List[int]:
+        """
+        Generate sequence from initial state.
+        
+        The sequence is generated by:
+        1. Updating LFSR state linearly
+        2. Applying filter function to state to get output
+        
+        Args:
+            initial_state: Initial state as list of field elements
+            length: Desired sequence length
+        
+        Returns:
+            List of sequence elements
+        """
+        if len(initial_state) != self.degree:
+            raise ValueError(
+                f"Initial state must have length {self.degree}, got {len(initial_state)}"
+            )
+        
+        F = GF(self.field_order)
+        state_vec = vector(F, initial_state)
+        sequence = []
+        
+        for _ in range(length):
+            # Apply filter function to current state
+            state_list = [int(x) for x in state_vec]
+            output = self.filter_function(state_list)
+            sequence.append(output)
+            
+            # Update state linearly (LFSR update)
+            state_vec = self.C * state_vec
+        
+        return sequence
+    
+    def analyze_structure(self) -> dict:
+        """
+        Analyze filtered LFSR structure properties.
+        
+        This method analyzes the base LFSR, filter function, and security
+        properties including algebraic immunity and correlation immunity.
+        
+        Returns:
+            Dictionary of structure properties
+        """
+        # Analyze base LFSR
+        base_properties = {
+            'degree': self.degree,
+            'field_order': self.field_order,
+            'coefficients': self.base_lfsr_config.coefficients
+        }
+        
+        # Analyze filter function
+        filter_properties = self._analyze_filter_function()
+        
+        # Security assessment
+        security_properties = {
+            'algebraic_immunity_estimate': filter_properties.get('algebraic_immunity', 0),
+            'correlation_immunity_estimate': filter_properties.get('correlation_immunity', 0),
+            'non_linearity_estimate': filter_properties.get('non_linearity', 0.0)
+        }
+        
+        return {
+            'structure_type': 'filtered LFSR',
+            'base_lfsr': base_properties,
+            'filter_function': filter_properties,
+            'security': security_properties
+        }
+    
+    def _analyze_filter_function(self) -> dict:
+        """
+        Analyze filter function properties.
+        
+        This method analyzes the non-linear filter function, including
+        algebraic immunity, correlation immunity, and non-linearity.
+        
+        Returns:
+            Dictionary of filter function properties
+        """
+        # Simplified analysis
+        # Full implementation would use more sophisticated techniques
+        
+        if self.field_order != 2:
+            return {
+                'field_order': self.field_order,
+                'note': 'Analysis primarily for binary case'
+            }
+        
+        # Estimate algebraic immunity (simplified)
+        # Algebraic immunity is the minimum degree of annihilator
+        # This is a simplified estimation
+        estimated_ai = min(self.degree // 2, 3)  # Conservative estimate
+        
+        # Estimate correlation immunity (simplified)
+        # Test if output is correlated with individual state bits
+        estimated_ci = 0  # Simplified: assume no correlation immunity
+        
+        # Estimate non-linearity
+        non_linearity = self._estimate_filter_non_linearity()
+        
+        return {
+            'algebraic_immunity': estimated_ai,
+            'correlation_immunity': estimated_ci,
+            'non_linearity': non_linearity,
+            'note': 'Simplified estimates - full analysis requires more computation'
+        }
+    
+    def _estimate_filter_non_linearity(self) -> float:
+        """Estimate non-linearity of filter function."""
+        # Simplified non-linearity estimation
+        # Test linearity property on sample
+        test_count = min(100, 2 ** self.degree)
+        non_linear_count = 0
+        
+        for _ in range(test_count):
+            state1 = [random.randint(0, 1) for _ in range(self.degree)]
+            state2 = [random.randint(0, 1) for _ in range(self.degree)]
+            state_xor = [(state1[i] ^ state2[i]) for i in range(self.degree)]
+            
+            f_xor = self.filter_function(state_xor)
+            f_x = self.filter_function(state1)
+            f_y = self.filter_function(state2)
+            
+            if f_xor != (f_x ^ f_y):
+                non_linear_count += 1
+        
+        return non_linear_count / test_count if test_count > 0 else 0.0

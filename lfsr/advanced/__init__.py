@@ -20,8 +20,22 @@ from lfsr.advanced.base import (
     AdvancedLFSRAnalysisResult
 )
 
+# Import advanced structure implementations
+from lfsr.advanced.nonlinear import NonLinearLFSR, NFSR
+from lfsr.advanced.filtered import FilteredLFSR
+from lfsr.advanced.clock_controlled import ClockControlledLFSR
+from lfsr.advanced.multi_output import MultiOutputLFSR
+from lfsr.advanced.irregular_clocking import StopAndGoLFSR, Step1Step2LFSR
+
 __all__ = [
     "AdvancedLFSR",
     "AdvancedLFSRConfig",
     "AdvancedLFSRAnalysisResult",
+    "NonLinearLFSR",
+    "NFSR",
+    "FilteredLFSR",
+    "ClockControlledLFSR",
+    "MultiOutputLFSR",
+    "StopAndGoLFSR",
+    "Step1Step2LFSR",
 ]

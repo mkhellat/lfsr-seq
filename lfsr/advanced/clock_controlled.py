@@ -1,0 +1,236 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
+"""
+Clock-Controlled LFSR Analysis
+
+This module provides analysis capabilities for clock-controlled LFSRs, which
+are LFSRs with irregular clocking patterns controlled by clock control functions
+or other LFSRs.
+
+**Historical Context**:
+
+Clock-controlled LFSRs were developed to introduce irregularity into LFSR sequences
+without using non-linear feedback. By controlling when the LFSR advances, the
+output sequence becomes more complex and potentially more secure. This technique
+is used in many stream ciphers, including A5/1 and LILI-128.
+
+**Key Terminology**:
+
+- **Clock-Controlled LFSR**: An LFSR whose clocking is controlled by an external
+  mechanism. The LFSR doesn't always advance on each step; instead, a clock control
+  function determines when it advances.
+
+- **Clock Control Function**: A function that determines whether and how many times
+  the LFSR should advance. This function can depend on the LFSR's own state, another
+  LFSR's state, or external inputs.
+
+- **Irregular Clocking**: Clocking pattern that is not regular (not every step).
+  The LFSR may advance 0, 1, or more times per output step.
+
+- **Clock Control LFSR**: A separate LFSR used to control the clocking of another
+  LFSR. The output of the control LFSR determines when the data LFSR advances.
+
+- **Stop-and-Go**: A clocking pattern where the LFSR advances only when a control
+  bit is 1, and stops when it is 0.
+
+- **Step-1/Step-2**: A clocking pattern where the LFSR advances 1 or 2 steps
+  depending on a control bit.
+
+**Mathematical Foundation**:
+
+A clock-controlled LFSR has:
+- Base LFSR with state S_t
+- Clock control function c: determines clocking behavior
+- State update: S_{t+1} = f(S_t) if c(t) says to advance, else S_{t+1} = S_t
+
+The output sequence depends on both the LFSR state and the clocking pattern.
+"""
+
+from typing import List, Callable, Optional
+
+from sage.all import *
+
+from lfsr.attacks import LFSRConfig
+from lfsr.advanced.base import (
+    AdvancedLFSR,
+    AdvancedLFSRConfig
+)
+from lfsr.core import build_state_update_matrix
+
+
+class ClockControlledLFSR(AdvancedLFSR):
+    """
+    Clock-controlled LFSR implementation.
+    
+    A clock-controlled LFSR has irregular clocking determined by a clock
+    control function. The LFSR doesn't always advance on each step.
+    
+    **Key Terminology**:
+    
+    - **Clock-Controlled LFSR**: LFSR with irregular clocking pattern
+    
+    - **Clock Control Function**: Function determining when LFSR advances
+    
+    - **Irregular Clocking**: Clocking pattern is not regular
+    
+    **Cipher Structure**:
+    
+    A clock-controlled LFSR has:
+    - Base LFSR: Standard LFSR structure
+    - Clock control: Function determining clocking behavior
+    - Output: From LFSR state (may be same state multiple times)
+    
+    **Example Usage**:
+    
+        >>> from lfsr.advanced.clock_controlled import ClockControlledLFSR
+        >>> from lfsr.attacks import LFSRConfig
+        >>> 
+        >>> base_config = LFSRConfig(coefficients=[1, 0, 0, 1], field_order=2, degree=4)
+        >>> 
+        >>> # Define clock control function (advance if state[0] == 1)
+        >>> def clock_control(state):
+        ...     return 1 if state[0] == 1 else 0  # Stop-and-go pattern
+        >>> 
+        >>> cclfsr = ClockControlledLFSR(base_config, clock_control)
+        >>> sequence = cclfsr.generate_sequence([1, 0, 1, 1], 100)
+    """
+    
+    def __init__(
+        self,
+        base_lfsr_config: LFSRConfig,
+        clock_control_function: Callable[[List[int]], int]
+    ):
+        """
+        Initialize clock-controlled LFSR.
+        
+        Args:
+            base_lfsr_config: Base LFSR configuration
+            clock_control_function: Function returning number of steps to advance
+                (0 = don't advance, 1 = advance once, etc.)
+        """
+        self.base_lfsr_config = base_lfsr_config
+        self.clock_control_function = clock_control_function
+        self.degree = base_lfsr_config.degree
+        self.field_order = base_lfsr_config.field_order
+        
+        # Build state update matrix
+        self.C, self.CS = build_state_update_matrix(
+            base_lfsr_config.coefficients,
+            self.field_order
+        )
+    
+    def get_config(self) -> AdvancedLFSRConfig:
+        """Get clock-controlled LFSR configuration."""
+        return AdvancedLFSRConfig(
+            structure_type="clock_controlled",
+            base_lfsr_config=self.base_lfsr_config,
+            parameters={
+                'degree': self.degree,
+                'field_order': self.field_order,
+                'clocking_type': 'irregular'
+            }
+        )
+    
+    def generate_sequence(
+        self,
+        initial_state: List[int],
+        length: int
+    ) -> List[int]:
+        """
+        Generate sequence from initial state.
+        
+        The sequence is generated by:
+        1. Checking clock control function
+        2. Advancing LFSR if control says to advance
+        3. Outputting current state bit
+        
+        Args:
+            initial_state: Initial state as list of field elements
+            length: Desired sequence length
+        
+        Returns:
+            List of sequence elements
+        """
+        if len(initial_state) != self.degree:
+            raise ValueError(
+                f"Initial state must have length {self.degree}, got {len(initial_state)}"
+            )
+        
+        F = GF(self.field_order)
+        state_vec = vector(F, initial_state)
+        sequence = []
+        
+        for _ in range(length):
+            # Output current state bit (typically MSB)
+            state_list = [int(x) for x in state_vec]
+            output = state_list[0]
+            sequence.append(output)
+            
+            # Check clock control
+            clock_steps = self.clock_control_function(state_list)
+            
+            # Advance LFSR clock_steps times
+            for _ in range(clock_steps):
+                state_vec = self.C * state_vec
+        
+        return sequence
+    
+    def analyze_structure(self) -> dict:
+        """
+        Analyze clock-controlled LFSR structure properties.
+        
+        This method analyzes the base LFSR, clock control mechanism, and
+        clocking pattern properties.
+        
+        Returns:
+            Dictionary of structure properties
+        """
+        # Analyze base LFSR
+        base_properties = {
+            'degree': self.degree,
+            'field_order': self.field_order,
+            'coefficients': self.base_lfsr_config.coefficients
+        }
+        
+        # Analyze clocking pattern
+        clocking_properties = self._analyze_clocking_pattern()
+        
+        return {
+            'structure_type': 'clock-controlled LFSR',
+            'base_lfsr': base_properties,
+            'clocking': clocking_properties
+        }
+    
+    def _analyze_clocking_pattern(self) -> dict:
+        """
+        Analyze clocking pattern properties.
+        
+        This method analyzes the clock control function to understand the
+        clocking pattern (e.g., stop-and-go, step-1/step-2).
+        
+        Returns:
+            Dictionary of clocking pattern properties
+        """
+        # Sample clocking behavior
+        test_count = min(1000, 2 ** self.degree)
+        clock_counts = {0: 0, 1: 0, 2: 0, 3: 0, 4: 0}  # Count occurrences
+        
+        for _ in range(test_count):
+            # Generate random state
+            state = [random.randint(0, self.field_order - 1) for _ in range(self.degree)]
+            clock_steps = self.clock_control_function(state)
+            clock_counts[min(clock_steps, 4)] = clock_counts.get(min(clock_steps, 4), 0) + 1
+        
+        # Determine pattern type
+        pattern_type = "irregular"
+        if clock_counts[0] > test_count * 0.3 and clock_counts[1] > test_count * 0.3:
+            pattern_type = "stop-and-go"
+        elif clock_counts[1] > 0 and clock_counts[2] > 0:
+            pattern_type = "step-1/step-2"
+        
+        return {
+            'pattern_type': pattern_type,
+            'clock_distribution': {k: v / test_count for k, v in clock_counts.items()},
+            'average_clock_steps': sum(k * v for k, v in clock_counts.items()) / test_count if test_count > 0 else 0.0
+        }
