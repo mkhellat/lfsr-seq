@@ -460,6 +460,43 @@ def parse_args(args: Optional[list] = None) -> argparse.Namespace:
         help="Method for distinguishing attack: 'correlation' or 'statistical' (default: correlation)."
     )
     
+    # Algebraic attack options
+    algebraic_group = parser.add_argument_group(
+        "algebraic attack options",
+        "Options for algebraic attack analysis on LFSRs"
+    )
+    
+    algebraic_group.add_argument(
+        "--algebraic-attack",
+        action="store_true",
+        help="Perform algebraic attack analysis. Requires LFSR configuration and keystream."
+    )
+    
+    algebraic_group.add_argument(
+        "--algebraic-method",
+        type=str,
+        default="groebner_basis",
+        choices=["groebner_basis", "cube_attack", "algebraic_immunity"],
+        metavar="METHOD",
+        help="Method for algebraic attack: 'groebner_basis', 'cube_attack', or 'algebraic_immunity' (default: groebner_basis)."
+    )
+    
+    algebraic_group.add_argument(
+        "--max-cube-size",
+        type=int,
+        default=10,
+        metavar="N",
+        help="Maximum cube size for cube attack (default: 10)."
+    )
+    
+    algebraic_group.add_argument(
+        "--max-equations",
+        type=int,
+        default=1000,
+        metavar="N",
+        help="Maximum number of equations for Gröbner basis attack (default: 1000)."
+    )
+    
     # NIST test suite options
     nist_group = parser.add_argument_group(
         "NIST SP 800-22 test suite options",
@@ -585,6 +622,42 @@ def cli_main() -> None:
                     significance_level=args.nist_significance_level,
                     block_size=args.nist_block_size,
                     output_format=args.nist_output_format
+                )
+            # Check if algebraic attack mode
+            elif args.algebraic_attack:
+                from lfsr.cli_algebraic import perform_algebraic_attack_cli
+                
+                # For now, require coefficients from input file
+                # In future, could add --lfsr-coefficients argument
+                if not args.input_file:
+                    print("ERROR: --algebraic-attack requires input file with LFSR coefficients", file=sys.stderr)
+                    sys.exit(1)
+                
+                # Load coefficients from input file
+                from lfsr.io import read_coefficient_vectors
+                coeffs_list = read_coefficient_vectors(args.input_file, args.gf_order)
+                if not coeffs_list:
+                    print("ERROR: No valid coefficients found in input file", file=sys.stderr)
+                    sys.exit(1)
+                
+                # Use first set of coefficients
+                coefficients = coeffs_list[0]
+                
+                # Load keystream if provided
+                keystream = None
+                if hasattr(args, 'keystream_file') and args.keystream_file:
+                    from lfsr.cli_correlation import load_keystream_from_file
+                    keystream = load_keystream_from_file(args.keystream_file)
+                
+                perform_algebraic_attack_cli(
+                    lfsr_coefficients=coefficients,
+                    field_order=args.gf_order,
+                    keystream=keystream,
+                    keystream_file=getattr(args, 'keystream_file', None),
+                    method=args.algebraic_method,
+                    max_cube_size=args.max_cube_size,
+                    max_equations=args.max_equations,
+                    output_file=output_file
                 )
             # Check if correlation attack mode
             elif args.correlation_attack:
