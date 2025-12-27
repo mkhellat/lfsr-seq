@@ -184,6 +184,17 @@ it via CLI flags:
 * **Best Case**: Large state spaces (> 10,000 states) with many CPU cores
 * **Fallback**: Automatically falls back to sequential on timeout/error
 
+**Important Notes**:
+
+* **Period-Only Mode Required**: Parallel processing requires ``period_only=True``.
+  Full sequence mode causes workers to hang due to SageMath/multiprocessing issues.
+
+* **Algorithm**: Uses Floyd's algorithm internally, regardless of ``algorithm``
+  parameter, to avoid enumeration's matrix multiplication loop hang.
+
+* **Matrix Extraction**: Coefficients must be extracted from matrix **last column**
+  (column d-1), not the last row, for correct reconstruction.
+
 **See Also**:
 
 * :doc:`../mathematical_background` for detailed parallel enumeration theory
