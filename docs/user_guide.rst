@@ -399,6 +399,60 @@ Use the performance profiling script to measure speedup:
 
 See ``scripts/PARALLEL_PERFORMANCE_REPORT.md`` for detailed performance analysis.
 
+Correlation Attacks
+-------------------
+
+The tool includes a Correlation Attack Framework for analyzing combination
+generators and stream ciphers. Correlation attacks exploit statistical
+correlations between keystream and individual LFSR outputs.
+
+**What is a Combination Generator?**
+
+A combination generator combines multiple LFSRs using a non-linear function
+(e.g., majority, XOR, AND). The output is the result of applying this function
+to the LFSR outputs.
+
+**Basic Usage**:
+
+Correlation attacks are performed programmatically using the Python API:
+
+.. code-block:: python
+
+   from lfsr.attacks import (
+       CombinationGenerator,
+       LFSRConfig,
+       siegenthaler_correlation_attack
+   )
+   
+   # Create combination generator
+   gen = CombinationGenerator(
+       lfsrs=[
+           LFSRConfig([1, 0, 0, 1], 2, 4),
+           LFSRConfig([1, 1, 0, 1], 2, 4)
+       ],
+       combining_function=lambda a, b: a ^ b,
+       function_name='xor'
+   )
+   
+   # Generate keystream
+   keystream = gen.generate_keystream(1000)
+   
+   # Perform attack
+   result = siegenthaler_correlation_attack(gen, keystream, target_lfsr_index=0)
+
+**Key Concepts**:
+
+- **Correlation Coefficient**: Measures relationship between sequences (-1 to +1)
+- **Correlation Immunity**: Security property of combining functions
+- **Siegenthaler's Attack**: Fundamental correlation attack technique
+- **Statistical Significance**: P-values test if correlation is significant
+
+**See Also**:
+
+- :doc:`correlation_attacks` for comprehensive introduction
+- :doc:`api/attacks` for complete API documentation
+- ``examples/correlation_attack_example.py`` for working examples
+
 For more technical details on parallel state enumeration, see the
 :doc:`mathematical_background` section.
 

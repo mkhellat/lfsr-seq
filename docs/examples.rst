@@ -119,6 +119,68 @@ Use the library programmatically:
    gf_order = validate_gf_order("4")  # Returns 4
    validate_coefficient_vector([1, 2, 3], 4)  # Validates coefficients for GF(4)
 
+Correlation Attacks
+-------------------
+
+Perform correlation attacks on combination generators:
+
+.. code-block:: python
+
+   from lfsr.attacks import (
+       CombinationGenerator,
+       LFSRConfig,
+       siegenthaler_correlation_attack
+   )
+   
+   # Define a majority function
+   def majority(a, b, c):
+       return 1 if (a + b + c) >= 2 else 0
+   
+   # Create combination generator
+   gen = CombinationGenerator(
+       lfsrs=[
+           LFSRConfig(coefficients=[1, 0, 0, 1], field_order=2, degree=4),
+           LFSRConfig(coefficients=[1, 1, 0, 1], field_order=2, degree=4),
+           LFSRConfig(coefficients=[1, 0, 1, 1], field_order=2, degree=4)
+       ],
+       combining_function=majority,
+       function_name='majority'
+   )
+   
+   # Generate keystream
+   keystream = gen.generate_keystream(length=1000)
+   
+   # Attack the first LFSR
+   result = siegenthaler_correlation_attack(
+       combination_generator=gen,
+       keystream=keystream,
+       target_lfsr_index=0
+   )
+   
+   if result.attack_successful:
+       print(f"Attack succeeded! Correlation: {result.correlation_coefficient:.4f}")
+   else:
+       print("No significant correlation detected")
+
+Analyze Combining Functions
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Analyze the security properties of combining functions:
+
+.. code-block:: python
+
+   from lfsr.attacks import analyze_combining_function
+   
+   def majority(a, b, c):
+       return 1 if (a + b + c) >= 2 else 0
+   
+   analysis = analyze_combining_function(majority, num_inputs=3)
+   print(f"Balanced: {analysis['balanced']}")
+   print(f"Bias: {analysis['bias']}")
+   print(f"Correlation immunity order: {analysis['correlation_immunity']}")
+
+For complete examples, see ``examples/correlation_attack_example.py``.
+
 Parallel Processing API
 ------------------------
 
