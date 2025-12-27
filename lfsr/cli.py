@@ -529,8 +529,26 @@ def cli_main() -> None:
         with open(output_file_name, "w", encoding="utf-8") as output_file:
             # Check if NIST test mode
             if args.nist_test:
-                from lfsr.cli_nist import perform_nist_test_cli
-                from lfsr.io import read_and_validate_csv
+                from lfsr.cli_nist import perform_nist_test_cli, load_sequence_from_file
+                
+                # Load sequence
+                if args.sequence_file:
+                    sequence = load_sequence_from_file(args.sequence_file)
+                else:
+                    # TODO: Extract sequence from LFSR analysis output
+                    # For now, require sequence file
+                    print("ERROR: --nist-test requires --sequence-file", file=sys.stderr)
+                    print("       (Extracting sequence from LFSR analysis not yet implemented)", file=sys.stderr)
+                    sys.exit(1)
+                
+                perform_nist_test_cli(
+                    sequence=sequence,
+                    output_file=output_file,
+                    significance_level=args.nist_significance_level,
+                    block_size=args.nist_block_size
+                )
+            # Check if correlation attack mode
+            elif args.correlation_attack:
                 
                 # Try to get LFSR coefficients if available
                 lfsr_coeffs = None
