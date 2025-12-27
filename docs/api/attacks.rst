@@ -92,6 +92,43 @@ Results from a correlation attack.
 - ``total_bits``: Total bits compared
 - ``match_ratio``: Ratio of matches to total bits
 
+FastCorrelationAttackResult
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. autoclass:: lfsr.attacks.FastCorrelationAttackResult
+   :members:
+   :no-index:
+
+Results from a fast correlation attack (Meier-Staffelbach).
+
+**Attributes**:
+- ``target_lfsr_index``: Index of the LFSR that was attacked
+- ``recovered_state``: Recovered initial state (if successful)
+- ``correlation_coefficient``: Measured correlation coefficient
+- ``attack_successful``: Whether the attack successfully recovered the state
+- ``iterations_performed``: Number of iterative decoding iterations
+- ``candidate_states_tested``: Number of candidate states evaluated
+- ``best_correlation``: Best correlation found among candidates
+- ``complexity_estimate``: Estimated computational complexity
+- ``keystream_length``: Length of keystream used
+
+DistinguishingAttackResult
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. autoclass:: lfsr.attacks.DistinguishingAttackResult
+   :members:
+   :no-index:
+
+Results from a distinguishing attack.
+
+**Attributes**:
+- ``distinguishable``: Whether the keystream can be distinguished from random
+- ``distinguishing_statistic``: Value of the distinguishing statistic
+- ``p_value``: Statistical significance
+- ``attack_successful``: Whether distinction was successful
+- ``method_used``: Method used for distinguishing (e.g., "correlation", "statistical")
+- ``details``: Additional details about the attack
+
 Functions
 ---------
 
@@ -167,6 +204,74 @@ CorrelationAttackResult with attack results
    
    if result.attack_successful:
        print(f"Attack succeeded! Correlation: {result.correlation_coefficient:.4f}")
+
+fast_correlation_attack
+~~~~~~~~~~~~~~~~~~~~~~~
+
+.. autofunction:: lfsr.attacks.fast_correlation_attack
+   :no-index:
+
+Perform Meier-Staffelbach fast correlation attack.
+
+**Parameters**:
+- ``combination_generator``: The combination generator being attacked
+- ``keystream``: Observed keystream bits
+- ``target_lfsr_index``: Index of LFSR to attack (0-based)
+- ``max_candidates``: Maximum number of candidate states to test (default: 1000)
+- ``max_iterations``: Maximum iterations for iterative decoding (default: 10)
+- ``correlation_threshold``: Minimum correlation to consider (default: 0.1)
+- ``significance_level``: Statistical significance level (default: 0.05)
+
+**Returns**:
+FastCorrelationAttackResult with attack results
+
+**Example**:
+
+.. code-block:: python
+
+   from lfsr.attacks import fast_correlation_attack
+   
+   result = fast_correlation_attack(
+       combination_generator=gen,
+       keystream=keystream,
+       target_lfsr_index=0,
+       max_candidates=1000
+   )
+   
+   if result.attack_successful:
+       print(f"Recovered state: {result.recovered_state}")
+
+distinguishing_attack
+~~~~~~~~~~~~~~~~~~~~
+
+.. autofunction:: lfsr.attacks.distinguishing_attack
+   :no-index:
+
+Perform a distinguishing attack on a combination generator.
+
+**Parameters**:
+- ``combination_generator``: The combination generator to test against
+- ``keystream``: Observed keystream bits
+- ``method``: Distinguishing method ("correlation" or "statistical", default: "correlation")
+- ``significance_level``: Statistical significance level (default: 0.05)
+
+**Returns**:
+DistinguishingAttackResult with attack results
+
+**Example**:
+
+.. code-block:: python
+
+   from lfsr.attacks import distinguishing_attack
+   
+   result = distinguishing_attack(
+       combination_generator=gen,
+       keystream=keystream,
+       method="correlation"
+   )
+   
+   if result.distinguishable:
+       print("Keystream is distinguishable from random!")
 
 analyze_combining_function
 ~~~~~~~~~~~~~~~~~~~~~~~~~~

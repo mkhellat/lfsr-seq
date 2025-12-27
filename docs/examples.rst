@@ -179,6 +179,39 @@ Analyze the security properties of combining functions:
    print(f"Bias: {analysis['bias']}")
    print(f"Correlation immunity order: {analysis['correlation_immunity']}")
 
+**Fast Correlation Attack**:
+
+.. code-block:: python
+
+   from lfsr.attacks import fast_correlation_attack
+   
+   # Perform fast correlation attack
+   result = fast_correlation_attack(
+       combination_generator=gen,
+       keystream=keystream,
+       target_lfsr_index=0,
+       max_candidates=1000
+   )
+   
+   if result.attack_successful:
+       print(f"Recovered state: {result.recovered_state}")
+
+**Distinguishing Attack**:
+
+.. code-block:: python
+
+   from lfsr.attacks import distinguishing_attack
+   
+   # Test if keystream is distinguishable
+   result = distinguishing_attack(
+       combination_generator=gen,
+       keystream=keystream,
+       method="correlation"
+   )
+   
+   if result.distinguishable:
+       print("Keystream is distinguishable from random!")
+
 For complete examples, see ``examples/correlation_attack_example.py``.
 
 NIST SP 800-22 Test Suite
