@@ -41,6 +41,11 @@ cipher analysis, educational purposes, and security evaluation.
   - **Gröbner Basis Attacks**: Solve polynomial systems to recover LFSR state
   - **Cube Attacks**: Exploit low-degree relations using cube selection
   - **Security Analysis**: Evaluate algebraic properties of filtering functions
+- **Time-Memory Trade-Off Attacks**: Efficient state recovery through precomputation
+  - **Hellman Tables**: Classic TMTO technique with chain-based tables
+  - **Rainbow Tables**: Improved TMTO with multiple reduction functions
+  - **Parameter Optimization**: Find optimal trade-off parameters
+  - **Precomputation Support**: Generate and reuse tables for multiple attacks
 - **NIST SP 800-22 Test Suite**: Industry-standard statistical tests for randomness (all 15 tests)
   - Frequency tests, runs tests, matrix rank, spectral tests
   - Template matching, Maurer's universal test, linear complexity test
@@ -271,6 +276,13 @@ Optional arguments:
                         'algebraic_immunity' (default: groebner_basis)
   --max-cube-size N    Maximum cube size for cube attack (default: 10)
   --max-equations N     Maximum equations for Gröbner basis (default: 1000)
+  --tmto-attack        Perform time-memory trade-off attack
+  --tmto-method METHOD
+                        TMTO method: 'hellman' or 'rainbow' (default: hellman)
+  --chain-count N      Number of chains in TMTO table (default: 1000)
+  --chain-length N     Length of each chain (default: 100)
+  --tmto-table-file FILE
+                        File with precomputed TMTO table (JSON format)
 ```
 
 **Examples:**
@@ -580,6 +592,20 @@ lfsr-seq coefficients.csv 2 --algebraic-attack \
 # Cube attack
 lfsr-seq coefficients.csv 2 --algebraic-attack \
     --algebraic-method cube_attack --max-cube-size 8
+```
+
+### Example 9: Time-Memory Trade-Off Attacks
+
+```bash
+# Hellman table attack
+lfsr-seq coefficients.csv 2 --tmto-attack --tmto-method hellman
+
+# Rainbow table attack with custom parameters
+lfsr-seq coefficients.csv 2 --tmto-attack --tmto-method rainbow \
+    --chain-count 2000 --chain-length 150
+
+# Use precomputed table
+lfsr-seq coefficients.csv 2 --tmto-attack --tmto-table-file table.json
 ```
 
 ## Project Structure
