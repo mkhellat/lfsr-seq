@@ -685,6 +685,635 @@ def binary_matrix_rank_test(sequence: List[int], matrix_rows: int = 32, matrix_c
     )
 
 
+def discrete_fourier_transform_test(sequence: List[int]) -> NISTTestResult:
+    """
+    Test 6: Discrete Fourier Transform (Spectral) Test.
+    
+    **Purpose**: Detects periodic features in the sequence that would indicate
+    a deviation from the assumption of randomness.
+    
+    **What it measures**: Periodic patterns using Fourier analysis (frequency domain).
+    
+    **How it works**:
+    1. Convert sequence to values -1 and +1 (0 -> -1, 1 -> +1)
+    2. Compute Discrete Fourier Transform (DFT) of the sequence
+    3. Compute the modulus of each DFT coefficient
+    4. Count how many coefficients are below a threshold (expected: 95% for random)
+    5. Compute p-value using normal distribution
+    
+    **Interpretation**:
+    - Random sequences should not have periodic patterns
+    - If p-value < 0.01, the sequence shows periodic features
+    - This test detects sequences with repeating patterns
+    
+    **Minimum sequence length**: 1000 bits (recommended: 10000+ bits)
+    
+    Args:
+        sequence: Binary sequence (list of 0s and 1s)
+    
+    Returns:
+        NISTTestResult with test results
+    
+    Example:
+        >>> result = discrete_fourier_transform_test([1, 0, 1, 0] * 250)
+        >>> print(f"P-value: {result.p_value:.6f}, Passed: {result.passed}")
+    """
+    n = len(sequence)
+    if n < 1000:
+        return NISTTestResult(
+            test_name="Discrete Fourier Transform (Spectral) Test",
+            p_value=0.0,
+            passed=False,
+            statistic=0.0,
+            details={"error": f"Sequence too short: {n} bits (minimum: 1000)"}
+        )
+    
+    # Convert to -1, +1 representation
+    # 0 -> -1, 1 -> +1
+    X = [1 if bit == 1 else -1 for bit in sequence]
+    
+    # Compute DFT using simple implementation
+    # For efficiency, we could use numpy.fft, but we'll use a basic implementation
+    # to avoid numpy dependency
+    N = len(X)
+    
+    # Compute DFT coefficients (simplified - full FFT would be more efficient)
+    # We only need the magnitude, so we can compute efficiently
+    # For NIST test, we compute |S_k| for k = 0, 1, ..., N/2 - 1
+    magnitudes = []
+    
+    # Compute first N/2 coefficients (others are symmetric)
+    for k in range(N // 2):
+        real_sum = 0.0
+        imag_sum = 0.0
+        for j in range(N):
+            angle = 2.0 * math.pi * k * j / N
+            real_sum += X[j] * math.cos(angle)
+            imag_sum += X[j] * math.sin(angle)
+        
+        magnitude = math.sqrt(real_sum * real_sum + imag_sum * imag_sum)
+        magnitudes.append(magnitude)
+    
+    # Compute threshold: T = sqrt(ln(1/0.05) * n) = sqrt(ln(20) * n)
+    # For 95% of coefficients to be below threshold
+    threshold = math.sqrt(math.log(20.0) * n)
+    
+    # Count coefficients below threshold
+    # Exclude the first coefficient (DC component)
+    magnitudes_no_dc = magnitudes[1:] if len(magnitudes) > 1 else []
+    N_0 = sum(1 for m in magnitudes_no_dc if m < threshold)
+    N_1 = len(magnitudes_no_dc) - N_0
+    
+    # Expected: 95% below threshold
+    expected_below = 0.95 * len(magnitudes_no_dc) if magnitudes_no_dc else 0
+    
+    # Compute test statistic using normal approximation
+    # d = (N_0 - 0.95 * (N/2 - 1)) / sqrt(0.95 * 0.05 * (N/2 - 1))
+    if len(magnitudes_no_dc) > 0:
+        d = (N_0 - 0.95 * len(magnitudes_no_dc)) / math.sqrt(0.95 * 0.05 * len(magnitudes_no_dc))
+    else:
+        d = 0.0
+    
+    # Compute p-value using normal distribution (two-tailed)
+    p_value = 2.0 * norm.sf(abs(d))
+    p_value = max(0.0, min(1.0, p_value))  # Clamp to [0, 1]
+    
+    # Test passes if p-value >= 0.01
+    passed = p_value >= 0.01
+    
+    return NISTTestResult(
+        test_name="Discrete Fourier Transform (Spectral) Test",
+        p_value=p_value,
+        passed=passed,
+        statistic=d,
+        details={
+            "n": n,
+            "threshold": threshold,
+            "coefficients_below_threshold": N_0,
+            "coefficients_above_threshold": N_1,
+            "total_coefficients": len(magnitudes_no_dc),
+            "expected_below": expected_below
+        }
+    )
+
+
+def non_overlapping_template_matching_test(
+    sequence: List[int],
+    template: Optional[List[int]] = None,
+    block_size: int = 8
+) -> NISTTestResult:
+    """
+    Test 7: Non-overlapping Template Matching Test.
+    
+    **Purpose**: Tests for occurrences of specific m-bit patterns (templates) in
+    the sequence. Detects over-represented patterns that would indicate non-randomness.
+    
+    **What it measures**: Frequency of specific m-bit patterns in non-overlapping blocks.
+    
+    **How it works**:
+    1. Divide the sequence into non-overlapping blocks of M bits
+    2. For each block, check if it matches the template pattern
+    3. Count the number of matches
+    4. Compare observed frequency with expected frequency using chi-square test
+    
+    **Interpretation**:
+    - Random sequences should not have over-represented patterns
+    - If p-value < 0.01, the sequence shows pattern clustering
+    - This test detects sequences with specific repeating patterns
+    
+    **Parameters**:
+    - template: The m-bit pattern to search for (default: [0, 0, 0, 0, 0, 0, 0, 0, 1])
+    - block_size (M): Size of each block (default: 8)
+    
+    **Minimum sequence length**: M × 10 (recommended: M × 100)
+    
+    Args:
+        sequence: Binary sequence (list of 0s and 1s)
+        template: Template pattern to search for (default: 9-bit pattern ending in 1)
+        block_size: Size of each block (default: 8)
+    
+    Returns:
+        NISTTestResult with test results
+    
+    Example:
+        >>> result = non_overlapping_template_matching_test([1, 0, 1, 0] * 250)
+        >>> print(f"P-value: {result.p_value:.6f}, Passed: {result.passed}")
+    """
+    n = len(sequence)
+    M = block_size
+    
+    if n < M * 10:
+        return NISTTestResult(
+            test_name="Non-overlapping Template Matching Test",
+            p_value=0.0,
+            passed=False,
+            statistic=0.0,
+            details={"error": f"Sequence too short: {n} bits (minimum: {M * 10})"}
+        )
+    
+    # Default template: 9-bit pattern [0,0,0,0,0,0,0,0,1] (NIST standard)
+    if template is None:
+        template = [0, 0, 0, 0, 0, 0, 0, 0, 1]
+    
+    m = len(template)
+    
+    # Number of non-overlapping blocks
+    N = n // M
+    
+    # Count matches in each block
+    matches = []
+    for i in range(N):
+        block = sequence[i * M:(i + 1) * M]
+        # Check if template appears in block (non-overlapping search)
+        match_found = False
+        for j in range(M - m + 1):
+            if block[j:j + m] == template:
+                match_found = True
+                break
+        matches.append(1 if match_found else 0)
+    
+    # Count total matches
+    W = sum(matches)
+    
+    # Expected number of matches per block: (M - m + 1) / 2^m
+    # Probability of match in a block
+    prob_match = (M - m + 1) / (2 ** m)
+    expected_matches = N * prob_match
+    variance = N * prob_match * (1 - prob_match)
+    
+    if variance <= 0:
+        return NISTTestResult(
+            test_name="Non-overlapping Template Matching Test",
+            p_value=0.0,
+            passed=False,
+            statistic=0.0,
+            details={"error": "Variance is zero or negative"}
+        )
+    
+    # Compute chi-square statistic
+    chi_square = ((W - expected_matches) ** 2) / variance
+    
+    # Compute p-value using chi-square distribution with 1 degree of freedom
+    p_value = chi2.sf(chi_square, 1)
+    p_value = max(0.0, min(1.0, p_value))  # Clamp to [0, 1]
+    
+    # Test passes if p-value >= 0.01
+    passed = p_value >= 0.01
+    
+    return NISTTestResult(
+        test_name="Non-overlapping Template Matching Test",
+        p_value=p_value,
+        passed=passed,
+        statistic=chi_square,
+        details={
+            "template": template,
+            "template_length": m,
+            "block_size": M,
+            "num_blocks": N,
+            "matches": W,
+            "expected_matches": expected_matches,
+            "variance": variance
+        }
+    )
+
+
+def overlapping_template_matching_test(
+    sequence: List[int],
+    template: Optional[List[int]] = None,
+    block_size: int = 1032
+) -> NISTTestResult:
+    """
+    Test 8: Overlapping Template Matching Test.
+    
+    **Purpose**: Similar to Test 7, but searches for overlapping occurrences of
+    a template pattern. Detects pattern clustering that would indicate non-randomness.
+    
+    **What it measures**: Frequency of overlapping m-bit patterns in blocks.
+    
+    **How it works**:
+    1. Divide the sequence into N blocks of M bits each
+    2. For each block, count overlapping occurrences of the template
+    3. Count how many blocks have k occurrences (k = 0, 1, 2, ...)
+    4. Compare observed frequencies with expected frequencies using chi-square test
+    
+    **Interpretation**:
+    - Random sequences should have template occurrences distributed according to theory
+    - If p-value < 0.01, the sequence shows pattern clustering
+    - This test detects sequences with clustered patterns
+    
+    **Parameters**:
+    - template: The m-bit pattern to search for (default: [1, 1, 1, 1, 1, 1, 1, 1, 1])
+    - block_size (M): Size of each block (default: 1032)
+    
+    **Minimum sequence length**: M × 8 (recommended: M × 100)
+    
+    Args:
+        sequence: Binary sequence (list of 0s and 1s)
+        template: Template pattern to search for (default: 9 ones)
+        block_size: Size of each block (default: 1032)
+    
+    Returns:
+        NISTTestResult with test results
+    
+    Example:
+        >>> result = overlapping_template_matching_test([1, 0, 1, 0] * 1000)
+        >>> print(f"P-value: {result.p_value:.6f}, Passed: {result.passed}")
+    """
+    n = len(sequence)
+    M = block_size
+    
+    if n < M * 8:
+        return NISTTestResult(
+            test_name="Overlapping Template Matching Test",
+            p_value=0.0,
+            passed=False,
+            statistic=0.0,
+            details={"error": f"Sequence too short: {n} bits (minimum: {M * 8})"}
+        )
+    
+    # Default template: 9-bit pattern of all ones [1,1,1,1,1,1,1,1,1] (NIST standard)
+    if template is None:
+        template = [1, 1, 1, 1, 1, 1, 1, 1, 1]
+    
+    m = len(template)
+    
+    # Number of blocks
+    N = n // M
+    
+    # Count occurrences in each block (overlapping search)
+    occurrences_per_block = []
+    for i in range(N):
+        block = sequence[i * M:(i + 1) * M]
+        count = 0
+        # Count overlapping occurrences
+        for j in range(M - m + 1):
+            if block[j:j + m] == template:
+                count += 1
+        occurrences_per_block.append(count)
+    
+    # Categorize blocks by number of occurrences
+    # Expected distribution: Poisson with lambda = (M - m + 1) / 2^m
+    lambda_param = (M - m + 1) / (2 ** m)
+    
+    # Count blocks in each category (0, 1, 2, 3, 4, 5+ occurrences)
+    categories = [0, 0, 0, 0, 0, 0]  # 0, 1, 2, 3, 4, 5+
+    for count in occurrences_per_block:
+        if count < 5:
+            categories[count] += 1
+        else:
+            categories[5] += 1
+    
+    # Expected frequencies using Poisson distribution
+    # P(k) = (lambda^k * e^(-lambda)) / k!
+    import math
+    expected = []
+    for k in range(5):
+        if k == 0:
+            prob = math.exp(-lambda_param)
+        else:
+            prob = (lambda_param ** k) * math.exp(-lambda_param) / math.factorial(k)
+        expected.append(N * prob)
+    
+    # Category 5+: 1 - sum(P(0) to P(4))
+    expected.append(N * (1.0 - sum(expected) / N if N > 0 else 0.0))
+    
+    # Compute chi-square statistic
+    chi_square = 0.0
+    for i in range(6):
+        if expected[i] > 0:
+            chi_square += ((categories[i] - expected[i]) ** 2) / expected[i]
+    
+    # Compute p-value using chi-square distribution with 5 degrees of freedom
+    p_value = chi2.sf(chi_square, 5)
+    p_value = max(0.0, min(1.0, p_value))  # Clamp to [0, 1]
+    
+    # Test passes if p-value >= 0.01
+    passed = p_value >= 0.01
+    
+    return NISTTestResult(
+        test_name="Overlapping Template Matching Test",
+        p_value=p_value,
+        passed=passed,
+        statistic=chi_square,
+        details={
+            "template": template,
+            "template_length": m,
+            "block_size": M,
+            "num_blocks": N,
+            "lambda": lambda_param,
+            "categories": categories,
+            "expected": expected
+        }
+    )
+
+
+def maurers_universal_test(sequence: List[int], block_size: int = 6, init_blocks: int = 10) -> NISTTestResult:
+    """
+    Test 9: Maurer's "Universal Statistical" Test.
+    
+    **Purpose**: Tests whether the sequence can be significantly compressed without
+    loss of information. A random sequence should not be compressible.
+    
+    **What it measures**: Compressibility of the sequence (ability to predict future
+    bits from past bits).
+    
+    **How it works**:
+    1. Divide the sequence into blocks of L bits
+    2. Use first Q blocks to initialize a table of block positions
+    3. For each subsequent block, compute the distance to its last occurrence
+    4. Compute the test statistic from these distances
+    5. Compute p-value using normal distribution
+    
+    **Interpretation**:
+    - Random sequences should not be compressible
+    - If p-value < 0.01, the sequence shows compressibility (non-random)
+    - This test detects sequences with predictable patterns
+    
+    **Parameters**:
+    - block_size (L): Size of each block (default: 6)
+    - init_blocks (Q): Number of initialization blocks (default: 10)
+    
+    **Minimum sequence length**: L × (Q + K) where K >= 1000 (recommended: L × 2000)
+    
+    Args:
+        sequence: Binary sequence (list of 0s and 1s)
+        block_size: Size of each block (default: 6)
+        init_blocks: Number of initialization blocks (default: 10)
+    
+    Returns:
+        NISTTestResult with test results
+    
+    Example:
+        >>> result = maurers_universal_test([1, 0, 1, 0] * 1000, block_size=6)
+        >>> print(f"P-value: {result.p_value:.6f}, Passed: {result.passed}")
+    """
+    n = len(sequence)
+    L = block_size
+    Q = init_blocks
+    
+    # Minimum: L * (Q + 1000)
+    min_length = L * (Q + 1000)
+    if n < min_length:
+        return NISTTestResult(
+            test_name="Maurer's \"Universal Statistical\" Test",
+            p_value=0.0,
+            passed=False,
+            statistic=0.0,
+            details={"error": f"Sequence too short: {n} bits (minimum: {min_length})"}
+        )
+    
+    # Number of blocks
+    K = (n // L) - Q  # Blocks after initialization
+    if K < 1000:
+        return NISTTestResult(
+            test_name="Maurer's \"Universal Statistical\" Test",
+            p_value=0.0,
+            passed=False,
+            statistic=0.0,
+            details={"error": f"Not enough blocks after initialization: {K} (minimum: 1000)"}
+        )
+    
+    # Initialize table: map block pattern to last position
+    table = {}
+    for i in range(Q):
+        block = tuple(sequence[i * L:(i + 1) * L])
+        table[block] = i + 1  # 1-indexed position
+    
+    # Process remaining blocks and compute distances
+    distances = []
+    for i in range(Q, Q + K):
+        block = tuple(sequence[i * L:(i + 1) * L])
+        if block in table:
+            distance = i + 1 - table[block]
+            distances.append(distance)
+        else:
+            # First occurrence after initialization - use large distance
+            distances.append(i + 1)
+        table[block] = i + 1  # Update position
+    
+    # Compute test statistic: f_n = (1/K) * sum(log2(distance))
+    if len(distances) == 0:
+        return NISTTestResult(
+            test_name="Maurer's \"Universal Statistical\" Test",
+            p_value=0.0,
+            passed=False,
+            statistic=0.0,
+            details={"error": "No distances computed"}
+        )
+    
+    f_n = sum(math.log2(d) if d > 0 else 0 for d in distances) / len(distances)
+    
+    # Expected value and variance (from NIST specification)
+    # These depend on L
+    expected_values = {
+        1: 0.7326495, 2: 1.5374383, 3: 2.4016068, 4: 3.3112247, 5: 4.2534266,
+        6: 5.2177052, 7: 6.1962507, 8: 7.1836656, 9: 8.1764248, 10: 9.1723243,
+        11: 10.170032, 12: 11.168765, 13: 12.168070, 14: 13.167693, 15: 14.167488,
+        16: 15.167379
+    }
+    
+    variance_values = {
+        1: 0.690, 2: 1.338, 3: 1.901, 4: 2.358, 5: 2.705, 6: 2.954, 7: 3.125,
+        8: 3.238, 9: 3.311, 10: 3.356, 11: 3.384, 12: 3.401, 13: 3.410, 14: 3.416,
+        15: 3.419, 16: 3.421
+    }
+    
+    expected = expected_values.get(L, 0.0)
+    variance = variance_values.get(L, 1.0)
+    
+    if expected == 0.0:
+        return NISTTestResult(
+            test_name="Maurer's \"Universal Statistical\" Test",
+            p_value=0.0,
+            passed=False,
+            statistic=0.0,
+            details={"error": f"Unsupported block size: {L} (supported: 1-16)"}
+        )
+    
+    # Compute test statistic: z-score
+    z_score = (f_n - expected) / math.sqrt(variance / K)
+    
+    # Compute p-value using normal distribution (two-tailed)
+    p_value = 2.0 * norm.sf(abs(z_score))
+    p_value = max(0.0, min(1.0, p_value))  # Clamp to [0, 1]
+    
+    # Test passes if p-value >= 0.01
+    passed = p_value >= 0.01
+    
+    return NISTTestResult(
+        test_name="Maurer's \"Universal Statistical\" Test",
+        p_value=p_value,
+        passed=passed,
+        statistic=z_score,
+        details={
+            "block_size": L,
+            "init_blocks": Q,
+            "test_blocks": K,
+            "f_n": f_n,
+            "expected": expected,
+            "variance": variance
+        }
+    )
+
+
+def linear_complexity_test(sequence: List[int], block_size: int = 500) -> NISTTestResult:
+    """
+    Test 10: Linear Complexity Test.
+    
+    **Purpose**: Tests whether the sequence is complex enough to be considered random.
+    Sequences with low linear complexity are predictable and non-random.
+    
+    **What it measures**: Linear complexity of blocks using the Berlekamp-Massey algorithm.
+    
+    **How it works**:
+    1. Divide the sequence into N blocks of M bits each
+    2. For each block, compute the linear complexity using Berlekamp-Massey
+    3. Compute deviations from expected complexity: T_i = (-1)^M * (LC_i - μ)
+    4. Count how many T_i fall into each category
+    5. Compare observed frequencies with expected frequencies using chi-square test
+    
+    **Interpretation**:
+    - Random sequences should have high linear complexity
+    - If p-value < 0.01, the sequence has lower complexity than expected
+    - This test detects sequences that are too predictable
+    
+    **Parameters**:
+    - block_size (M): Size of each block (default: 500)
+    
+    **Minimum sequence length**: M × 200 (recommended: M × 1000)
+    
+    Args:
+        sequence: Binary sequence (list of 0s and 1s)
+        block_size: Size of each block (default: 500)
+    
+    Returns:
+        NISTTestResult with test results
+    
+    Example:
+        >>> result = linear_complexity_test([1, 0, 1, 0] * 500, block_size=500)
+        >>> print(f"P-value: {result.p_value:.6f}, Passed: {result.passed}")
+    """
+    n = len(sequence)
+    M = block_size
+    
+    if n < M * 200:
+        return NISTTestResult(
+            test_name="Linear Complexity Test",
+            p_value=0.0,
+            passed=False,
+            statistic=0.0,
+            details={"error": f"Sequence too short: {n} bits (minimum: {M * 200})"}
+        )
+    
+    # Number of blocks
+    N = n // M
+    
+    # Compute linear complexity for each block
+    from lfsr.synthesis import linear_complexity
+    
+    linear_complexities = []
+    for i in range(N):
+        block = sequence[i * M:(i + 1) * M]
+        lc = linear_complexity(block, 2)
+        linear_complexities.append(lc)
+    
+    # Expected linear complexity: μ = M/2 + (9 + (-1)^(M+1)) / 36 - (M/3 + 2/9) / 2^M
+    mu = M / 2.0 + (9.0 + ((-1) ** (M + 1))) / 36.0 - (M / 3.0 + 2.0 / 9.0) / (2 ** M)
+    
+    # Compute deviations: T_i = (-1)^M * (LC_i - μ)
+    deviations = [((-1) ** M) * (lc - mu) for lc in linear_complexities]
+    
+    # Categorize deviations
+    # Categories: <= -2, -1, 0, +1, >= +2
+    categories = [0, 0, 0, 0, 0]
+    for d in deviations:
+        if d <= -2:
+            categories[0] += 1
+        elif d == -1:
+            categories[1] += 1
+        elif d == 0:
+            categories[2] += 1
+        elif d == 1:
+            categories[3] += 1
+        else:  # >= 2
+            categories[4] += 1
+    
+    # Expected frequencies (from NIST specification, approximate)
+    # These are theoretical probabilities for each category
+    # For simplicity, we use approximations
+    pi_values = [0.0228, 0.1587, 0.3413, 0.3413, 0.1359]  # Approximate normal distribution
+    expected = [N * pi for pi in pi_values]
+    
+    # Compute chi-square statistic
+    chi_square = 0.0
+    for i in range(5):
+        if expected[i] > 0:
+            chi_square += ((categories[i] - expected[i]) ** 2) / expected[i]
+    
+    # Compute p-value using chi-square distribution with 4 degrees of freedom
+    p_value = chi2.sf(chi_square, 4)
+    p_value = max(0.0, min(1.0, p_value))  # Clamp to [0, 1]
+    
+    # Test passes if p-value >= 0.01
+    passed = p_value >= 0.01
+    
+    return NISTTestResult(
+        test_name="Linear Complexity Test",
+        p_value=p_value,
+        passed=passed,
+        statistic=chi_square,
+        details={
+            "block_size": M,
+            "num_blocks": N,
+            "linear_complexities": linear_complexities[:10] if len(linear_complexities) > 10 else linear_complexities,
+            "mean_complexity": sum(linear_complexities) / len(linear_complexities) if linear_complexities else 0.0,
+            "expected_complexity": mu,
+            "categories": categories,
+            "expected": expected
+        }
+    )
+
+
 def run_nist_test_suite(
     sequence: List[int],
     significance_level: float = 0.01,
@@ -790,19 +1419,21 @@ def run_nist_test_suite(
     results.append(binary_matrix_rank_test(sequence, matrix_rows=matrix_rows, matrix_cols=matrix_cols))
     
     # Test 6: Discrete Fourier Transform (Spectral) Test
-    # TODO: Implement in next phase
+    results.append(discrete_fourier_transform_test(sequence))
     
     # Test 7: Non-overlapping Template Matching Test
-    # TODO: Implement in next phase
+    results.append(non_overlapping_template_matching_test(sequence, block_size=block_size))
     
     # Test 8: Overlapping Template Matching Test
-    # TODO: Implement in next phase
+    # Use larger block size for overlapping test
+    overlapping_block_size = 1032 if n >= 1032 * 8 else block_size
+    results.append(overlapping_template_matching_test(sequence, block_size=overlapping_block_size))
     
     # Test 9: Maurer's "Universal Statistical" Test
-    # TODO: Implement in next phase
+    results.append(maurers_universal_test(sequence))
     
     # Test 10: Linear Complexity Test
-    # TODO: Implement in next phase
+    results.append(linear_complexity_test(sequence, block_size=500))
     
     # Tests 11-15 will be added in subsequent phases
     
