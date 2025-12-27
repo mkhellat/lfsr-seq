@@ -2,55 +2,58 @@
 # -*- coding: utf-8 -*-
 
 """
-Non-Linear Feedback LFSR Analysis
+Non-Linear Feedback Shift Register (NFSR) Analysis
 
-This module provides analysis capabilities for LFSRs with non-linear feedback
-functions, also known as Non-Linear Feedback Shift Registers (NFSRs).
+This module provides analysis capabilities for Non-Linear Feedback Shift
+Registers (NFSRs), which generalize LFSRs by allowing non-linear feedback
+functions.
 
 **Historical Context**:
 
-Non-linear feedback shift registers were developed to overcome the linearity
-weakness of LFSRs. While LFSRs have good statistical properties, their linearity
-makes them vulnerable to algebraic attacks. NFSRs introduce non-linearity through
-non-linear feedback functions, making them more resistant to certain attacks.
+NFSRs were developed to address the linearity weakness of LFSRs. While LFSRs
+have good statistical properties, their linearity makes them vulnerable to
+algebraic attacks. NFSRs introduce non-linearity through AND, OR, and other
+non-linear operations in the feedback function.
 
 **Key Terminology**:
 
-- **Non-Linear Feedback Shift Register (NFSR)**: A shift register where the
-  feedback function is not linear. The feedback function can use AND, OR, and
-  other non-linear operations, not just XOR.
+- **Non-Linear Feedback Shift Register (NFSR)**: A shift register with a
+  non-linear feedback function. Unlike LFSRs, the feedback function can use
+  AND, OR, and other non-linear operations.
 
 - **Non-Linear Feedback Function**: A function that computes the new state bit
-  from the current state using non-linear operations. Unlike linear feedback
-  (which only uses XOR), non-linear feedback can use AND, OR, and other operations.
+  from the current state using non-linear operations. This function is not
+  linear (cannot be expressed as a linear combination of state bits).
 
-- **Non-Linearity**: The property of a function that is not linear. A function
-  f is non-linear if f(x ⊕ y) ≠ f(x) ⊕ f(y) for some x, y.
+- **Non-Linearity**: The property of a function that cannot be expressed as a
+  linear combination of its inputs. Non-linearity is essential for cryptographic
+  security.
 
-- **Feedback Function**: The function that computes the new state bit from
-  the current state. In LFSRs, this is linear (XOR of tap bits). In NFSRs,
-  this is non-linear.
+- **Feedback Function**: The function that determines the new state bit from
+  the current state. In NFSRs, this function is non-linear.
 
 - **Non-Linear Complexity**: A measure of the non-linearity in the feedback
   function. Higher non-linear complexity generally provides better security.
 
 **Mathematical Foundation**:
 
-A non-linear feedback shift register of degree d over GF(q) has state
-S = (s_0, s_1, ..., s_{d-1}) and feedback function f: GF(q)^d → GF(q).
+An NFSR of degree d has state S = (s_0, s_1, ..., s_{d-1}) and feedback function
+f: GF(q)^d → GF(q). The state update is:
 
-The state update is:
-S_{t+1} = (f(S_t), s_0, s_1, ..., s_{d-2})
+.. math::
 
-where f is a non-linear function (not just a linear combination).
+   s_{new} = f(s_0, s_1, \\ldots, s_{d-1})
 
-Common non-linear operations include:
-- AND (conjunction): a ∧ b
-- OR (disjunction): a ∨ b
-- NAND, NOR, etc.
+where f is a non-linear function (cannot be expressed as a linear combination).
+
+For binary NFSRs (GF(2)), common non-linear operations include:
+- AND: a ∧ b
+- OR: a ∨ b
+- XOR: a ⊕ b (linear)
+- Combinations of the above
 """
 
-from typing import List, Callable, Optional
+from typing import Callable, List, Optional
 
 from sage.all import *
 
@@ -62,48 +65,40 @@ from lfsr.advanced.base import (
 )
 
 
-class NonLinearLFSR(AdvancedLFSR):
+class NFSR(AdvancedLFSR):
     """
     Non-Linear Feedback Shift Register (NFSR) implementation.
     
-    An NFSR is a generalization of an LFSR where the feedback function is
-    non-linear. This introduces non-linearity into the state update, making
-    the register more resistant to certain attacks.
-    
-    **Key Terminology**:
-    
-    - **NFSR**: Non-Linear Feedback Shift Register, a shift register with
-      non-linear feedback function.
-    
-    - **Non-Linear Feedback**: Feedback function that uses non-linear operations
-      (AND, OR, etc.) in addition to or instead of linear operations (XOR).
-    
-    - **Feedback Function**: Function f: GF(q)^d → GF(q) that computes the new
-      state bit from the current state. For NFSRs, this function is non-linear.
-    
-    - **Non-Linearity Measure**: Quantifies how non-linear a function is. Common
-      measures include algebraic degree, non-linearity (distance to linear
-      functions), and Walsh-Hadamard transform.
+    An NFSR generalizes an LFSR by allowing non-linear feedback functions.
+    The feedback function can use AND, OR, and other non-linear operations,
+    providing increased security compared to linear LFSRs.
     
     **Cipher Structure**:
     
-    An NFSR of degree d has:
-    - State: (s_0, s_1, ..., s_{d-1})
-    - Feedback function: f(s_0, s_1, ..., s_{d-1}) → new bit
-    - State update: Shift and insert feedback
+    - **Base LFSR**: Underlying LFSR structure (for state management)
+    - **Feedback Function**: Non-linear function computing new state bit
+    - **State Size**: Same as base LFSR degree
+    - **Field Order**: Same as base LFSR field order
+    
+    **Key Terminology**:
+    
+    - **NFSR**: Non-Linear Feedback Shift Register
+    - **Non-Linear Feedback**: Feedback function uses non-linear operations
+    - **Feedback Function**: Function mapping state to new state bit
+    - **Non-Linearity**: Property that function is not linear
     
     **Example Usage**:
     
-        >>> from lfsr.advanced.nonlinear import NonLinearLFSR
+        >>> from lfsr.advanced.nonlinear import NFSR
         >>> from lfsr.attacks import LFSRConfig
         >>> 
-        >>> base_config = LFSRConfig(coefficients=[1, 0, 0, 1], field_order=2, degree=4)
+        >>> base_lfsr = LFSRConfig(coefficients=[1, 0, 0, 1], field_order=2, degree=4)
         >>> 
-        >>> # Define non-linear feedback function (AND of first two bits)
+        >>> # Define non-linear feedback function: f(s0, s1, s2, s3) = s0 AND s1 XOR s2
         >>> def feedback_func(state):
-        ...     return state[0] & state[1]  # Non-linear: AND operation
+        ...     return (state[0] & state[1]) ^ state[2]
         >>> 
-        >>> nfsr = NonLinearLFSR(base_config, feedback_func)
+        >>> nfsr = NFSR(base_lfsr, feedback_func)
         >>> sequence = nfsr.generate_sequence([1, 0, 1, 1], 100)
     """
     
@@ -113,16 +108,15 @@ class NonLinearLFSR(AdvancedLFSR):
         feedback_function: Callable[[List[int]], int]
     ):
         """
-        Initialize non-linear LFSR.
+        Initialize NFSR.
         
         Args:
-            base_lfsr_config: Base LFSR configuration (defines degree, field)
+            base_lfsr_config: Base LFSR configuration (defines state size and field)
             feedback_function: Non-linear feedback function mapping state to new bit
         """
         self.base_lfsr_config = base_lfsr_config
         self.feedback_function = feedback_function
-        self.degree = base_lfsr_config.degree
-        self.field_order = base_lfsr_config.field_order
+        self.state = None
     
     def get_config(self) -> AdvancedLFSRConfig:
         """Get NFSR configuration."""
@@ -130,11 +124,34 @@ class NonLinearLFSR(AdvancedLFSR):
             structure_type="nonlinear",
             base_lfsr_config=self.base_lfsr_config,
             parameters={
-                'degree': self.degree,
-                'field_order': self.field_order,
-                'feedback_type': 'non-linear'
+                'feedback_type': 'non-linear',
+                'degree': self.base_lfsr_config.degree,
+                'field_order': self.base_lfsr_config.field_order
             }
         )
+    
+    def _clock_nfsr(self) -> int:
+        """
+        Clock NFSR one step.
+        
+        Computes new state bit using non-linear feedback function and shifts state.
+        
+        Returns:
+            Output bit (old MSB)
+        """
+        if self.state is None:
+            raise ValueError("NFSR state not initialized")
+        
+        # Get output bit (MSB)
+        output = self.state[0]
+        
+        # Compute new state bit using non-linear feedback function
+        new_bit = self.feedback_function(self.state)
+        
+        # Shift state and insert new bit
+        self.state = self.state[1:] + [new_bit]
+        
+        return output
     
     def generate_sequence(
         self,
@@ -144,133 +161,192 @@ class NonLinearLFSR(AdvancedLFSR):
         """
         Generate sequence from initial state.
         
-        This method generates a sequence using the non-linear feedback function.
-        The sequence is generated by repeatedly applying the feedback function
-        and shifting the state.
-        
-        **Algorithm**:
-        
-        1. Initialize state with initial_state
-        2. For each output bit:
-           - Compute feedback: f(state)
-           - Output current state bit (typically s_0)
-           - Shift state: (f(state), s_0, s_1, ..., s_{d-2})
+        This method generates a sequence of the specified length using the
+        NFSR starting from the given initial state.
         
         Args:
-            initial_state: Initial state as list of field elements
+            initial_state: Initial state as a list of field elements
             length: Desired sequence length
         
         Returns:
             List of sequence elements
+        
+        Example:
+            >>> nfsr = NFSR(base_lfsr, feedback_func)
+            >>> sequence = nfsr.generate_sequence([1, 0, 1, 1], 100)
+            >>> len(sequence) == 100
+            True
         """
-        if len(initial_state) != self.degree:
+        if len(initial_state) != self.base_lfsr_config.degree:
             raise ValueError(
-                f"Initial state must have length {self.degree}, got {len(initial_state)}"
+                f"Initial state must have length {self.base_lfsr_config.degree}, "
+                f"got {len(initial_state)}"
             )
         
-        state = initial_state[:]  # Copy
-        sequence = []
+        # Initialize state
+        self.state = initial_state.copy()
         
+        # Generate sequence
+        sequence = []
         for _ in range(length):
-            # Output current state bit (typically MSB)
-            output = state[0]
+            output = self._clock_nfsr()
             sequence.append(output)
-            
-            # Compute non-linear feedback
-            feedback = self.feedback_function(state)
-            
-            # Update state: shift and insert feedback
-            state = [feedback] + state[:-1]
         
         return sequence
     
     def analyze_structure(self) -> dict:
         """
-        Analyze NFSR structure properties.
+        Analyze NFSR structure.
         
-        This method analyzes the non-linear feedback function and structure
-        properties, including non-linearity measures.
+        This method analyzes the internal structure of the NFSR, including
+        base LFSR properties and non-linear feedback properties.
         
         Returns:
             Dictionary of structure properties
         """
-        # Analyze feedback function
-        # For binary case, we can analyze non-linearity
-        non_linearity = self._compute_non_linearity()
-        algebraic_degree = self._estimate_algebraic_degree()
+        # Analyze base LFSR
+        base_properties = {
+            'degree': self.base_lfsr_config.degree,
+            'field_order': self.base_lfsr_config.field_order,
+            'coefficients': self.base_lfsr_config.coefficients,
+            'state_space_size': self.base_lfsr_config.field_order ** self.base_lfsr_config.degree
+        }
+        
+        # Analyze non-linear feedback
+        # Test feedback function with sample states to determine non-linearity
+        field_order = self.base_lfsr_config.field_order
+        degree = self.base_lfsr_config.degree
+        
+        # Check if feedback is linear (simplified test)
+        is_linear = self._test_linearity()
         
         return {
-            'structure_type': 'non-linear feedback shift register',
-            'degree': self.degree,
-            'field_order': self.field_order,
+            'base_lfsr': base_properties,
             'feedback_type': 'non-linear',
-            'non_linearity': non_linearity,
-            'estimated_algebraic_degree': algebraic_degree,
-            'note': 'NFSR uses non-linear feedback function'
+            'is_linear': is_linear,
+            'degree': degree,
+            'field_order': field_order,
+            'state_space_size': field_order ** degree
         }
     
-    def _compute_non_linearity(self) -> float:
+    def _test_linearity(self) -> bool:
         """
-        Compute non-linearity measure of feedback function.
+        Test if feedback function is linear.
         
-        For binary functions, non-linearity is the minimum Hamming distance
-        to any affine function. This is a simplified estimation.
+        A function is linear if f(a + b) = f(a) + f(b) for all a, b.
+        This is a simplified test using a few sample states.
         
         Returns:
-            Estimated non-linearity measure
+            True if function appears linear, False otherwise
         """
-        # Simplified non-linearity computation
-        # Full implementation would use Walsh-Hadamard transform
-        if self.field_order != 2:
-            return 0.0  # Non-linearity primarily defined for binary
+        # Simplified linearity test
+        # Test with a few sample states
+        test_states = [
+            [0] * self.base_lfsr_config.degree,
+            [1] * self.base_lfsr_config.degree,
+            [1, 0] * (self.base_lfsr_config.degree // 2) + [1] * (self.base_lfsr_config.degree % 2)
+        ]
         
-        # Estimate by testing linearity
-        # A function is linear if f(x ⊕ y) = f(x) ⊕ f(y) for all x, y
-        # We test a sample to estimate non-linearity
-        test_count = min(100, 2 ** self.degree)
-        non_linear_count = 0
+        # Check if f(a + b) = f(a) + f(b) for test states
+        # This is a simplified test - full test would check all pairs
+        try:
+            for i, state_a in enumerate(test_states):
+                for state_b in test_states[i+1:]:
+                    # Compute f(a + b)
+                    state_sum = [(a + b) % self.base_lfsr_config.field_order 
+                                for a, b in zip(state_a, state_b)]
+                    f_sum = self.feedback_function(state_sum)
+                    
+                    # Compute f(a) + f(b)
+                    f_a = self.feedback_function(state_a)
+                    f_b = self.feedback_function(state_b)
+                    f_ab = (f_a + f_b) % self.base_lfsr_config.field_order
+                    
+                    if f_sum != f_ab:
+                        return False  # Non-linear
+        except Exception:
+            # If test fails, assume non-linear
+            return False
         
-        # Test linearity property on sample
-        for _ in range(test_count):
-            # Generate random states
-            state1 = [random.randint(0, 1) for _ in range(self.degree)]
-            state2 = [random.randint(0, 1) for _ in range(self.degree)]
-            
-            # Compute XOR of states
-            state_xor = [(state1[i] ^ state2[i]) for i in range(self.degree)]
-            
-            # Check if f(x ⊕ y) = f(x) ⊕ f(y)
-            f_xor = self.feedback_function(state_xor)
-            f_x = self.feedback_function(state1)
-            f_y = self.feedback_function(state2)
-            
-            if f_xor != (f_x ^ f_y):
-                non_linear_count += 1
-        
-        # Non-linearity estimate: fraction of non-linear behavior
-        return non_linear_count / test_count if test_count > 0 else 0.0
-    
-    def _estimate_algebraic_degree(self) -> int:
-        """
-        Estimate algebraic degree of feedback function.
-        
-        The algebraic degree is the degree of the polynomial representation
-        of the function. This is a simplified estimation.
-        
-        Returns:
-            Estimated algebraic degree
-        """
-        # Simplified estimation
-        # Full implementation would analyze the algebraic normal form (ANF)
-        # For now, return a conservative estimate
-        return min(self.degree, 3)  # Most practical NFSRs have degree ≤ 3
+        # If all tests pass, might be linear (but this is not definitive)
+        return True
 
 
-class NFSR(NonLinearLFSR):
+def create_nfsr_with_and_feedback(
+    base_lfsr_config: LFSRConfig,
+    tap_positions: List[int]
+) -> NFSR:
     """
-    Alias for NonLinearLFSR.
+    Create NFSR with AND-based feedback function.
     
-    NFSR is the standard abbreviation for Non-Linear Feedback Shift Register.
-    This class provides a convenient alias.
+    This helper function creates an NFSR where the feedback is the AND
+    of specified tap positions.
+    
+    **Key Terminology**:
+    
+    - **AND-based Feedback**: Feedback function using AND operations
+    - **Tap Positions**: Positions in state used for feedback
+    
+    Args:
+        base_lfsr_config: Base LFSR configuration
+        tap_positions: List of tap positions (indices) to AND together
+    
+    Returns:
+        NFSR instance with AND-based feedback
+    
+    Example:
+        >>> base_lfsr = LFSRConfig(coefficients=[1, 0, 0, 1], field_order=2, degree=4)
+        >>> nfsr = create_nfsr_with_and_feedback(base_lfsr, [0, 1, 2])
+        >>> sequence = nfsr.generate_sequence([1, 0, 1, 1], 100)
     """
-    pass
+    def and_feedback(state: List[int]) -> int:
+        """AND-based feedback function."""
+        result = state[tap_positions[0]]
+        for pos in tap_positions[1:]:
+            result = result & state[pos]
+        return result
+    
+    return NFSR(base_lfsr_config, and_feedback)
+
+
+def create_nfsr_with_combined_feedback(
+    base_lfsr_config: LFSRConfig,
+    linear_taps: List[int],
+    non_linear_taps: List[int]
+) -> NFSR:
+    """
+    Create NFSR with combined linear and non-linear feedback.
+    
+    This helper function creates an NFSR where the feedback combines linear
+    (XOR) and non-linear (AND) operations.
+    
+    Args:
+        base_lfsr_config: Base LFSR configuration
+        linear_taps: Tap positions for linear (XOR) part
+        non_linear_taps: Tap positions for non-linear (AND) part
+    
+    Returns:
+        NFSR instance with combined feedback
+    
+    Example:
+        >>> base_lfsr = LFSRConfig(coefficients=[1, 0, 0, 1], field_order=2, degree=4)
+        >>> nfsr = create_nfsr_with_combined_feedback(base_lfsr, [0, 1], [2, 3])
+        >>> sequence = nfsr.generate_sequence([1, 0, 1, 1], 100)
+    """
+    def combined_feedback(state: List[int]) -> int:
+        """Combined linear and non-linear feedback function."""
+        # Linear part (XOR)
+        linear_part = 0
+        for pos in linear_taps:
+            linear_part ^= state[pos]
+        
+        # Non-linear part (AND)
+        if non_linear_taps:
+            non_linear_part = state[non_linear_taps[0]]
+            for pos in non_linear_taps[1:]:
+                non_linear_part = non_linear_part & state[pos]
+            return linear_part ^ non_linear_part
+        else:
+            return linear_part
+    
+    return NFSR(base_lfsr_config, combined_feedback)

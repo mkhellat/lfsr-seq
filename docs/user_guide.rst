@@ -11,6 +11,7 @@ The basic command-line usage is:
    lfsr-seq <input_file> <gf_order> [options]
 
 **Example:**
+
 .. code-block:: bash
 
    lfsr-seq strange.csv 2
