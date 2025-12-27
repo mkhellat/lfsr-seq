@@ -119,11 +119,18 @@ The module provides parallel processing capabilities for large state spaces:
 **Worker Function** (``_process_state_chunk``):
    Processes a single chunk of states in a worker process.
    Reconstructs SageMath objects from serialized data.
-   Returns sequences, periods, and statistics for the chunk.
+   **Critical Implementation Details**:
+   - Extracts coefficients from matrix **last column** (not last row)
+   - Uses Floyd's algorithm for period computation (enumeration hangs)
+   - Computes full sequences for small periods (≤100) for deduplication
+   - Returns sequences, periods, and statistics for the chunk.
 
 **Result Merging** (``_merge_parallel_results``):
    Merges results from multiple parallel workers.
-   Handles deduplication of sequences found by multiple workers.
+   Handles deduplication of sequences found by multiple workers:
+   - Small periods (≤100): Uses sorted state tuples for accurate deduplication
+   - Large periods (>100): Uses (start_state, period) keys (simplified)
+   - Respects ``period_only`` flag (sequences computed but not stored)
    Reconstructs SageMath objects and assigns sequence numbers.
 
 **Usage**:
@@ -161,10 +168,10 @@ it via CLI flags:
    # Create vector space
    V = VectorSpace(GF(2), 4)
    
-   # Map sequences in parallel
+   # Map sequences in parallel (period-only mode required)
    seq_dict, period_dict, max_period, periods_sum = lfsr_sequence_mapper_parallel(
        C, V, 2, output_file=None, no_progress=False, 
-       algorithm="enumeration", period_only=False, num_workers=2
+       algorithm="floyd", period_only=True, num_workers=2
    )
    
    print(f"Found {len(seq_dict)} sequences")

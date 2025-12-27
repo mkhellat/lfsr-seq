@@ -100,7 +100,11 @@ For LFSR with coefficients :math:`c_0, c_1, \ldots, c_{d-1}`, the companion matr
 
 **Structure**:
 * First :math:`d-1` rows: Identity-like structure with 1s on the subdiagonal
-* Last row: Contains the LFSR feedback coefficients
+* Last column (column :math:`d-1`): Contains the LFSR feedback coefficients
+  :math:`c_0, c_1, \ldots, c_{d-1}` at positions :math:`(i, d-1)` for
+  :math:`i = 0, \ldots, d-1`. **Note**: Coefficients are in the **last column**,
+  not the last row. This is critical for parallel processing where coefficients
+  must be extracted for matrix reconstruction in worker processes.
 
 **Proof of Correctness**:
 
@@ -524,30 +528,67 @@ SageMath vectors are not directly pickleable for inter-process communication.
 Each worker process:
 
 1. Reconstructs SageMath objects from serialized data (tuples)
-2. Rebuilds the state update matrix from coefficients
+2. Rebuilds the state update matrix from coefficients extracted from the **last column**
+   of the companion matrix (not the last row). The companion matrix structure stores
+   coefficients :math:`c_0, c_1, \ldots, c_{d-1}` in column :math:`d-1` at positions
+   :math:`(i, d-1)` for :math:`i = 0, \ldots, d-1`.
 3. Processes each state in its chunk:
    - Reconstructs state vector from tuple
-   - Finds cycle using selected algorithm (floyd, brent, or enumeration)
+   - **Period Computation**: Uses Floyd's algorithm (``_find_period_floyd``) to compute
+     the period. Enumeration-based methods are avoided due to matrix multiplication
+     loops that hang in multiprocessing context.
+   - **Sequence Computation for Deduplication**: For periods :math:`\leq 100`, computes
+     the full sequence using direct enumeration to enable proper deduplication. For
+     larger periods, uses simplified deduplication based on :math:`(\text{start\_state}, \text{period})`.
    - Marks states in cycle as visited (local to worker)
-   - Stores sequence information
+   - Stores sequence information with ``period_only`` flag
 4. Returns results: sequences, periods, max period, errors
+
+**Critical Implementation Details**:
+
+* **Algorithm Selection**: Floyd's algorithm is **required** for parallel processing
+  because enumeration-based methods (which use matrix multiplication in tight loops)
+  hang after approximately 12 iterations in multiprocessing context. This is a known
+  SageMath/multiprocessing interaction issue.
+
+* **Period-Only Mode**: Parallel processing **requires** period-only mode
+  (``--period-only`` flag). Full sequence mode hangs due to the enumeration loop
+  issue. The tool automatically forces period-only mode when parallel processing
+  is enabled, displaying a warning to the user.
+
+* **Matrix Coefficient Extraction**: The companion matrix stores coefficients in
+  the **last column** (column :math:`d-1`), not the last row. Extraction must use:
+  :math:`c_i = C[i, d-1]` for :math:`i = 0, \ldots, d-1`. This is critical for
+  correct matrix reconstruction in worker processes.
 
 **Result Merging and Deduplication**:
 
 Since multiple workers may process states from the same cycle, results must
 be deduplicated:
 
-- **For period-only mode**: Use :math:`(\text{start\_state}, \text{period})` as
-  the deduplication key
-- **For full mode**: Use sorted tuple of all state tuples in the cycle as the
-  key (cycles are identical regardless of starting point)
+- **For small periods** (:math:`\leq 100`): Workers compute the full sequence
+  (even in period-only mode) for deduplication purposes. The merge function uses
+  the sorted tuple of all state tuples in the cycle as the deduplication key.
+  This ensures accurate deduplication since cycles are identical regardless of
+  starting point.
+
+- **For large periods** (:math:`> 100`): To avoid hangs from matrix multiplication
+  loops, workers use simplified deduplication based on :math:`(\text{start\_state}, \text{period})`.
+  This may result in some false duplicates not being caught, but is an acceptable
+  trade-off to avoid hangs.
+
+- **Period-Only Flag**: The merge function respects the ``period_only`` flag in
+  sequence information. Even though full sequences may be computed for deduplication,
+  they are not stored in the final output when ``period_only=True``.
 
 The merge function:
 
 1. Collects all sequences from all workers
-2. Creates canonical representations of cycles
+2. Creates canonical representations of cycles:
+   - Small periods: Sorted tuple of all state tuples
+   - Large periods: :math:`(\text{start\_state}, \text{period})` tuple
 3. Deduplicates based on cycle identity
-4. Reconstructs SageMath objects
+4. Reconstructs SageMath objects (only if ``period_only=False``)
 5. Assigns sequential sequence numbers
 6. Verifies correctness: :math:`\sum \text{periods} = q^d`
 
@@ -588,13 +629,33 @@ to sequential processing. This ensures:
 
 **Known Limitations**:
 
+* **Full Sequence Mode Hang**: Full sequence mode (without ``--period-only``) causes
+  workers to hang during matrix multiplication loops in enumeration-based methods.
+  This is a fundamental SageMath/multiprocessing interaction issue. **Workaround**:
+  Parallel processing automatically forces period-only mode, displaying a warning.
+  Use ``--no-parallel`` for full sequence mode.
+
+* **Algorithm Restriction**: Only Floyd's algorithm is used in parallel workers,
+  regardless of the ``--algorithm`` flag. Enumeration and Brent's algorithms are
+  not used due to the matrix multiplication hang issue.
+
+* **Deduplication for Large Periods**: For periods :math:`> 100`, deduplication
+  uses simplified keys that may not catch all duplicates. This is an acceptable
+  trade-off to avoid computing full sequences (which would hang).
+
 * **SageMath Compatibility**: Some SageMath/multiprocessing configurations may
   cause workers to hang. The timeout mechanism detects this and falls back
   to sequential processing.
+
 * **Small State Spaces**: Overhead of multiprocessing may outweigh benefits
   for small LFSRs (< 10,000 states).
+
 * **Memory**: Each worker maintains its own copy of SageMath objects, but
   total memory usage is similar to sequential processing.
+
+* **Matrix Coefficient Extraction**: Critical that coefficients are extracted
+  from the **last column** of the companion matrix, not the last row. Incorrect
+  extraction leads to wrong matrix reconstruction and incorrect period computations.
 
 **Future Improvements**:
 

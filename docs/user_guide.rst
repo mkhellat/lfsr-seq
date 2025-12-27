@@ -315,15 +315,22 @@ state spaces (> 10,000 states) when multiple CPU cores are available.
 **How It Works**:
 
 1. **State Space Partitioning**: The state space is divided into chunks,
-   one per worker process.
+   one per worker process. States are converted to tuples for serialization.
 
-2. **Parallel Processing**: Each worker processes its chunk independently,
-   finding cycles and computing periods.
+2. **Matrix Reconstruction**: Each worker reconstructs the state update matrix
+   from coefficients extracted from the **last column** of the companion matrix
+   (critical for correctness).
 
-3. **Result Merging**: Results from all workers are merged, with automatic
-   deduplication of sequences found by multiple workers.
+3. **Parallel Processing**: Each worker processes its chunk independently:
+   - Uses Floyd's algorithm to compute periods (enumeration hangs in multiprocessing)
+   - For small periods (≤100), computes full sequences for deduplication
+   - For large periods, uses simplified deduplication keys
 
-4. **Graceful Fallback**: If parallel processing fails or times out, the
+4. **Result Merging**: Results from all workers are merged, with automatic
+   deduplication of sequences found by multiple workers. Full sequences are
+   computed for deduplication but not stored when using ``--period-only``.
+
+5. **Graceful Fallback**: If parallel processing fails or times out, the
    tool automatically falls back to sequential processing, ensuring the
    tool always completes successfully.
 
@@ -336,9 +343,20 @@ state spaces (> 10,000 states) when multiple CPU cores are available.
 
 **Known Limitations**:
 
-- Parallel processing may hang in some SageMath/multiprocessing configurations
-- The tool automatically detects timeouts and falls back to sequential processing
-- For maximum reliability, use ``--no-parallel`` if you encounter issues
+- **Period-Only Mode Required**: Parallel processing requires period-only mode
+  (``--period-only`` flag). Full sequence mode causes workers to hang due to
+  SageMath/multiprocessing interaction issues. The tool automatically forces
+  period-only mode when parallel processing is enabled, displaying a warning.
+
+- **Algorithm Restriction**: Parallel processing uses Floyd's algorithm only,
+  regardless of the ``--algorithm`` flag. This is necessary to avoid hangs
+  from enumeration-based methods.
+
+- **Timeout Detection**: The tool automatically detects timeouts and falls back
+  to sequential processing if workers hang.
+
+- **For Full Sequence Mode**: Use ``--no-parallel`` to force sequential processing
+  if you need full sequence output (not just periods).
 
 For more technical details on parallel state enumeration, see the
 :doc:`mathematical_background` section.
