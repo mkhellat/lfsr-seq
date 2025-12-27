@@ -36,6 +36,11 @@ cipher analysis, educational purposes, and security evaluation.
   - **Distinguishing Attacks**: Detect if keystream is distinguishable from random (correlation and statistical methods)
   - **Combining Function Analysis**: Analyze correlation immunity, bias, and security properties
   - **Attack Success Probability Estimation**: Estimate attack feasibility and required resources
+- **Algebraic Attack Framework**: Advanced cryptanalytic techniques exploiting algebraic structure
+  - **Algebraic Immunity Computation**: Compute resistance to algebraic attacks
+  - **Gröbner Basis Attacks**: Solve polynomial systems to recover LFSR state
+  - **Cube Attacks**: Exploit low-degree relations using cube selection
+  - **Security Analysis**: Evaluate algebraic properties of filtering functions
 - **NIST SP 800-22 Test Suite**: Industry-standard statistical tests for randomness (all 15 tests)
   - Frequency tests, runs tests, matrix rank, spectral tests
   - Template matching, Maurer's universal test, linear complexity test
@@ -260,6 +265,12 @@ Optional arguments:
   --sequence-file FILE  File containing binary sequence for NIST tests
   --nist-output-format {text,json,csv,xml,html}
                         Format for NIST test reports (default: text)
+  --algebraic-attack   Perform algebraic attack analysis on LFSRs
+  --algebraic-method METHOD
+                        Method: 'groebner_basis', 'cube_attack', or
+                        'algebraic_immunity' (default: groebner_basis)
+  --max-cube-size N    Maximum cube size for cube attack (default: 10)
+  --max-equations N     Maximum equations for Gröbner basis (default: 1000)
 ```
 
 **Examples:**
@@ -526,6 +537,22 @@ lfsr-seq dummy.csv 2 --nist-test --sequence-file keystream.txt
 # Generate HTML report
 lfsr-seq dummy.csv 2 --nist-test --sequence-file keystream.txt \
     --nist-output-format html --output nist_report.html
+```
+
+### Example 8: Algebraic Attacks
+
+```bash
+# Compute algebraic immunity
+lfsr-seq coefficients.csv 2 --algebraic-attack \
+    --algebraic-method algebraic_immunity
+
+# Gröbner basis attack
+lfsr-seq coefficients.csv 2 --algebraic-attack \
+    --algebraic-method groebner_basis --max-equations 500
+
+# Cube attack
+lfsr-seq coefficients.csv 2 --algebraic-attack \
+    --algebraic-method cube_attack --max-cube-size 8
 ```
 
 ## Project Structure
