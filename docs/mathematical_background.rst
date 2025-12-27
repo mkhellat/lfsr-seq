@@ -1077,6 +1077,8 @@ Attacks on LFSR-based systems:
 
 * **Berlekamp-Massey Attack**: Recover LFSR from known plaintext
 * **Correlation Attack**: Exploit correlations in combined LFSRs
+* **Fast Correlation Attack**: Use iterative decoding for efficient state recovery
+* **Distinguishing Attack**: Detect if keystream is distinguishable from random
 * **Algebraic Attack**: Solve systems of equations
 * **Time-Memory Trade-Off (TMTO)**: Precompute states for faster attacks
 
