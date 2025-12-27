@@ -214,6 +214,60 @@ Analyze the security properties of combining functions:
 
 For complete examples, see ``examples/correlation_attack_example.py``.
 
+Optimization Techniques
+-----------------------
+
+**Period Computation via Factorization**:
+
+.. code-block:: python
+
+   from lfsr.polynomial import compute_period_via_factorization
+   
+   # Compute period using factorization (faster for large LFSRs)
+   period = compute_period_via_factorization([1, 0, 0, 1], 2)
+   print(f"Period: {period}")
+
+**Mathematical Shortcut Detection**:
+
+.. code-block:: python
+
+   from lfsr.polynomial import detect_mathematical_shortcuts
+   
+   # Detect special cases and get recommendations
+   shortcuts = detect_mathematical_shortcuts([1, 0, 0, 1], 2)
+   
+   if shortcuts['is_primitive']:
+       print(f"Primitive polynomial! Period = {shortcuts['expected_period']}")
+   print(f"Recommended method: {shortcuts['recommended_method']}")
+   print(f"Complexity: {shortcuts['complexity_estimate']}")
+
+**Result Caching**:
+
+.. code-block:: python
+
+   from lfsr.optimization import ResultCache, get_global_cache
+   
+   # Use global cache
+   cache = get_global_cache()
+   
+   # Generate cache key
+   key = cache.generate_key([1, 0, 0, 1], 2, "period")
+   
+   # Check cache before computing
+   if key in cache:
+       period = cache.get(key)
+       print(f"Cached period: {period}")
+   else:
+       period = compute_period_via_factorization([1, 0, 0, 1], 2)
+       cache.set(key, period)
+       print(f"Computed period: {period}")
+   
+   # Get cache statistics
+   stats = cache.get_stats()
+   print(f"Cache hit rate: {stats['hit_rate']:.2%}")
+
+For complete examples, see ``examples/optimization_example.py`` (to be created).
+
 NIST SP 800-22 Test Suite
 --------------------------
 

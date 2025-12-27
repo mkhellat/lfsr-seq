@@ -27,6 +27,16 @@ Computes the order of a polynomial over a finite field, which is the smallest po
 
 Checks if a polynomial is primitive over a finite field. A primitive polynomial of degree d over GF(q) is irreducible and has order q^d - 1, which yields LFSRs with maximum period.
 
+.. autofunction:: lfsr.polynomial.compute_period_via_factorization
+   :no-index:
+
+Compute LFSR period using polynomial factorization instead of enumeration. More efficient for large LFSRs (degree > 15). Factors the characteristic polynomial and computes the LCM of irreducible factor orders.
+
+.. autofunction:: lfsr.polynomial.detect_mathematical_shortcuts
+   :no-index:
+
+Detect special cases and recommend optimized algorithms. Identifies primitive polynomials, irreducible polynomials, small degree cases, and known patterns (trinomials, pentanomials).
+
 Example
 ~~~~~~~
 
@@ -52,3 +62,14 @@ Example
    from lfsr.polynomial import is_primitive_polynomial
    is_prim = is_primitive_polynomial(char_poly, 2)
    print(f"Is primitive: {is_prim}")
+   
+   # Period computation via factorization (optimization)
+   from lfsr.polynomial import compute_period_via_factorization
+   period = compute_period_via_factorization(coeffs, 2)
+   print(f"Period (via factorization): {period}")
+   
+   # Detect mathematical shortcuts
+   from lfsr.polynomial import detect_mathematical_shortcuts
+   shortcuts = detect_mathematical_shortcuts(coeffs, 2)
+   print(f"Primitive: {shortcuts['is_primitive']}")
+   print(f"Recommended method: {shortcuts['recommended_method']}")

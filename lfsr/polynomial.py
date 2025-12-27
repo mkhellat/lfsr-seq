@@ -258,15 +258,15 @@ def compute_period_via_factorization(
     
     .. math::
     
-       P(t) = \prod_{i=1}^{k} f_i(t)^{e_i}
+       P(t) = \\prod_{i=1}^{k} f_i(t)^{e_i}
     
     where :math:`f_i(t)` are irreducible factors, then the period is:
     
     .. math::
     
-       \text{period} = \text{lcm}(\text{ord}(f_1(t)), \ldots, \text{ord}(f_k(t)))
+       \\text{period} = \\text{lcm}(\\text{ord}(f_1(t)), \\ldots, \\text{ord}(f_k(t)))
     
-    where :math:`\text{ord}(f_i(t))` is the order of the irreducible factor.
+    where :math:`\\text{ord}(f_i(t))` is the order of the irreducible factor.
     
     **Key Terminology**:
     

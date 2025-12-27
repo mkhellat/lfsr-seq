@@ -16,6 +16,7 @@ The lfsr-seq package is organized into the following modules:
 * **Statistics Module** (`lfsr.statistics`): Statistical tests for sequence quality
 * **NIST Module** (`lfsr.nist`): NIST SP 800-22 statistical test suite
 * **Attacks Module** (`lfsr.attacks`): Correlation attack framework for combination generators
+* **Optimization Module** (`lfsr.optimization`): Result caching and optimization utilities
 * **Export Module** (`lfsr.export`): Multi-format export (JSON, CSV, XML)
 * **I/O Module** (`lfsr.io`): CSV file reading and validation
 * **Formatter Module** (`lfsr.formatter`): Output formatting and display
@@ -35,6 +36,7 @@ Module Documentation
    statistics
    nist
    attacks
+   optimization
    export
    io
    formatter
