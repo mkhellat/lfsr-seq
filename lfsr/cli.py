@@ -391,6 +391,46 @@ def parse_args(args: Optional[list] = None) -> argparse.Namespace:
         version=f"%(prog)s {__version__}",
     )
 
+    # Correlation attack options
+    correlation_group = parser.add_argument_group(
+        "correlation attack options",
+        "Options for correlation attack analysis on combination generators"
+    )
+    
+    correlation_group.add_argument(
+        "--correlation-attack",
+        action="store_true",
+        help="Perform correlation attack analysis. Requires --lfsr-configs file specifying multiple LFSRs and combining function."
+    )
+    
+    correlation_group.add_argument(
+        "--lfsr-configs",
+        metavar="CONFIG_FILE",
+        help="JSON file containing combination generator configuration (LFSRs and combining function). Required for --correlation-attack."
+    )
+    
+    correlation_group.add_argument(
+        "--keystream-file",
+        metavar="KEYSTREAM_FILE",
+        help="File containing keystream bits (one per line, or space-separated). If not provided, keystream is generated from combination generator."
+    )
+    
+    correlation_group.add_argument(
+        "--target-lfsr",
+        type=int,
+        default=0,
+        metavar="INDEX",
+        help="Index of LFSR to attack (0-based). Default: 0 (first LFSR)."
+    )
+    
+    correlation_group.add_argument(
+        "--significance-level",
+        type=float,
+        default=0.05,
+        metavar="ALPHA",
+        help="Statistical significance level for correlation test (default: 0.05)."
+    )
+
     parsed_args = parser.parse_args(args)
 
     # Validate that verbose and quiet are not both set
