@@ -976,11 +976,17 @@ def _process_state_chunk(
             }
     
     # Reconstruct state update matrix in worker
-    debug_log('Reconstructing state update matrix...')
+    debug_log(f'Reconstructing state update matrix from coeffs: {coeffs_vector}, gf_order: {gf_order}, degree: {lfsr_degree}')
     try:
         from lfsr.core import build_state_update_matrix
         state_update_matrix, _ = build_state_update_matrix(coeffs_vector, gf_order)
-        debug_log('State update matrix reconstructed successfully')
+        debug_log(f'State update matrix reconstructed: dimensions={state_update_matrix.dimensions()}')
+        # Verify matrix by checking last column (where coefficients are stored)
+        d = state_update_matrix.dimensions()[0]
+        last_col_coeffs = [int(state_update_matrix[i, d-1]) for i in range(d)]
+        debug_log(f'Matrix last column coefficients: {last_col_coeffs} (expected: {coeffs_vector})')
+        if last_col_coeffs != coeffs_vector:
+            debug_log(f'WARNING: Matrix reconstruction mismatch!')
     except Exception as e:
         debug_log(f'Failed to build state update matrix: {e}')
         return {
@@ -1193,9 +1199,10 @@ def lfsr_sequence_mapper_parallel(
     num_workers = max(1, min(num_workers, multiprocessing.cpu_count()))
     
     # Extract coefficients from matrix for worker reconstruction
-    # The matrix structure: last row contains coefficients
+    # The matrix structure: coefficients are in the LAST COLUMN (not last row)
+    # Row i has coefficient coeffs[i] in the last column (column d-1)
     d = state_update_matrix.dimensions()[0]
-    coeffs_vector = [int(state_update_matrix[d-1, i]) for i in range(d)]
+    coeffs_vector = [int(state_update_matrix[i, d-1]) for i in range(d)]
     
     subsec_name = "STATES SEQUENCES"
     subsec_desc = "all possible state sequences " + "and their corresponding periods (parallel processing)"
