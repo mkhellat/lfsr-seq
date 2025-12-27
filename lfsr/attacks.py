@@ -74,8 +74,12 @@ from collections import Counter
 from dataclasses import dataclass, field
 from typing import Callable, Dict, List, Optional, Tuple, Any
 
+from sage.all import *
+
+# Import norm after sage.all to avoid conflicts
 try:
-    from scipy.stats import norm
+    from scipy.stats import norm as scipy_norm
+    norm = scipy_norm
     SCIPY_AVAILABLE = True
 except ImportError:
     SCIPY_AVAILABLE = False
@@ -98,8 +102,6 @@ except ImportError:
             return 0.5 * (1 + math.erf(x / math.sqrt(2)))
     
     norm = _NormFallback()
-
-from sage.all import *
 
 
 @dataclass
@@ -485,10 +487,7 @@ def estimate_attack_success_probability(
         # For target detection probability, we need:
         # P_detect = 1 - Φ(z_critical - |ρ|√n / se)
         # Solving for n:
-        if SCIPY_AVAILABLE:
-            z_target = abs(norm.ppf((1 - target_success_probability) / 2))
-        else:
-            z_target = abs(norm_ppf((1 - target_success_probability) / 2))
+        z_target = abs(norm.ppf((1 - target_success_probability) / 2))
         required_bits = int((z_target / abs_correlation) ** 2) if abs_correlation > 0.001 else 1000000
     else:
         required_bits = 1000000  # Very large if no correlation
