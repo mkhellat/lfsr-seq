@@ -495,6 +495,78 @@ Supported combining function types: ``majority``, ``xor``, ``and``, ``or``, ``cu
 - ``examples/correlation_attack_example.py`` for working examples
 - ``examples/combination_generator_config.json`` for configuration example
 
+NIST SP 800-22 Statistical Test Suite
+--------------------------------------
+
+The tool includes the NIST SP 800-22 Statistical Test Suite for evaluating
+the randomness of binary sequences. This is an industry-standard collection
+of 15 statistical tests.
+
+**What is NIST SP 800-22?**
+
+NIST SP 800-22 is a statistical test suite developed by the National Institute
+of Standards and Technology (NIST) for testing the randomness of binary sequences.
+It is widely used in cryptography to evaluate random number generators and
+stream cipher outputs.
+
+**Basic Usage**:
+
+NIST tests can be performed programmatically using the Python API:
+
+.. code-block:: python
+
+   from lfsr.nist import run_nist_test_suite
+   
+   # Load or generate a binary sequence
+   sequence = [1, 0, 1, 0] * 250  # 1000 bits
+   
+   # Run the test suite
+   result = run_nist_test_suite(sequence)
+   print(f"Tests passed: {result.tests_passed}/{result.total_tests}")
+
+**CLI Usage**:
+
+NIST tests can be performed from the command line:
+
+.. code-block:: bash
+
+   # Run NIST test suite on sequence file
+   lfsr-seq dummy.csv 2 --nist-test --sequence-file sequence.txt
+
+   # With custom significance level
+   lfsr-seq dummy.csv 2 --nist-test --sequence-file sequence.txt \
+       --nist-significance-level 0.05
+
+   # With custom block size
+   lfsr-seq dummy.csv 2 --nist-test --sequence-file sequence.txt \
+       --nist-block-size 256
+
+**Sequence File Format**:
+
+The ``--sequence-file`` should contain binary bits (0s and 1s) in one of these formats:
+- One bit per line
+- Space-separated bits on one or multiple lines
+
+**Key Concepts**:
+
+- **P-value**: Probability that a random sequence would produce this result
+- **Significance Level**: Threshold for rejecting randomness (default: 0.01)
+- **Test Suite**: Collection of 15 tests examining different aspects of randomness
+- **Overall Assessment**: PASSED if most tests pass, FAILED otherwise
+
+**Interpretation**:
+
+- **PASSED**: Sequence appears random (good for cryptography)
+- **FAILED**: Sequence appears non-random (may indicate issues)
+- A single test failure does not necessarily mean the sequence is non-random
+- Consider the overall pattern of results
+
+**See Also**:
+
+- :doc:`nist_sp800_22` for comprehensive introduction and theory
+- :doc:`api/nist` for complete API documentation
+- ``examples/nist_test_example.py`` for working examples
+
 NIST SP 800-22 Test Suite
 -------------------------
 

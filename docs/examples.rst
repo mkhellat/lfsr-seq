@@ -181,6 +181,29 @@ Analyze the security properties of combining functions:
 
 For complete examples, see ``examples/correlation_attack_example.py``.
 
+NIST SP 800-22 Statistical Tests
+-----------------------------------
+
+Run NIST statistical tests on binary sequences:
+
+.. code-block:: python
+
+   from lfsr.nist import run_nist_test_suite, frequency_test
+   
+   # Generate or load a binary sequence
+   sequence = [1, 0, 1, 0, 1, 1, 0, 0, 1, 0] * 100  # 1000 bits
+   
+   # Run a single test
+   result = frequency_test(sequence)
+   print(f"P-value: {result.p_value:.6f}, Passed: {result.passed}")
+   
+   # Run the complete test suite
+   suite_result = run_nist_test_suite(sequence)
+   print(f"Tests passed: {suite_result.tests_passed}/{suite_result.total_tests}")
+   print(f"Overall: {suite_result.overall_assessment}")
+
+For complete examples, see ``examples/nist_test_example.py``.
+
 NIST SP 800-22 Test Suite
 -------------------------
 

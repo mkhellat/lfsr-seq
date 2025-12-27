@@ -12,7 +12,6 @@ Example Usage:
 
 import sys
 import os
-import random
 
 # Add parent directory to path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -34,196 +33,209 @@ from lfsr.nist import (
 )
 
 
-def example_basic_nist_testing():
-    """Basic example of NIST testing."""
+def example_single_test():
+    """Example of running a single NIST test."""
     print("=" * 70)
-    print("Example 1: Basic NIST Testing")
+    print("Example 1: Single Test - Frequency (Monobit) Test")
     print("=" * 70)
     
-    # Generate a random-looking sequence
-    random.seed(42)
-    sequence = [random.randint(0, 1) for _ in range(1000)]
+    # Generate a balanced binary sequence
+    sequence = [1, 0] * 500  # 1000 bits, perfectly balanced
     
-    print(f"\nSequence Information:")
-    print(f"  Length: {len(sequence)} bits")
+    print(f"\nSequence: {len(sequence)} bits")
     print(f"  First 20 bits: {sequence[:20]}")
     print(f"  Balance: {sum(sequence)} ones, {len(sequence) - sum(sequence)} zeros")
     
-    # Run individual test
-    print(f"\n{'─'*70}")
-    print("Individual Test: Frequency (Monobit) Test")
-    print(f"{'─'*70}")
+    # Run frequency test
     result = frequency_test(sequence)
-    print(f"  Test: {result.test_name}")
+    
+    print(f"\n{'─'*70}")
+    print("Test Results:")
+    print(f"{'─'*70}")
+    print(f"  Test Name: {result.test_name}")
     print(f"  P-value: {result.p_value:.6f}")
     print(f"  Passed: {result.passed}")
     print(f"  Statistic: {result.statistic:.6f}")
-    print(f"  Details: {result.details}")
+    print(f"  Details:")
+    print(f"    - Zeros: {result.details.get('n0', 'N/A')}")
+    print(f"    - Ones: {result.details.get('n1', 'N/A')}")
+    print(f"    - Ratio: {result.details.get('ratio', 0):.4f}")
+    
+    if result.passed:
+        print(f"\n  ✓ Test PASSED: Sequence appears random")
+    else:
+        print(f"\n  ✗ Test FAILED: Sequence appears non-random")
+
+
+def example_all_tests():
+    """Example of running all implemented NIST tests."""
+    print("\n" + "=" * 70)
+    print("Example 2: Complete Test Suite (Tests 1-5)")
+    print("=" * 70)
+    
+    # Generate a sequence
+    sequence = [1, 0, 1, 0, 1, 1, 0, 0, 1, 0] * 100  # 1000 bits
+    
+    print(f"\nSequence: {len(sequence)} bits")
+    print(f"  Balance: {sum(sequence)} ones, {len(sequence) - sum(sequence)} zeros")
     
     # Run complete test suite
-    print(f"\n{'─'*70}")
-    print("Complete NIST Test Suite (Tests 1-5)")
-    print(f"{'─'*70}")
     suite_result = run_nist_test_suite(sequence)
     
-    print(f"\nSuite Results:")
-    print(f"  Sequence length: {suite_result.sequence_length}")
-    print(f"  Significance level: {suite_result.significance_level}")
-    print(f"  Tests passed: {suite_result.tests_passed}/{suite_result.total_tests}")
-    print(f"  Tests failed: {suite_result.tests_failed}")
-    print(f"  Pass rate: {suite_result.pass_rate:.2%}")
-    print(f"  Overall assessment: {suite_result.overall_assessment}")
+    print(f"\n{'─'*70}")
+    print("Test Suite Results:")
+    print(f"{'─'*70}")
+    print(f"  Sequence Length: {suite_result.sequence_length} bits")
+    print(f"  Significance Level: {suite_result.significance_level}")
+    print(f"  Tests Passed: {suite_result.tests_passed}/{suite_result.total_tests}")
+    print(f"  Tests Failed: {suite_result.tests_failed}")
+    print(f"  Pass Rate: {suite_result.pass_rate:.1%}")
+    print(f"  Overall Assessment: {suite_result.overall_assessment}")
     
     print(f"\n{'─'*70}")
     print("Individual Test Results:")
     print(f"{'─'*70}")
     print(f"{'Test':<45} {'P-value':<12} {'Status':<10}")
     print(f"{'─'*70}")
-    for test_result in suite_result.results:
-        status = "✓ PASS" if test_result.passed else "✗ FAIL"
-        print(f"{test_result.test_name:<45} {test_result.p_value:>10.6f}  {status:<10}")
-
-
-def example_biased_sequence():
-    """Example showing how NIST tests detect bias."""
-    print("\n" + "=" * 70)
-    print("Example 2: Detecting Bias with NIST Tests")
-    print("=" * 70)
     
-    # Create a biased sequence (70% ones)
-    biased_sequence = []
-    for _ in range(1000):
-        if random.random() < 0.7:
-            biased_sequence.append(1)
-        else:
-            biased_sequence.append(0)
+    for result in suite_result.results:
+        status = "✓ PASS" if result.passed else "✗ FAIL"
+        print(f"{result.test_name:<45} {result.p_value:>10.6f}  {status:<10}")
     
-    print(f"\nBiased Sequence:")
-    print(f"  Length: {len(biased_sequence)} bits")
-    print(f"  Balance: {sum(biased_sequence)} ones ({sum(biased_sequence)/len(biased_sequence):.1%})")
-    print(f"  Expected: ~500 ones (50%)")
-    
-    # Run frequency test
     print(f"\n{'─'*70}")
-    print("Frequency Test Results:")
-    print(f"{'─'*70}")
-    result = frequency_test(biased_sequence)
-    print(f"  P-value: {result.p_value:.6f}")
-    print(f"  Passed: {result.passed}")
-    if not result.passed:
-        print(f"  ⚠ BIAS DETECTED: Sequence is significantly imbalanced!")
-    
-    # Run complete suite
-    suite_result = run_nist_test_suite(biased_sequence)
-    print(f"\n  Overall: {suite_result.overall_assessment}")
-    print(f"  Tests passed: {suite_result.tests_passed}/{suite_result.total_tests}")
+    if suite_result.overall_assessment == "PASSED":
+        print("✓ Overall: Sequence appears RANDOM")
+    else:
+        print("✗ Overall: Sequence appears NON-RANDOM")
 
 
-def example_perfect_alternating():
-    """Example showing how NIST tests detect patterns."""
+def example_individual_tests():
+    """Example of running each test individually."""
     print("\n" + "=" * 70)
-    print("Example 3: Detecting Patterns (Perfect Alternating)")
+    print("Example 3: Individual Tests")
     print("=" * 70)
     
-    # Create a perfectly alternating sequence (very non-random)
-    alternating = [i % 2 for i in range(1000)]
+    # Generate sequence
+    sequence = [1, 0, 1, 0, 1, 1, 0, 0, 1, 0] * 100  # 1000 bits
     
-    print(f"\nAlternating Sequence:")
-    print(f"  Length: {len(alternating)} bits")
-    print(f"  Pattern: 0, 1, 0, 1, 0, 1, ...")
-    print(f"  First 20 bits: {alternating[:20]}")
+    print(f"\nTesting sequence: {len(sequence)} bits")
     
-    # Run runs test (should detect too many runs)
+    # Test 1: Frequency
     print(f"\n{'─'*70}")
-    print("Runs Test Results:")
+    print("Test 1: Frequency (Monobit) Test")
     print(f"{'─'*70}")
-    result = runs_test(alternating)
-    print(f"  P-value: {result.p_value:.6f}")
-    print(f"  Passed: {result.passed}")
-    print(f"  Runs: {result.details.get('runs', 'N/A')}")
-    print(f"  Expected runs: {result.details.get('expected_runs', 'N/A'):.2f}")
-    if not result.passed:
-        print(f"  ⚠ PATTERN DETECTED: Too many runs (oscillation pattern)!")
+    result1 = frequency_test(sequence)
+    print(f"  P-value: {result1.p_value:.6f}")
+    print(f"  Passed: {result1.passed}")
     
-    # Run complete suite
-    suite_result = run_nist_test_suite(alternating)
-    print(f"\n  Overall: {suite_result.overall_assessment}")
-    print(f"  Tests passed: {suite_result.tests_passed}/{suite_result.total_tests}")
+    # Test 2: Block Frequency
+    print(f"\n{'─'*70}")
+    print("Test 2: Frequency Test within a Block")
+    print(f"{'─'*70}")
+    result2 = block_frequency_test(sequence, block_size=128)
+    print(f"  P-value: {result2.p_value:.6f}")
+    print(f"  Passed: {result2.passed}")
+    print(f"  Blocks: {result2.details.get('num_blocks', 'N/A')}")
+    
+    # Test 3: Runs
+    print(f"\n{'─'*70}")
+    print("Test 3: Runs Test")
+    print(f"{'─'*70}")
+    result3 = runs_test(sequence)
+    print(f"  P-value: {result3.p_value:.6f}")
+    print(f"  Passed: {result3.passed}")
+    print(f"  Runs: {result3.details.get('runs', 'N/A')}")
+    print(f"  Expected: {result3.details.get('expected_runs', 'N/A'):.2f}")
+    
+    # Test 4: Longest Run
+    print(f"\n{'─'*70}")
+    print("Test 4: Tests for Longest-Run-of-Ones in a Block")
+    print(f"{'─'*70}")
+    result4 = longest_run_of_ones_test(sequence, block_size=8)
+    print(f"  P-value: {result4.p_value:.6f}")
+    print(f"  Passed: {result4.passed}")
+    print(f"  Blocks: {result4.details.get('num_blocks', 'N/A')}")
+    
+    # Test 5: Matrix Rank
+    print(f"\n{'─'*70}")
+    print("Test 5: Binary Matrix Rank Test")
+    print(f"{'─'*70}")
+    result5 = binary_matrix_rank_test(sequence, matrix_rows=32, matrix_cols=32)
+    print(f"  P-value: {result5.p_value:.6f}")
+    print(f"  Passed: {result5.passed}")
+    print(f"  Matrices: {result5.details.get('num_matrices', 'N/A')}")
+    print(f"  Full rank: {result5.details.get('rank_full', 'N/A')}")
 
 
-def example_all_individual_tests():
-    """Example running all individual tests."""
+def example_non_random_sequence():
+    """Example showing how NIST tests detect non-random sequences."""
     print("\n" + "=" * 70)
-    print("Example 4: All Individual Tests")
+    print("Example 4: Detecting Non-Random Sequences")
     print("=" * 70)
     
-    # Generate test sequence
-    random.seed(123)
-    sequence = [random.randint(0, 1) for _ in range(2000)]
+    # Create a non-random sequence (all ones)
+    non_random = [1] * 1000
     
-    print(f"\nTest Sequence: {len(sequence)} bits")
+    print(f"\nNon-random sequence: {len(non_random)} bits (all ones)")
+    print(f"  Balance: {sum(non_random)} ones, {len(non_random) - sum(non_random)} zeros")
     
-    tests = [
-        ("Frequency (Monobit) Test", lambda s: frequency_test(s)),
-        ("Frequency Test within a Block", lambda s: block_frequency_test(s, block_size=128)),
-        ("Runs Test", lambda s: runs_test(s)),
-        ("Longest Run of Ones Test", lambda s: longest_run_of_ones_test(s, block_size=8)),
-        ("Binary Matrix Rank Test", lambda s: binary_matrix_rank_test(s, matrix_rows=32, matrix_cols=32)),
-    ]
+    # Run tests
+    suite_result = run_nist_test_suite(non_random)
     
     print(f"\n{'─'*70}")
     print("Test Results:")
     print(f"{'─'*70}")
-    print(f"{'Test':<45} {'P-value':<12} {'Status':<10}")
-    print(f"{'─'*70}")
+    print(f"  Tests Passed: {suite_result.tests_passed}/{suite_result.total_tests}")
+    print(f"  Overall Assessment: {suite_result.overall_assessment}")
     
-    for test_name, test_func in tests:
-        try:
-            result = test_func(sequence)
-            status = "✓ PASS" if result.passed else "✗ FAIL"
-            print(f"{test_name:<45} {result.p_value:>10.6f}  {status:<10}")
-        except Exception as e:
-            print(f"{test_name:<45} {'ERROR':<12} {str(e)[:30]}")
+    print(f"\n  Individual Results:")
+    for result in suite_result.results:
+        status = "✓ PASS" if result.passed else "✗ FAIL"
+        print(f"    {result.test_name:<40} {result.p_value:>10.6f}  {status}")
+    
+    if suite_result.overall_assessment == "FAILED":
+        print(f"\n  ⚠ Correctly detected as NON-RANDOM!")
 
 
-def example_interpretation_guide():
-    """Example showing how to interpret NIST test results."""
+def example_sequence_from_lfsr():
+    """Example using sequence generated from an LFSR."""
     print("\n" + "=" * 70)
-    print("Example 5: Interpreting NIST Test Results")
+    print("Example 5: Testing LFSR-Generated Sequence")
     print("=" * 70)
     
-    # Generate sequence
-    random.seed(456)
-    sequence = [random.randint(0, 1) for _ in range(1000)]
+    from lfsr.core import build_state_update_matrix
     
+    # Create a simple LFSR
+    coeffs = [1, 0, 0, 1]
+    C, CS = build_state_update_matrix(coeffs, 2)
+    
+    # Generate sequence from LFSR
+    state = vector(GF(2), [1, 0, 0, 0])
+    sequence = []
+    for _ in range(1000):
+        output = int(state[0])
+        sequence.append(output)
+        state = C * state
+    
+    print(f"\nLFSR Configuration:")
+    print(f"  Coefficients: {coeffs}")
+    print(f"  Generated sequence: {len(sequence)} bits")
+    print(f"  Balance: {sum(sequence)} ones, {len(sequence) - sum(sequence)} zeros")
+    
+    # Run NIST tests
     suite_result = run_nist_test_suite(sequence)
     
-    print(f"\nInterpreting Results:")
-    print(f"  Sequence length: {suite_result.sequence_length} bits")
-    print(f"  Significance level: {suite_result.significance_level} (1%)")
-    print(f"  Tests passed: {suite_result.tests_passed}/{suite_result.total_tests}")
-    print(f"  Pass rate: {suite_result.pass_rate:.2%}")
-    
     print(f"\n{'─'*70}")
-    print("Interpretation Guidelines:")
+    print("NIST Test Results:")
     print(f"{'─'*70}")
-    print(f"  • P-value ≥ 0.01: Test PASSES (sequence appears random)")
-    print(f"  • P-value < 0.01: Test FAILS (sequence appears non-random)")
-    print(f"  • A single test failure does not necessarily mean the")
-    print(f"    sequence is non-random - consider the overall pattern")
-    print(f"  • For cryptographic applications, sequences should pass")
-    print(f"    all or nearly all tests")
+    print(f"  Tests Passed: {suite_result.tests_passed}/{suite_result.total_tests}")
+    print(f"  Pass Rate: {suite_result.pass_rate:.1%}")
+    print(f"  Overall Assessment: {suite_result.overall_assessment}")
     
-    print(f"\n  Overall Assessment: {suite_result.overall_assessment}")
-    if suite_result.overall_assessment == "PASSED":
-        print(f"  ✓ Sequence appears random based on NIST tests")
-    else:
-        print(f"  ✗ Sequence shows evidence of non-randomness")
-    
-    # Show p-value distribution
-    p_values = [r.p_value for r in suite_result.results]
-    print(f"\n  P-value range: {min(p_values):.6f} to {max(p_values):.6f}")
-    print(f"  Average p-value: {sum(p_values)/len(p_values):.6f}")
+    print(f"\n  Individual Test Results:")
+    for result in suite_result.results:
+        status = "✓ PASS" if result.passed else "✗ FAIL"
+        print(f"    {result.test_name:<40} {result.p_value:>10.6f}  {status}")
 
 
 def main():
@@ -231,15 +243,15 @@ def main():
     print("\n" + "=" * 70)
     print("NIST SP 800-22 Statistical Test Suite Examples")
     print("=" * 70)
-    print("\nThis script demonstrates NIST test suite capabilities")
+    print("\nThis script demonstrates NIST statistical testing capabilities")
     print("for evaluating the randomness of binary sequences.\n")
     
     try:
-        example_basic_nist_testing()
-        example_biased_sequence()
-        example_perfect_alternating()
-        example_all_individual_tests()
-        example_interpretation_guide()
+        example_single_test()
+        example_all_tests()
+        example_individual_tests()
+        example_non_random_sequence()
+        example_sequence_from_lfsr()
         
         print("\n" + "=" * 70)
         print("Examples Complete!")
@@ -247,7 +259,7 @@ def main():
         print("\nFor more information, see:")
         print("  - NIST SP 800-22 Guide: docs/nist_sp800_22.rst")
         print("  - API Documentation: docs/api/nist.rst")
-        print("  - Official NIST Specification: https://csrc.nist.gov/publications/detail/sp/800-22/rev-1a/final")
+        print("  - Mathematical Background: docs/mathematical_background.rst")
         
     except Exception as e:
         print(f"\nERROR: {e}", file=sys.stderr)
