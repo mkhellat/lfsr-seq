@@ -79,20 +79,25 @@ try:
     SCIPY_AVAILABLE = True
 except ImportError:
     SCIPY_AVAILABLE = False
-    # Fallback: simple normal approximation
-    def norm_ppf(p):
-        """Simple approximation of normal quantile function."""
-        # Approximation using inverse error function
-        import math
-        if p < 0.5:
-            return -math.sqrt(2) * math.erfinv(2 * p)
-        else:
-            return math.sqrt(2) * math.erfinv(2 * (1 - p))
+    # Fallback: simple normal approximation using class to match scipy interface
+    class _NormFallback:
+        """Fallback normal distribution functions when scipy is not available."""
+        @staticmethod
+        def ppf(p):
+            """Simple approximation of normal quantile function."""
+            import math
+            if p < 0.5:
+                return -math.sqrt(2) * math.erfinv(2 * p)
+            else:
+                return math.sqrt(2) * math.erfinv(2 * (1 - p))
+        
+        @staticmethod
+        def cdf(x):
+            """Simple approximation of normal CDF."""
+            import math
+            return 0.5 * (1 + math.erf(x / math.sqrt(2)))
     
-    def norm_cdf(x):
-        """Simple approximation of normal CDF."""
-        import math
-        return 0.5 * (1 + math.erf(x / math.sqrt(2)))
+    norm = _NormFallback()
 
 from sage.all import *
 
@@ -433,10 +438,7 @@ def estimate_attack_success_probability(
         detection_prob = 0.0
     else:
         # Z-score for significance level (two-tailed)
-        if SCIPY_AVAILABLE:
-            z_critical = abs(norm.ppf(significance_level / 2))
-        else:
-            z_critical = abs(norm_ppf(significance_level / 2))
+        z_critical = abs(norm.ppf(significance_level / 2))
         
         # Effect size: correlation coefficient
         # Standard error under null hypothesis
@@ -447,10 +449,7 @@ def estimate_attack_success_probability(
         
         # Detection probability: probability that z_observed > z_critical
         # Using normal approximation
-        if SCIPY_AVAILABLE:
-            detection_prob = 1.0 - norm.cdf(z_critical - z_observed)
-        else:
-            detection_prob = 1.0 - norm_cdf(z_critical - z_observed)
+        detection_prob = 1.0 - norm.cdf(z_critical - z_observed)
         detection_prob = max(0.0, min(1.0, detection_prob))  # Clamp to [0, 1]
     
     # Recovery probability
