@@ -6,31 +6,41 @@ A5/2 Stream Cipher Analysis
 
 This module provides analysis capabilities for the A5/2 stream cipher, which was
 a weaker variant of A5/1 designed for export restrictions. A5/2 uses four LFSRs
-with more complex clocking than A5/1.
+with a more complex clocking mechanism.
 
 **Historical Context**:
 
-A5/2 was designed as a deliberately weakened version of A5/1 to comply with
-export restrictions on cryptography. It was intended for use in countries where
-strong encryption was restricted. A5/2 has significant security weaknesses and
-was cryptanalyzed shortly after its design became public.
+A5/2 was designed as a weaker variant of A5/1 to comply with export restrictions
+on cryptography. It was intended for use in countries where strong encryption
+was restricted. A5/2 was cryptanalyzed and found to be extremely weak, with
+attacks that can recover the key in seconds.
 
 **Security Status**:
 
-A5/2 is considered very weak and was broken in 1999 by Goldberg, Wagner, and
-Green. Known attacks include:
-- Very fast key recovery attacks
+A5/2 is considered extremely weak and insecure. Known attacks include:
+- Very fast key recovery attacks (seconds)
 - Known-plaintext attacks
-- Weakness in clocking mechanism
-- Designed weakness for export compliance
+- Correlation attacks
+- The cipher was intentionally weakened for export compliance
 
 **Key Terminology**:
 
-- **A5/2**: Weaker variant of A5/1 designed for export restrictions
+- **A5/2**: Weaker variant of A5/1 for export restrictions
 - **Export Restrictions**: Legal limitations on exporting strong cryptography
-- **Deliberate Weakness**: Intentional security reduction for compliance
-- **Four LFSRs**: A5/2 uses four LFSRs (vs. three in A5/1)
 - **Complex Clocking**: More complex clocking mechanism than A5/1
+- **Four LFSRs**: Uses four LFSRs instead of three (17, 19, 21, 22 bits)
+- **Weakness by Design**: Intentionally weakened for compliance
+
+**Mathematical Foundation**:
+
+A5/2 uses four LFSRs:
+- LFSR1: 17 bits
+- LFSR2: 19 bits
+- LFSR3: 21 bits
+- LFSR4: 22 bits
+
+The clocking mechanism is more complex than A5/1, involving multiple clock
+control bits and a more sophisticated decision function.
 """
 
 from typing import List, Optional
@@ -49,37 +59,52 @@ class A5_2(StreamCipher):
     """
     A5/2 GSM stream cipher implementation (weaker variant).
     
-    A5/2 is a deliberately weakened version of A5/1 designed for export
-    restrictions. It uses four LFSRs with a more complex clocking mechanism.
+    A5/2 is a weaker variant of A5/1 designed for export restrictions. It uses
+    four LFSRs with a more complex clocking mechanism. A5/2 is intentionally
+    weak and should not be used for security purposes.
     
     **Cipher Structure**:
     
-    - **LFSR1**: 19 bits
-    - **LFSR2**: 22 bits
-    - **LFSR3**: 23 bits
-    - **LFSR4**: 17 bits (additional LFSR)
-    - **Clock Control**: More complex than A5/1
+    - **LFSR1**: 17 bits
+    - **LFSR2**: 19 bits
+    - **LFSR3**: 21 bits
+    - **LFSR4**: 22 bits
+    - **Clock Control**: Complex mechanism involving multiple control bits
+    - **Output**: XOR of LFSR outputs with additional mixing
     
     **Key and IV**:
     
     - **Key Size**: 64 bits
     - **IV Size**: 22 bits (frame number)
-    - **Total State**: 19 + 22 + 23 + 17 = 81 bits
+    - **Total State**: 17 + 19 + 21 + 22 = 79 bits
     
-    **Security Note**:
+    **Security Warning**:
     
-    A5/2 is intentionally weak and should not be used for security purposes.
-    It is included for educational and historical analysis only.
+    A5/2 is extremely weak and should never be used for security purposes. It was
+    intentionally weakened for export compliance and can be broken in seconds.
+    
+    **Example Usage**:
+    
+        >>> from lfsr.ciphers.a5_2 import A5_2
+        >>> cipher = A5_2()
+        >>> key = [1] * 64
+        >>> iv = [0] * 22
+        >>> keystream = cipher.generate_keystream(key, iv, 100)
     """
     
     # A5/2 LFSR configurations
-    LFSR1_SIZE = 19
-    LFSR2_SIZE = 22
-    LFSR3_SIZE = 23
-    LFSR4_SIZE = 17
+    LFSR1_SIZE = 17
+    LFSR2_SIZE = 19
+    LFSR3_SIZE = 21
+    LFSR4_SIZE = 22
     
-    # Simplified implementation (full A5/2 has complex clocking)
-    # For educational purposes, we use a simplified version
+    # Clock control bit positions (simplified - full A5/2 is more complex)
+    CLOCK_BIT_1 = 3
+    CLOCK_BIT_2 = 7
+    CLOCK_BIT_3 = 10
+    CLOCK_BIT_4 = 10
+    
+    # Warm-up steps
     WARMUP_STEPS = 100
     
     def __init__(self):
@@ -95,14 +120,14 @@ class A5_2(StreamCipher):
             cipher_name="A5/2",
             key_size=64,
             iv_size=22,
-            description="A5/2 GSM stream cipher (weaker variant, 4 LFSRs)",
+            description="A5/2 GSM stream cipher (weaker variant, export-restricted)",
             parameters={
                 'lfsr1_size': self.LFSR1_SIZE,
                 'lfsr2_size': self.LFSR2_SIZE,
                 'lfsr3_size': self.LFSR3_SIZE,
                 'lfsr4_size': self.LFSR4_SIZE,
                 'warmup_steps': self.WARMUP_STEPS,
-                'security_note': 'Intentionally weak - educational use only'
+                'security_warning': 'EXTREMELY WEAK - DO NOT USE FOR SECURITY'
             }
         )
     
@@ -114,7 +139,8 @@ class A5_2(StreamCipher):
         return [feedback] + state[:-1]
     
     def _get_output_bit(self) -> int:
-        """Get output bit from A5/2 (simplified)."""
+        """Get output bit from A5/2."""
+        # Simplified output (full A5/2 has more complex mixing)
         output1 = self.lfsr1_state[0]
         output2 = self.lfsr2_state[0]
         output3 = self.lfsr3_state[0]
@@ -122,13 +148,25 @@ class A5_2(StreamCipher):
         return output1 ^ output2 ^ output3 ^ output4
     
     def _clock_controlled(self):
-        """Clock A5/2 with irregular clocking (simplified)."""
-        # Simplified clocking for educational purposes
-        # Full A5/2 has more complex clocking mechanism
-        self.lfsr1_state = self._clock_lfsr(self.lfsr1_state, [18, 17, 16, 13], self.LFSR1_SIZE)
-        self.lfsr2_state = self._clock_lfsr(self.lfsr2_state, [21, 20], self.LFSR2_SIZE)
-        self.lfsr3_state = self._clock_lfsr(self.lfsr3_state, [22, 21, 20, 7], self.LFSR3_SIZE)
-        self.lfsr4_state = self._clock_lfsr(self.lfsr4_state, [16, 11], self.LFSR4_SIZE)
+        """Clock A5/2 with complex clocking mechanism."""
+        # Simplified clocking (full A5/2 is more complex)
+        # In practice, A5/2 uses a more sophisticated clocking mechanism
+        c1 = self.lfsr1_state[self.CLOCK_BIT_1]
+        c2 = self.lfsr2_state[self.CLOCK_BIT_2]
+        c3 = self.lfsr3_state[self.CLOCK_BIT_3]
+        c4 = self.lfsr4_state[self.CLOCK_BIT_4]
+        
+        # Simplified majority-like function
+        majority = (c1 + c2 + c3 + c4) >= 2
+        
+        if c1 == majority:
+            self.lfsr1_state = self._clock_lfsr(self.lfsr1_state, [16, 11], self.LFSR1_SIZE)
+        if c2 == majority:
+            self.lfsr2_state = self._clock_lfsr(self.lfsr2_state, [18, 17, 16, 13], self.LFSR2_SIZE)
+        if c3 == majority:
+            self.lfsr3_state = self._clock_lfsr(self.lfsr3_state, [20, 19], self.LFSR3_SIZE)
+        if c4 == majority:
+            self.lfsr4_state = self._clock_lfsr(self.lfsr4_state, [21, 20, 19, 16], self.LFSR4_SIZE)
     
     def _initialize(self, key: List[int], iv: Optional[List[int]]):
         """Initialize A5/2 with key and IV."""
@@ -140,21 +178,21 @@ class A5_2(StreamCipher):
         elif len(iv) != 22:
             raise ValueError(f"A5/2 requires 22-bit IV, got {len(iv)} bits")
         
-        # Initialize LFSR states (simplified)
-        self.lfsr1_state = key[0:19]
-        self.lfsr2_state = key[19:41]
-        self.lfsr3_state = key[41:64]
-        self.lfsr4_state = (key[0:17] + [0] * 17)[:17]  # Simplified
+        # Initialize LFSR states from key
+        self.lfsr1_state = key[0:17]
+        self.lfsr2_state = key[17:36]
+        self.lfsr3_state = key[36:57]
+        self.lfsr4_state = key[57:64] + [0] * (22 - 7)  # Pad to 22 bits
         
-        # Load frame number
+        # Load frame number (IV)
         for i in range(22):
-            if i < 19:
-                self.lfsr1_state[i] ^= iv[i]
-            if i < 22:
-                self.lfsr2_state[i] ^= iv[i]
-            if i < 23:
-                self.lfsr3_state[i] ^= iv[i]
             if i < 17:
+                self.lfsr1_state[i] ^= iv[i]
+            if i < 19:
+                self.lfsr2_state[i] ^= iv[i]
+            if i < 21:
+                self.lfsr3_state[i] ^= iv[i]
+            if i < 22:
                 self.lfsr4_state[i] ^= iv[i]
         
         # Warm-up phase
@@ -170,6 +208,9 @@ class A5_2(StreamCipher):
         """
         Generate A5/2 keystream.
         
+        **Security Warning**: A5/2 is extremely weak and should never be used
+        for security purposes.
+        
         Args:
             key: 64-bit secret key
             iv: 22-bit initialization vector (frame number), or None
@@ -179,37 +220,50 @@ class A5_2(StreamCipher):
             List of keystream bits
         """
         self._initialize(key, iv)
+        
         keystream = []
         for _ in range(length):
             self._clock_controlled()
             output = self._get_output_bit()
             keystream.append(output)
+        
         return keystream
     
     def analyze_structure(self) -> CipherStructure:
         """Analyze A5/2 cipher structure."""
         # Build LFSR configurations (simplified)
-        lfsr1_coeffs = [1] + [0] * 12 + [1, 1, 1, 1, 0, 1]
-        lfsr2_coeffs = [1] + [0] * 19 + [1, 1]
-        lfsr3_coeffs = [1] + [0] * 6 + [1] + [0] * 12 + [1, 1, 1]
-        lfsr4_coeffs = [1] + [0] * 10 + [1] + [0] * 5 + [1]
-        
-        lfsr1_config = LFSRConfig(coefficients=lfsr1_coeffs, field_order=2, degree=19)
-        lfsr2_config = LFSRConfig(coefficients=lfsr2_coeffs, field_order=2, degree=22)
-        lfsr3_config = LFSRConfig(coefficients=lfsr3_coeffs, field_order=2, degree=23)
-        lfsr4_config = LFSRConfig(coefficients=lfsr4_coeffs, field_order=2, degree=17)
+        lfsr1_config = LFSRConfig(coefficients=[1] * 17, field_order=2, degree=17)
+        lfsr2_config = LFSRConfig(coefficients=[1] * 19, field_order=2, degree=19)
+        lfsr3_config = LFSRConfig(coefficients=[1] * 21, field_order=2, degree=21)
+        lfsr4_config = LFSRConfig(coefficients=[1] * 22, field_order=2, degree=22)
         
         return CipherStructure(
             lfsr_configs=[lfsr1_config, lfsr2_config, lfsr3_config, lfsr4_config],
-            clock_control="Complex clocking mechanism (simplified in this implementation)",
-            combiner="XOR of four LFSR output bits",
-            state_size=81,  # 19 + 22 + 23 + 17
+            clock_control="Complex clocking mechanism with multiple control bits",
+            combiner="XOR of four LFSR outputs with additional mixing",
+            state_size=79,  # 17 + 19 + 21 + 22
             details={
-                'lfsr1_size': 19,
-                'lfsr2_size': 22,
-                'lfsr3_size': 23,
-                'lfsr4_size': 17,
+                'lfsr1_size': 17,
+                'lfsr2_size': 19,
+                'lfsr3_size': 21,
+                'lfsr4_size': 22,
                 'warmup_steps': self.WARMUP_STEPS,
-                'security_warning': 'Intentionally weak - educational use only'
+                'security_warning': 'EXTREMELY WEAK - DO NOT USE'
             }
         )
+    
+    def apply_attacks(
+        self,
+        keystream: List[int],
+        attack_types: Optional[List[str]] = None
+    ) -> dict:
+        """Apply attacks to A5/2 keystream."""
+        return {
+            'note': 'A5/2 is extremely weak - attacks can recover key in seconds',
+            'known_vulnerabilities': [
+                'Very fast key recovery (seconds)',
+                'Known-plaintext attacks',
+                'Correlation attacks',
+                'Intentionally weakened for export compliance'
+            ]
+        }

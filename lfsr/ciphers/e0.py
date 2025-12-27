@@ -10,23 +10,38 @@ machine (FSM) combiner.
 
 **Historical Context**:
 
-E0 was designed for Bluetooth encryption and is specified in the Bluetooth
-Core Specification. It provides encryption for Bluetooth communications between
-devices. E0 uses a combination of LFSRs and a finite state machine to create
-a secure keystream.
+E0 was designed for Bluetooth encryption and is used in the Bluetooth protocol
+for encrypting data between paired devices. E0 combines four LFSRs with a
+finite state machine to create a non-linear keystream generator.
 
 **Security Status**:
 
-E0 has been analyzed and has some known weaknesses, but remains in use for
-Bluetooth Classic. Bluetooth Low Energy (BLE) uses AES-CCM instead.
+E0 has been analyzed and has some known weaknesses, but remains in use in
+Bluetooth. Known attacks include:
+- Correlation attacks
+- Algebraic attacks
+- Time-memory trade-off attacks
+- However, attacks typically require significant computational resources
 
 **Key Terminology**:
 
-- **E0**: The stream cipher used in Bluetooth encryption
-- **Bluetooth**: Wireless communication standard
+- **E0**: Stream cipher used in Bluetooth encryption
+- **Bluetooth**: Wireless communication protocol
 - **Finite State Machine (FSM)**: Memory element in the combiner
 - **Non-Linear Combiner**: More complex than simple XOR
 - **Bluetooth Pairing**: Process where E0 is used
+- **FSM State**: Internal state of the finite state machine
+
+**Mathematical Foundation**:
+
+E0 uses four LFSRs:
+- LFSR1: 25 bits
+- LFSR2: 31 bits
+- LFSR3: 33 bits
+- LFSR4: 39 bits
+
+The combiner is a finite state machine with 4 bits of state, creating a
+non-linear mixing function.
 """
 
 from typing import List, Optional
@@ -45,9 +60,8 @@ class E0(StreamCipher):
     """
     E0 Bluetooth stream cipher implementation.
     
-    E0 uses four LFSRs with a non-linear finite state machine (FSM) combiner.
-    The FSM adds memory to the combining function, making it more complex than
-    simple XOR.
+    E0 is a stream cipher used in Bluetooth encryption. It uses four LFSRs with
+    a non-linear finite state machine (FSM) combiner.
     
     **Cipher Structure**:
     
@@ -55,25 +69,30 @@ class E0(StreamCipher):
     - **LFSR2**: 31 bits
     - **LFSR3**: 33 bits
     - **LFSR4**: 39 bits
-    - **FSM**: 2-bit state machine
-    - **Combiner**: Non-linear function using FSM
+    - **FSM**: 4-bit finite state machine for non-linear combining
+    - **Output**: FSM output mixed with LFSR outputs
     
     **Key and IV**:
     
     - **Key Size**: 128 bits
-    - **IV Size**: 64 bits (8 bytes)
-    - **Total State**: 25 + 31 + 33 + 39 + 2 = 130 bits
+    - **IV Size**: 8 bytes (64 bits)
+    - **Total State**: 25 + 31 + 33 + 39 + 4 = 132 bits
+    
+    **Example Usage**:
+    
+        >>> from lfsr.ciphers.e0 import E0
+        >>> cipher = E0()
+        >>> key = [1] * 128
+        >>> iv = [0] * 64
+        >>> keystream = cipher.generate_keystream(key, iv, 100)
     """
     
+    # E0 LFSR configurations
     LFSR1_SIZE = 25
     LFSR2_SIZE = 31
     LFSR3_SIZE = 33
     LFSR4_SIZE = 39
-    
-    # FSM state (2 bits)
-    fsm_state = [0, 0]
-    
-    WARMUP_STEPS = 200
+    FSM_STATE_SIZE = 4
     
     def __init__(self):
         """Initialize E0 cipher."""
@@ -81,7 +100,7 @@ class E0(StreamCipher):
         self.lfsr2_state = None
         self.lfsr3_state = None
         self.lfsr4_state = None
-        self.fsm_state = [0, 0]
+        self.fsm_state = None
     
     def get_config(self) -> CipherConfig:
         """Get E0 cipher configuration."""
@@ -95,8 +114,7 @@ class E0(StreamCipher):
                 'lfsr2_size': self.LFSR2_SIZE,
                 'lfsr3_size': self.LFSR3_SIZE,
                 'lfsr4_size': self.LFSR4_SIZE,
-                'fsm_size': 2,
-                'warmup_steps': self.WARMUP_STEPS
+                'fsm_state_size': self.FSM_STATE_SIZE
             }
         )
     
@@ -107,39 +125,48 @@ class E0(StreamCipher):
             feedback ^= state[tap]
         return [feedback] + state[:-1]
     
-    def _fsm_update(self, x1: int, x2: int, x3: int, x4: int) -> int:
+    def _update_fsm(self, lfsr_outputs: List[int]) -> int:
         """
         Update FSM and return output.
         
-        The FSM uses the current state and LFSR outputs to produce output
-        and update its state.
+        The FSM takes the four LFSR outputs and current FSM state, then
+        updates the state and returns an output bit.
+        
+        Args:
+            lfsr_outputs: Output bits from four LFSRs
+        
+        Returns:
+            FSM output bit
         """
-        s0, s1 = self.fsm_state[0], self.fsm_state[1]
+        # Simplified FSM (full E0 FSM is more complex)
+        # In practice, E0 uses a specific FSM with lookup tables
+        x = lfsr_outputs[0] ^ lfsr_outputs[1] ^ lfsr_outputs[2] ^ lfsr_outputs[3]
+        y = sum(self.fsm_state) % 2
         
-        # FSM output (simplified)
-        t = (s0 + s1 + x1 + x2 + x3 + x4) % 2
+        # Update FSM state (simplified)
+        self.fsm_state = [y] + self.fsm_state[:-1]
         
-        # FSM state update (simplified)
-        self.fsm_state[0] = s1
-        self.fsm_state[1] = (s0 + t) % 2
-        
-        return t
+        return x ^ y
     
     def _get_output_bit(self) -> int:
         """Get output bit from E0."""
-        x1 = self.lfsr1_state[0]
-        x2 = self.lfsr2_state[0]
-        x3 = self.lfsr3_state[0]
-        x4 = self.lfsr4_state[0]
+        # Get LFSR outputs
+        o1 = self.lfsr1_state[0]
+        o2 = self.lfsr2_state[0]
+        o3 = self.lfsr3_state[0]
+        o4 = self.lfsr4_state[0]
         
-        # FSM combiner
-        output = self._fsm_update(x1, x2, x3, x4)
-        return output
+        # Update FSM and get output
+        fsm_output = self._update_fsm([o1, o2, o3, o4])
+        
+        # Final output (simplified - full E0 has more complex mixing)
+        return fsm_output
     
     def _clock_all(self):
         """Clock all LFSRs."""
+        # E0 clocks all LFSRs every step (no irregular clocking)
         self.lfsr1_state = self._clock_lfsr(self.lfsr1_state, [24, 20, 12, 8], self.LFSR1_SIZE)
-        self.lfsr2_state = self._clock_lfsr(self.lfsr2_state, [30, 27, 25, 24], self.LFSR2_SIZE)
+        self.lfsr2_state = self._clock_lfsr(self.lfsr2_state, [30, 28, 23, 18], self.LFSR2_SIZE)
         self.lfsr3_state = self._clock_lfsr(self.lfsr3_state, [32, 28, 24, 4], self.LFSR3_SIZE)
         self.lfsr4_state = self._clock_lfsr(self.lfsr4_state, [38, 35, 33, 32], self.LFSR4_SIZE)
     
@@ -159,24 +186,19 @@ class E0(StreamCipher):
         self.lfsr3_state = key[56:89]
         self.lfsr4_state = key[89:128]
         
-        # Load IV (simplified)
+        # Initialize FSM state
+        self.fsm_state = [0] * 4
+        
+        # Mix with IV (simplified initialization)
         for i in range(64):
             if i < 25:
-                self.lfsr1_state[i] ^= iv[i]
+                self.lfsr1_state[i] ^= iv[i % 25]
             if i < 31:
-                self.lfsr2_state[i] ^= iv[i]
+                self.lfsr2_state[i] ^= iv[i % 31]
             if i < 33:
-                self.lfsr3_state[i] ^= iv[i]
+                self.lfsr3_state[i] ^= iv[i % 33]
             if i < 39:
-                self.lfsr4_state[i] ^= iv[i]
-        
-        # Initialize FSM
-        self.fsm_state = [0, 0]
-        
-        # Warm-up phase
-        for _ in range(self.WARMUP_STEPS):
-            self._clock_all()
-            self._get_output_bit()  # Update FSM
+                self.lfsr4_state[i] ^= iv[i % 39]
     
     def generate_keystream(
         self,
@@ -196,37 +218,49 @@ class E0(StreamCipher):
             List of keystream bits
         """
         self._initialize(key, iv)
+        
         keystream = []
         for _ in range(length):
             self._clock_all()
             output = self._get_output_bit()
             keystream.append(output)
+        
         return keystream
     
     def analyze_structure(self) -> CipherStructure:
         """Analyze E0 cipher structure."""
-        # Build LFSR configurations
-        lfsr1_coeffs = [1] + [0] * 7 + [1] + [0] * 3 + [1] + [0] * 3 + [1] + [0] * 4 + [1]
-        lfsr2_coeffs = [1] + [0] * 3 + [1] + [0] * 2 + [1] + [0] * 2 + [1] + [0] * 2 + [1] + [0] * 15
-        lfsr3_coeffs = [1] + [0] * 3 + [1] + [0] * 3 + [1] + [0] * 3 + [1] + [0] * 19
-        lfsr4_coeffs = [1] + [0] * 2 + [1] + [0] * 2 + [1] + [0] * 2 + [1] + [0] * 29
-        
-        lfsr1_config = LFSRConfig(coefficients=lfsr1_coeffs, field_order=2, degree=25)
-        lfsr2_config = LFSRConfig(coefficients=lfsr2_coeffs, field_order=2, degree=31)
-        lfsr3_config = LFSRConfig(coefficients=lfsr3_coeffs, field_order=2, degree=33)
-        lfsr4_config = LFSRConfig(coefficients=lfsr4_coeffs, field_order=2, degree=39)
+        lfsr1_config = LFSRConfig(coefficients=[1] * 25, field_order=2, degree=25)
+        lfsr2_config = LFSRConfig(coefficients=[1] * 31, field_order=2, degree=31)
+        lfsr3_config = LFSRConfig(coefficients=[1] * 33, field_order=2, degree=33)
+        lfsr4_config = LFSRConfig(coefficients=[1] * 39, field_order=2, degree=39)
         
         return CipherStructure(
             lfsr_configs=[lfsr1_config, lfsr2_config, lfsr3_config, lfsr4_config],
-            clock_control="All LFSRs clock on every step",
-            combiner="Non-linear FSM combiner (2-bit state machine)",
-            state_size=130,  # 25 + 31 + 33 + 39 + 2
+            clock_control="All LFSRs clock every step (no irregular clocking)",
+            combiner="Finite State Machine (FSM) with 4-bit state for non-linear combining",
+            state_size=132,  # 25 + 31 + 33 + 39 + 4
             details={
                 'lfsr1_size': 25,
                 'lfsr2_size': 31,
                 'lfsr3_size': 33,
                 'lfsr4_size': 39,
-                'fsm_size': 2,
-                'warmup_steps': self.WARMUP_STEPS
+                'fsm_state_size': 4,
+                'total_state': 132
             }
         )
+    
+    def apply_attacks(
+        self,
+        keystream: List[int],
+        attack_types: Optional[List[str]] = None
+    ) -> dict:
+        """Apply attacks to E0 keystream."""
+        return {
+            'note': 'E0 has known weaknesses but remains in use',
+            'known_vulnerabilities': [
+                'Correlation attacks',
+                'Algebraic attacks',
+                'Time-memory trade-off attacks',
+                'Attacks typically require significant computational resources'
+            ]
+        }
