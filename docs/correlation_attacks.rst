@@ -218,10 +218,78 @@ API Reference
 The correlation attack framework is implemented in the :mod:`lfsr.attacks` module.
 See :doc:`api/attacks` for complete API documentation.
 
-Quick Start Example
--------------------
+Command-Line Usage
+------------------
 
-Here's a simple example demonstrating a correlation attack:
+Correlation attacks can be performed from the command line using the
+``--correlation-attack`` option:
+
+**Basic Usage**:
+
+.. code-block:: bash
+
+   lfsr-seq dummy.csv 2 --correlation-attack --lfsr-configs config.json
+
+**Attack Specific LFSR**:
+
+.. code-block:: bash
+
+   lfsr-seq dummy.csv 2 --correlation-attack --lfsr-configs config.json \
+       --target-lfsr 0 --significance-level 0.01
+
+**Use Pre-computed Keystream**:
+
+.. code-block:: bash
+
+   lfsr-seq dummy.csv 2 --correlation-attack --lfsr-configs config.json \
+       --keystream-file keystream.txt
+
+**Configuration File Format**:
+
+The ``--lfsr-configs`` file must be JSON with this structure:
+
+.. code-block:: json
+
+   {
+       "lfsrs": [
+           {
+               "coefficients": [1, 0, 0, 1],
+               "field_order": 2,
+               "degree": 4,
+               "initial_state": [1, 0, 0, 0]
+           },
+           {
+               "coefficients": [1, 1, 0, 1],
+               "field_order": 2,
+               "degree": 4
+           }
+       ],
+       "combining_function": {
+           "type": "majority",
+           "num_inputs": 2
+       }
+   }
+
+**Supported Combining Function Types**:
+- ``majority``: Majority function (returns 1 if majority of inputs are 1)
+- ``xor``: XOR (exclusive OR) function
+- ``and``: AND function
+- ``or``: OR function
+- ``custom``: Custom function (requires ``code`` field with Python function definition)
+
+**CLI Options**:
+- ``--correlation-attack``: Enable correlation attack mode
+- ``--lfsr-configs CONFIG_FILE``: JSON file with combination generator configuration
+- ``--keystream-file KEYSTREAM_FILE``: Optional file containing keystream bits
+- ``--target-lfsr INDEX``: Index of LFSR to attack (0-based, default: 0)
+- ``--significance-level ALPHA``: Statistical significance level (default: 0.05)
+
+See ``examples/combination_generator_config.json`` for a complete example configuration.
+
+Python API Usage
+----------------
+
+Here's a simple example demonstrating a correlation attack using the Python API:
 
 .. code-block:: python
 
