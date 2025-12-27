@@ -158,13 +158,48 @@ This report documents the performance characteristics of parallel state enumerat
 
 ---
 
+## Performance Profiling (cProfile)
+
+### Bottleneck Analysis
+
+Profiling with cProfile reveals the following time distribution:
+
+**For 6-bit LFSR (64 states) with 2 workers**:
+
+| Component | Time (s) | Percentage | Notes |
+|-----------|----------|------------|-------|
+| State Space Partitioning | 0.103 | 60.6% | Iterating through VectorSpace |
+| Multiprocessing Pool | 0.065 | 38.2% | Process creation/termination |
+| Worker Processing | ~0.002 | 1.2% | Actual computation (very fast) |
+
+**Key Observations**:
+1. **Partitioning dominates**: 60% of time spent converting VectorSpace to tuples
+2. **Multiprocessing overhead**: 38% spent on process management
+3. **Actual computation is fast**: Worker processing is < 2% of total time
+
+### Optimization Opportunities
+
+1. **Lazy Partitioning**: Don't convert all states upfront
+   - Use iterator-based chunking
+   - Convert states on-demand in workers
+   - Reduces memory and time for large state spaces
+
+2. **Reduce Process Overhead**: 
+   - Reuse worker processes (process pool)
+   - Minimize data transfer
+   - Cache SageMath object reconstruction
+
+3. **Optimize VectorSpace Iteration**:
+   - Direct iteration without full materialization
+   - Batch conversion operations
+
 ## Next Steps
 
 1. ✅ Create performance profiling script
 2. ✅ Run initial benchmarks
-3. ⏳ Test with larger LFSRs (> 10,000 states)
-4. ⏳ Profile bottlenecks with cProfile
-5. ⏳ Optimize identified bottlenecks
+3. ✅ Profile bottlenecks with cProfile
+4. ⏳ Test with larger LFSRs (> 10,000 states)
+5. ⏳ Optimize identified bottlenecks (partitioning, process overhead)
 6. ⏳ Document final performance characteristics
 
 ---
