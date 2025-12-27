@@ -2016,7 +2016,20 @@ def run_nist_test_suite(
     # Test 10: Linear Complexity Test
     results.append(linear_complexity_test(sequence, block_size=500))
     
-    # Tests 11-15 will be added in subsequent phases
+    # Test 11: Serial Test
+    results.append(serial_test(sequence, block_size=2))
+    
+    # Test 12: Approximate Entropy Test
+    results.append(approximate_entropy_test(sequence, block_size=2))
+    
+    # Test 13: Cumulative Sums Test
+    results.append(cumulative_sums_test(sequence, mode="forward"))
+    
+    # Test 14: Random Excursions Test
+    results.append(random_excursions_test(sequence))
+    
+    # Test 15: Random Excursions Variant Test
+    results.append(random_excursions_variant_test(sequence))
     
     # Update significance level for all results
     for result in results:

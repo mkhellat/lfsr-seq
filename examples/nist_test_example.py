@@ -34,7 +34,12 @@ from lfsr.nist import (
     non_overlapping_template_matching_test,
     overlapping_template_matching_test,
     maurers_universal_test,
-    linear_complexity_test
+    linear_complexity_test,
+    serial_test,
+    approximate_entropy_test,
+    cumulative_sums_test,
+    random_excursions_test,
+    random_excursions_variant_test
 )
 
 
@@ -125,6 +130,11 @@ def example_all_tests():
         ("Overlapping Template Test", lambda s: overlapping_template_matching_test(s)),
         ("Maurer's Universal Test", lambda s: maurers_universal_test(s)),
         ("Linear Complexity Test", lambda s: linear_complexity_test(s, block_size=500)),
+        ("Serial Test", lambda s: serial_test(s, block_size=2)),
+        ("Approximate Entropy Test", lambda s: approximate_entropy_test(s, block_size=2)),
+        ("Cumulative Sums Test", lambda s: cumulative_sums_test(s, mode="forward")),
+        ("Random Excursions Test", lambda s: random_excursions_test(s)),
+        ("Random Excursions Variant Test", lambda s: random_excursions_variant_test(s)),
     ]
     
     print(f"\n{'─'*70}")

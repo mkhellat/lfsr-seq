@@ -376,16 +376,128 @@ Sequences with low linear complexity are predictable and non-random.
 **Parameters**:
 - Block size (M): Typically 500 bits
 
-Tests 11-15 (To Be Implemented)
+Test 11: Serial Test
+~~~~~~~~~~~~~~~~~~~~
+
+**Purpose**: Tests whether the number of occurrences of 2^m m-bit overlapping
+patterns is approximately the same as would be expected for a random sequence.
+
+**What it measures**: Frequency distribution of m-bit overlapping patterns.
+
+**How it works**:
+1. Count occurrences of all possible m-bit patterns (overlapping)
+2. Count occurrences of all possible (m-1)-bit patterns
+3. Count occurrences of all possible (m-2)-bit patterns
+4. Compute chi-square statistics for each pattern length
+5. Compute p-value using chi-square distribution
+
+**Interpretation**:
+- Random sequences should have uniform pattern distribution
+- If p-value < 0.01, the sequence shows non-uniform pattern distribution
+- This test detects sequences with pattern bias
+
+**Parameters**:
+- Pattern length (m): Typically 2 bits
+
+**Minimum sequence length**: 2^m × 100 bits
+
+Test 12: Approximate Entropy Test
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+**Purpose**: Tests the frequency of all possible overlapping m-bit patterns.
+Compares the frequency of overlapping blocks of two consecutive lengths (m and m+1)
+against the expected result for a random sequence.
+
+**What it measures**: Entropy (randomness) of overlapping patterns.
+
+**How it works**:
+1. Count occurrences of all possible m-bit patterns
+2. Count occurrences of all possible (m+1)-bit patterns
+3. Compute approximate entropy from pattern frequencies
+4. Compute chi-square statistic
+5. Compute p-value using chi-square distribution
+
+**Interpretation**:
+- Random sequences should have high entropy (uniform pattern distribution)
+- If p-value < 0.01, the sequence shows low entropy (non-random)
+- This test detects sequences with pattern bias
+
+**Parameters**:
+- Pattern length (m): Typically 2 bits
+
+**Minimum sequence length**: 2^m × 10 bits
+
+Test 13: Cumulative Sums (Cusum) Test
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+**Purpose**: Tests whether the cumulative sum of the partial sequences occurring
+in the tested sequence is too large or too small relative to what would be
+expected for a random sequence.
+
+**What it measures**: Maximum deviation of cumulative sums from zero.
+
+**How it works**:
+1. Convert sequence to -1, +1 (0 → -1, 1 → +1)
+2. Compute cumulative sums
+3. Find maximum absolute cumulative sum
+4. Compute p-value using normal distribution approximation
+
+**Interpretation**:
+- Random sequences should have cumulative sums that stay close to zero
+- If p-value < 0.01, the sequence shows significant bias in cumulative sums
+- This test detects sequences with long runs or trends
+
+**Parameters**:
+- Mode: "forward" or "backward" (default: "forward")
+
+**Minimum sequence length**: 100 bits
+
+Test 14: Random Excursions Test
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The remaining 5 tests will be implemented in subsequent phases:
+**Purpose**: Tests the number of cycles having exactly K visits in a cumulative
+sum random walk. The test detects deviations from the expected number of visits
+to various states in the random walk.
 
-- **Test 11**: Serial Test
-- **Test 12**: Approximate Entropy Test
-- **Test 13**: Cumulative Sums (Cusum) Test
-- **Test 14**: Random Excursions Test
-- **Test 15**: Random Excursions Variant Test
+**What it measures**: Distribution of visits to states in a random walk.
+
+**How it works**:
+1. Convert sequence to -1, +1 (0 → -1, 1 → +1)
+2. Compute cumulative sums (random walk)
+3. Identify cycles (return to zero)
+4. Count visits to each state (-4, -3, -2, -1, +1, +2, +3, +4)
+5. Compute chi-square statistic for each state
+6. Compute p-value using chi-square distribution
+
+**Interpretation**:
+- Random sequences should have expected distribution of state visits
+- If p-value < 0.01, the sequence shows non-random state visit distribution
+- This test detects sequences with bias in random walk behavior
+
+**Minimum sequence length**: 1000 bits (recommended: 10000+ bits)
+
+Test 15: Random Excursions Variant Test
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+**Purpose**: Tests the total number of times that a particular state is visited
+in a cumulative sum random walk. This is a variant of Test 14 that focuses
+on the total number of visits rather than the distribution of visits per cycle.
+
+**What it measures**: Total number of visits to each state in a random walk.
+
+**How it works**:
+1. Convert sequence to -1, +1 (0 → -1, 1 → +1)
+2. Compute cumulative sums (random walk)
+3. Count total visits to each state (-9 to +9, excluding 0)
+4. Compute chi-square statistic for each state
+5. Compute p-value using chi-square distribution
+
+**Interpretation**:
+- Random sequences should have expected total visits to each state
+- If p-value < 0.01, the sequence shows non-random state visit counts
+- This test detects sequences with bias in random walk behavior
+
+**Minimum sequence length**: 1000 bits (recommended: 10000+ bits)
 
 Mathematical Background
 -----------------------

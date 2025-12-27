@@ -288,6 +288,89 @@ Tests whether the sequence has sufficient linear complexity.
 **Returns**:
 NISTTestResult with test results
 
+serial_test
+~~~~~~~~~~~
+
+.. autofunction:: lfsr.nist.serial_test
+   :no-index:
+
+Test 11: Serial Test.
+
+Tests frequency distribution of m-bit overlapping patterns.
+
+**Parameters**:
+- ``sequence``: Binary sequence (list of 0s and 1s)
+- ``block_size``: Pattern length m (default: 2)
+
+**Returns**:
+NISTTestResult with test results
+
+approximate_entropy_test
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. autofunction:: lfsr.nist.approximate_entropy_test
+   :no-index:
+
+Test 12: Approximate Entropy Test.
+
+Tests entropy (randomness) of overlapping patterns.
+
+**Parameters**:
+- ``sequence``: Binary sequence (list of 0s and 1s)
+- ``block_size``: Pattern length m (default: 2)
+
+**Returns**:
+NISTTestResult with test results
+
+cumulative_sums_test
+~~~~~~~~~~~~~~~~~~~~
+
+.. autofunction:: lfsr.nist.cumulative_sums_test
+   :no-index:
+
+Test 13: Cumulative Sums (Cusum) Test.
+
+Tests maximum deviation of cumulative sums from zero.
+
+**Parameters**:
+- ``sequence``: Binary sequence (list of 0s and 1s)
+- ``mode``: "forward" or "backward" (default: "forward")
+
+**Returns**:
+NISTTestResult with test results
+
+random_excursions_test
+~~~~~~~~~~~~~~~~~~~~~~
+
+.. autofunction:: lfsr.nist.random_excursions_test
+   :no-index:
+
+Test 14: Random Excursions Test.
+
+Tests distribution of visits to states in random walk.
+
+**Parameters**:
+- ``sequence``: Binary sequence (list of 0s and 1s)
+
+**Returns**:
+NISTTestResult with test results
+
+random_excursions_variant_test
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. autofunction:: lfsr.nist.random_excursions_variant_test
+   :no-index:
+
+Test 15: Random Excursions Variant Test.
+
+Tests total number of visits to each state in random walk.
+
+**Parameters**:
+- ``sequence``: Binary sequence (list of 0s and 1s)
+
+**Returns**:
+NISTTestResult with test results
+
 run_nist_test_suite
 ~~~~~~~~~~~~~~~~~~~
 
