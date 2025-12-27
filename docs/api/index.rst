@@ -14,6 +14,7 @@ The lfsr-seq package is organized into the following modules:
 * **Field Module** (`lfsr.field`): Finite field validation and coefficient validation
 * **Synthesis Module** (`lfsr.synthesis`): Berlekamp-Massey algorithm and linear complexity
 * **Statistics Module** (`lfsr.statistics`): Statistical tests for sequence quality
+* **Attacks Module** (`lfsr.attacks`): Correlation attack framework for combination generators
 * **Export Module** (`lfsr.export`): Multi-format export (JSON, CSV, XML)
 * **I/O Module** (`lfsr.io`): CSV file reading and validation
 * **Formatter Module** (`lfsr.formatter`): Output formatting and display
@@ -31,6 +32,7 @@ Module Documentation
    field
    synthesis
    statistics
+   attacks
    export
    io
    formatter

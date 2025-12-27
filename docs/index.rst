@@ -41,6 +41,7 @@ Documentation Contents
    user_guide
    examples
    mathematical_background
+   correlation_attacks
 
 .. toctree::
    :maxdepth: 2
