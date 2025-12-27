@@ -44,6 +44,7 @@ Documentation Contents
    correlation_attacks
    algebraic_attacks
    time_memory_tradeoff
+   stream_ciphers
    nist_sp800_22
    optimization_techniques
 

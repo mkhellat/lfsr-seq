@@ -18,6 +18,7 @@ The lfsr-seq package is organized into the following modules:
 * **Attacks Module** (`lfsr.attacks`): Correlation attack framework for combination generators
 * **Optimization Module** (`lfsr.optimization`): Result caching and optimization utilities
 * **TMTO Module** (`lfsr.tmto`): Time-memory trade-off attacks (Hellman and Rainbow tables)
+* **Ciphers Module** (`lfsr.ciphers`): Stream cipher analysis (A5/1, A5/2, E0, Trivium, Grain, LILI-128)
 * **Export Module** (`lfsr.export`): Multi-format export (JSON, CSV, XML)
 * **I/O Module** (`lfsr.io`): CSV file reading and validation
 * **Formatter Module** (`lfsr.formatter`): Output formatting and display
@@ -39,6 +40,7 @@ Module Documentation
    attacks
    optimization
    tmto
+   ciphers
    export
    io
    formatter
