@@ -431,6 +431,35 @@ def parse_args(args: Optional[list] = None) -> argparse.Namespace:
         help="Statistical significance level for correlation test (default: 0.05)."
     )
     
+    correlation_group.add_argument(
+        "--fast-correlation-attack",
+        action="store_true",
+        help="Use fast correlation attack (Meier-Staffelbach) instead of basic attack. More efficient for large state spaces."
+    )
+    
+    correlation_group.add_argument(
+        "--max-candidates",
+        type=int,
+        default=1000,
+        metavar="N",
+        help="Maximum number of candidate states to test in fast correlation attack (default: 1000)."
+    )
+    
+    correlation_group.add_argument(
+        "--distinguishing-attack",
+        action="store_true",
+        help="Perform distinguishing attack to determine if keystream is distinguishable from random."
+    )
+    
+    correlation_group.add_argument(
+        "--distinguishing-method",
+        type=str,
+        default="correlation",
+        choices=["correlation", "statistical"],
+        metavar="METHOD",
+        help="Method for distinguishing attack: 'correlation' or 'statistical' (default: correlation)."
+    )
+    
     # NIST test suite options
     nist_group = parser.add_argument_group(
         "NIST SP 800-22 test suite options",
@@ -574,6 +603,10 @@ def cli_main() -> None:
                     significance_level=args.significance_level,
                     analyze_all_lfsrs=False,  # Could add --all-lfsrs flag
                     analyze_function=True,  # Always analyze function
+                    fast_correlation_attack=args.fast_correlation_attack,
+                    max_candidates=args.max_candidates,
+                    distinguishing_attack=args.distinguishing_attack,
+                    distinguishing_method=args.distinguishing_method,
                 )
             else:
                 # Pass flags to main function

@@ -18,6 +18,8 @@ from lfsr.attacks import (
     CombinationGenerator,
     LFSRConfig,
     siegenthaler_correlation_attack,
+    fast_correlation_attack,
+    distinguishing_attack,
     analyze_combining_function,
 )
 
@@ -193,6 +195,10 @@ def perform_correlation_attack_cli(
     significance_level: float = 0.05,
     analyze_all_lfsrs: bool = False,
     analyze_function: bool = False,
+    fast_correlation_attack: bool = False,
+    max_candidates: int = 1000,
+    distinguishing_attack: bool = False,
+    distinguishing_method: str = "correlation",
 ) -> None:
     """
     Perform correlation attack from CLI.
@@ -244,9 +250,35 @@ def perform_correlation_attack_cli(
         print(f"  Generated {len(keystream)} bits", file=output_file)
     print(file=output_file)
     
-    # Perform attacks
+    # Perform distinguishing attack if requested
+    if distinguishing_attack:
+        print("=" * 70, file=output_file)
+        print("Distinguishing Attack Results", file=output_file)
+        print("=" * 70, file=output_file)
+        print(file=output_file)
+        
+        dist_result = distinguishing_attack(
+            combination_generator=gen,
+            keystream=keystream,
+            method=distinguishing_method,
+            significance_level=significance_level
+        )
+        
+        print(f"  Method: {dist_result.method_used}", file=output_file)
+        print(f"  Distinguishable: {dist_result.distinguishable}", file=output_file)
+        print(f"  Distinguishing statistic: {dist_result.distinguishing_statistic:.6f}", file=output_file)
+        print(f"  P-value: {dist_result.p_value:.6f}", file=output_file)
+        print(f"  Attack successful: {dist_result.attack_successful}", file=output_file)
+        if dist_result.attack_successful:
+            print(f"  ⚠ VULNERABLE: Keystream is distinguishable from random!", file=output_file)
+        print(file=output_file)
+    
+    # Perform correlation attacks
     print("=" * 70, file=output_file)
-    print("Correlation Attack Results", file=output_file)
+    if fast_correlation_attack:
+        print("Fast Correlation Attack Results (Meier-Staffelbach)", file=output_file)
+    else:
+        print("Correlation Attack Results (Siegenthaler)", file=output_file)
     print("=" * 70, file=output_file)
     print(file=output_file)
     
@@ -262,22 +294,48 @@ def perform_correlation_attack_cli(
         print(f"  Field order: {gen.lfsrs[lfsr_idx].field_order}", file=output_file)
         print(file=output_file)
         
-        result = siegenthaler_correlation_attack(
-            combination_generator=gen,
-            keystream=keystream,
-            target_lfsr_index=lfsr_idx,
-            significance_level=significance_level
-        )
-        
-        print(f"  Correlation coefficient: {result.correlation_coefficient:.6f}", file=output_file)
-        print(f"  P-value: {result.p_value:.6f}", file=output_file)
-        print(f"  Match ratio: {result.match_ratio:.4f} ({result.matches}/{result.total_bits})", file=output_file)
-        print(f"  Attack successful: {result.attack_successful}", file=output_file)
-        print(f"  Success probability: {result.success_probability:.2%}", file=output_file)
-        if result.attack_successful:
-            print(f"  ⚠ VULNERABLE: Significant correlation detected!", file=output_file)
-        print(f"  Required keystream bits: {result.required_keystream_bits}", file=output_file)
-        print(f"  Complexity estimate: {result.complexity_estimate:.0f} operations", file=output_file)
+        if fast_correlation_attack:
+            # Fast correlation attack
+            result = fast_correlation_attack(
+                combination_generator=gen,
+                keystream=keystream,
+                target_lfsr_index=lfsr_idx,
+                max_candidates=max_candidates,
+                significance_level=significance_level
+            )
+            
+            print(f"  Attack method: Fast Correlation Attack (Meier-Staffelbach)", file=output_file)
+            print(f"  Correlation coefficient: {result.correlation_coefficient:.6f}", file=output_file)
+            print(f"  Attack successful: {result.attack_successful}", file=output_file)
+            if result.attack_successful:
+                print(f"  ✓ Recovered state: {result.recovered_state}", file=output_file)
+                print(f"  ⚠ VULNERABLE: State recovery successful!", file=output_file)
+            else:
+                print(f"  ✗ State recovery failed", file=output_file)
+            print(f"  Best correlation: {result.best_correlation:.6f}", file=output_file)
+            print(f"  Iterations performed: {result.iterations_performed}", file=output_file)
+            print(f"  Candidates tested: {result.candidate_states_tested}", file=output_file)
+            print(f"  Complexity estimate: {result.complexity_estimate:.0f} operations", file=output_file)
+            print(f"  Keystream length used: {result.keystream_length}", file=output_file)
+        else:
+            # Basic Siegenthaler attack
+            result = siegenthaler_correlation_attack(
+                combination_generator=gen,
+                keystream=keystream,
+                target_lfsr_index=lfsr_idx,
+                significance_level=significance_level
+            )
+            
+            print(f"  Attack method: Basic Correlation Attack (Siegenthaler)", file=output_file)
+            print(f"  Correlation coefficient: {result.correlation_coefficient:.6f}", file=output_file)
+            print(f"  P-value: {result.p_value:.6f}", file=output_file)
+            print(f"  Match ratio: {result.match_ratio:.4f} ({result.matches}/{result.total_bits})", file=output_file)
+            print(f"  Attack successful: {result.attack_successful}", file=output_file)
+            print(f"  Success probability: {result.success_probability:.2%}", file=output_file)
+            if result.attack_successful:
+                print(f"  ⚠ VULNERABLE: Significant correlation detected!", file=output_file)
+            print(f"  Required keystream bits: {result.required_keystream_bits}", file=output_file)
+            print(f"  Complexity estimate: {result.complexity_estimate:.0f} operations", file=output_file)
         print(file=output_file)
     
     print("=" * 70, file=output_file)

@@ -27,6 +27,8 @@ from lfsr.attacks import (
     CombinationGenerator,
     LFSRConfig,
     siegenthaler_correlation_attack,
+    fast_correlation_attack,
+    distinguishing_attack,
     compute_correlation_coefficient,
     analyze_combining_function
 )
@@ -237,6 +239,8 @@ def main():
         example_combining_function_analysis()
         example_correlation_computation()
         example_vulnerable_combination()
+        example_fast_correlation_attack()
+        example_distinguishing_attack()
         
         print("\n" + "=" * 70)
         print("Examples Complete!")
