@@ -488,14 +488,14 @@ def _find_sequence_cycle(
         - sequence_list: List of all states in the cycle (empty list if period_only=True)
         - period: Length of the cycle
     """
-    # Add debug logging for multiprocessing
+    # Debug logging (disabled by default, enable with DEBUG_PARALLEL=1)
     import sys
     import os
-    try:
-        debug_log = lambda msg: print(f'[_find_sequence_cycle PID {os.getpid()}] {msg}', file=sys.stderr, flush=True)
+    DEBUG_PARALLEL = os.environ.get('DEBUG_PARALLEL', '0') == '1'
+    debug_log = lambda msg: print(f'[_find_sequence_cycle PID {os.getpid()}] {msg}', file=sys.stderr, flush=True) if DEBUG_PARALLEL else lambda msg: None
+    
+    if DEBUG_PARALLEL:
         debug_log(f'_find_sequence_cycle called: period_only={period_only}, algorithm={algorithm}')
-    except:
-        debug_log = lambda msg: None
     
     if period_only:
         # Period-only mode: use period-only functions (true O(1) space for Floyd)
@@ -771,14 +771,14 @@ def _merge_parallel_results(
     seen_cycles = {}  # Maps canonical cycle representation to sequence info
     unique_sequences = []
     
-    # Add debug logging for merge
+    # Debug logging can be enabled by setting environment variable
     import sys
     import os
-    try:
-        merge_debug = lambda msg: print(f'[Merge PID {os.getpid()}] {msg}', file=sys.stderr, flush=True)
+    DEBUG_PARALLEL = os.environ.get('DEBUG_PARALLEL', '0') == '1'
+    merge_debug = lambda msg: print(f'[Merge PID {os.getpid()}] {msg}', file=sys.stderr, flush=True) if DEBUG_PARALLEL else lambda msg: None
+    
+    if DEBUG_PARALLEL:
         merge_debug(f'Deduplicating {len(all_sequences)} sequences from {len(worker_results)} workers')
-    except:
-        merge_debug = lambda msg: None
     
     for idx, seq_info in enumerate(all_sequences):
         # Create a canonical representation of the cycle
@@ -938,12 +938,14 @@ def _process_state_chunk(
     # Import SageMath in worker
     # With 'fork' method (Linux default), workers inherit parent's memory
     # so SageMath should already be imported. Just import what we need.
-    # Add debug logging to identify hang point
     import sys
     import os
-    debug_log = lambda msg: print(f'[Worker {worker_id} PID {os.getpid()}] {msg}', file=sys.stderr, flush=True)
+    # Debug logging can be enabled by setting environment variable
+    DEBUG_PARALLEL = os.environ.get('DEBUG_PARALLEL', '0') == '1'
+    debug_log = lambda msg: print(f'[Worker {worker_id} PID {os.getpid()}] {msg}', file=sys.stderr, flush=True) if DEBUG_PARALLEL else lambda msg: None
     
-    debug_log('Starting worker function')
+    if DEBUG_PARALLEL:
+        debug_log('Starting worker function')
     try:
         debug_log('Attempting SageMath import...')
         from sage.all import VectorSpace, GF, vector
