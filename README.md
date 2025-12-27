@@ -59,6 +59,9 @@ cipher analysis, educational purposes, and security evaluation.
 - **Parallel State Enumeration**: Multi-process parallelization for large state space analysis
 - **Optimized State Tracking**: Set-based visited state tracking for O(1) lookups
 - **Primitive Polynomial Optimization**: Fast period prediction for primitive polynomials
+- **Period Computation via Factorization**: 10-100x faster for large LFSRs (degree > 15)
+- **Result Caching System**: In-memory and persistent caching for repeated analyses
+- **Mathematical Shortcut Detection**: Automatic detection of special cases (primitive, irreducible, etc.)
 - **Scalable Architecture**: Designed to handle larger LFSRs efficiently
 
 ## Prerequisites
@@ -402,9 +405,33 @@ if fast_result.attack_successful:
 dist_result = distinguishing_attack(gen, keystream, method="correlation")
 print(f"Distinguishable: {dist_result.distinguishable}")
 
-# NIST statistical tests
-nist_result = run_nist_test_suite(keystream)
-print(f"Tests passed: {nist_result.passed_count}/{nist_result.total_tests}")
+   # NIST statistical tests
+   nist_result = run_nist_test_suite(keystream)
+   print(f"Tests passed: {nist_result.passed_count}/{nist_result.total_tests}")
+   
+   # Optimization techniques
+   from lfsr.polynomial import (
+       compute_period_via_factorization,
+       detect_mathematical_shortcuts
+   )
+   from lfsr.optimization import ResultCache, get_global_cache
+   
+   # Period computation via factorization (faster for large LFSRs)
+   period = compute_period_via_factorization([1, 0, 0, 1], 2)
+   
+   # Detect mathematical shortcuts
+   shortcuts = detect_mathematical_shortcuts([1, 0, 0, 1], 2)
+   if shortcuts['is_primitive']:
+       print(f"Primitive polynomial! Period = {shortcuts['expected_period']}")
+   
+   # Result caching
+   cache = get_global_cache()
+   key = cache.generate_key([1, 0, 0, 1], 2, "period")
+   if key in cache:
+       period = cache.get(key)
+   else:
+       period = compute_period_via_factorization([1, 0, 0, 1], 2)
+       cache.set(key, period)
 ```
 
 ## Usage Examples
@@ -509,7 +536,7 @@ lfsr-seq/
 │   ├── __init__.py         # Package initialization
 │   ├── core.py             # Core LFSR mathematics
 │   ├── analysis.py         # Sequence analysis algorithms
-│   ├── polynomial.py       # Polynomial operations
+│   ├── polynomial.py       # Polynomial operations & optimization
 │   ├── field.py            # Finite field operations
 │   ├── io.py               # Input/output handling
 │   ├── formatter.py        # Output formatting
@@ -517,6 +544,7 @@ lfsr-seq/
 │   ├── synthesis.py         # Berlekamp-Massey & LFSR synthesis
 │   ├── statistics.py       # Statistical analysis tools
 │   ├── export.py           # Multi-format export functions
+│   ├── optimization.py     # Result caching & optimization utilities
 │   ├── attacks.py          # Correlation attack framework
 │   ├── cli_correlation.py  # CLI for correlation attacks
 │   ├── cli_nist.py         # CLI for NIST tests
@@ -819,10 +847,14 @@ compared with the periods of the listed sequences.
 - **Fast Correlation Attack**: Advanced attack using iterative decoding for state recovery
 - **Distinguishing Attack**: Technique to detect if keystream is distinguishable from random
 - **NIST SP 800-22**: Industry-standard statistical test suite for randomness
+- **Period Computation via Factorization**: Efficient period computation using polynomial factorization
+- **Result Caching**: Storing computed results for reuse without recomputation
+- **Mathematical Shortcut Detection**: Automatic detection of special cases for optimized computation
 
 For detailed mathematical background, see the [documentation](docs/mathematical_background.rst).
 For correlation attack theory and usage, see [Correlation Attacks Guide](docs/correlation_attacks.rst).
 For NIST test suite documentation, see [NIST SP 800-22 Guide](docs/nist_sp800_22.rst).
+For optimization techniques, see [Optimization Techniques Guide](docs/optimization_techniques.rst).
 
 ## Contributing
 
