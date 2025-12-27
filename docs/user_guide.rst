@@ -76,6 +76,21 @@ Optional Arguments:
                               
    --no-period-stats          Disable period distribution statistics display.
 
+   --parallel                  Enable parallel state enumeration (auto-enabled for
+                              large state spaces > 10,000 states with 2+ CPU cores).
+                              Partitions the state space across multiple CPU cores
+                              for faster processing. Falls back to sequential if
+                              parallel processing fails or times out.
+
+   --no-parallel              Disable parallel processing (force sequential mode).
+                              Use this if you encounter issues with parallel
+                              processing or want deterministic single-threaded
+                              execution.
+
+   --num-workers N            Set the number of parallel workers (default: CPU
+                              count). Only used with --parallel. The actual number
+                              of workers is clamped to available CPU cores.
+
 Input Format
 ------------
 
@@ -262,6 +277,71 @@ and is useful for documentation or scripting purposes.
 
 For more information on primitive polynomials and their cryptographic
 significance, see the :doc:`mathematical_background` section.
+
+Parallel State Enumeration
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The tool supports parallel processing of state spaces for improved performance
+on multi-core systems. Parallel processing is automatically enabled for large
+state spaces (> 10,000 states) when multiple CPU cores are available.
+
+**Automatic Parallel Processing**:
+
+.. code-block:: bash
+
+   # For large LFSRs, parallel processing is automatically enabled
+   lfsr-seq large_lfsr.csv 2
+
+**Explicitly Enable Parallel Processing**:
+
+.. code-block:: bash
+
+   lfsr-seq coefficients.csv 2 --parallel
+
+**Control Number of Workers**:
+
+.. code-block:: bash
+
+   # Use 4 parallel workers
+   lfsr-seq coefficients.csv 2 --parallel --num-workers 4
+
+**Disable Parallel Processing**:
+
+.. code-block:: bash
+
+   # Force sequential processing
+   lfsr-seq coefficients.csv 2 --no-parallel
+
+**How It Works**:
+
+1. **State Space Partitioning**: The state space is divided into chunks,
+   one per worker process.
+
+2. **Parallel Processing**: Each worker processes its chunk independently,
+   finding cycles and computing periods.
+
+3. **Result Merging**: Results from all workers are merged, with automatic
+   deduplication of sequences found by multiple workers.
+
+4. **Graceful Fallback**: If parallel processing fails or times out, the
+   tool automatically falls back to sequential processing, ensuring the
+   tool always completes successfully.
+
+**Performance Considerations**:
+
+- Parallel processing provides speedup for large state spaces (> 10,000 states)
+- Overhead of multiprocessing may outweigh benefits for small LFSRs
+- The tool automatically selects the best approach based on state space size
+- Sequential processing is always available as a reliable fallback
+
+**Known Limitations**:
+
+- Parallel processing may hang in some SageMath/multiprocessing configurations
+- The tool automatically detects timeouts and falls back to sequential processing
+- For maximum reliability, use ``--no-parallel`` if you encounter issues
+
+For more technical details on parallel state enumeration, see the
+:doc:`mathematical_background` section.
 
 .. code-block:: bash
 
