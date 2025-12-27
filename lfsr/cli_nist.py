@@ -67,7 +67,8 @@ def perform_nist_test_cli(
     sequence: List[int],
     output_file: Optional[TextIO] = None,
     significance_level: float = 0.01,
-    block_size: int = 128
+    block_size: int = 128,
+    output_format: str = "text"
 ) -> None:
     """
     Perform NIST SP 800-22 test suite from CLI.
@@ -162,3 +163,26 @@ def perform_nist_test_cli(
     print("Note: A single test failure does not necessarily mean the", file=output_file)
     print("      sequence is non-random. Consider the overall pattern", file=output_file)
     print("      of results and sequence length requirements.", file=output_file)
+    
+    # Export in requested format if not text
+    if output_format != "text":
+        from lfsr.export import get_nist_export_function
+        try:
+            export_func = get_nist_export_function(output_format)
+            # Create a new file for the export format
+            if hasattr(output_file, 'name') and output_file.name:
+                # If output_file has a name, create export file with appropriate extension
+                base_name = output_file.name.rsplit('.', 1)[0] if '.' in output_file.name else output_file.name
+                export_filename = f"{base_name}.{output_format}"
+                with open(export_filename, 'w', encoding='utf-8') as export_file:
+                    export_func(suite_result, export_file)
+                print(f"\n{'='*70}", file=output_file)
+                print(f"Results exported to: {export_filename}", file=output_file)
+            else:
+                # If no filename, write to the same file (for stdout, this won't work well)
+                # In this case, we'll just note that export format was requested
+                print(f"\n{'='*70}", file=output_file)
+                print(f"Note: Export format '{output_format}' requested but no output file specified.", file=output_file)
+                print("      Please use --output to specify a file for export.", file=output_file)
+        except ValueError as e:
+            print(f"\nWARNING: Export failed: {e}", file=output_file)

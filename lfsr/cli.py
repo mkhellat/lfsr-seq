@@ -464,6 +464,15 @@ def parse_args(args: Optional[list] = None) -> argparse.Namespace:
         metavar="SIZE",
         help="Block size for block-based NIST tests (default: 128)."
     )
+    
+    nist_group.add_argument(
+        "--nist-output-format",
+        type=str,
+        default="text",
+        choices=["text", "json", "csv", "xml", "html"],
+        metavar="FORMAT",
+        help="Output format for NIST test results (default: text). Options: text, json, csv, xml, html."
+    )
 
     parsed_args = parser.parse_args(args)
 

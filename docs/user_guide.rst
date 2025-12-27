@@ -35,13 +35,13 @@ Optional Arguments:
    -v, --verbose              Enable verbose output
    -q, --quiet                Enable quiet mode (suppress non-essential output)
    --no-progress              Disable progress bar display
-   --format {text,json,csv,xml}
+   --format \{text,json,csv,xml\}
                               Output format (default: text)
    --period-only              Compute periods only, without storing sequences.
                               Floyd's algorithm uses true O(1) space in this mode.
                               Both algorithms achieve O(1) space, but enumeration is faster.
 
-   --algorithm {floyd,brent,enumeration,auto}
+   --algorithm \{floyd,brent,enumeration,auto\}
                               Cycle detection algorithm (default: auto)
 
                               - enumeration: Default, faster for typical periods
