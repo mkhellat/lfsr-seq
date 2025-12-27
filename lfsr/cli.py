@@ -541,6 +541,60 @@ def parse_args(args: Optional[list] = None) -> argparse.Namespace:
         help="File containing precomputed TMTO table (JSON format). If not provided, table is generated."
     )
     
+    # Stream cipher analysis options
+    cipher_group = parser.add_argument_group(
+        "stream cipher analysis options",
+        "Options for analyzing real-world stream ciphers"
+    )
+    
+    cipher_group.add_argument(
+        "--cipher",
+        type=str,
+        choices=["a5_1", "a5_2", "e0", "trivium", "grain128", "grain128a", "lili128"],
+        metavar="NAME",
+        help="Select stream cipher to analyze: a5_1, a5_2, e0, trivium, grain128, grain128a, or lili128."
+    )
+    
+    cipher_group.add_argument(
+        "--analyze-cipher",
+        action="store_true",
+        help="Analyze cipher structure (LFSRs, clocking, combining function)."
+    )
+    
+    cipher_group.add_argument(
+        "--generate-keystream",
+        action="store_true",
+        help="Generate keystream from key and IV."
+    )
+    
+    cipher_group.add_argument(
+        "--keystream-length",
+        type=int,
+        default=1000,
+        metavar="N",
+        help="Length of keystream to generate in bits (default: 1000)."
+    )
+    
+    cipher_group.add_argument(
+        "--key-file",
+        type=str,
+        metavar="FILE",
+        help="File containing key bits (binary or text format)."
+    )
+    
+    cipher_group.add_argument(
+        "--iv-file",
+        type=str,
+        metavar="FILE",
+        help="File containing IV bits (binary or text format)."
+    )
+    
+    cipher_group.add_argument(
+        "--compare-ciphers",
+        action="store_true",
+        help="Compare multiple ciphers side-by-side."
+    )
+    
     # NIST test suite options
     nist_group = parser.add_argument_group(
         "NIST SP 800-22 test suite options",
@@ -666,6 +720,20 @@ def cli_main() -> None:
                     significance_level=args.nist_significance_level,
                     block_size=args.nist_block_size,
                     output_format=args.nist_output_format
+                )
+            # Check if stream cipher analysis mode
+            elif args.cipher:
+                from lfsr.cli_ciphers import perform_cipher_analysis_cli
+                
+                perform_cipher_analysis_cli(
+                    cipher_name=args.cipher,
+                    analyze_structure=args.analyze_cipher,
+                    generate_keystream=args.generate_keystream,
+                    keystream_length=args.keystream_length,
+                    key_file=args.key_file,
+                    iv_file=args.iv_file,
+                    compare=args.compare_ciphers,
+                    output_file=output_file
                 )
             # Check if TMTO attack mode
             elif args.tmto_attack:
