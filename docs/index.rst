@@ -42,6 +42,7 @@ Documentation Contents
    examples
    mathematical_background
    correlation_attacks
+   nist_sp800_22
 
 .. toctree::
    :maxdepth: 2
