@@ -9,12 +9,24 @@ periods, and categorizing state vectors.
 """
 
 import datetime
+import multiprocessing
 import textwrap
 from typing import Any, Dict, List, Optional, Set, TextIO, Tuple
 
 from sage.all import *
 
 from lfsr.constants import PROGRESS_BAR_WIDTH, TABLE_ROW_WIDTH
+
+# Multiprocessing setup for compatibility
+# On some systems, we need to set the start method explicitly
+# But we'll use the default (fork on Linux) which should work
+try:
+    # Only set if not already set (avoids RuntimeError)
+    if multiprocessing.get_start_method(allow_none=True) is None:
+        multiprocessing.set_start_method('fork', force=False)
+except RuntimeError:
+    # Start method already set, that's fine
+    pass
 
 
 def _update_progress_display(
@@ -675,6 +687,514 @@ def lfsr_sequence_mapper(
     # Verification: periods_sum should equal state_vector_space_size
     # This confirms all states have been checked and categorized
 
+    return seq_dict, period_dict, max_period, periods_sum
+
+
+def _merge_parallel_results(
+    worker_results: List[Dict[str, Any]],
+    gf_order: int,
+    lfsr_degree: int,
+) -> Tuple[Dict[int, List[Any]], Dict[int, int], int, int]:
+    """
+    Merge results from multiple parallel workers.
+    
+    Handles deduplication of sequences (same cycle found by multiple workers)
+    and reassigns sequence numbers.
+    
+    Args:
+        worker_results: List of result dictionaries from workers
+        gf_order: Field order (for reconstructing SageMath objects)
+        lfsr_degree: LFSR degree
+        
+    Returns:
+        Tuple of (seq_dict, period_dict, max_period, periods_sum)
+    """
+    # Import SageMath functions (can't use import * in function)
+    try:
+        from sage.all import VectorSpace, GF, vector
+    except ImportError:
+        # Fallback if sage.all not available
+        import sys
+        print("ERROR: SageMath not available for result merging", file=sys.stderr)
+        return {}, {}, 0, 0
+    
+    # Collect all sequences from all workers
+    all_sequences = []
+    max_period = 0
+    all_errors = []
+    
+    for result in worker_results:
+        all_sequences.extend(result.get('sequences', []))
+        if result.get('max_period', 0) > max_period:
+            max_period = result.get('max_period', 0)
+        all_errors.extend(result.get('errors', []))
+    
+    # Deduplicate sequences
+    # Two sequences are the same if they have the same set of states (same cycle)
+    seen_cycles = {}  # Maps frozenset of state tuples to sequence info
+    unique_sequences = []
+    
+    for seq_info in all_sequences:
+        # Create a canonical representation of the cycle
+        # Use the sorted tuple of state tuples as the key
+        states_tuples = seq_info['states']
+        if not states_tuples:
+            # Period-only mode: use start_state and period as key
+            cycle_key = (seq_info['start_state'], seq_info['period'])
+        else:
+            # Full mode: use sorted states as key (cycles are the same regardless of starting point)
+            cycle_key = tuple(sorted(states_tuples))
+        
+        if cycle_key not in seen_cycles:
+            seen_cycles[cycle_key] = seq_info
+            unique_sequences.append(seq_info)
+    
+    # Reconstruct SageMath objects and assign sequence numbers
+    seq_dict = {}
+    period_dict = {}
+    seq_num = 0
+    
+    V = VectorSpace(GF(gf_order), lfsr_degree)
+    
+    for seq_info in unique_sequences:
+        seq_num += 1
+        period = seq_info['period']
+        period_dict[seq_num] = period
+        
+        # Reconstruct sequence states if not period-only
+        if seq_info['states']:
+            seq_list = [vector(V, list(state_tuple)) for state_tuple in seq_info['states']]
+            seq_dict[seq_num] = seq_list
+        else:
+            seq_dict[seq_num] = []
+    
+    periods_sum = sum(period_dict.values())
+    
+    # Log errors if any
+    if all_errors:
+        import sys
+        print(f"WARNING: {len(all_errors)} errors occurred during parallel processing:", file=sys.stderr)
+        for error in all_errors[:10]:  # Show first 10 errors
+            print(f"  {error}", file=sys.stderr)
+        if len(all_errors) > 10:
+            print(f"  ... and {len(all_errors) - 10} more errors", file=sys.stderr)
+    
+    return seq_dict, period_dict, max_period, periods_sum
+
+
+def _partition_state_space(
+    state_vector_space: Any,
+    num_chunks: int,
+) -> List[List[Tuple[Tuple[int, ...], int]]]:
+    """
+    Partition state space into chunks for parallel processing.
+    
+    Converts SageMath vectors to tuples (for pickling) and divides them
+    into roughly equal chunks.
+    
+    Args:
+        state_vector_space: SageMath VectorSpace of all possible states
+        num_chunks: Number of chunks to create
+        
+    Returns:
+        List of chunks, where each chunk is a list of (state_tuple, index) pairs
+    """
+    # Convert all states to tuples and collect with indices
+    state_tuples = []
+    for idx, state in enumerate(state_vector_space):
+        state_tuple = tuple(state)
+        state_tuples.append((state_tuple, idx))
+    
+    # Calculate chunk size
+    total_states = len(state_tuples)
+    if total_states == 0:
+        return []
+    
+    chunk_size = max(1, total_states // num_chunks)
+    
+    # Partition into chunks
+    chunks = []
+    for i in range(0, total_states, chunk_size):
+        chunk = state_tuples[i:i + chunk_size]
+        if chunk:  # Only add non-empty chunks
+            chunks.append(chunk)
+    
+    # Ensure we have at most num_chunks (may have fewer if state space is small)
+    # Don't force splitting if chunks are already small
+    return chunks
+
+
+def _process_state_chunk(
+    chunk_data: Tuple[
+        List[Tuple[Tuple[int, ...], int]],  # State tuples with indices
+        List[int],  # coeffs_vector
+        int,  # gf_order
+        int,  # lfsr_degree
+        str,  # algorithm
+        bool,  # period_only
+        int,  # worker_id
+    ],
+) -> Dict[str, Any]:
+    """
+    Process a chunk of states in parallel.
+    
+    This worker function:
+    1. Reconstructs SageMath objects from serialized data
+    2. Processes each state in the chunk independently
+    3. Returns all found sequences (may include duplicates across workers)
+    4. Main process will deduplicate based on cycle content
+    
+    Args:
+        chunk_data: Tuple containing:
+            - state_chunk: List of (state_tuple, index) pairs
+            - coeffs_vector: LFSR coefficients
+            - gf_order: Field order
+            - lfsr_degree: LFSR degree
+            - algorithm: Cycle detection algorithm
+            - period_only: Whether to store sequences
+            - worker_id: Worker identifier
+            
+    Returns:
+        Dictionary with:
+            - 'sequences': List of dicts, each with 'states', 'period', 'start_state'
+            - 'max_period': Maximum period found
+            - 'processed_count': Number of states processed
+            - 'errors': List of error messages
+    """
+    (
+        state_chunk,
+        coeffs_vector,
+        gf_order,
+        lfsr_degree,
+        algorithm,
+        period_only,
+        worker_id,
+    ) = chunk_data
+    
+    # Import SageMath in worker
+    # With 'fork' method (Linux default), workers inherit parent's memory
+    # so SageMath should already be imported. Just import what we need.
+    try:
+        from sage.all import VectorSpace, GF, vector
+    except ImportError:
+        # If import fails, try to set up SageMath path (for spawn method)
+        import sys
+        import subprocess
+        import os
+        try:
+            result = subprocess.run(
+                ["sage", "-c", "import sys; print('\\n'.join(sys.path))"],
+                capture_output=True,
+                text=True,
+                timeout=5,
+            )
+            if result.returncode == 0:
+                sage_paths = result.stdout.strip().split("\n")
+                for path in sage_paths:
+                    if path and path not in sys.path and os.path.isdir(path):
+                        sys.path.insert(0, path)
+                from sage.all import VectorSpace, GF, vector
+            else:
+                raise ImportError("SageMath not found")
+        except (subprocess.TimeoutExpired, subprocess.SubprocessError, FileNotFoundError, ImportError):
+            return {
+                'sequences': [],
+                'max_period': 0,
+                'processed_count': 0,
+                'errors': ['SageMath not available in worker process'],
+            }
+    
+    # Reconstruct state update matrix in worker
+    try:
+        from lfsr.core import build_state_update_matrix
+        state_update_matrix, _ = build_state_update_matrix(coeffs_vector, gf_order)
+    except Exception as e:
+        return {
+            'sequences': [],
+            'max_period': 0,
+            'processed_count': 0,
+            'errors': [f'Failed to build state update matrix: {str(e)}'],
+        }
+    
+    # Initialize worker-local results
+    sequences = []  # List of {states, period, start_state_tuple}
+    worker_max_period = 0
+    processed_count = 0
+    errors = []
+    
+    # Local visited set for this worker (to avoid processing same cycle multiple times in this chunk)
+    local_visited = set()
+    
+    # Process each state in chunk
+    for state_tuple, _ in state_chunk:
+        try:
+            # Skip if already visited in this worker's processing
+            if state_tuple in local_visited:
+                continue
+            
+            # Reconstruct state vector from tuple
+            # Create the finite field and vector space
+            F = GF(gf_order)
+            V = VectorSpace(F, lfsr_degree)
+            # Convert tuple to list and create vector
+            state_list = [F(x) for x in state_tuple]
+            state = vector(F, state_list)
+            
+            # Find cycle for this state using local visited set
+            # Note: We pass an empty set here since each worker processes independently
+            # The visited_set parameter is used to mark states, but we handle deduplication in merge
+            # Import the function we need (avoid circular import issues)
+            # Since we're in the same module, we can reference it directly
+            # But for multiprocessing, we need to make sure it's available
+            local_visited_set = set()
+            # Call _find_sequence_cycle
+            # In multiprocessing with 'fork', functions from the same module should be available
+            # But to be safe, we'll import it explicitly
+            # Note: This creates a reference that should work in forked processes
+            from lfsr.analysis import _find_sequence_cycle
+            seq_lst, seq_period = _find_sequence_cycle(
+                state,
+                state_update_matrix,
+                local_visited_set,
+                algorithm=algorithm,
+                period_only=period_only,
+            )
+            
+            # Mark all states in this cycle as visited (for this worker's local processing)
+            # This prevents processing the same cycle multiple times within this worker's chunk
+            for seq_state in seq_lst:
+                seq_state_tuple = tuple(seq_state)
+                local_visited.add(seq_state_tuple)
+            
+            # Also mark the start state
+            local_visited.add(state_tuple)
+            
+            # Store sequence information
+            # Convert states to tuples for serialization
+            if period_only:
+                states_tuples = []
+            else:
+                states_tuples = [tuple(s) for s in seq_lst]
+            
+            sequences.append({
+                'states': states_tuples,
+                'period': seq_period,
+                'start_state': state_tuple,
+            })
+            
+            if seq_period > worker_max_period:
+                worker_max_period = seq_period
+            
+            processed_count += 1
+            
+        except Exception as e:
+            errors.append(f'Error processing state {state_tuple}: {str(e)}')
+            continue
+    
+    return {
+        'sequences': sequences,
+        'max_period': worker_max_period,
+        'processed_count': processed_count,
+        'errors': errors,
+    }
+
+
+def lfsr_sequence_mapper_parallel(
+    state_update_matrix: Any,
+    state_vector_space: Any,
+    gf_order: int,
+    output_file: Optional[TextIO] = None,
+    no_progress: bool = False,
+    algorithm: str = "auto",
+    period_only: bool = False,
+    num_workers: Optional[int] = None,
+) -> Tuple[Dict[int, List[Any]], Dict[int, int], int, int]:
+    """
+    Parallel version of lfsr_sequence_mapper using multiprocessing.
+    
+    Partitions the state space across multiple worker processes and processes
+    them in parallel, then merges the results.
+    
+    Args:
+        state_update_matrix: The LFSR state update matrix (not used directly, 
+                            coefficients extracted for workers)
+        state_vector_space: Vector space of all possible states
+        gf_order: The field order
+        output_file: Optional file object for output
+        no_progress: If True, disable progress bar display
+        algorithm: Algorithm to use: "floyd", "brent", "enumeration", or "auto"
+        period_only: If True, compute periods only without storing sequences
+        num_workers: Number of parallel workers (default: CPU count)
+    
+    Returns:
+        Tuple of (seq_dict, period_dict, max_period, periods_sum)
+        Same format as lfsr_sequence_mapper
+    """
+    from lfsr.formatter import dump, dump_seq_row, subsection
+    
+    # Determine number of workers
+    if num_workers is None:
+        num_workers = multiprocessing.cpu_count()
+    num_workers = max(1, min(num_workers, multiprocessing.cpu_count()))
+    
+    # Extract coefficients from matrix for worker reconstruction
+    # The matrix structure: last row contains coefficients
+    d = state_update_matrix.dimensions()[0]
+    coeffs_vector = [int(state_update_matrix[d-1, i]) for i in range(d)]
+    
+    subsec_name = "STATES SEQUENCES"
+    subsec_desc = "all possible state sequences " + "and their corresponding periods (parallel processing)"
+    subsection(subsec_name, subsec_desc, output_file)
+    
+    # Partition state space
+    chunks = _partition_state_space(state_vector_space, num_workers)
+    
+    if not chunks:
+        # Empty state space
+        return {}, {}, 0, 0
+    
+    # Prepare chunk data for workers
+    chunk_data_list = []
+    for worker_id, chunk in enumerate(chunks):
+        chunk_data = (
+            chunk,
+            coeffs_vector,
+            gf_order,
+            d,
+            algorithm,
+            period_only,
+            worker_id,
+        )
+        chunk_data_list.append(chunk_data)
+    
+    # Process chunks in parallel
+    if not no_progress:
+        print(f"  Processing {len(chunks)} chunks with {num_workers} workers...")
+        import sys
+        sys.stdout.flush()  # Ensure output is visible
+    
+    # Use multiprocessing.Pool
+    # On Linux, 'fork' is default and works well with SageMath (shares memory)
+    # 'spawn' creates new processes which need to reimport everything (slower)
+    # NOTE: There are known issues with multiprocessing and SageMath in some contexts
+    # If workers hang, we fall back to sequential processing
+    try:
+        # Use default context (fork on Linux, spawn on macOS/Windows)
+        # Fork is faster because it shares the parent's memory space
+        import time
+        start_time = time.time()
+        
+        with multiprocessing.Pool(processes=num_workers) as pool:
+            if not no_progress:
+                print(f"  Pool created, starting workers...")
+                import sys
+                sys.stdout.flush()
+            
+            # Use map_async with timeout for better control
+            async_result = pool.map_async(_process_state_chunk, chunk_data_list)
+            
+            if not no_progress:
+                print(f"  Workers started, waiting for results (timeout: 30s per chunk)...")
+                import sys
+                sys.stdout.flush()
+            
+            try:
+                # Wait with reasonable timeout
+                # For small LFSRs, this should be plenty
+                timeout_per_chunk = 30
+                total_timeout = timeout_per_chunk * len(chunk_data_list)
+                worker_results = async_result.get(timeout=total_timeout)
+                
+                elapsed = time.time() - start_time
+                if not no_progress:
+                    print(f"  Workers completed in {elapsed:.2f}s")
+            except multiprocessing.TimeoutError:
+                pool.terminate()
+                try:
+                    pool.join(timeout=5)
+                except TypeError:
+                    # Python < 3.7 doesn't support timeout in join()
+                    pool.join()
+                import sys
+                print("ERROR: Parallel processing timed out - workers may be hung", file=sys.stderr)
+                print("  This can happen with SageMath and multiprocessing in some configurations", file=sys.stderr)
+                print("  Falling back to sequential processing...", file=sys.stderr)
+                return lfsr_sequence_mapper(
+                    state_update_matrix,
+                    state_vector_space,
+                    gf_order,
+                    output_file,
+                    no_progress,
+                    algorithm,
+                    period_only,
+                )
+    except Exception as e:
+        # Fallback to sequential on error
+        import sys
+        print(f"ERROR: Parallel processing failed: {e}", file=sys.stderr)
+        print("  Falling back to sequential processing...", file=sys.stderr)
+        import traceback
+        traceback.print_exc()
+        return lfsr_sequence_mapper(
+            state_update_matrix,
+            state_vector_space,
+            gf_order,
+            output_file,
+            no_progress,
+            algorithm,
+            period_only,
+        )
+    
+    # Merge results from all workers
+    seq_dict, period_dict, max_period, periods_sum = _merge_parallel_results(
+        worker_results, gf_order, d
+    )
+    
+    # Display sequences (same format as sequential version)
+    print("\n")
+    num_sequences = len(period_dict)
+    row_width = TABLE_ROW_WIDTH
+    # Reconstruct special state for formatting
+    F = GF(gf_order)
+    V_special = VectorSpace(F, d)
+    special_state = vector(F, [F(1) if i == d - 1 else F(0) for i in range(d)])
+    
+    if period_only:
+        # Period-only mode: display only periods
+        for seq_num, period in period_dict.items():
+            seq_entry = f" | ** sequence {seq_num:3d} | T : {period:3d} | (period only)  |"
+            dump(seq_entry, "mode=all", output_file)
+    else:
+        # Full mode: display sequences
+        for seq_num, sequence in seq_dict.items():
+            period = period_dict[seq_num]
+            seq_entry, seq_all_v = _format_sequence_entry(
+                seq_num, sequence, period, max_period, special_state, row_width
+            )
+            
+            dump_seq_row(
+                seq_num, seq_entry, num_sequences, row_width, "mode=console", output_file
+            )
+            dump_seq_row(
+                seq_num, seq_all_v, num_sequences, row_width, "mode=file", output_file
+            )
+    
+    state_vector_space_size = int(gf_order) ** d
+    dump("  PERIOD VALUES SUMMED : " + str(periods_sum), "mode=all", output_file)
+    dump(
+        "     NO. STATE VECTORS : " + str(state_vector_space_size),
+        "mode=all",
+        output_file,
+    )
+    
+    # Verification: periods_sum should equal state_vector_space_size
+    if periods_sum != state_vector_space_size:
+        import sys
+        print(
+            f"WARNING: Period sum ({periods_sum}) != state space size ({state_vector_space_size})",
+            file=sys.stderr,
+        )
+    
     return seq_dict, period_dict, max_period, periods_sum
 
 

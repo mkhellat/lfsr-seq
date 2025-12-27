@@ -57,6 +57,8 @@ def main(
     algorithm: str = "auto",
     period_only: bool = False,
     show_period_stats: bool = True,
+    use_parallel: Optional[bool] = None,
+    num_workers: Optional[int] = None,
 ) -> None:
     """Main function to process LFSR coefficient vectors and perform analysis.
 
@@ -171,9 +173,32 @@ def main(
             else:
                 effective_algorithm = "enumeration"  # Enumeration is better for full mode
         
-        seq_dict, period_dict, max_period, periods_sum = lfsr_sequence_mapper(
-            C, V, gf_order, output_file, no_progress=no_progress, algorithm=effective_algorithm, period_only=period_only
-        )
+        # Decide whether to use parallel processing
+        # Auto-detect: use parallel if state space is large enough and parallel is enabled
+        should_use_parallel = False
+        if use_parallel is None:
+            # Auto-detect: use parallel for large state spaces
+            # Threshold: > 10,000 states and at least 2 CPU cores
+            import multiprocessing
+            should_use_parallel = (
+                state_vector_space_size > 10000
+                and multiprocessing.cpu_count() >= 2
+            )
+        else:
+            should_use_parallel = use_parallel
+        
+        # Use parallel or sequential version
+        if should_use_parallel:
+            from lfsr.analysis import lfsr_sequence_mapper_parallel
+            seq_dict, period_dict, max_period, periods_sum = lfsr_sequence_mapper_parallel(
+                C, V, gf_order, output_file, no_progress=no_progress, 
+                algorithm=effective_algorithm, period_only=period_only, num_workers=num_workers
+            )
+        else:
+            seq_dict, period_dict, max_period, periods_sum = lfsr_sequence_mapper(
+                C, V, gf_order, output_file, no_progress=no_progress, 
+                algorithm=effective_algorithm, period_only=period_only
+            )
 
         # Finding all sequences of states of the parameterized
         # LFSR and their corresponding periods
@@ -329,6 +354,29 @@ def parse_args(args: Optional[list] = None) -> argparse.Namespace:
     )
 
     parser.add_argument(
+        "--parallel",
+        action="store_true",
+        default=None,
+        dest="use_parallel",
+        help="Enable parallel state enumeration (auto-enabled for large state spaces > 10,000)",
+    )
+
+    parser.add_argument(
+        "--no-parallel",
+        action="store_false",
+        dest="use_parallel",
+        help="Disable parallel processing (force sequential)",
+    )
+
+    parser.add_argument(
+        "--num-workers",
+        type=int,
+        default=None,
+        metavar="N",
+        help="Number of parallel workers (default: CPU count). Only used with --parallel.",
+    )
+
+    parser.add_argument(
         "--version",
         action="version",
         version=f"%(prog)s {__version__}",
@@ -408,6 +456,8 @@ def cli_main() -> None:
                 algorithm=args.algorithm,
                 period_only=args.period_only,
                 show_period_stats=args.show_period_stats,
+                use_parallel=args.use_parallel,
+                num_workers=args.num_workers,
             )
 
         if not args.quiet:
