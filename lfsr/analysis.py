@@ -1076,6 +1076,33 @@ def lfsr_sequence_mapper_parallel(
     Partitions the state space across multiple worker processes and processes
     them in parallel, then merges the results.
     
+    NOTE: Currently, parallel processing works reliably only in period-only mode
+    (period_only=True). In full sequence mode, workers may hang due to SageMath
+    matrix multiplication issues in multiprocessing context. The function
+    automatically falls back to sequential processing on timeout.
+    
+    Args:
+        state_update_matrix: The LFSR state update matrix (not used directly, 
+                            coefficients extracted for workers)
+        state_vector_space: Vector space of all possible states
+        gf_order: The field order
+        output_file: Optional file object for output
+        no_progress: If True, disable progress bar display
+        algorithm: Algorithm to use: "floyd", "brent", "enumeration", or "auto"
+        period_only: If True, compute periods only without storing sequences.
+                    RECOMMENDED for parallel processing to avoid hangs.
+        num_workers: Number of parallel workers (default: CPU count)
+    
+    Returns:
+        Tuple of (seq_dict, period_dict, max_period, periods_sum)
+        Same format as lfsr_sequence_mapper
+    """
+    """
+    Parallel version of lfsr_sequence_mapper using multiprocessing.
+    
+    Partitions the state space across multiple worker processes and processes
+    them in parallel, then merges the results.
+    
     Args:
         state_update_matrix: The LFSR state update matrix (not used directly, 
                             coefficients extracted for workers)

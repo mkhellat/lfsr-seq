@@ -188,11 +188,20 @@ def main(
             should_use_parallel = use_parallel
         
         # Use parallel or sequential version
+        # NOTE: Parallel processing works reliably only in period-only mode
+        # In full sequence mode, it may hang due to SageMath/multiprocessing issues
         if should_use_parallel:
             from lfsr.analysis import lfsr_sequence_mapper_parallel
+            # Force period_only=True for parallel processing to avoid hangs
+            # This is a workaround until the matrix multiplication hang is fixed
+            parallel_period_only = period_only if period_only else True
+            if not period_only:
+                import sys
+                print("WARNING: Parallel processing forced to period-only mode to avoid hangs.", file=sys.stderr)
+                print("  Use --no-parallel for full sequence mode, or --period-only for parallel.", file=sys.stderr)
             seq_dict, period_dict, max_period, periods_sum = lfsr_sequence_mapper_parallel(
                 C, V, gf_order, output_file, no_progress=no_progress, 
-                algorithm=effective_algorithm, period_only=period_only, num_workers=num_workers
+                algorithm=effective_algorithm, period_only=parallel_period_only, num_workers=num_workers
             )
         else:
             seq_dict, period_dict, max_period, periods_sum = lfsr_sequence_mapper(
