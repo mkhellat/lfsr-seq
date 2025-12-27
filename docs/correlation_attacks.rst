@@ -417,6 +417,50 @@ Glossary
    A result is statistically significant if it is unlikely to have occurred by
    chance alone, typically measured using p-values.
 
+**Fast Correlation Attack**
+   An improved correlation attack that uses iterative decoding techniques to
+   recover LFSR states more efficiently than exhaustive search. The
+   Meier-Staffelbach attack is the most well-known example.
+
+**Iterative Decoding**
+   A technique borrowed from error-correcting codes where candidate solutions are
+   refined through multiple iterations, using correlation information to improve
+   estimates of the correct state.
+
+**Belief Propagation**
+   An algorithm used in iterative decoding where beliefs about the correct state
+   are propagated and updated based on observed correlations with the keystream.
+
+**Candidate State**
+   A potential initial state of the target LFSR that is tested for correlation
+   with the keystream in fast correlation attacks.
+
+**Hamming Weight**
+   The number of non-zero elements in a state vector. States with low Hamming
+   weight are often tested first in fast correlation attacks.
+
+**State Recovery**
+   The process of determining the initial state of an LFSR from observed
+   keystream, which is the goal of fast correlation attacks.
+
+**Distinguishing Attack**
+   A cryptanalytic technique that determines whether a keystream was generated
+   by a specific combination generator or is truly random. This is a weaker form
+   of attack that doesn't recover the state but can detect vulnerabilities.
+
+**Distinguisher**
+   A statistical test or algorithm that can distinguish between two
+   distributions (combination generator output vs. random).
+
+**Distinguishing Statistic**
+   A numerical value computed from the keystream that helps determine if it came
+   from the combination generator. Common statistics include correlation
+   coefficients, frequency differences, and runs differences.
+
+**Distinguishing Advantage**
+   The probability that the distinguisher correctly identifies the source minus
+   the probability of random guessing. A perfect distinguisher has advantage 1.0.
+
 Fast Correlation Attack (Meier-Staffelbach)
 --------------------------------------------
 
@@ -425,28 +469,101 @@ attack that uses iterative decoding techniques to recover LFSR states more
 efficiently. The Meier-Staffelbach attack (1989) is the most well-known fast
 correlation attack.
 
+**What is a Fast Correlation Attack?**
+
+A fast correlation attack treats the correlation attack problem as a decoding
+problem. The keystream is viewed as a noisy version of the LFSR sequence, where
+the correlation coefficient determines the "noise level." By using iterative
+decoding techniques (similar to error-correcting codes), the attack can recover
+the LFSR state more efficiently than exhaustive search.
+
+**Key Terminology**:
+
+- **Iterative Decoding**: A technique borrowed from error-correcting codes where
+  candidate solutions are refined through multiple iterations, using information
+  from correlations to improve estimates.
+
+- **Belief Propagation**: An algorithm used in iterative decoding where beliefs
+  about the correct state are propagated and updated based on observed
+  correlations.
+
+- **Candidate State**: A potential initial state of the target LFSR that is
+  tested for correlation with the keystream.
+
+- **Hamming Weight**: The number of non-zero elements in a state vector. States
+  with low Hamming weight are often tested first as they may be more likely.
+
+- **State Recovery**: The process of determining the initial state of an LFSR
+  from observed keystream, which is the goal of fast correlation attacks.
+
 **Key Advantages**:
-- More efficient than exhaustive search
-- Can handle weaker correlations
-- Uses iterative decoding (belief propagation)
+- More efficient than exhaustive search (complexity: :math:`O(2^d / \rho^2)` in
+  best case vs :math:`O(2^d)` for exhaustive search)
+- Can handle weaker correlations (can work with |rho| as low as 0.1)
+- Uses iterative decoding (belief propagation) to refine candidates
 - Better complexity for large state spaces
+- Can recover the actual LFSR state (not just detect correlation)
+
+**Mathematical Foundation**:
+
+The fast correlation attack views the problem as:
+
+.. math::
+
+   \text{keystream} = \text{LFSR sequence} + \text{noise}
+
+where the noise level is determined by the correlation coefficient. The
+correlation coefficient |rho| relates to the error probability:
+
+.. math::
+
+   \Pr[\text{error}] = \frac{1 - |\rho|}{2}
+
+For |rho| = 0.3, the error probability is 0.35, meaning 35% of bits differ.
 
 **Algorithm Overview**:
-1. Generate candidate initial states for the target LFSR
-2. For each candidate, generate the corresponding LFSR sequence
-3. Compute correlation with keystream
-4. Use iterative decoding to refine candidates
-5. Select the best candidate based on correlation
+
+1. **Candidate Generation**: Generate candidate initial states for the target
+   LFSR. Typically, states with low Hamming weight are tested first, as they may
+   be more likely to produce correlated sequences.
+
+2. **Sequence Generation**: For each candidate state, generate the
+   corresponding LFSR sequence of length equal to the keystream.
+
+3. **Correlation Computation**: Compute the correlation coefficient between the
+   candidate sequence and the observed keystream.
+
+4. **Iterative Decoding**: Use iterative decoding to refine candidates:
+   - Start with the best candidate based on correlation
+   - Try small variations (e.g., flipping bits)
+   - If a variation improves correlation, update the candidate
+   - Repeat until no improvement is found
+
+5. **State Selection**: Select the candidate with the highest correlation as
+   the recovered state.
+
+**Algorithm Complexity**:
+
+- **Time Complexity**: :math:`O(N \cdot n)` where :math:`N` is the number of
+  candidates tested and :math:`n` is the keystream length. In practice, this
+  is much better than :math:`O(2^d)` for exhaustive search.
+
+- **Space Complexity**: :math:`O(d + n)` for storing the candidate state and
+  keystream, where :math:`d` is the LFSR degree.
 
 **When to Use**:
-- Large state spaces where exhaustive search is infeasible
-- Weaker correlations that basic attack cannot exploit
+- Large state spaces where exhaustive search is infeasible (e.g., :math:`d > 20`)
+- Weaker correlations that basic attack cannot exploit (|rho| < 0.3)
 - Need for state recovery (not just detection)
+- When you have sufficient keystream (typically :math:`n > 100 \cdot d`)
 
 **Limitations**:
-- Requires sufficient correlation (typically |rho| > 0.1)
-- Performance depends on correlation strength
-- May not succeed if correlation is too weak
+- Requires sufficient correlation (typically |rho| > 0.1, better if |rho| > 0.2)
+- Performance depends on correlation strength (weaker correlations require
+  more candidates and iterations)
+- May not succeed if correlation is too weak (|rho| < 0.1)
+- Requires more keystream than basic attack for reliable state recovery
+- Iterative decoding may converge to local optima instead of global optimum
 
 **CLI Usage**:
 
@@ -480,25 +597,154 @@ A **distinguishing attack** determines whether a keystream was generated by a
 specific combination generator or is truly random. This is a weaker form of
 attack that doesn't recover the state but can detect vulnerabilities.
 
-**Applications**:
-- Detect if a generator is being used
-- Identify weak generators
-- Security assessment
-- Vulnerability detection
+**What is a Distinguishing Attack?**
+
+A distinguishing attack answers the question: "Can we tell if this sequence
+came from our combination generator, or is it truly random?" Unlike correlation
+attacks that aim to recover the LFSR state, distinguishing attacks only need to
+detect that the keystream has properties consistent with the combination
+generator.
+
+**Key Terminology**:
+
+- **Distinguisher**: A statistical test or algorithm that can distinguish
+  between two distributions (in this case, combination generator output vs.
+  random).
+
+- **Distinguishing Statistic**: A numerical value computed from the keystream
+  that helps determine if it came from the combination generator. Common
+  statistics include correlation coefficients, frequency differences, and runs
+  differences.
+
+- **False Positive**: Incorrectly identifying a random sequence as coming from
+  the combination generator.
+
+- **False Negative**: Failing to identify a sequence from the combination
+  generator as such.
+
+- **Distinguishing Advantage**: The probability that the distinguisher correctly
+  identifies the source minus the probability of random guessing (0.5 for binary
+  choice).
+
+**Why Distinguishing Attacks Matter**:
+
+1. **Security Assessment**: If a keystream can be distinguished from random,
+   the generator is vulnerable, even if full state recovery isn't possible.
+
+2. **Weakness Detection**: Distinguishing attacks can identify weak generators
+   before more sophisticated attacks are attempted.
+
+3. **Theoretical Foundation**: Many cryptographic proofs rely on the
+   indistinguishability of cipher output from random. Distinguishing attacks
+   test this assumption.
+
+4. **Practical Applications**: Used in security evaluations of stream ciphers and
+   combination generators.
+
+**Mathematical Foundation**:
+
+A distinguisher :math:`D` takes a sequence :math:`s` and outputs 0 (random) or 1
+(combination generator). The distinguishing advantage is:
+
+.. math::
+
+   \text{Adv}(D) = \left| \Pr[D(s_{\text{gen}}) = 1] - \Pr[D(s_{\text{rand}}) = 1] \right|
+
+where :math:`s_{\text{gen}}` is from the combination generator and
+:math:`s_{\text{rand}}` is random. A perfect distinguisher has advantage 1.0,
+while a useless distinguisher has advantage 0.0.
 
 **Methods**:
 
-1. **Correlation-based**: Tests for correlations between keystream and
-   individual LFSR sequences. If correlations exist, the keystream is
+1. **Correlation-based Distinguishing**:
+   
+   This method tests for correlations between the keystream and individual LFSR
+   sequences. If significant correlations exist, the keystream is
    distinguishable from random.
+   
+   **Algorithm**:
+   
+   - For each LFSR in the combination generator:
+     - Generate a sequence from that LFSR
+     - Compute correlation coefficient with keystream
+   - If any correlation is significant (|rho| > threshold, p-value < 0.05), the
+     keystream is distinguishable
+   
+   **Advantages**:
+   - Directly tests the vulnerability exploited by correlation attacks
+   - Can identify which LFSR is most correlated
+   - Provides correlation coefficients for further analysis
+   
+   **Mathematical Basis**:
+   
+   For a truly random sequence, the correlation with any fixed sequence should
+   be approximately 0. If we observe |rho| significantly different from 0,
+   we can distinguish the keystream from random.
+   
+   The test statistic is:
+   
+   .. math::
+   
+      Z = \rho \sqrt{n}
+   
+   which follows a standard normal distribution under the null hypothesis of no
+   correlation.
 
-2. **Statistical**: Tests statistical properties of the keystream against
-   expected properties of the combination generator.
+2. **Statistical Distinguishing**:
+   
+   This method compares statistical properties of the keystream against expected
+   properties of the combination generator.
+   
+   **Properties Tested**:
+   
+   - **Frequency**: Distribution of 0s and 1s (should be balanced for good
+     generators)
+   - **Runs**: Number of consecutive identical bits (should match expected
+     distribution)
+   - **Autocorrelation**: Correlation of sequence with shifted versions
+   - **Pattern Frequency**: Frequency of specific bit patterns
+   
+   **Algorithm**:
+   
+   - Generate expected sequence from combination generator
+   - Compute statistical properties of both keystream and expected sequence
+   - Compare properties using statistical tests (e.g., chi-square, Kolmogorov-Smirnov)
+   - If properties differ significantly, the keystream is distinguishable
+   
+   **Advantages**:
+   - Tests multiple statistical properties
+   - Can detect weaknesses not visible through correlation alone
+   - Provides comprehensive security assessment
+   
+   **Limitations**:
+   - Requires generating expected sequence (may be computationally expensive)
+   - May have higher false positive rate than correlation method
 
 **When to Use**:
 - Security assessment of combination generators
-- Detecting weak generators
+- Detecting weak generators before attempting full attacks
 - Identifying vulnerabilities without full state recovery
+- Evaluating indistinguishability properties
+- Quick security checks when full cryptanalysis isn't needed
+
+**Interpretation of Results**:
+
+- **Distinguishable = True, Attack Successful = True**: The keystream is
+  definitely distinguishable from random. The generator is vulnerable.
+
+- **Distinguishable = False, Attack Successful = False**: The keystream appears
+  random. This is good for security, but doesn't guarantee the generator is
+  secure (other attacks may still work).
+
+- **Distinguishable = True, Attack Successful = False**: Some distinguishing
+  properties detected, but not statistically significant. May indicate weak
+  correlation that needs more keystream to detect.
+
+**Limitations**:
+- Doesn't recover the LFSR state (only detects vulnerability)
+- May have false positives/negatives depending on keystream length
+- Statistical method requires generating expected sequence
+- Correlation method may miss non-linear correlations
 
 **CLI Usage**:
 

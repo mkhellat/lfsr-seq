@@ -29,6 +29,19 @@ cipher analysis, educational purposes, and security evaluation.
 - **Statistical Analysis**: Frequency tests, runs tests, autocorrelation, periodicity detection
 - **Multi-format Export**: Export results in JSON, CSV, XML, or plain text formats
 
+### Cryptographic Analysis
+- **Correlation Attack Framework**: Comprehensive suite for analyzing combination generators
+  - **Siegenthaler's Attack**: Basic correlation attack for detecting vulnerabilities
+  - **Fast Correlation Attack (Meier-Staffelbach)**: Advanced attack using iterative decoding for state recovery
+  - **Distinguishing Attacks**: Detect if keystream is distinguishable from random (correlation and statistical methods)
+  - **Combining Function Analysis**: Analyze correlation immunity, bias, and security properties
+  - **Attack Success Probability Estimation**: Estimate attack feasibility and required resources
+- **NIST SP 800-22 Test Suite**: Industry-standard statistical tests for randomness (all 15 tests)
+  - Frequency tests, runs tests, matrix rank, spectral tests
+  - Template matching, Maurer's universal test, linear complexity test
+  - Serial test, approximate entropy, cumulative sums, random excursions
+  - Multi-format report generation (Text, JSON, CSV, XML, HTML)
+
 ### Field Support
 - **Prime Fields**: Full support for GF(p) where p is prime
 - **Prime Power Fields**: Support for GF(pⁿ) extension fields
@@ -43,6 +56,7 @@ cipher analysis, educational purposes, and security evaluation.
 ### Performance Optimizations
 - **Multiple Cycle Detection Algorithms**: Floyd's (tortoise-and-hare), Brent's (powers-of-2), and enumeration methods
 - **Period-Only Mode**: True O(1) space complexity for period computation without sequence storage
+- **Parallel State Enumeration**: Multi-process parallelization for large state space analysis
 - **Optimized State Tracking**: Set-based visited state tracking for O(1) lookups
 - **Primitive Polynomial Optimization**: Fast period prediction for primitive polynomials
 - **Scalable Architecture**: Designed to handle larger LFSRs efficiently
@@ -232,6 +246,17 @@ Optional arguments:
                         - auto: Enumeration for full mode, floyd for period-only
   --check-primitive     Explicitly check for primitive polynomials
                         (detection is automatic, flag makes it explicit)
+  --correlation-attack   Perform correlation attack analysis on combination
+                        generators (requires --lfsr-configs)
+  --lfsr-configs FILE   JSON file with combination generator configuration
+  --fast-correlation-attack
+                        Use fast correlation attack (Meier-Staffelbach)
+  --distinguishing-attack
+                        Perform distinguishing attack to detect vulnerabilities
+  --nist-test          Run NIST SP 800-22 statistical test suite
+  --sequence-file FILE  File containing binary sequence for NIST tests
+  --nist-output-format {text,json,csv,xml,html}
+                        Format for NIST test reports (default: text)
 ```
 
 **Examples:**
@@ -323,6 +348,13 @@ from lfsr.cli import main
 from lfsr.synthesis import berlekamp_massey, linear_complexity
 from lfsr.statistics import statistical_summary
 from lfsr.core import build_state_update_matrix
+from lfsr.attacks import (
+    CombinationGenerator, LFSRConfig,
+    siegenthaler_correlation_attack,
+    fast_correlation_attack,
+    distinguishing_attack
+)
+from lfsr.nist import run_nist_test_suite
 
 # Analyze LFSR from CSV
 with open("output.txt", "w") as f:
@@ -341,6 +373,38 @@ print(f"Total runs: {stats['runs']['total_runs']}")
 # Build state update matrix
 coeffs = [1, 1, 0, 1]
 C, CS = build_state_update_matrix(coeffs, 2)
+
+# Correlation attack on combination generator
+def majority(a, b, c):
+    return 1 if (a + b + c) >= 2 else 0
+
+gen = CombinationGenerator(
+    lfsrs=[
+        LFSRConfig(coefficients=[1, 0, 0, 1], field_order=2, degree=4),
+        LFSRConfig(coefficients=[1, 1, 0, 1], field_order=2, degree=4),
+        LFSRConfig(coefficients=[1, 0, 1, 1], field_order=2, degree=4)
+    ],
+    combining_function=majority
+)
+
+keystream = gen.generate_keystream(length=1000)
+
+# Basic correlation attack
+result = siegenthaler_correlation_attack(gen, keystream, target_lfsr_index=0)
+print(f"Correlation: {result.correlation_coefficient:.4f}")
+
+# Fast correlation attack
+fast_result = fast_correlation_attack(gen, keystream, target_lfsr_index=0)
+if fast_result.attack_successful:
+    print(f"Recovered state: {fast_result.recovered_state}")
+
+# Distinguishing attack
+dist_result = distinguishing_attack(gen, keystream, method="correlation")
+print(f"Distinguishable: {dist_result.distinguishable}")
+
+# NIST statistical tests
+nist_result = run_nist_test_suite(keystream)
+print(f"Tests passed: {nist_result.passed_count}/{nist_result.total_tests}")
 ```
 
 ## Usage Examples
@@ -411,6 +475,32 @@ lfsr-seq strange.csv 2 --verbose
 
 Shows detailed information about input files, output location, and processing steps.
 
+### Example 6: Correlation Attack Analysis
+
+```bash
+# Basic correlation attack
+lfsr-seq dummy.csv 2 --correlation-attack --lfsr-configs config.json
+
+# Fast correlation attack with custom parameters
+lfsr-seq dummy.csv 2 --correlation-attack --lfsr-configs config.json \
+    --fast-correlation-attack --max-candidates 2000
+
+# Distinguishing attack
+lfsr-seq dummy.csv 2 --correlation-attack --lfsr-configs config.json \
+    --distinguishing-attack --distinguishing-method correlation
+```
+
+### Example 7: NIST SP 800-22 Statistical Tests
+
+```bash
+# Run NIST test suite on a sequence
+lfsr-seq dummy.csv 2 --nist-test --sequence-file keystream.txt
+
+# Generate HTML report
+lfsr-seq dummy.csv 2 --nist-test --sequence-file keystream.txt \
+    --nist-output-format html --output nist_report.html
+```
+
 ## Project Structure
 
 ```
@@ -427,6 +517,10 @@ lfsr-seq/
 │   ├── synthesis.py         # Berlekamp-Massey & LFSR synthesis
 │   ├── statistics.py       # Statistical analysis tools
 │   ├── export.py           # Multi-format export functions
+│   ├── attacks.py          # Correlation attack framework
+│   ├── cli_correlation.py  # CLI for correlation attacks
+│   ├── cli_nist.py         # CLI for NIST tests
+│   ├── nist.py             # NIST SP 800-22 test suite
 │   └── constants.py        # Named constants
 ├── tests/                   # Test suite
 │   ├── test_core.py        # Core function tests
@@ -717,10 +811,18 @@ compared with the periods of the listed sequences.
 - **State Update Matrix**: Matrix representation of LFSR state transitions
 - **Characteristic Polynomial**: Polynomial whose roots determine LFSR properties
 - **Period**: Length of cycle before LFSR returns to initial state
+- **Primitive Polynomial**: Polynomial that yields maximum-period LFSRs
 - **Linear Complexity**: Length of shortest LFSR that can generate a sequence
 - **Berlekamp-Massey Algorithm**: Algorithm for synthesizing LFSRs from sequences
+- **Combination Generator**: Multiple LFSRs combined with a non-linear function
+- **Correlation Attack**: Cryptanalytic technique exploiting correlations in combination generators
+- **Fast Correlation Attack**: Advanced attack using iterative decoding for state recovery
+- **Distinguishing Attack**: Technique to detect if keystream is distinguishable from random
+- **NIST SP 800-22**: Industry-standard statistical test suite for randomness
 
 For detailed mathematical background, see the [documentation](docs/mathematical_background.rst).
+For correlation attack theory and usage, see [Correlation Attacks Guide](docs/correlation_attacks.rst).
+For NIST test suite documentation, see [NIST SP 800-22 Guide](docs/nist_sp800_22.rst).
 
 ## Contributing
 
