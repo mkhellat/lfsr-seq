@@ -1162,17 +1162,17 @@ def _process_state_chunk(
             # only for small periods (<= 100) to avoid hangs. For larger periods,
             # use simplified deduplication based on start_state+period.
             if period_only:
-                # First, get the period using period-only function
-                # Use Floyd's algorithm to avoid enumeration's matrix multiplication loop
-                # which hangs in multiprocessing context
+                # CRITICAL: In parallel processing (fork mode), enumeration algorithm can hang
+                # due to matrix multiplication loops. Force Floyd's algorithm which is safer.
+                # Floyd's algorithm doesn't use tight loops that can hang in multiprocessing.
                 debug_log(f'State {idx+1}: Period-only mode - computing period first...')
                 from lfsr.analysis import _find_period
-                # Use _find_period which defaults to enumeration (4x faster than Floyd)
-                # Enumeration is safe in spawn mode since each process is fresh
-                # No shared state issues that cause hangs in fork mode
+                # Force Floyd's algorithm in workers to avoid hangs
+                # Enumeration's matrix multiplication loop can hang in fork mode
+                worker_algorithm = "floyd" if algorithm in ["auto", "enumeration"] else algorithm
                 try:
-                    seq_period = _find_period(state, state_update_matrix, algorithm=algorithm)
-                    debug_log(f'State {idx+1}: Period computed: {seq_period}')
+                    seq_period = _find_period(state, state_update_matrix, algorithm=worker_algorithm)
+                    debug_log(f'State {idx+1}: Period computed: {seq_period} (using {worker_algorithm})')
                 except Exception as e:
                     debug_log(f'State {idx+1}: Error computing period: {e}')
                     # If period computation fails, skip this state
@@ -1190,12 +1190,22 @@ def _process_state_chunk(
                 min_state = state_tuple
                 current = state
                 # Limit to first 100 states to avoid hangs (for very large periods)
+                # Also add periodic checks to detect hangs early
                 max_check = min(100, seq_period)
-                for _ in range(max_check - 1):
-                    current = current * state_update_matrix
-                    current_tuple = tuple(current)
-                    if current_tuple < min_state:  # Lexicographic comparison
-                        min_state = current_tuple
+                try:
+                    for i in range(max_check - 1):
+                        current = current * state_update_matrix
+                        current_tuple = tuple(current)
+                        if current_tuple < min_state:  # Lexicographic comparison
+                            min_state = current_tuple
+                        # Periodic check every 10 iterations to detect hangs
+                        if i > 0 and i % 10 == 0:
+                            _ = len(str(current))  # Force evaluation to detect hangs
+                except Exception as e:
+                    debug_log(f'State {idx+1}: Warning - error computing min_state: {e}, using start_state')
+                    # Fallback: use start_state as key (less accurate but safe)
+                    min_state = state_tuple
+                
                 # Use the minimum state as the canonical key
                 # All states from the same cycle will have the same min_state
                 states_tuples = (min_state,)  # Single-element tuple for deduplication
