@@ -1,10 +1,10 @@
 Advanced LFSR Structures
-=========================
+========================
 
-This section provides a comprehensive guide to advanced LFSR structures beyond
-basic linear feedback shift registers. The documentation is designed to be
-accessible to beginners while providing sufficient depth for researchers and
-developers.
+This section provides a comprehensive guide to advanced LFSR structures that
+extend beyond basic linear feedback shift registers. The documentation is
+designed to be accessible to beginners while providing sufficient depth for
+researchers and developers.
 
 Introduction
 ------------
@@ -14,12 +14,11 @@ Introduction
 **Advanced LFSR structures** extend beyond basic linear feedback shift registers
 to include non-linear feedback, filtering functions, clock control, and multiple
 outputs. These structures are used in real-world cryptographic applications to
-increase security and complexity while maintaining the efficiency of LFSRs.
+increase security and complexity beyond what simple linear LFSRs can provide.
 
 **Why Use Advanced LFSR Structures?**
 
-1. **Increased Security**: Non-linearity and irregular clocking make cryptanalysis
-   more difficult
+1. **Increased Security**: Non-linearity breaks linearity weaknesses of LFSRs
 2. **Real-World Applications**: Many cryptographic systems use advanced structures
 3. **Educational Value**: Understanding how LFSRs are extended in practice
 4. **Research Capability**: Enabling analysis of complex generator designs
@@ -29,9 +28,9 @@ increase security and complexity while maintaining the efficiency of LFSRs.
 This documentation covers analysis of the following advanced LFSR structures:
 
 - **Non-Linear Feedback LFSRs (NFSRs)**: LFSRs with non-linear feedback functions
-- **Filtered LFSRs**: LFSRs with non-linear filtering functions applied to state
+- **Filtered LFSRs**: LFSRs with non-linear filtering functions
 - **Clock-Controlled LFSRs**: LFSRs with irregular clocking patterns
-- **Multi-Output LFSRs**: LFSRs that produce multiple output bits per step
+- **Multi-Output LFSRs**: LFSRs producing multiple output bits per step
 - **Irregular Clocking Patterns**: Advanced clock control mechanisms
 
 Key Concepts
@@ -42,93 +41,87 @@ Non-Linear Feedback
 
 **What is Non-Linear Feedback?**
 
-**Non-linear feedback** uses non-linear operations (AND, OR, etc.) in the feedback
-function, rather than only linear operations (XOR). This generalizes LFSRs to
-NFSRs (Non-Linear Feedback Shift Registers).
+**Non-linear feedback** extends LFSRs by allowing non-linear operations (AND,
+OR, etc.) in the feedback function, in addition to XOR. This creates NFSRs
+(Non-Linear Feedback Shift Registers).
 
 **Key Terminology**:
 
-- **Non-Linear Feedback Shift Register (NFSR)**: A shift register with a
-  non-linear feedback function. Unlike LFSRs, the feedback function can use AND,
-  OR, and other non-linear operations.
+- **NFSR (Non-Linear Feedback Shift Register)**: Generalization of LFSR where
+  feedback function is not linear. Uses non-linear operations (AND, OR, etc.)
+  in addition to XOR.
 
-- **Non-Linear Feedback Function**: A function that computes the new state bit
-  from the current state using non-linear operations. This function is not
-  linear (cannot be expressed as a linear combination of state bits).
+- **Non-Linear Feedback**: Feedback function that includes non-linear operations.
+  Unlike linear feedback (XOR only), non-linear feedback can use AND, OR, and
+  other Boolean operations.
 
-- **Non-Linearity**: The property of a function that cannot be expressed as a
-  linear combination of its inputs. Non-linearity is essential for cryptographic
-  security.
+- **Feedback Function**: Function computing the new state bit from current state.
+  In LFSRs, this is linear (XOR of tap bits). In NFSRs, this includes
+  non-linear operations.
 
-- **Feedback Function**: The function that determines the new state bit from
-  the current state. In NFSRs, this function is non-linear.
-
-- **Non-Linear Complexity**: A measure of the non-linearity in the feedback
-  function. Higher non-linear complexity generally provides better security.
+- **Non-Linear Complexity**: Measure of non-linearity in the feedback function.
+  Higher non-linear complexity generally provides better security.
 
 **Mathematical Foundation**:
 
-An NFSR of degree d has state S = (s_0, s_1, ..., s_{d-1}) and feedback function
-f: GF(q)^d → GF(q). The state update is:
+For an LFSR, the feedback is linear:
 
 .. math::
 
-   s_{new} = f(s_0, s_1, \\ldots, s_{d-1})
+   f(S) = c_0 S_0 \\oplus c_1 S_1 \\oplus \\ldots \\oplus c_{d-1} S_{d-1}
 
-where f is a non-linear function.
+For an NFSR, the feedback includes non-linear terms:
 
-For binary NFSRs (GF(2)), common non-linear operations include:
-- AND: a ∧ b
-- OR: a ∨ b
-- XOR: a ⊕ b (linear)
-- Combinations of the above
+.. math::
+
+   f(S) = \\text{linear terms} + \\text{non-linear terms}
+
+where non-linear terms can include products (AND operations) like
+:math:`S_i \\land S_j`.
 
 Filtered LFSRs
 ~~~~~~~~~~~~~~
 
 **What is a Filtered LFSR?**
 
-A **filtered LFSR** applies a non-linear filtering function to the LFSR state to
-produce output. This provides non-linearity while maintaining the efficiency of
-LFSRs.
+A **filtered LFSR** applies a non-linear filtering function to the LFSR state
+to produce output bits. This breaks the linearity of the LFSR and provides
+security against linear attacks.
 
 **Key Terminology**:
 
-- **Filtered LFSR**: An LFSR with a non-linear filtering function applied to the
-  state. The filter function maps the LFSR state to output bits, providing
+- **Filtered LFSR**: An LFSR with a non-linear filtering function applied to
+  the state. The filter function maps the LFSR state to output bits, providing
   non-linearity in the output.
 
-- **Filter Function**: A non-linear function that maps LFSR state to output bits.
-  The filter function determines which state bits are used and how they are
-  combined.
+- **Filter Function**: Non-linear function mapping LFSR state to output bits.
+  The filter function takes state bits as input and produces output bits.
 
-- **Algebraic Immunity**: The minimum degree of a non-zero annihilator of the
-  filter function. Higher algebraic immunity provides better resistance to
-  algebraic attacks.
+- **Algebraic Immunity**: Resistance to algebraic attacks. Higher algebraic
+  immunity means the filter function is more resistant to algebraic attacks.
+  The algebraic immunity of a Boolean function f is the minimum degree of a
+  non-zero annihilator of f or (1+f).
 
-- **Correlation Immunity**: The property that the output is uncorrelated with
-  any subset of input bits. Higher correlation immunity provides better
-  resistance to correlation attacks.
-
-- **Non-Linear Filtering**: Applying a non-linear function to state bits to
-  produce output, rather than using state bits directly.
+- **Correlation Immunity**: Resistance to correlation attacks. A filter function
+  is correlation immune of order m if the output is uncorrelated with any m
+  state bits. This means that knowing m state bits provides no information
+  about the output.
 
 **Mathematical Foundation**:
 
-A filtered LFSR has:
-- Base LFSR with state S = (s_0, s_1, ..., s_{d-1})
-- Filter function f: GF(q)^d → GF(q)
-
-The output at step i is:
+For a filtered LFSR, the output is:
 
 .. math::
 
    y_i = f(S_i)
 
-where S_i is the LFSR state at step i.
+where :math:`S_i` is the LFSR state at step i and :math:`f` is the filter function.
+
+The filter function :math:`f: \\mathbb{F}_q^d \\rightarrow \\mathbb{F}_q` maps
+the d-bit state to a single output bit.
 
 Clock-Controlled LFSRs
-~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~
 
 **What is a Clock-Controlled LFSR?**
 
@@ -139,37 +132,34 @@ another LFSR.
 **Key Terminology**:
 
 - **Clock-Controlled LFSR**: An LFSR with irregular clocking, where the LFSR
-  doesn't always advance on each step. Clocking is controlled by a clock control
-  function or another LFSR.
+  doesn't always advance on each step. Clocking is controlled by a clock
+  control function or another LFSR.
 
-- **Clock Control Function**: A function that determines when the LFSR advances.
-  The function may depend on the LFSR's own state or on an external control signal.
+- **Clock Control Function**: Function determining when the LFSR advances. The
+  function takes the current state (or control LFSR output) and returns whether
+  to clock.
 
 - **Irregular Clocking**: Clocking pattern that is not regular (not every step).
-  The LFSR may advance 0, 1, or more steps depending on the clock control.
+  The LFSR may advance 0, 1, or more steps per output.
 
-- **Clock Control LFSR**: A separate LFSR that controls the clocking of another
-  LFSR. The output of the control LFSR determines when the data LFSR advances.
+- **Control LFSR**: Separate LFSR that controls the clocking of the main LFSR.
+  The control LFSR output determines when the main LFSR advances.
 
-- **Stop-and-Go**: A clock control pattern where the LFSR stops when control bit
-  is 0 and advances when control bit is 1.
-
-- **Step-1/Step-2**: A clock control pattern where the LFSR advances 1 or 2 steps
-  based on the control bit.
+- **Stop-and-Go**: Pattern where LFSR stops when control bit is 0, advances
+  when control bit is 1.
 
 **Mathematical Foundation**:
 
-A clock-controlled LFSR has:
-- Base LFSR with state S
-- Clock control function c: determines number of steps to advance
-
-The state update is:
+For a clock-controlled LFSR, the clocking is determined by a control function:
 
 .. math::
 
-   S_{i+1} = C^{c(S_i)} \\cdot S_i
+   \\text{clock} = c(S_{\\text{control}})
 
-where C is the state update matrix and c(S_i) is the number of steps to advance.
+where :math:`c` is the clock control function and :math:`S_{\\text{control}}`
+is the control state (or control LFSR output).
+
+The main LFSR advances only when :math:`\\text{clock} = 1`.
 
 Multi-Output LFSRs
 ~~~~~~~~~~~~~~~~~~
@@ -177,66 +167,65 @@ Multi-Output LFSRs
 **What is a Multi-Output LFSR?**
 
 A **multi-output LFSR** produces multiple output bits per step, rather than a
-single bit. This increases the output rate and can improve efficiency.
+single bit. This increases the output rate and efficiency.
 
 **Key Terminology**:
 
 - **Multi-Output LFSR**: An LFSR that produces multiple output bits per step,
-  rather than a single bit. This increases the output rate and can improve
-  efficiency.
+  rather than a single bit. This increases the output rate.
 
-- **Output Function**: A function that maps LFSR state to multiple output bits.
-  The output function determines which state bits are used and how they are
-  combined.
+- **Output Function**: Function mapping LFSR state to output bits. For
+  multi-output LFSRs, this function produces multiple bits.
 
-- **Output Rate**: The number of bits output per clock step. A standard LFSR
-  has output rate 1, while a multi-output LFSR may have output rate 2, 3, or more.
+- **Output Rate**: Number of bits output per clock step. A multi-output LFSR
+  with rate k outputs k bits per step.
 
 - **Parallel Output**: Multiple bits output simultaneously from the same state.
-  This is different from clocking multiple times to get multiple bits.
-
-- **Output Positions**: The positions in the state vector used for output.
-  Multi-output LFSRs typically use multiple state positions for output.
 
 **Mathematical Foundation**:
 
-A multi-output LFSR has:
-- Base LFSR with state S = (s_0, s_1, ..., s_{d-1})
-- Output function f: GF(q)^d → GF(q)^k (maps state to k output bits)
-
-The output at step i is:
+For a multi-output LFSR, the output is:
 
 .. math::
 
-   Y_i = f(S_i) = (y_{i,0}, y_{i,1}, \\ldots, y_{i,k-1})
+   (y_0, y_1, \\ldots, y_{k-1}) = f(S_i)
 
-where k is the output rate (number of bits per step).
+where :math:`S_i` is the LFSR state at step i and :math:`f` is the output
+function producing k bits.
 
 Irregular Clocking Patterns
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 **What are Irregular Clocking Patterns?**
 
-**Irregular clocking patterns** are specific patterns that determine when and
-how many steps an LFSR advances. Common patterns include stop-and-go, step-1/step-2,
-and others.
+**Irregular clocking patterns** determine how many steps an LFSR advances per
+output, creating irregularity in the sequence generation.
 
 **Key Terminology**:
 
-- **Irregular Clocking Pattern**: A specific pattern determining clocking behavior.
-  Common patterns include stop-and-go, step-1/step-2, and others.
+- **Irregular Clocking**: Clocking pattern that is not regular (not every step).
+  The LFSR may advance 0, 1, or more steps per output.
 
-- **Stop-and-Go**: Clock control pattern where LFSR stops (0 steps) when control
-  bit is 0 and advances (1 step) when control bit is 1.
+- **Stop-and-Go**: Pattern where LFSR stops when control bit is 0, advances
+  when control bit is 1. The LFSR advances 1 step when control=1, 0 steps when
+  control=0.
 
-- **Step-1/Step-2**: Clock control pattern where LFSR advances 1 step if control
-  bit is 0, else 2 steps.
+- **Step-1/Step-2**: Pattern where LFSR advances 1 step when control bit is 0,
+  advances 2 steps when control bit is 1.
 
-- **Shrinking Generator**: Pattern where LFSR advances only when control bit is 1,
-  and output is produced only when control bit is 1.
+- **Shrinking Generator**: Pattern where LFSR output is used only when control
+  bit is 1, otherwise discarded. This is a variant of irregular clocking.
 
-- **Self-Shrinking Generator**: Pattern where LFSR controls its own clocking based
-  on its own state.
+**Mathematical Foundation**:
+
+For irregular clocking, the number of steps advanced is determined by a
+control function:
+
+.. math::
+
+   \\text{steps} = f(c)
+
+where :math:`c` is the control value and :math:`f` is the clocking function.
 
 API Reference
 -------------
@@ -265,59 +254,63 @@ Advanced LFSR structure analysis can be performed from the command line:
 - ``--advanced-structure TYPE``: Select structure type (nonlinear, filtered, clock_controlled, multi_output, irregular_clocking)
 - ``--analyze-structure``: Analyze structure properties
 - ``--generate-sequence``: Generate sequence from initial state
-- ``--structure-params``: Structure-specific parameters (JSON format)
+- ``--sequence-length N``: Length of sequence to generate
 
 Python API Usage
 ----------------
 
-Here's a simple example demonstrating advanced LFSR structure analysis:
+Here's a simple example demonstrating advanced LFSR structures using the Python API:
 
 .. code-block:: python
 
-   from lfsr.advanced import NFSR, FilteredLFSR, ClockControlledLFSR
    from lfsr.attacks import LFSRConfig
+   from lfsr.advanced import (
+       create_simple_nfsr,
+       create_simple_filtered_lfsr,
+       create_stop_and_go_lfsr
+   )
    
-   # Create base LFSR
-   base_lfsr = LFSRConfig(coefficients=[1, 0, 0, 1], field_order=2, degree=4)
+   # Base LFSR configuration
+   base = LFSRConfig(coefficients=[1, 0, 0, 1], field_order=2, degree=4)
    
    # Non-linear feedback LFSR
-   def nfsr_feedback(state):
-       return (state[0] & state[1]) ^ state[2]
-   
-   nfsr = NFSR(base_lfsr, nfsr_feedback)
-   sequence = nfsr.generate_sequence([1, 0, 1, 1], 100)
+   nfsr = create_simple_nfsr(base, nonlinear_terms=[(1, 2)])
+   sequence = nfsr.generate_sequence([1, 0, 0, 0], 100)
    
    # Filtered LFSR
-   def filter_func(state):
-       return (state[0] & state[1]) ^ state[2]
-   
-   filtered = FilteredLFSR(base_lfsr, filter_func)
-   sequence2 = filtered.generate_sequence([1, 0, 1, 1], 100)
+   filtered = create_simple_filtered_lfsr(
+       base,
+       filter_taps=[0, 1, 2],
+       nonlinear_terms=[(2, 3)]
+   )
+   sequence2 = filtered.generate_sequence([1, 0, 0, 0], 100)
    
    # Clock-controlled LFSR
-   def clock_control(state):
-       return 1 if state[0] == 1 else 0
-   
-   cclfsr = ClockControlledLFSR(base_lfsr, clock_control)
-   sequence3 = cclfsr.generate_sequence([1, 0, 1, 1], 100)
+   control = LFSRConfig(coefficients=[1, 1], field_order=2, degree=2)
+   cclfsr = create_stop_and_go_lfsr(base, control)
+   sequence3 = cclfsr.generate_sequence([1, 0, 0, 0], 100, [1, 0])
 
 Glossary
 --------
 
 **Advanced LFSR Structure**
-   Extension of basic linear LFSRs with non-linearity, filtering, clock control, or multiple outputs.
+   Extension of basic linear LFSRs with non-linear feedback, filtering,
+   clock control, or multiple outputs.
 
 **Algebraic Immunity**
-   Minimum degree of a non-zero annihilator of a function.
+   Resistance to algebraic attacks. Minimum degree of a non-zero annihilator.
 
 **Clock Control Function**
-   Function determining when LFSR advances.
+   Function determining when an LFSR advances in irregular clocking.
 
 **Clock-Controlled LFSR**
-   LFSR with irregular clocking controlled by a function.
+   LFSR with irregular clocking controlled by a function or another LFSR.
+
+**Control LFSR**
+   Separate LFSR controlling the clocking of the main LFSR.
 
 **Correlation Immunity**
-   Property that output is uncorrelated with input subsets.
+   Resistance to correlation attacks. Output is uncorrelated with state bits.
 
 **Filter Function**
    Non-linear function mapping LFSR state to output bits.
@@ -331,26 +324,29 @@ Glossary
 **Multi-Output LFSR**
    LFSR producing multiple output bits per step.
 
+**NFSR (Non-Linear Feedback Shift Register)**
+   Generalization of LFSR with non-linear feedback function.
+
 **Non-Linear Feedback**
-   Feedback function using non-linear operations (AND, OR, etc.).
-
-**Non-Linear Feedback Shift Register (NFSR)**
-   Shift register with non-linear feedback function.
-
-**Non-Linearity**
-   Property that function cannot be expressed as linear combination.
+   Feedback function including non-linear operations (AND, OR, etc.).
 
 **Output Function**
-   Function mapping LFSR state to multiple output bits.
+   Function mapping LFSR state to output bits.
 
 **Output Rate**
    Number of bits output per clock step.
 
+**Parallel Output**
+   Multiple bits output simultaneously from the same state.
+
+**Shrinking Generator**
+   Pattern where LFSR output is used only when control bit is 1.
+
 **Step-1/Step-2**
-   Clock control pattern: 1 step if control bit is 0, else 2 steps.
+   Pattern where LFSR advances 1 step if control=0, 2 steps if control=1.
 
 **Stop-and-Go**
-   Clock control pattern: 0 steps if control bit is 0, else 1 step.
+   Pattern where LFSR stops if control=0, advances if control=1.
 
 Further Reading
 ---------------
@@ -359,6 +355,6 @@ Further Reading
 
 - Rueppel, R. A. (1986). "Analysis and Design of Stream Ciphers"
 
-- Golomb, S. W. (1982). "Shift Register Sequences"
+- Golic, J. D. (1996). "On the Security of Nonlinear Filter Generators"
 
-- Massey, J. L. (1969). "Shift-Register Synthesis and BCH Decoding"
+- Meier, W., & Staffelbach, O. (1989). "Fast Correlation Attacks on Stream Ciphers"
