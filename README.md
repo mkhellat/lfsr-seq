@@ -714,6 +714,25 @@ lfsr-seq coefficients.csv 2 --advanced-structure clock_controlled \
     --analyze-advanced-structure --generate-advanced-sequence
 ```
 
+### Example 12: Theoretical Analysis
+
+```bash
+# Export results to LaTeX
+lfsr-seq coefficients.csv 2 --export-latex results.tex
+
+# Generate research paper
+lfsr-seq coefficients.csv 2 --generate-paper paper.tex
+
+# Compare with known results
+lfsr-seq coefficients.csv 2 --compare-known
+
+# Run benchmarks
+lfsr-seq coefficients.csv 2 --benchmark
+
+# Generate reproducibility report
+lfsr-seq coefficients.csv 2 --reproducibility-report report.json
+```
+
 ## Project Structure
 
 ```
