@@ -62,6 +62,13 @@ cipher analysis, educational purposes, and security evaluation.
   - **Multi-Output LFSRs**: LFSRs producing multiple output bits per step (ARE LFSRs - linear feedback)
   - **Irregular Clocking Patterns**: LFSRs with variable clocking patterns (ARE LFSRs - linear feedback)
   - **Structure Analysis**: Analyze properties, security, and sequence characteristics
+- **Theoretical Analysis**: Research-oriented analysis and publication features
+  - **Irreducible Polynomial Analysis**: Comprehensive factorization and order analysis
+  - **LaTeX Export**: Publication-quality output for research papers
+  - **Research Paper Generation**: Automatic generation of paper sections
+  - **Known Result Database**: Compare with known theoretical results
+  - **Benchmarking Framework**: Performance and accuracy comparisons
+  - **Reproducibility Features**: Seed tracking, environment capture, configuration export
 - **NIST SP 800-22 Test Suite**: Industry-standard statistical tests for randomness (all 15 tests)
   - Frequency tests, runs tests, matrix rank, spectral tests
   - Template matching, Maurer's universal test, linear complexity test
