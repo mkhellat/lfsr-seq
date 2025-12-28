@@ -121,6 +121,17 @@ def main(
     my_version = " 0.1 (08-Jan-2023)"
     t_i = intro(my_name, my_version, input_file_name, gf_order_str, output_file)
 
+    # CRITICAL: For multiple LFSRs, disable parallel by default
+    # Parallel processing creates a new Pool for each LFSR, and workers
+    # from previous LFSRs can interfere or hang. Sequential is safer.
+    num_lfsrs = len(coeffs_list)
+    if num_lfsrs > 1 and use_parallel is None:
+        # Multiple LFSRs: disable parallel by default to avoid worker hang issues
+        use_parallel = False
+        if not quiet:
+            import sys
+            print(f"INFO: Processing {num_lfsrs} LFSRs - using sequential mode for reliability", file=sys.stderr)
+    
     coeffs_num = 0
     for coeffs_vector_str in coeffs_list:
         coeffs_num += 1
