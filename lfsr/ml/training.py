@@ -2,244 +2,185 @@
 # -*- coding: utf-8 -*-
 
 """
-ML model training pipeline for LFSR analysis.
+Training pipeline for ML models.
 
-This module provides automated pipelines for training and evaluating
-ML models on LFSR data.
+This module provides functionality to generate training data and train
+ML models for LFSR analysis tasks.
 """
 
-from typing import List, Tuple, Dict, Any, Optional
+from typing import Any, Dict, List, Optional, Tuple
+import random
 from pathlib import Path
-import json
 
-from lfsr.ml.base import FeatureExtractor
-from lfsr.ml.period_prediction import PeriodPredictor, train_period_predictor
-from lfsr.theoretical_db import get_database
+from sage.all import *
 
-
-def generate_training_data_from_database(
-    max_samples: Optional[int] = None
-) -> List[Tuple[List[int], int, int]]:
-    """
-    Generate training data from known result database.
-    
-    This function extracts training examples from the known result database,
-    creating (coefficients, field_order, period) tuples for model training.
-    
-    **Key Terminology**:
-    
-    - **Training Data**: Examples used to train ML models. Each example
-      consists of input features (LFSR configuration) and the target output
-      (known period).
-    
-    - **Data Generation**: The process of creating training examples from
-      known results. This is essential for supervised learning where the
-      model learns from labeled examples.
-    
-    - **Supervised Learning**: A type of ML where the model learns from
-      examples with known outcomes. The model learns to predict outcomes
-      for new, unseen inputs.
-    
-    Args:
-        max_samples: Maximum number of samples to generate (None = all)
-    
-    Returns:
-        List of (coefficients, field_order, period) tuples
-    """
-    db = get_database()
-    training_data = []
-    
-    # Extract from primitive polynomials
-    for key, poly_data in db.db['primitive_polynomials'].items():
-        training_data.append((
-            poly_data['coefficients'],
-            poly_data['field_order'],
-            poly_data['order']
-        ))
-    
-    # Extract from polynomial orders
-    for key, order_data in db.db['polynomial_orders'].items():
-        training_data.append((
-            order_data['coefficients'],
-            order_data['field_order'],
-            order_data['order']
-        ))
-    
-    # Limit samples if requested
-    if max_samples is not None and len(training_data) > max_samples:
-        training_data = training_data[:max_samples]
-    
-    return training_data
+from lfsr.ml.base import extract_polynomial_features
+from lfsr.ml.period_prediction import PeriodPredictionModel
+from lfsr.core import analyze_lfsr
+from lfsr.polynomial import is_primitive_polynomial
 
 
-def generate_synthetic_training_data(
-    field_order: int = 2,
-    min_degree: int = 2,
+def generate_training_data(
+    num_samples: int = 100,
     max_degree: int = 10,
-    num_samples: int = 100
-) -> List[Tuple[List[int], int, int]]:
+    field_order: int = 2,
+    include_primitive: bool = True
+) -> Tuple[List[List[float]], List[float]]:
     """
-    Generate synthetic training data by computing periods.
+    Generate training data for period prediction models.
     
-    This function generates training data by creating random LFSR
-    configurations and computing their periods through analysis.
+    This function generates synthetic LFSR configurations and computes
+    their periods to create training data for ML models.
     
     **Key Terminology**:
     
-    - **Synthetic Data**: Artificially generated data used for training.
-      In this case, we generate random LFSR configurations and compute
-      their periods to create training examples.
+    - **Training Data**: A collection of input-output pairs used to
+      train machine learning models. For period prediction, this consists
+      of (polynomial features, actual period) pairs.
     
-    - **Data Augmentation**: Techniques to increase the amount of training
-      data, which can improve model performance. Synthetic data generation
-      is a form of data augmentation.
+    - **Synthetic Data**: Artificially generated data used for training
+      when real data is limited. Synthetic LFSR configurations are
+      generated with known properties.
+    
+    - **Feature Vector**: The input part of a training example, containing
+      numerical features extracted from the polynomial structure.
+    
+    - **Target Value**: The output part of a training example, the value
+      we want to predict. For period prediction, this is the actual period.
     
     Args:
-        field_order: Field order for generated LFSRs
-        min_degree: Minimum LFSR degree
-        max_degree: Maximum LFSR degree
-        num_samples: Number of samples to generate
+        num_samples: Number of training samples to generate
+        max_degree: Maximum polynomial degree
+        field_order: Field order
+        include_primitive: Whether to include primitive polynomials
     
     Returns:
-        List of (coefficients, field_order, period) tuples
+        Tuple of (feature vectors, target periods)
     """
-    import random
-    from lfsr.core import compute_period_enumeration
+    X = []
+    y = []
     
-    training_data = []
+    F = GF(field_order)
+    R = PolynomialRing(F, "t")
+    
+    generated = set()
     
     for _ in range(num_samples):
-        degree = random.randint(min_degree, max_degree)
+        # Generate random degree
+        degree = random.randint(2, max_degree)
         
         # Generate random coefficients
-        coefficients = [random.randint(0, field_order - 1) for _ in range(degree)]
-        
-        # Ensure at least one non-zero coefficient
-        if all(c == 0 for c in coefficients):
-            coefficients[0] = 1
+        while True:
+            coefficients = [random.randint(0, field_order - 1) for _ in range(degree)]
+            coefficients[0] = 1  # Ensure monic polynomial
+            
+            # Create polynomial
+            poly_str = "t^" + str(degree)
+            for i in range(1, degree):
+                if coefficients[i] != 0:
+                    poly_str += f" + {coefficients[i]}*t^{degree-i}"
+            if coefficients[degree-1] != 0:
+                poly_str += f" + {coefficients[degree-1]}"
+            
+            try:
+                poly = R(poly_str)
+                poly_key = str(poly)
+                
+                if poly_key not in generated:
+                    generated.add(poly_key)
+                    break
+            except:
+                continue
         
         # Compute period
         try:
-            period = compute_period_enumeration(coefficients, field_order)
-            if period is not None:
-                training_data.append((coefficients, field_order, period))
+            seq_dict, period_dict, max_period, _, _, _, _ = analyze_lfsr(
+                coefficients, field_order
+            )
+            
+            # Extract features
+            features = extract_polynomial_features(coefficients, field_order, degree)
+            X.append(features)
+            y.append(float(max_period))
         except Exception:
-            # Skip if computation fails
+            # Skip if analysis fails
             continue
     
-    return training_data
+    return X, y
 
 
-def train_and_evaluate_model(
-    training_data: List[Tuple[List[int], int, int]],
+def train_period_prediction_model(
     model_type: str = "random_forest",
-    test_split: float = 0.2
-) -> Tuple[PeriodPredictor, Dict[str, Any]]:
+    num_samples: int = 100,
+    max_degree: int = 10,
+    field_order: int = 2,
+    save_path: Optional[str] = None
+) -> PeriodPredictionModel:
     """
-    Train and evaluate a period prediction model.
+    Train a period prediction model.
     
-    This function trains a model and provides comprehensive evaluation
-    metrics to assess its performance.
-    
-    **Key Terminology**:
-    
-    - **Model Evaluation**: The process of assessing how well a trained
-      model performs on new, unseen data. Common metrics include mean
-      absolute error (MAE) and R² score.
-    
-    - **Test Split**: The portion of data reserved for testing the model
-      after training. This ensures the model is evaluated on data it hasn't
-      seen during training.
-    
-    - **Overfitting**: When a model learns the training data too well
-      but fails to generalize to new data. Evaluation on test data helps
-      detect overfitting.
+    This function generates training data and trains a period prediction
+    model, optionally saving it to disk.
     
     Args:
-        training_data: List of (coefficients, field_order, period) tuples
-        model_type: Type of model to train
-        test_split: Fraction of data to use for testing
+        model_type: Type of model ("random_forest" or "gradient_boosting")
+        num_samples: Number of training samples
+        max_degree: Maximum polynomial degree for training
+        field_order: Field order
+        save_path: Optional path to save trained model
     
     Returns:
-        Tuple of (trained model, evaluation metrics)
+        Trained PeriodPredictionModel
     """
-    # Train model
-    model = train_period_predictor(training_data, model_type=model_type)
+    print(f"Generating {num_samples} training samples...")
+    X, y = generate_training_data(num_samples, max_degree, field_order)
     
-    # Extract features for evaluation
-    X = []
-    y = []
-    for coefficients, field_order, period in training_data:
-        features = FeatureExtractor.extract_polynomial_features(
-            coefficients, field_order
-        )
-        X.append(features)
-        y.append(float(period))
+    print(f"Generated {len(X)} training samples")
+    print(f"Training {model_type} model...")
     
-    # Train returns metrics
+    model = PeriodPredictionModel(model_type=model_type)
     metrics = model.train(X, y)
     
-    return model, metrics
-
-
-def save_training_pipeline(
-    model: PeriodPredictor,
-    training_data: List[Tuple[List[int], int, int]],
-    metrics: Dict[str, Any],
-    filepath: str
-) -> None:
-    """
-    Save complete training pipeline information.
+    print(f"Training complete!")
+    print(f"  MSE: {metrics['mse']:.2f}")
+    print(f"  RMSE: {metrics['rmse']:.2f}")
+    print(f"  R² Score: {metrics['r2_score']:.4f}")
     
-    This function saves the model, training data, and metrics for
-    later use and reproducibility.
+    if save_path:
+        print(f"Saving model to {save_path}...")
+        model.save_model(save_path)
+        print("Model saved!")
+    
+    return model
+
+
+def evaluate_model_performance(
+    model: PeriodPredictionModel,
+    test_samples: int = 50,
+    max_degree: int = 10,
+    field_order: int = 2
+) -> Dict[str, float]:
+    """
+    Evaluate model performance on test data.
     
     Args:
-        model: Trained model
-        training_data: Training data used
-        metrics: Evaluation metrics
-        filepath: Path to save pipeline
-    """
-    pipeline_data = {
-        'model_type': model.model_type,
-        'training_samples': len(training_data),
-        'metrics': metrics,
-        'training_data': [
-            {
-                'coefficients': list(coeffs),
-                'field_order': field_order,
-                'period': period
-            }
-            for coeffs, field_order, period in training_data
-        ]
-    }
-    
-    # Save model separately
-    model_path = Path(filepath).with_suffix('.model')
-    model.save(str(model_path))
-    
-    # Save pipeline metadata
-    with open(filepath, 'w', encoding='utf-8') as f:
-        json.dump(pipeline_data, f, indent=2)
-
-
-def load_training_pipeline(filepath: str) -> Tuple[PeriodPredictor, Dict[str, Any]]:
-    """
-    Load training pipeline from file.
-    
-    Args:
-        filepath: Path to pipeline file
+        model: Trained model to evaluate
+        test_samples: Number of test samples
+        max_degree: Maximum polynomial degree
+        field_order: Field order
     
     Returns:
-        Tuple of (loaded model, pipeline metadata)
+        Dictionary with evaluation metrics
     """
-    # Load metadata
-    with open(filepath, 'r', encoding='utf-8') as f:
-        pipeline_data = json.load(f)
+    print(f"Generating {test_samples} test samples...")
+    X_test, y_test = generate_training_data(test_samples, max_degree, field_order)
     
-    # Load model
-    model_path = Path(filepath).with_suffix('.model')
-    model = PeriodPredictor(model_type=pipeline_data['model_type'])
-    model.load(str(model_path))
+    print("Evaluating model...")
+    metrics = model.evaluate(X_test, y_test)
     
-    return model, pipeline_data
+    print(f"Test Performance:")
+    print(f"  MSE: {metrics['mse']:.2f}")
+    print(f"  RMSE: {metrics['rmse']:.2f}")
+    print(f"  R² Score: {metrics['r2_score']:.4f}")
+    
+    return metrics
