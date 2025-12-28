@@ -75,6 +75,13 @@ cipher analysis, educational purposes, and security evaluation.
   - **Anomaly Detection**: Identify anomalies in sequences and distributions
   - **Model Training**: Train custom ML models for specific analysis tasks
   - **Feature Extraction**: Extract features from polynomials and sequences
+- **Advanced Visualization**: Interactive and publication-quality visualizations
+  - **Period Distribution Plots**: Histograms and statistical plots of period distributions
+  - **State Transition Diagrams**: Graph visualizations of state transitions and cycles
+  - **Statistical Plots**: Publication-quality plots (histograms, box plots, cumulative distributions)
+  - **3D State Space Visualization**: Interactive 3D plots of state spaces
+  - **Attack Visualization**: Visual representation of cryptanalytic attacks
+  - **Multiple Formats**: Export to PNG, SVG, PDF, HTML (interactive)
 - **NIST SP 800-22 Test Suite**: Industry-standard statistical tests for randomness (all 15 tests)
   - Frequency tests, runs tests, matrix rank, spectral tests
   - Template matching, Maurer's universal test, linear complexity test
@@ -753,6 +760,25 @@ lfsr-seq coefficients.csv 2 --ml-detect-anomalies
 
 # Train custom ML model
 lfsr-seq coefficients.csv 2 --ml-train --model-type period_predictor
+```
+
+### Example 14: Advanced Visualization
+
+```bash
+# Generate period distribution plot
+lfsr-seq coefficients.csv 2 --plot-period-distribution period_dist.png
+
+# Generate state transition diagram
+lfsr-seq coefficients.csv 2 --plot-state-transitions state_diagram.png
+
+# Generate statistical plots
+lfsr-seq coefficients.csv 2 --plot-period-statistics stats.png
+
+# Generate interactive 3D visualization
+lfsr-seq coefficients.csv 2 --plot-3d-state-space state_space.html --viz-interactive
+
+# Visualize attack results
+lfsr-seq coefficients.csv 2 --visualize-attack attack.png
 ```
 
 ## Project Structure
