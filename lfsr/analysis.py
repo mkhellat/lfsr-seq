@@ -512,13 +512,13 @@ def _find_sequence_cycle(
     
     if period_only:
         # Period-only mode: use period-only functions (true O(1) space for Floyd)
-        # CRITICAL: We still need to mark states as visited to avoid reprocessing
-        # So we use enumeration which can update visited_set, but don't store the sequence
+        # CRITICAL FIX: We MUST mark states as visited to avoid reprocessing cycles
+        # Otherwise, we'll process the same cycle multiple times, making period-only mode very slow
         debug_log('Period-only mode: calling _find_period...')
         period = _find_period(start_state, state_update_matrix, algorithm=algorithm)
         debug_log(f'_find_period returned: period={period}')
-        # CRITICAL FIX: Mark all states in the cycle as visited
-        # Otherwise, we'll process the same cycle multiple times, making period-only mode very slow
+        # Mark all states in the cycle as visited to avoid reprocessing
+        # This is critical for performance - without this, period-only mode is much slower
         current = start_state
         start_state_tuple = tuple(start_state)
         visited_set.add(start_state_tuple)
@@ -1000,9 +1000,9 @@ def _process_state_chunk(
         worker_id,
     ) = chunk_data
     
-    # CRITICAL: Reinitialize SageMath in each worker to avoid multiprocessing hangs
-    # SageMath's internal state can cause deadlocks in forked processes
-    # Solution: Force SageMath to reinitialize by creating fresh objects
+    # CRITICAL: In 'spawn' mode, each worker is a fresh Python process
+    # SageMath needs to be imported from scratch - it's not inherited
+    # This is actually better than 'fork' because there's no shared state issues
     import sys
     import os
     
@@ -1011,38 +1011,36 @@ def _process_state_chunk(
     debug_log = lambda msg: print(f'[Worker {worker_id} PID {os.getpid()}] {msg}', file=sys.stderr, flush=True) if DEBUG_PARALLEL else lambda msg: None
     
     if DEBUG_PARALLEL:
-        debug_log('Starting worker function - reinitializing SageMath...')
+        debug_log('Starting worker function (spawn mode - fresh process)...')
     
     try:
-        # Import SageMath (should already be available in forked process)
+        # In spawn mode, SageMath needs to be imported fresh
+        # The parent's SageMath state is not available
+        debug_log('Importing SageMath in fresh process...')
         from sage.all import VectorSpace, GF, vector
         debug_log('SageMath import successful')
         
-        # CRITICAL: Force SageMath to reinitialize its internal state
-        # Create fresh objects to break any shared state from parent process
-        # This helps avoid category mismatch errors and deadlocks
+        # Test that SageMath works by creating a simple object
         try:
-            # Create fresh finite field and vector space to force reinitialization
             _test_F = GF(gf_order)
             _test_V = VectorSpace(_test_F, 1)
-            # Force a simple operation to ensure state is fresh
             _test_vec = vector(_test_F, [0])
-            debug_log('SageMath internal state reinitialized with fresh objects')
+            debug_log('SageMath initialization test successful')
         except Exception as e:
-            debug_log(f'Warning: Could not fully reinitialize SageMath: {e}')
+            debug_log(f'Warning: SageMath initialization test failed: {e}')
             # Continue anyway - might still work
             
     except ImportError as e:
         debug_log(f'SageMath import failed: {e}')
-        # If import fails, try to set up SageMath path (for spawn method)
-        debug_log('Setting up SageMath path...')
+        # In spawn mode, we need to set up SageMath path properly
+        debug_log('Setting up SageMath path for spawn mode...')
         try:
             import subprocess
             result = subprocess.run(
                 ["sage", "-c", "import sys; print('\\n'.join(sys.path))"],
                 capture_output=True,
                 text=True,
-                timeout=5,
+                timeout=10,  # Longer timeout for spawn mode
             )
             if result.returncode == 0:
                 sage_paths = result.stdout.strip().split("\n")
@@ -1149,14 +1147,13 @@ def _process_state_chunk(
                 # Use Floyd's algorithm to avoid enumeration's matrix multiplication loop
                 # which hangs in multiprocessing context
                 debug_log(f'State {idx+1}: Period-only mode - computing period first...')
-                from lfsr.analysis import _find_period_floyd
-                # Force Floyd's algorithm to avoid hangs (enumeration does matrix mult in loop)
-                # CRITICAL: In multiprocessing, even Floyd's algorithm can hang on matrix multiplication
-                # Add a timeout wrapper (signal-based timeout doesn't work in multiprocessing)
-                # Instead, we'll rely on the overall worker timeout and hope Floyd completes quickly
+                from lfsr.analysis import _find_period
+                # Use _find_period which defaults to enumeration (4x faster than Floyd)
+                # Enumeration is safe in spawn mode since each process is fresh
+                # No shared state issues that cause hangs in fork mode
                 try:
-                    seq_period = _find_period_floyd(state, state_update_matrix)
-                    debug_log(f'State {idx+1}: Period computed (Floyd): {seq_period}')
+                    seq_period = _find_period(state, state_update_matrix, algorithm=algorithm)
+                    debug_log(f'State {idx+1}: Period computed: {seq_period}')
                 except Exception as e:
                     debug_log(f'State {idx+1}: Error computing period: {e}')
                     # If period computation fails, skip this state
@@ -1321,18 +1318,17 @@ def lfsr_sequence_mapper_parallel(
         import sys
         sys.stdout.flush()  # Ensure output is visible
     
-    # Use multiprocessing.Pool
-    # On Linux, 'fork' is default and works well with SageMath (shares memory)
-    # 'spawn' creates new processes which need to reimport everything (slower)
-    # NOTE: There are known issues with multiprocessing and SageMath in some contexts
-    # If workers hang, we fall back to sequential processing
+    # Use multiprocessing.Pool with 'spawn' context
+    # 'spawn' creates new processes which need to reimport everything (slower but more reliable)
+    # 'fork' is faster but can cause SageMath category mismatch errors and hangs
+    # NOTE: Using 'spawn' to avoid SageMath/multiprocessing deadlocks
     try:
-        # Use default context (fork on Linux, spawn on macOS/Windows)
-        # Fork is faster because it shares the parent's memory space
         import time
         start_time = time.time()
         
-        with multiprocessing.Pool(processes=num_workers) as pool:
+        # Use 'spawn' context instead of default 'fork' to avoid SageMath issues
+        ctx = multiprocessing.get_context('spawn')
+        with ctx.Pool(processes=num_workers) as pool:
             if not no_progress:
                 print(f"  Pool created, starting workers...")
                 import sys
