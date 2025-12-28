@@ -2,252 +2,283 @@
 # -*- coding: utf-8 -*-
 
 """
-Anomaly detection in LFSR sequences and properties.
+Anomaly detection in LFSR sequences and behavior.
 
 This module provides anomaly detection capabilities for identifying
-unusual patterns, outliers, and anomalies in LFSR analysis results.
+unusual patterns, statistical anomalies, and unexpected behavior.
 """
 
-from typing import Any, Dict, List, Optional
-import warnings
-
-try:
-    from sklearn.ensemble import IsolationForest
-    from sklearn.preprocessing import StandardScaler
-    HAS_SKLEARN = True
-except ImportError:
-    HAS_SKLEARN = False
-    warnings.warn("scikit-learn not available. Anomaly detection will be limited.")
-
-from lfsr.ml.base import FeatureExtractor
+from typing import Any, Dict, List, Optional, Tuple
+import math
+from collections import Counter
 
 
 class AnomalyDetector:
     """
-    Detect anomalies in LFSR sequences and properties.
+    Anomaly detection in LFSR sequences and behavior.
     
-    This class provides anomaly detection using isolation forests and
-    statistical methods to identify unusual patterns or outliers.
+    This class provides methods to detect anomalies in sequences and
+    LFSR behavior, including statistical anomalies, unexpected patterns,
+    and deviations from expected behavior.
     
     **Key Terminology**:
     
-    - **Anomaly Detection**: Identifying data points that deviate
-      significantly from expected patterns. Anomalies can indicate errors,
-      interesting cases, or security issues.
+    - **Anomaly Detection**: Identifying data points or patterns that
+      deviate significantly from expected behavior. Anomalies may indicate
+      errors, attacks, or interesting phenomena.
     
-    - **Isolation Forest**: A machine learning algorithm that isolates
-      anomalies by randomly partitioning data. Anomalies are easier to
-      isolate and require fewer partitions.
+    - **Statistical Anomaly**: A data point that is statistically unusual,
+      such as values far from the mean or unexpected frequency distributions.
     
-    - **Outlier**: A data point that is significantly different from
-      other data points. Outliers can be anomalies or just unusual cases.
+    - **Pattern Anomaly**: An unexpected pattern that doesn't match typical
+      sequence structure, such as unusual repetitions or breaks in periodicity.
     
-    - **Anomaly Score**: A numerical value indicating how anomalous
-      a data point is. Higher scores indicate more anomalous points.
+    - **Outlier**: A data point that is significantly different from other
+      data points in the dataset.
     """
     
-    def __init__(self, contamination: float = 0.1):
+    def __init__(self, threshold: float = 2.0):
         """
         Initialize anomaly detector.
         
         Args:
-            contamination: Expected proportion of anomalies (0.0 to 0.5)
+            threshold: Standard deviation threshold for anomaly detection
         """
-        self.contamination = contamination
-        self.scaler = StandardScaler() if HAS_SKLEARN else None
-        self.model: Any = None
+        self.threshold = threshold
     
-    def detect_anomalies(
+    def detect_statistical_anomalies(
         self,
-        sequences: List[List[int]],
+        sequence: List[int],
         field_order: int = 2
     ) -> List[Dict[str, Any]]:
         """
-        Detect anomalies in sequences.
+        Detect statistical anomalies in sequence.
         
-        This function analyzes multiple sequences to identify anomalous ones.
+        This method identifies elements or subsequences that are
+        statistically unusual.
         
         Args:
-            sequences: List of sequences to analyze
+            sequence: Sequence to analyze
             field_order: Field order
         
         Returns:
-            List of anomaly detection results
+            List of anomaly dictionaries
         """
-        if not HAS_SKLEARN:
-            return self._statistical_anomaly_detection(sequences)
+        anomalies = []
         
-        if not sequences:
-            return []
+        if not sequence or len(sequence) < 2:
+            return anomalies
         
-        # Extract features from each sequence
-        features = []
-        for seq in sequences:
-            feat = FeatureExtractor.extract_sequence_features(seq, field_order)
-            features.append(list(feat.values()))
+        # Frequency-based anomalies
+        element_counts = Counter(sequence)
+        expected_freq = len(sequence) / field_order
         
-        # Scale features
-        features_scaled = self.scaler.fit_transform(features)
+        for element, count in element_counts.items():
+            deviation = abs(count - expected_freq)
+            if deviation > self.threshold * math.sqrt(expected_freq):
+                anomalies.append({
+                    'type': 'frequency_anomaly',
+                    'element': element,
+                    'observed_count': count,
+                    'expected_count': expected_freq,
+                    'deviation': deviation,
+                    'severity': 'high' if deviation > 2 * self.threshold * math.sqrt(expected_freq) else 'medium'
+                })
         
-        # Detect anomalies
-        self.model = IsolationForest(
-            contamination=self.contamination,
-            random_state=42
-        )
-        predictions = self.model.fit_predict(features_scaled)
-        scores = self.model.score_samples(features_scaled)
+        # Run-based anomalies
+        runs = []
+        current_run = 1
+        for i in range(1, len(sequence)):
+            if sequence[i] == sequence[i-1]:
+                current_run += 1
+            else:
+                runs.append(current_run)
+                current_run = 1
+        runs.append(current_run)
         
-        # Format results
-        results = []
-        for i, (pred, score) in enumerate(zip(predictions, scores)):
-            results.append({
-                'sequence_index': i,
-                'is_anomaly': pred == -1,
-                'anomaly_score': float(score),
-                'sequence_length': len(sequences[i])
-            })
+        if runs:
+            avg_run = sum(runs) / len(runs)
+            std_run = math.sqrt(sum((r - avg_run) ** 2 for r in runs) / len(runs)) if len(runs) > 1 else 0.0
+            
+            for i, run_length in enumerate(runs):
+                if run_length > avg_run + self.threshold * std_run:
+                    anomalies.append({
+                        'type': 'run_anomaly',
+                        'position': i,
+                        'run_length': run_length,
+                        'expected_avg': avg_run,
+                        'deviation': run_length - avg_run,
+                        'severity': 'high' if run_length > avg_run + 2 * self.threshold * std_run else 'medium'
+                    })
         
-        return results
+        return anomalies
     
-    def detect_property_anomalies(
+    def detect_pattern_anomalies(
         self,
-        properties: List[Dict[str, Union[int, float]]]
+        sequence: List[int],
+        expected_pattern: Optional[List[int]] = None
     ) -> List[Dict[str, Any]]:
         """
-        Detect anomalies in LFSR properties.
+        Detect pattern anomalies in sequence.
         
-        This function analyzes polynomial properties to identify anomalies.
+        This method identifies unexpected patterns or breaks in expected
+        patterns.
         
         Args:
-            properties: List of property dictionaries
+            sequence: Sequence to analyze
+            expected_pattern: Optional expected pattern to compare against
         
         Returns:
-            List of anomaly detection results
+            List of pattern anomaly dictionaries
         """
-        if not HAS_SKLEARN:
-            return self._statistical_property_anomalies(properties)
+        anomalies = []
         
-        if not properties:
-            return []
+        if expected_pattern:
+            # Check for breaks in expected pattern
+            pattern_len = len(expected_pattern)
+            for i in range(len(sequence) - pattern_len + 1):
+                subsequence = sequence[i:i+pattern_len]
+                if subsequence != expected_pattern:
+                    anomalies.append({
+                        'type': 'pattern_break',
+                        'position': i,
+                        'expected': expected_pattern,
+                        'observed': subsequence,
+                        'severity': 'medium'
+                    })
         
-        # Convert to feature arrays
-        feature_names = sorted(properties[0].keys())
-        features = [
-            [float(p.get(name, 0)) for name in feature_names]
-            for p in properties
-        ]
+        # Detect unexpected long repetitions
+        max_repetition = 1
+        current_repetition = 1
+        repetition_start = 0
         
-        # Scale
-        features_scaled = self.scaler.fit_transform(features)
+        for i in range(1, len(sequence)):
+            if sequence[i] == sequence[i-1]:
+                current_repetition += 1
+            else:
+                if current_repetition > max_repetition:
+                    max_repetition = current_repetition
+                    repetition_start = i - current_repetition
+                current_repetition = 1
         
-        # Detect
-        self.model = IsolationForest(
-            contamination=self.contamination,
-            random_state=42
-        )
-        predictions = self.model.fit_predict(features_scaled)
-        scores = self.model.score_samples(features_scaled)
-        
-        # Format results
-        results = []
-        for i, (pred, score) in enumerate(zip(predictions, scores)):
-            results.append({
-                'property_index': i,
-                'is_anomaly': pred == -1,
-                'anomaly_score': float(score),
-                'properties': properties[i]
+        # Check if max repetition is anomalous
+        if max_repetition > math.log2(len(sequence)) + 2:  # Heuristic threshold
+            anomalies.append({
+                'type': 'repetition_anomaly',
+                'position': repetition_start,
+                'repetition_length': max_repetition,
+                'element': sequence[repetition_start] if repetition_start < len(sequence) else None,
+                'severity': 'high' if max_repetition > 2 * math.log2(len(sequence)) else 'medium'
             })
         
-        return results
+        return anomalies
     
-    def _statistical_anomaly_detection(
+    def detect_period_anomalies(
         self,
-        sequences: List[List[int]]
+        computed_period: int,
+        theoretical_max_period: int,
+        is_primitive: bool
     ) -> List[Dict[str, Any]]:
-        """Statistical anomaly detection (fallback)."""
-        if not sequences:
-            return []
+        """
+        Detect anomalies in period computation.
         
-        # Extract features
-        features = []
-        for seq in sequences:
-            feat = FeatureExtractor.extract_sequence_features(seq, 2)
-            features.append(feat)
+        This method identifies unexpected period values that may indicate
+        errors or interesting phenomena.
         
-        # Simple statistical outlier detection
-        lengths = [f['length'] for f in features]
-        means = [f['mean'] for f in features]
+        Args:
+            computed_period: Computed period
+            theoretical_max_period: Theoretical maximum period
+            is_primitive: Whether polynomial is primitive
         
-        length_mean = sum(lengths) / len(lengths) if lengths else 0
-        length_std = (
-            (sum((l - length_mean) ** 2 for l in lengths) / len(lengths)) ** 0.5
-            if lengths else 0
-        )
+        Returns:
+            List of period anomaly dictionaries
+        """
+        anomalies = []
         
-        results = []
-        for i, (length, mean) in enumerate(zip(lengths, means)):
-            # Simple z-score based detection
-            z_score = abs((length - length_mean) / length_std) if length_std > 0 else 0
-            is_anomaly = z_score > 2.0  # 2 standard deviations
-            
-            results.append({
-                'sequence_index': i,
-                'is_anomaly': is_anomaly,
-                'anomaly_score': z_score,
-                'sequence_length': length
+        # Check primitive polynomial period
+        if is_primitive and computed_period != theoretical_max_period:
+            anomalies.append({
+                'type': 'primitive_period_anomaly',
+                'computed_period': computed_period,
+                'expected_period': theoretical_max_period,
+                'deviation': abs(computed_period - theoretical_max_period),
+                'severity': 'high',
+                'description': 'Primitive polynomial should have maximum period'
             })
         
-        return results
-    
-    def _statistical_property_anomalies(
-        self,
-        properties: List[Dict[str, Union[int, float]]]
-    ) -> List[Dict[str, Any]]:
-        """Statistical property anomaly detection (fallback)."""
-        if not properties:
-            return []
-        
-        # Simple outlier detection based on degree
-        degrees = [p.get('degree', 0) for p in properties]
-        degree_mean = sum(degrees) / len(degrees) if degrees else 0
-        degree_std = (
-            (sum((d - degree_mean) ** 2 for d in degrees) / len(degrees)) ** 0.5
-            if degrees else 0
-        )
-        
-        results = []
-        for i, prop in enumerate(properties):
-            degree = prop.get('degree', 0)
-            z_score = abs((degree - degree_mean) / degree_std) if degree_std > 0 else 0
-            is_anomaly = z_score > 2.0
-            
-            results.append({
-                'property_index': i,
-                'is_anomaly': is_anomaly,
-                'anomaly_score': z_score,
-                'properties': prop
+        # Check for unusually low period
+        period_ratio = computed_period / theoretical_max_period if theoretical_max_period > 0 else 0.0
+        if period_ratio < 0.1 and not is_primitive:
+            anomalies.append({
+                'type': 'low_period_anomaly',
+                'computed_period': computed_period,
+                'theoretical_max': theoretical_max_period,
+                'ratio': period_ratio,
+                'severity': 'medium',
+                'description': 'Period is unusually low compared to theoretical maximum'
             })
         
-        return results
+        return anomalies
 
 
 def detect_anomalies(
-    sequences: List[List[int]],
+    sequence: Optional[List[int]] = None,
+    computed_period: Optional[int] = None,
+    theoretical_max_period: Optional[int] = None,
+    is_primitive: Optional[bool] = None,
     field_order: int = 2,
-    contamination: float = 0.1
-) -> List[Dict[str, Any]]:
+    threshold: float = 2.0
+) -> Dict[str, Any]:
     """
-    Detect anomalies in sequences.
+    Detect all types of anomalies.
     
-    Convenience function for anomaly detection.
+    Convenience function to detect all types of anomalies.
     
     Args:
-        sequences: List of sequences to analyze
+        sequence: Optional sequence to analyze
+        computed_period: Optional computed period
+        theoretical_max_period: Optional theoretical maximum period
+        is_primitive: Optional primitivity status
         field_order: Field order
-        contamination: Expected proportion of anomalies
+        threshold: Anomaly detection threshold
     
     Returns:
-        List of anomaly detection results
+        Dictionary with all detected anomalies
     """
-    detector = AnomalyDetector(contamination=contamination)
-    return detector.detect_anomalies(sequences, field_order)
+    detector = AnomalyDetector(threshold=threshold)
+    
+    result = {
+        'statistical_anomalies': [],
+        'pattern_anomalies': [],
+        'period_anomalies': []
+    }
+    
+    if sequence:
+        result['statistical_anomalies'] = detector.detect_statistical_anomalies(sequence, field_order)
+        result['pattern_anomalies'] = detector.detect_pattern_anomalies(sequence)
+    
+    if computed_period is not None and theoretical_max_period is not None:
+        result['period_anomalies'] = detector.detect_period_anomalies(
+            computed_period,
+            theoretical_max_period,
+            is_primitive if is_primitive is not None else False
+        )
+    
+    # Summary
+    total_anomalies = (len(result['statistical_anomalies']) +
+                      len(result['pattern_anomalies']) +
+                      len(result['period_anomalies']))
+    
+    high_severity = sum(1 for a in (result['statistical_anomalies'] +
+                                   result['pattern_anomalies'] +
+                                   result['period_anomalies'])
+                       if a.get('severity') == 'high')
+    
+    result['summary'] = {
+        'total_anomalies': total_anomalies,
+        'high_severity': high_severity,
+        'medium_severity': total_anomalies - high_severity,
+        'has_anomalies': total_anomalies > 0
+    }
+    
+    return result
