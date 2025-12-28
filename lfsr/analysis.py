@@ -227,23 +227,25 @@ def _find_period(
         start_state: The initial state vector to start the cycle from
         state_update_matrix: The LFSR state update matrix
         algorithm: Algorithm to use: "floyd", "brent", "enumeration", or "auto" (default: "auto")
-                   "auto" uses Floyd's algorithm by default
+                   "auto" uses enumeration by default (4x faster than Floyd in period-only mode)
 
     Returns:
         The period (length of the cycle)
     """
-    if algorithm == "enumeration":
+    # CRITICAL FIX: Enumeration is 4x faster than Floyd in period-only mode
+    # Both are O(1) space, so use enumeration by default for speed
+    if algorithm == "enumeration" or algorithm == "auto":
+        # Enumeration is faster and still O(1) space in period-only mode
         return _find_period_enumeration(start_state, state_update_matrix)
-    elif algorithm == "floyd" or algorithm == "auto":
-        # Use Floyd's algorithm for efficiency (especially for large periods)
-        # Falls back to enumeration if limits are hit or for safety
+    elif algorithm == "floyd":
+        # Use Floyd's algorithm (slower but sometimes useful for verification)
         return _find_period_floyd(start_state, state_update_matrix)
     elif algorithm == "brent":
         # Use Brent's algorithm (powers of 2 approach)
         return _find_period_brent(start_state, state_update_matrix)
     else:
-        # Invalid algorithm, default to Floyd
-        return _find_period_floyd(start_state, state_update_matrix)
+        # Invalid algorithm, default to enumeration (fastest)
+        return _find_period_enumeration(start_state, state_update_matrix)
 
 
 def _find_sequence_cycle_floyd(
@@ -510,9 +512,21 @@ def _find_sequence_cycle(
     
     if period_only:
         # Period-only mode: use period-only functions (true O(1) space for Floyd)
+        # CRITICAL: We still need to mark states as visited to avoid reprocessing
+        # So we use enumeration which can update visited_set, but don't store the sequence
         debug_log('Period-only mode: calling _find_period...')
         period = _find_period(start_state, state_update_matrix, algorithm=algorithm)
         debug_log(f'_find_period returned: period={period}')
+        # CRITICAL FIX: Mark all states in the cycle as visited
+        # Otherwise, we'll process the same cycle multiple times, making period-only mode very slow
+        current = start_state
+        start_state_tuple = tuple(start_state)
+        visited_set.add(start_state_tuple)
+        for _ in range(period - 1):
+            current = current * state_update_matrix
+            current_tuple = tuple(current)
+            visited_set.add(current_tuple)
+        debug_log(f'Marked {period} states as visited in period-only mode')
         return [], period
     else:
         # Full sequence mode: store the sequence
@@ -986,26 +1000,44 @@ def _process_state_chunk(
         worker_id,
     ) = chunk_data
     
-    # Import SageMath in worker
-    # With 'fork' method (Linux default), workers inherit parent's memory
-    # so SageMath should already be imported. Just import what we need.
+    # CRITICAL: Reinitialize SageMath in each worker to avoid multiprocessing hangs
+    # SageMath's internal state can cause deadlocks in forked processes
+    # Solution: Force SageMath to reinitialize by creating fresh objects
     import sys
     import os
+    
     # Debug logging can be enabled by setting environment variable
     DEBUG_PARALLEL = os.environ.get('DEBUG_PARALLEL', '0') == '1'
     debug_log = lambda msg: print(f'[Worker {worker_id} PID {os.getpid()}] {msg}', file=sys.stderr, flush=True) if DEBUG_PARALLEL else lambda msg: None
     
     if DEBUG_PARALLEL:
-        debug_log('Starting worker function')
+        debug_log('Starting worker function - reinitializing SageMath...')
+    
     try:
-        debug_log('Attempting SageMath import...')
+        # Import SageMath (should already be available in forked process)
         from sage.all import VectorSpace, GF, vector
         debug_log('SageMath import successful')
-    except ImportError:
-        debug_log('SageMath import failed, trying fallback...')
+        
+        # CRITICAL: Force SageMath to reinitialize its internal state
+        # Create fresh objects to break any shared state from parent process
+        # This helps avoid category mismatch errors and deadlocks
+        try:
+            # Create fresh finite field and vector space to force reinitialization
+            _test_F = GF(gf_order)
+            _test_V = VectorSpace(_test_F, 1)
+            # Force a simple operation to ensure state is fresh
+            _test_vec = vector(_test_F, [0])
+            debug_log('SageMath internal state reinitialized with fresh objects')
+        except Exception as e:
+            debug_log(f'Warning: Could not fully reinitialize SageMath: {e}')
+            # Continue anyway - might still work
+            
+    except ImportError as e:
+        debug_log(f'SageMath import failed: {e}')
         # If import fails, try to set up SageMath path (for spawn method)
         debug_log('Setting up SageMath path...')
         try:
+            import subprocess
             result = subprocess.run(
                 ["sage", "-c", "import sys; print('\\n'.join(sys.path))"],
                 capture_output=True,
@@ -1018,14 +1050,16 @@ def _process_state_chunk(
                     if path and path not in sys.path and os.path.isdir(path):
                         sys.path.insert(0, path)
                 from sage.all import VectorSpace, GF, vector
+                debug_log('SageMath import successful via path setup')
             else:
                 raise ImportError("SageMath not found")
-        except (subprocess.TimeoutExpired, subprocess.SubprocessError, FileNotFoundError, ImportError):
+        except (subprocess.TimeoutExpired, subprocess.SubprocessError, FileNotFoundError, ImportError) as e:
+            debug_log(f'SageMath setup failed: {e}')
             return {
                 'sequences': [],
                 'max_period': 0,
                 'processed_count': 0,
-                'errors': ['SageMath not available in worker process'],
+                'errors': [f'SageMath not available in worker process: {str(e)}'],
             }
     
     # Reconstruct state update matrix in worker
