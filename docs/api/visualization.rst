@@ -57,7 +57,7 @@ Generate state transition diagram.
 Export state transition diagram to Graphviz DOT format.
 
 Statistical Plots
-----------------
+-----------------
 
 .. autofunction:: lfsr.visualization.statistical_plots.plot_period_statistics
    :no-index:

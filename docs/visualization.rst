@@ -33,7 +33,7 @@ results, enabling:
 5. **Publication Support**: Generate publication-quality figures
 
 Period Distribution Visualization
------------------------------------
+---------------------------------
 
 **What is Period Distribution Visualization?**
 
@@ -144,7 +144,7 @@ including period distributions, sequence analysis, and comparisons.
    lfsr-seq coefficients.csv 2 --plot-period-statistics stats.png
 
 3D State Space Visualization
------------------------------
+----------------------------
 
 **What is 3D State Space Visualization?**
 
