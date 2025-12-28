@@ -2,90 +2,102 @@
 # -*- coding: utf-8 -*-
 
 """
-Pattern detection in LFSR sequences using ML and statistical methods.
+Pattern detection in LFSR sequences using machine learning.
 
-This module provides pattern detection capabilities for identifying
-recurring patterns, statistical patterns, and sequence structures.
+This module provides ML-based pattern detection capabilities for identifying
+patterns, cycles, and anomalies in LFSR-generated sequences.
 """
 
-from typing import Any, Dict, List, Optional, Tuple
-from collections import Counter, defaultdict
-import math
+from typing import List, Dict, Any, Optional, Tuple
+from collections import Counter
+
+from lfsr.ml.base import FeatureExtractor
+
+# Try to import scikit-learn, but make it optional
+try:
+    from sklearn.cluster import DBSCAN
+    from sklearn.preprocessing import StandardScaler
+    HAS_SKLEARN = True
+except ImportError:
+    HAS_SKLEARN = False
 
 
 class PatternDetector:
     """
-    Pattern detection in LFSR sequences.
+    Detect patterns in LFSR sequences.
     
-    This class provides methods to detect various types of patterns in
-    sequences, including recurring patterns, statistical patterns, and
-    structural patterns.
+    This class provides methods to detect various patterns in sequences,
+    including recurring patterns, cycles, and statistical anomalies.
     
     **Key Terminology**:
     
-    - **Pattern Detection**: Identifying recurring or significant patterns
-      in sequences. Patterns can be exact repetitions, statistical
-      regularities, or structural features.
+    - **Pattern Detection**: The process of identifying recurring structures
+      or sequences in data. In LFSR sequences, patterns might include
+      repeating subsequences, cycles, or statistical regularities.
     
-    - **Recurring Pattern**: A subsequence that appears multiple times
-      in the sequence. For example, "101" appearing repeatedly.
+    - **Sequence Pattern**: A recurring subsequence that appears multiple
+      times in a sequence. For example, in [0,1,0,1,0,1,...], the pattern
+      [0,1] repeats.
     
-    - **Statistical Pattern**: A pattern based on statistical properties,
-      such as frequency distributions, runs, or correlations.
+    - **Cycle Detection**: Identifying when a sequence starts repeating,
+      indicating the beginning of a cycle. This is related to period detection.
     
-    - **Pattern Classification**: Categorizing detected patterns into types
-      (periodic, random, structured, etc.).
+    - **Statistical Pattern**: Regularities in the statistical properties
+      of a sequence, such as frequency distributions or autocorrelation.
     """
     
-    def __init__(self, min_pattern_length: int = 2, max_pattern_length: int = 10):
-        """
-        Initialize pattern detector.
-        
-        Args:
-            min_pattern_length: Minimum pattern length to detect
-            max_pattern_length: Maximum pattern length to detect
-        """
-        self.min_pattern_length = min_pattern_length
-        self.max_pattern_length = max_pattern_length
+    def __init__(self):
+        """Initialize pattern detector."""
+        self.scaler = StandardScaler() if HAS_SKLEARN else None
     
     def detect_recurring_patterns(
         self,
         sequence: List[int],
-        min_occurrences: int = 2
+        min_pattern_length: int = 2,
+        max_pattern_length: int = 10
     ) -> List[Dict[str, Any]]:
         """
         Detect recurring patterns in sequence.
         
-        This method finds subsequences that appear multiple times in the
-        sequence.
+        This method identifies subsequences that repeat multiple times
+        in the sequence.
+        
+        **Key Terminology**:
+        
+        - **Recurring Pattern**: A subsequence that appears multiple times
+          in a sequence. For example, if [0,1,0,1] appears 3 times, it's
+          a recurring pattern.
+        
+        - **Pattern Frequency**: The number of times a pattern appears
+          in the sequence.
         
         Args:
             sequence: Sequence to analyze
-            min_occurrences: Minimum number of occurrences to consider
+            min_pattern_length: Minimum pattern length to consider
+            max_pattern_length: Maximum pattern length to consider
         
         Returns:
-            List of pattern dictionaries with pattern, occurrences, positions
+            List of dictionaries with pattern information
         """
         patterns = []
-        sequence_str = ''.join(str(b) for b in sequence)
+        seq_str = ''.join(str(x) for x in sequence)
         
-        for pattern_len in range(self.min_pattern_length, 
-                                min(self.max_pattern_length + 1, len(sequence) // 2 + 1)):
-            pattern_counts = defaultdict(list)
+        for length in range(min_pattern_length, min(max_pattern_length + 1, len(sequence) // 2 + 1)):
+            pattern_counts = {}
             
-            for i in range(len(sequence) - pattern_len + 1):
-                pattern = tuple(sequence[i:i+pattern_len])
-                pattern_counts[pattern].append(i)
+            # Slide window through sequence
+            for i in range(len(sequence) - length + 1):
+                pattern = tuple(sequence[i:i+length])
+                pattern_counts[pattern] = pattern_counts.get(pattern, 0) + 1
             
-            for pattern, positions in pattern_counts.items():
-                if len(positions) >= min_occurrences:
+            # Find patterns that appear multiple times
+            for pattern, count in pattern_counts.items():
+                if count > 1:
                     patterns.append({
                         'pattern': list(pattern),
-                        'pattern_string': ''.join(str(b) for b in pattern),
-                        'length': pattern_len,
-                        'occurrences': len(positions),
-                        'positions': positions,
-                        'frequency': len(positions) / (len(sequence) - pattern_len + 1)
+                        'length': length,
+                        'frequency': count,
+                        'pattern_str': ''.join(str(x) for x in pattern)
                     })
         
         # Sort by frequency (descending)
@@ -93,61 +105,97 @@ class PatternDetector:
         
         return patterns
     
-    def detect_periodic_patterns(
+    def detect_cycles(
         self,
         sequence: List[int],
-        max_period: Optional[int] = None
-    ) -> List[Dict[str, Any]]:
+        max_cycle_length: Optional[int] = None
+    ) -> Optional[Dict[str, Any]]:
         """
-        Detect periodic patterns in sequence.
+        Detect cycles in sequence using Floyd's cycle detection.
         
-        This method identifies sequences that repeat with a certain period.
+        This method detects if the sequence contains a cycle and identifies
+        the cycle start and length.
+        
+        **Key Terminology**:
+        
+        - **Cycle**: A repeating subsequence in a sequence. Once a cycle
+          starts, the sequence repeats indefinitely. For LFSRs, the cycle
+          length equals the period.
+        
+        - **Cycle Detection**: Algorithms to identify cycles without
+          storing the entire sequence. Floyd's algorithm uses two pointers
+          moving at different speeds.
         
         Args:
             sequence: Sequence to analyze
-            max_period: Maximum period to check (defaults to len(sequence) // 2)
+            max_cycle_length: Maximum cycle length to consider (None = no limit)
         
         Returns:
-            List of periodic pattern dictionaries
+            Dictionary with cycle information, or None if no cycle detected
         """
-        if max_period is None:
-            max_period = len(sequence) // 2
+        if len(sequence) < 2:
+            return None
         
-        periodic_patterns = []
+        # Floyd's cycle detection
+        slow = 0
+        fast = 1
         
-        for period in range(1, min(max_period + 1, len(sequence) // 2 + 1)):
-            # Check if sequence repeats with this period
-            is_periodic = True
-            for i in range(period, len(sequence)):
-                if sequence[i] != sequence[i % period]:
-                    is_periodic = False
-                    break
-            
-            if is_periodic:
-                pattern = sequence[:period]
-                periodic_patterns.append({
-                    'pattern': pattern,
-                    'pattern_string': ''.join(str(b) for b in pattern),
-                    'period': period,
-                    'repetitions': len(sequence) // period,
-                    'type': 'periodic'
-                })
+        # Find meeting point
+        while fast < len(sequence) and sequence[slow] != sequence[fast]:
+            slow = (slow + 1) % len(sequence)
+            fast = (fast + 2) % len(sequence)
         
-        return periodic_patterns
+        if fast >= len(sequence) or sequence[slow] != sequence[fast]:
+            return None
+        
+        # Find cycle start
+        slow = 0
+        while sequence[slow] != sequence[fast]:
+            slow += 1
+            fast += 1
+            if fast >= len(sequence):
+                return None
+        
+        # Find cycle length
+        cycle_start = slow
+        cycle_length = 1
+        ptr = slow + 1
+        
+        while ptr < len(sequence) and sequence[ptr] != sequence[cycle_start]:
+            cycle_length += 1
+            ptr += 1
+        
+        if ptr >= len(sequence):
+            return None
+        
+        return {
+            'has_cycle': True,
+            'cycle_start': cycle_start,
+            'cycle_length': cycle_length,
+            'cycle_pattern': sequence[cycle_start:cycle_start + cycle_length]
+        }
     
-    def detect_statistical_patterns(
+    def analyze_statistical_patterns(
         self,
-        sequence: List[int],
-        field_order: int = 2
+        sequence: List[int]
     ) -> Dict[str, Any]:
         """
-        Detect statistical patterns in sequence.
+        Analyze statistical patterns in sequence.
         
-        This method identifies statistical regularities and anomalies.
+        This method computes statistical properties that reveal patterns
+        in the sequence distribution.
+        
+        **Key Terminology**:
+        
+        - **Statistical Pattern**: Regularities in the distribution or
+          statistical properties of sequence values. Examples include
+          frequency distributions, autocorrelation, and run lengths.
+        
+        - **Frequency Distribution**: How often each value appears in
+          the sequence. A uniform distribution indicates good randomness.
         
         Args:
             sequence: Sequence to analyze
-            field_order: Field order
         
         Returns:
             Dictionary with statistical pattern information
@@ -155,136 +203,79 @@ class PatternDetector:
         if not sequence:
             return {}
         
-        patterns = {}
-        
         # Frequency distribution
-        element_counts = Counter(sequence)
-        patterns['frequency_distribution'] = dict(element_counts)
+        freq_dist = Counter(sequence)
+        unique_values = len(freq_dist)
+        max_freq = max(freq_dist.values()) if freq_dist else 0
+        min_freq = min(freq_dist.values()) if freq_dist else 0
         
-        # Balance (for binary)
-        if field_order == 2:
-            ones = element_counts.get(1, 0)
-            zeros = element_counts.get(0, 0)
+        # For binary sequences, check balance
+        is_binary = all(x in [0, 1] for x in sequence)
+        balance = None
+        if is_binary:
+            ones = freq_dist.get(1, 0)
+            zeros = freq_dist.get(0, 0)
             total = len(sequence)
-            patterns['balance'] = {
-                'ones': ones,
-                'zeros': zeros,
-                'balance_ratio': abs(ones - zeros) / total if total > 0 else 0.0,
-                'is_balanced': abs(ones - zeros) <= 1
-            }
+            balance = abs(ones - zeros) / total if total > 0 else 0.0
         
-        # Run statistics
-        runs = []
-        current_run = 1
-        for i in range(1, len(sequence)):
-            if sequence[i] == sequence[i-1]:
-                current_run += 1
-            else:
-                runs.append(current_run)
-                current_run = 1
-        runs.append(current_run)
+        # Run length statistics
+        run_lengths = []
+        if len(sequence) > 1:
+            current_run = 1
+            for i in range(1, len(sequence)):
+                if sequence[i] == sequence[i-1]:
+                    current_run += 1
+                else:
+                    run_lengths.append(current_run)
+                    current_run = 1
+            run_lengths.append(current_run)
         
-        if runs:
-            patterns['runs'] = {
-                'total_runs': len(runs),
-                'average_run_length': sum(runs) / len(runs),
-                'max_run_length': max(runs),
-                'min_run_length': min(runs)
-            }
+        avg_run_length = sum(run_lengths) / len(run_lengths) if run_lengths else 0.0
+        max_run_length = max(run_lengths) if run_lengths else 0.0
         
-        # Entropy
-        entropy = 0.0
-        for count in element_counts.values():
-            p = count / len(sequence)
-            if p > 0:
-                entropy -= p * math.log2(p)
-        patterns['entropy'] = entropy
-        patterns['max_entropy'] = math.log2(field_order)
-        patterns['entropy_ratio'] = entropy / patterns['max_entropy'] if patterns['max_entropy'] > 0 else 0.0
-        
-        return patterns
-    
-    def classify_sequence(
-        self,
-        sequence: List[int],
-        field_order: int = 2
-    ) -> Dict[str, Any]:
-        """
-        Classify sequence based on detected patterns.
-        
-        This method analyzes the sequence and classifies it into categories
-        based on detected patterns.
-        
-        Args:
-            sequence: Sequence to classify
-            field_order: Field order
-        
-        Returns:
-            Dictionary with classification results
-        """
-        classification = {
-            'length': len(sequence),
-            'field_order': field_order,
-            'classification': 'unknown',
-            'confidence': 0.0,
-            'features': {}
+        return {
+            'unique_values': unique_values,
+            'max_frequency': max_freq,
+            'min_frequency': min_freq,
+            'is_binary': is_binary,
+            'balance': balance,
+            'average_run_length': avg_run_length,
+            'max_run_length': max_run_length,
+            'total_runs': len(run_lengths)
         }
-        
-        # Detect periodic patterns
-        periodic = self.detect_periodic_patterns(sequence)
-        if periodic:
-            classification['classification'] = 'periodic'
-            classification['confidence'] = 1.0
-            classification['features']['period'] = periodic[0]['period']
-            return classification
-        
-        # Detect statistical patterns
-        statistical = self.detect_statistical_patterns(sequence, field_order)
-        classification['features'].update(statistical)
-        
-        # Classify based on statistics
-        if field_order == 2:
-            balance = statistical.get('balance', {})
-            entropy_ratio = statistical.get('entropy_ratio', 0.0)
-            
-            if balance.get('is_balanced', False) and entropy_ratio > 0.9:
-                classification['classification'] = 'random-like'
-                classification['confidence'] = 0.8
-            elif entropy_ratio < 0.5:
-                classification['classification'] = 'structured'
-                classification['confidence'] = 0.7
-            else:
-                classification['classification'] = 'mixed'
-                classification['confidence'] = 0.6
-        
-        return classification
 
 
 def detect_patterns(
     sequence: List[int],
-    field_order: int = 2,
-    min_pattern_length: int = 2,
-    max_pattern_length: int = 10
+    include_recurring: bool = True,
+    include_cycles: bool = True,
+    include_statistical: bool = True
 ) -> Dict[str, Any]:
     """
-    Detect all patterns in sequence.
+    Comprehensive pattern detection in sequence.
     
-    Convenience function to detect all types of patterns.
+    This function performs multiple types of pattern detection and
+    returns comprehensive results.
     
     Args:
         sequence: Sequence to analyze
-        field_order: Field order
-        min_pattern_length: Minimum pattern length
-        max_pattern_length: Maximum pattern length
+        include_recurring: Whether to detect recurring patterns
+        include_cycles: Whether to detect cycles
+        include_statistical: Whether to analyze statistical patterns
     
     Returns:
-        Dictionary with all detected patterns
+        Dictionary with all pattern detection results
     """
-    detector = PatternDetector(min_pattern_length, max_pattern_length)
+    detector = PatternDetector()
+    results = {}
     
-    return {
-        'recurring_patterns': detector.detect_recurring_patterns(sequence),
-        'periodic_patterns': detector.detect_periodic_patterns(sequence),
-        'statistical_patterns': detector.detect_statistical_patterns(sequence, field_order),
-        'classification': detector.classify_sequence(sequence, field_order)
-    }
+    if include_recurring:
+        results['recurring_patterns'] = detector.detect_recurring_patterns(sequence)
+    
+    if include_cycles:
+        results['cycle'] = detector.detect_cycles(sequence)
+    
+    if include_statistical:
+        results['statistical'] = detector.analyze_statistical_patterns(sequence)
+    
+    return results
