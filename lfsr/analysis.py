@@ -1194,8 +1194,16 @@ def _process_state_chunk(
                 # Use hash as canonical key (all states from same cycle with same period map to same key)
                 states_tuples = (key_hash,)  # Single-element tuple for deduplication
                 debug_log(f'State {idx+1}: Cycle signature (hash): {key_hash[:8]}... (period={seq_period})')
-                # Mark start state as visited
+                # CRITICAL FIX: Mark ALL states in the cycle as visited (not just start state)
+                # This prevents workers from processing the same cycle multiple times
+                # Even though cycles can span chunks, marking all states prevents redundant work
                 local_visited.add(state_tuple)
+                current = state
+                for _ in range(seq_period - 1):
+                    current = current * state_update_matrix
+                    current_tuple = tuple(current)
+                    local_visited.add(current_tuple)
+                debug_log(f'State {idx+1}: Marked {seq_period} states as visited in cycle')
             else:
                 # Full mode: get sequence normally
                 debug_log(f'State {idx+1}: Calling _find_sequence_cycle with period_only={period_only}, algorithm={algorithm}')
