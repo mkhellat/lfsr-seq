@@ -1392,9 +1392,8 @@ def lfsr_sequence_mapper_parallel(
                 import sys
                 sys.stdout.flush()
             
-            try:
-                # Use map_async with timeout for better control
-                async_result = pool.map_async(_process_state_chunk, chunk_data_list)
+            # Use map_async with timeout for better control
+            async_result = pool.map_async(_process_state_chunk, chunk_data_list)
             
             if not no_progress:
                 timeout_msg = "120s" if ctx.get_start_method() == 'spawn' else "40s"
@@ -1430,13 +1429,6 @@ def lfsr_sequence_mapper_parallel(
                 except TypeError:
                     # Python < 3.7 doesn't support timeout in join()
                     pool.join()
-                
-                # Force kill if still alive (shouldn't happen with context manager, but be safe)
-                try:
-                    # Close the pool to release resources
-                    pool.close()
-                except:
-                    pass
                 
                 print("ERROR: Parallel processing timed out - workers may be hung", file=sys.stderr)
                 print("  This can happen with SageMath and multiprocessing in some configurations", file=sys.stderr)
