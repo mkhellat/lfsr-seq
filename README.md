@@ -762,6 +762,25 @@ lfsr-seq coefficients.csv 2 --ml-detect-anomalies
 lfsr-seq coefficients.csv 2 --ml-train --model-type period_predictor
 ```
 
+### Example 14: Visualization
+
+```bash
+# Generate period distribution plot
+lfsr-seq coefficients.csv 2 --plot-period-distribution period_dist.png
+
+# Generate state transition diagram
+lfsr-seq coefficients.csv 2 --plot-state-transitions transitions.png
+
+# Generate 3D state space visualization (interactive HTML)
+lfsr-seq coefficients.csv 2 --plot-3d-state-space state_space.html --viz-interactive
+
+# Generate statistical plots
+lfsr-seq coefficients.csv 2 --plot-period-statistics stats.png
+
+# Visualize attack results
+lfsr-seq coefficients.csv 2 --visualize-attack attack.png
+```
+
 ### Example 14: Advanced Visualization
 
 ```bash
