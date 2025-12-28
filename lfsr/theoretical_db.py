@@ -2,298 +2,186 @@
 # -*- coding: utf-8 -*-
 
 """
-Known result database for theoretical LFSR analysis.
+Known result database for theoretical comparisons.
 
 This module provides a database framework for storing and retrieving known
-theoretical results, enabling comparison with computed results.
+theoretical results, enabling comparison with computed analysis results.
 """
 
 import json
-import sqlite3
-from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
-from dataclasses import dataclass, asdict
 import os
+from typing import Any, Dict, List, Optional, Tuple
+from pathlib import Path
 
 from sage.all import *
 
 
-@dataclass
-class KnownPolynomial:
-    """
-    Known polynomial result entry.
-    
-    Attributes:
-        coefficients: List of polynomial coefficients
-        field_order: Field order (q)
-        degree: Polynomial degree
-        order: Polynomial order
-        is_primitive: Whether polynomial is primitive
-        is_irreducible: Whether polynomial is irreducible
-        source: Source of the known result (e.g., "standard", "published")
-        notes: Additional notes
-    """
-    coefficients: List[int]
-    field_order: int
-    degree: int
-    order: Optional[int] = None
-    is_primitive: bool = False
-    is_irreducible: bool = False
-    source: str = "standard"
-    notes: str = ""
-
-
-class TheoreticalDatabase:
+class KnownResultDatabase:
     """
     Database for storing and querying known theoretical results.
     
-    This class provides a framework for storing known polynomial results,
-    period distributions, and theoretical bounds, enabling comparison with
-    computed results.
+    This class provides functionality to store known results (primitive polynomials,
+    period distributions, polynomial orders) and compare computed results against them.
     
     **Key Terminology**:
     
-    - **Known Result Database**: A collection of precomputed or published
-      theoretical results that can be used to verify computed results or
-      provide reference values.
+    - **Known Result Database**: A collection of previously computed or published
+      theoretical results that can be used for verification and comparison.
     
-    - **Polynomial Database**: A database containing known polynomials with
-      their properties (order, primitivity, irreducibility) for comparison.
+    - **Result Verification**: Comparing computed results with known results to
+      verify correctness of analysis algorithms.
     
-    - **Result Verification**: Comparing computed results with known results
-      to verify correctness of analysis algorithms.
-    
-    **Database Schema**:
-    
-    The database stores:
-    - Known primitive polynomials
-    - Known irreducible polynomials
-    - Known polynomial orders
-    - Period distributions for standard configurations
-    - Theoretical bounds
-    
-    Args:
-        db_path: Path to SQLite database file (default: ~/.lfsr-seq/theoretical.db)
+    - **Theoretical Comparison**: Comparing experimental results with theoretical
+      predictions or known published results.
     """
     
     def __init__(self, db_path: Optional[str] = None):
+        """
+        Initialize known result database.
+        
+        Args:
+            db_path: Optional path to database file (default: data/theoretical_db.json)
+        """
         if db_path is None:
-            # Default to user's home directory
-            home = Path.home()
-            db_dir = home / ".lfsr-seq"
-            db_dir.mkdir(exist_ok=True)
-            db_path = str(db_dir / "theoretical.db")
+            # Default to data directory
+            data_dir = Path(__file__).parent.parent / "data"
+            data_dir.mkdir(exist_ok=True)
+            db_path = str(data_dir / "theoretical_db.json")
         
         self.db_path = db_path
-        self._init_database()
-        self._populate_standard_polynomials()
+        self.db: Dict[str, Any] = {}
+        self._load_database()
     
-    def _init_database(self) -> None:
-        """Initialize database schema."""
-        conn = sqlite3.connect(self.db_path)
-        cursor = conn.cursor()
-        
-        # Known polynomials table
-        cursor.execute("""
-            CREATE TABLE IF NOT EXISTS known_polynomials (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                coefficients TEXT NOT NULL,
-                field_order INTEGER NOT NULL,
-                degree INTEGER NOT NULL,
-                polynomial_order INTEGER,
-                is_primitive INTEGER NOT NULL DEFAULT 0,
-                is_irreducible INTEGER NOT NULL DEFAULT 0,
-                source TEXT NOT NULL DEFAULT 'standard',
-                notes TEXT,
-                UNIQUE(coefficients, field_order)
-            )
-        """)
-        
-        # Create index for faster lookups
-        cursor.execute("""
-            CREATE INDEX IF NOT EXISTS idx_coefficients 
-            ON known_polynomials(coefficients, field_order)
-        """)
-        
-        cursor.execute("""
-            CREATE INDEX IF NOT EXISTS idx_primitive 
-            ON known_polynomials(is_primitive, field_order, degree)
-        """)
-        
-        conn.commit()
-        conn.close()
+    def _load_database(self) -> None:
+        """Load database from file."""
+        if os.path.exists(self.db_path):
+            try:
+                with open(self.db_path, 'r', encoding='utf-8') as f:
+                    self.db = json.load(f)
+            except (json.JSONDecodeError, IOError):
+                self.db = self._initialize_database()
+        else:
+            self.db = self._initialize_database()
+            self._save_database()
     
-    def _populate_standard_polynomials(self) -> None:
-        """Populate database with standard known polynomials."""
-        conn = sqlite3.connect(self.db_path)
-        cursor = conn.cursor()
-        
-        # Check if already populated
-        cursor.execute("SELECT COUNT(*) FROM known_polynomials")
-        count = cursor.fetchone()[0]
-        
-        if count == 0:
-            # Add some standard primitive polynomials over GF(2)
-            standard_primitives = [
-                # (coefficients, degree, order, notes)
-                ([1, 0, 0, 1], 4, 15, "t^4 + t + 1 - Standard primitive polynomial"),
-                ([1, 0, 0, 0, 1], 5, 31, "t^5 + t^2 + 1 - Standard primitive polynomial"),
-                ([1, 0, 0, 0, 0, 1], 6, 63, "t^6 + t + 1 - Standard primitive polynomial"),
-                ([1, 0, 0, 0, 0, 0, 1], 7, 127, "t^7 + t + 1 - Standard primitive polynomial"),
-                ([1, 0, 0, 0, 0, 0, 0, 1], 8, 255, "t^8 + t^4 + t^3 + t^2 + 1 - Standard primitive polynomial"),
-            ]
-            
-            for coeffs, degree, order, notes in standard_primitives:
-                coeffs_str = json.dumps(coeffs)
-                cursor.execute("""
-                    INSERT OR IGNORE INTO known_polynomials 
-                    (coefficients, field_order, degree, polynomial_order, is_primitive, is_irreducible, source, notes)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-                """, (coeffs_str, 2, degree, order, 1, 1, "standard", notes))
-        
-        conn.commit()
-        conn.close()
+    def _save_database(self) -> None:
+        """Save database to file."""
+        os.makedirs(os.path.dirname(self.db_path), exist_ok=True)
+        with open(self.db_path, 'w', encoding='utf-8') as f:
+            json.dump(self.db, f, indent=2, ensure_ascii=False)
     
-    def add_polynomial(
+    def _initialize_database(self) -> Dict[str, Any]:
+        """Initialize database with standard known results."""
+        return {
+            'primitive_polynomials': {},
+            'polynomial_orders': {},
+            'period_distributions': {},
+            'known_results': []
+        }
+    
+    def add_primitive_polynomial(
         self,
         coefficients: List[int],
         field_order: int,
         degree: int,
-        order: Optional[int] = None,
-        is_primitive: bool = False,
-        is_irreducible: bool = False,
-        source: str = "user",
-        notes: str = ""
+        order: int,
+        source: Optional[str] = None
     ) -> None:
         """
-        Add a known polynomial to the database.
+        Add a known primitive polynomial to the database.
         
         Args:
             coefficients: Polynomial coefficients
             field_order: Field order
             degree: Polynomial degree
-            order: Polynomial order (optional)
-            is_primitive: Whether primitive
-            is_irreducible: Whether irreducible
-            source: Source of the result
-            notes: Additional notes
+            order: Polynomial order (should be q^d - 1)
+            source: Optional source/reference
         """
-        conn = sqlite3.connect(self.db_path)
-        cursor = conn.cursor()
-        
-        coeffs_str = json.dumps(coefficients)
-        cursor.execute("""
-            INSERT OR REPLACE INTO known_polynomials 
-            (coefficients, field_order, degree, polynomial_order, is_primitive, is_irreducible, source, notes)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-        """, (coeffs_str, field_order, degree, order, 
-              int(is_primitive), int(is_irreducible), source, notes))
-        
-        conn.commit()
-        conn.close()
+        key = f"{field_order}_{degree}_{'_'.join(map(str, coefficients))}"
+        self.db['primitive_polynomials'][key] = {
+            'coefficients': coefficients,
+            'field_order': field_order,
+            'degree': degree,
+            'order': order,
+            'source': source
+        }
+        self._save_database()
     
-    def find_polynomial(
+    def lookup_primitive_polynomial(
         self,
         coefficients: List[int],
-        field_order: int
-    ) -> Optional[KnownPolynomial]:
+        field_order: int,
+        degree: int
+    ) -> Optional[Dict[str, Any]]:
         """
-        Find a polynomial in the database.
+        Look up a primitive polynomial in the database.
         
         Args:
             coefficients: Polynomial coefficients
             field_order: Field order
+            degree: Polynomial degree
         
         Returns:
-            KnownPolynomial if found, None otherwise
+            Dictionary with polynomial data if found, None otherwise
         """
-        conn = sqlite3.connect(self.db_path)
-        cursor = conn.cursor()
-        
-        coeffs_str = json.dumps(coefficients)
-        cursor.execute("""
-            SELECT coefficients, field_order, degree, polynomial_order,
-                   is_primitive, is_irreducible, source, notes
-            FROM known_polynomials
-            WHERE coefficients = ? AND field_order = ?
-        """, (coeffs_str, field_order))
-        
-        row = cursor.fetchone()
-        conn.close()
-        
-        if row:
-            return KnownPolynomial(
-                coefficients=json.loads(row[0]),
-                field_order=row[1],
-                degree=row[2],
-                order=row[3],
-                is_primitive=bool(row[4]),
-                is_irreducible=bool(row[5]),
-                source=row[6],
-                notes=row[7]
-            )
-        
-        return None
+        key = f"{field_order}_{degree}_{'_'.join(map(str, coefficients))}"
+        return self.db['primitive_polynomials'].get(key)
     
-    def find_primitive_polynomials(
+    def add_polynomial_order(
         self,
+        coefficients: List[int],
         field_order: int,
-        degree: Optional[int] = None
-    ) -> List[KnownPolynomial]:
+        degree: int,
+        order: int,
+        source: Optional[str] = None
+    ) -> None:
         """
-        Find primitive polynomials in the database.
+        Add a known polynomial order to the database.
         
         Args:
+            coefficients: Polynomial coefficients
             field_order: Field order
-            degree: Optional degree filter
+            degree: Polynomial degree
+            order: Polynomial order
+            source: Optional source/reference
+        """
+        key = f"{field_order}_{degree}_{'_'.join(map(str, coefficients))}"
+        self.db['polynomial_orders'][key] = {
+            'coefficients': coefficients,
+            'field_order': field_order,
+            'degree': degree,
+            'order': order,
+            'source': source
+        }
+        self._save_database()
+    
+    def lookup_polynomial_order(
+        self,
+        coefficients: List[int],
+        field_order: int,
+        degree: int
+    ) -> Optional[Dict[str, Any]]:
+        """
+        Look up a polynomial order in the database.
+        
+        Args:
+            coefficients: Polynomial coefficients
+            field_order: Field order
+            degree: Polynomial degree
         
         Returns:
-            List of known primitive polynomials
+            Dictionary with order data if found, None otherwise
         """
-        conn = sqlite3.connect(self.db_path)
-        cursor = conn.cursor()
-        
-        if degree is not None:
-            cursor.execute("""
-                SELECT coefficients, field_order, degree, polynomial_order,
-                       is_primitive, is_irreducible, source, notes
-                FROM known_polynomials
-                WHERE field_order = ? AND degree = ? AND is_primitive = 1
-                ORDER BY degree
-            """, (field_order, degree))
-        else:
-            cursor.execute("""
-                SELECT coefficients, field_order, degree, polynomial_order,
-                       is_primitive, is_irreducible, source, notes
-                FROM known_polynomials
-                WHERE field_order = ? AND is_primitive = 1
-                ORDER BY degree
-            """, (field_order,))
-        
-        rows = cursor.fetchall()
-        conn.close()
-        
-        return [
-            KnownPolynomial(
-                coefficients=json.loads(row[0]),
-                field_order=row[1],
-                degree=row[2],
-                order=row[3],
-                is_primitive=bool(row[4]),
-                is_irreducible=bool(row[5]),
-                source=row[6],
-                notes=row[7]
-            )
-            for row in rows
-        ]
+        key = f"{field_order}_{degree}_{'_'.join(map(str, coefficients))}"
+        return self.db['polynomial_orders'].get(key)
     
     def compare_with_known(
         self,
         coefficients: List[int],
         field_order: int,
+        degree: int,
         computed_order: Optional[int] = None,
-        computed_is_primitive: Optional[bool] = None,
-        computed_is_irreducible: Optional[bool] = None
+        computed_is_primitive: Optional[bool] = None
     ) -> Dict[str, Any]:
         """
         Compare computed results with known results in database.
@@ -301,47 +189,93 @@ class TheoreticalDatabase:
         Args:
             coefficients: Polynomial coefficients
             field_order: Field order
+            degree: Polynomial degree
             computed_order: Computed polynomial order
-            computed_is_primitive: Computed primitivity
-            computed_is_irreducible: Computed irreducibility
+            computed_is_primitive: Computed primitivity status
         
         Returns:
             Dictionary with comparison results
         """
-        known = self.find_polynomial(coefficients, field_order)
-        
-        if known is None:
-            return {
-                'found': False,
-                'message': 'Polynomial not found in database'
-            }
-        
         comparison = {
-            'found': True,
-            'known': asdict(known),
-            'matches': {}
+            'found_in_database': False,
+            'matches': False,
+            'known_order': None,
+            'known_is_primitive': None,
+            'computed_order': computed_order,
+            'computed_is_primitive': computed_is_primitive,
+            'order_match': None,
+            'primitive_match': None
         }
         
-        if computed_order is not None and known.order is not None:
-            comparison['matches']['order'] = computed_order == known.order
-            comparison['order_computed'] = computed_order
-            comparison['order_known'] = known.order
+        # Check primitive polynomials
+        primitive_result = self.lookup_primitive_polynomial(coefficients, field_order, degree)
+        if primitive_result:
+            comparison['found_in_database'] = True
+            comparison['known_is_primitive'] = True
+            comparison['known_order'] = primitive_result['order']
+            
+            if computed_is_primitive is not None:
+                comparison['primitive_match'] = computed_is_primitive == True
+                comparison['matches'] = comparison['primitive_match']
+            
+            if computed_order is not None:
+                comparison['order_match'] = computed_order == primitive_result['order']
+                if comparison['matches'] is False:
+                    comparison['matches'] = comparison['order_match']
         
-        if computed_is_primitive is not None:
-            comparison['matches']['is_primitive'] = computed_is_primitive == known.is_primitive
-            comparison['is_primitive_computed'] = computed_is_primitive
-            comparison['is_primitive_known'] = known.is_primitive
-        
-        if computed_is_irreducible is not None:
-            comparison['matches']['is_irreducible'] = computed_is_irreducible == known.is_irreducible
-            comparison['is_irreducible_computed'] = computed_is_irreducible
-            comparison['is_irreducible_known'] = known.is_irreducible
-        
-        # Overall verification status
-        if comparison['matches']:
-            all_match = all(comparison['matches'].values())
-            comparison['verification_status'] = 'verified' if all_match else 'mismatch'
-        else:
-            comparison['verification_status'] = 'partial'
+        # Check polynomial orders
+        if not comparison['found_in_database']:
+            order_result = self.lookup_polynomial_order(coefficients, field_order, degree)
+            if order_result:
+                comparison['found_in_database'] = True
+                comparison['known_order'] = order_result['order']
+                comparison['known_is_primitive'] = False
+                
+                if computed_order is not None:
+                    comparison['order_match'] = computed_order == order_result['order']
+                    comparison['matches'] = comparison['order_match']
         
         return comparison
+    
+    def populate_standard_primitives(self) -> None:
+        """Populate database with standard primitive polynomials."""
+        # Some well-known primitive polynomials over GF(2)
+        standard_primitives = [
+            # Degree 2
+            ([1, 1], 2, 2, 3),  # t^2 + t + 1
+            # Degree 3
+            ([1, 0, 1], 2, 3, 7),  # t^3 + t + 1
+            # Degree 4
+            ([1, 0, 0, 1], 2, 4, 15),  # t^4 + t + 1
+            # Degree 5
+            ([1, 0, 0, 1, 0], 2, 5, 31),  # t^5 + t^2 + 1
+        ]
+        
+        for coeffs, field_order, degree, order in standard_primitives:
+            self.add_primitive_polynomial(
+                coeffs, field_order, degree, order,
+                source="Standard primitive polynomial"
+            )
+
+
+# Global database instance
+_global_db: Optional[KnownResultDatabase] = None
+
+
+def get_database(db_path: Optional[str] = None) -> KnownResultDatabase:
+    """
+    Get global database instance.
+    
+    Args:
+        db_path: Optional database path
+    
+    Returns:
+        KnownResultDatabase instance
+    """
+    global _global_db
+    if _global_db is None:
+        _global_db = KnownResultDatabase(db_path)
+        # Populate with standard primitives if empty
+        if not _global_db.db['primitive_polynomials']:
+            _global_db.populate_standard_primitives()
+    return _global_db

@@ -2,17 +2,15 @@
 # -*- coding: utf-8 -*-
 
 """
-Benchmarking framework for LFSR analysis.
+Benchmarking framework for LFSR analysis methods.
 
-This module provides benchmarking capabilities for comparing performance,
-accuracy, and results across different analysis methods.
+This module provides functionality to benchmark analysis methods for
+performance and accuracy comparisons.
 """
 
 import time
 from typing import Any, Dict, List, Optional, Tuple
-from dataclasses import dataclass, field, asdict
-from datetime import datetime
-import json
+from dataclasses import dataclass, field
 
 from sage.all import *
 
@@ -20,29 +18,24 @@ from sage.all import *
 @dataclass
 class BenchmarkResult:
     """
-    Result from a single benchmark run.
+    Results from a single benchmark run.
     
     Attributes:
-        method: Method name (e.g., "enumeration", "factorization")
-        coefficients: LFSR coefficients
-        field_order: Field order
-        degree: LFSR degree
+        method_name: Name of the method being benchmarked
         execution_time: Execution time in seconds
-        memory_usage: Memory usage in bytes (optional)
-        result: Analysis result
-        accuracy: Accuracy metric (optional)
-        error: Error message if benchmark failed
+        memory_usage: Memory usage (if available)
+        result_correct: Whether result matches expected value
+        result_value: The computed result value
+        expected_value: Expected result value (if known)
+        parameters: Parameters used for the benchmark
     """
-    method: str
-    coefficients: List[int]
-    field_order: int
-    degree: int
+    method_name: str
     execution_time: float
-    memory_usage: Optional[int] = None
-    result: Optional[Any] = None
-    accuracy: Optional[float] = None
-    error: Optional[str] = None
-    timestamp: str = field(default_factory=lambda: datetime.now().isoformat())
+    memory_usage: Optional[float] = None
+    result_correct: Optional[bool] = None
+    result_value: Any = None
+    expected_value: Any = None
+    parameters: Dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass
@@ -51,285 +44,218 @@ class BenchmarkSuite:
     Collection of benchmark results.
     
     Attributes:
-        name: Suite name
-        description: Suite description
+        suite_name: Name of the benchmark suite
         results: List of benchmark results
-        metadata: Additional metadata
+        total_time: Total execution time
+        average_time: Average execution time per benchmark
     """
-    name: str
-    description: str
+    suite_name: str
     results: List[BenchmarkResult] = field(default_factory=list)
-    metadata: Dict[str, Any] = field(default_factory=dict)
-    timestamp: str = field(default_factory=lambda: datetime.now().isoformat())
+    total_time: float = 0.0
+    average_time: float = 0.0
+
+
+def benchmark_polynomial_order(
+    polynomial: Any,
+    field_order: int,
+    state_vector_dim: int,
+    expected_order: Optional[int] = None
+) -> BenchmarkResult:
+    """
+    Benchmark polynomial order computation.
+    
+    This function benchmarks the polynomial order computation method,
+    measuring execution time and verifying correctness if expected value is provided.
+    
+    **Key Terminology**:
+    
+    - **Benchmarking**: The process of measuring and comparing the performance
+      of different methods or algorithms. This helps identify the most efficient
+      approach for a given problem.
+    
+    - **Performance Metrics**: Quantitative measures of performance, such as
+      execution time, memory usage, or computational complexity.
+    
+    - **Accuracy Verification**: Checking that computed results match expected
+      values, ensuring correctness of the implementation.
+    
+    Args:
+        polynomial: Polynomial to analyze
+        field_order: Field order
+        state_vector_dim: State vector dimension
+        expected_order: Optional expected order for verification
+    
+    Returns:
+        BenchmarkResult with timing and correctness information
+    """
+    from lfsr.polynomial import polynomial_order
+    
+    start_time = time.time()
+    computed_order = polynomial_order(polynomial, state_vector_dim, field_order)
+    execution_time = time.time() - start_time
+    
+    result_correct = None
+    if expected_order is not None:
+        if computed_order != oo:
+            result_correct = int(computed_order) == expected_order
+        else:
+            result_correct = False
+    
+    return BenchmarkResult(
+        method_name="polynomial_order",
+        execution_time=execution_time,
+        result_correct=result_correct,
+        result_value=int(computed_order) if computed_order != oo else None,
+        expected_value=expected_order,
+        parameters={
+            'field_order': field_order,
+            'degree': polynomial.degree(),
+            'state_vector_dim': state_vector_dim
+        }
+    )
 
 
 def benchmark_period_computation(
     coefficients: List[int],
     field_order: int,
-    methods: Optional[List[str]] = None
-) -> List[BenchmarkResult]:
-    """
-    Benchmark period computation using different methods.
-    
-    This function compares performance and accuracy of different period
-    computation methods (enumeration, factorization, etc.).
-    
-    **Key Terminology**:
-    
-    - **Benchmarking**: The process of measuring and comparing performance
-      or accuracy of different methods or implementations.
-    
-    - **Performance Benchmark**: Measuring execution time, memory usage,
-      or other resource consumption metrics.
-    
-    - **Accuracy Benchmark**: Comparing results to verify correctness
-      and measure accuracy differences between methods.
-    
-    - **Method Comparison**: Comparing different algorithms or approaches
-      to solve the same problem, evaluating trade-offs.
-    
-    Args:
-        coefficients: LFSR coefficients
-        field_order: Field order
-        methods: List of methods to benchmark (default: ["enumeration", "factorization"])
-    
-    Returns:
-        List of BenchmarkResult objects
-    """
-    if methods is None:
-        methods = ["enumeration", "factorization"]
-    
-    results = []
-    degree = len(coefficients)
-    
-    for method in methods:
-        start_time = time.time()
-        error = None
-        result = None
-        
-        try:
-            if method == "enumeration":
-                from lfsr.core import find_sequence_cycle_enumeration
-                # Use a sample initial state
-                initial_state = [1] + [0] * (degree - 1)
-                period, _ = find_sequence_cycle_enumeration(
-                    coefficients, field_order, initial_state
-                )
-                result = period
-            
-            elif method == "factorization":
-                from lfsr.polynomial import compute_period_via_factorization
-                result = compute_period_via_factorization(
-                    coefficients, field_order, degree
-                )
-            
-            execution_time = time.time() - start_time
-            
-        except Exception as e:
-            execution_time = time.time() - start_time
-            error = str(e)
-        
-        benchmark_result = BenchmarkResult(
-            method=method,
-            coefficients=coefficients,
-            field_order=field_order,
-            degree=degree,
-            execution_time=execution_time,
-            result=result,
-            error=error
-        )
-        
-        results.append(benchmark_result)
-    
-    # Compute accuracy by comparing results
-    valid_results = [r for r in results if r.result is not None and r.error is None]
-    if len(valid_results) > 1:
-        # All results should match
-        reference = valid_results[0].result
-        for r in valid_results[1:]:
-            if r.result == reference:
-                r.accuracy = 1.0
-            else:
-                r.accuracy = 0.0
-    
-    return results
-
-
-def benchmark_polynomial_analysis(
-    coefficients: List[int],
-    field_order: int
+    method: str = "enumeration",
+    expected_period: Optional[int] = None
 ) -> BenchmarkResult:
     """
-    Benchmark polynomial analysis operations.
+    Benchmark period computation methods.
     
-    This function measures performance of polynomial analysis including
-    order computation, primitivity checking, and factorization.
+    This function benchmarks different period computation methods (enumeration,
+    factorization) and compares their performance.
     
     Args:
         coefficients: LFSR coefficients
         field_order: Field order
+        method: Method to use ("enumeration" or "factorization")
+        expected_period: Optional expected period for verification
     
     Returns:
-        BenchmarkResult for polynomial analysis
+        BenchmarkResult with timing and correctness information
     """
-    from lfsr.polynomial import (
-        compute_characteristic_polynomial,
-        polynomial_order,
-        is_primitive_polynomial
-    )
+    from lfsr.core import compute_period_enumeration
+    from lfsr.polynomial import compute_period_via_factorization
     
     start_time = time.time()
-    error = None
-    result = {}
     
-    try:
-        char_poly = compute_characteristic_polynomial(coefficients, field_order)
-        degree = len(coefficients)
-        
-        poly_order = polynomial_order(char_poly, degree, field_order)
-        is_primitive = is_primitive_polynomial(char_poly, field_order)
-        
-        result = {
-            'order': int(poly_order) if poly_order != oo else None,
-            'is_primitive': is_primitive
-        }
-        
-        execution_time = time.time() - start_time
-        
-    except Exception as e:
-        execution_time = time.time() - start_time
-        error = str(e)
+    if method == "enumeration":
+        computed_period = compute_period_enumeration(coefficients, field_order)
+    elif method == "factorization":
+        computed_period = compute_period_via_factorization(coefficients, field_order)
+    else:
+        raise ValueError(f"Unknown method: {method}")
+    
+    execution_time = time.time() - start_time
+    
+    result_correct = None
+    if expected_period is not None:
+        result_correct = computed_period == expected_period
     
     return BenchmarkResult(
-        method="polynomial_analysis",
-        coefficients=coefficients,
-        field_order=field_order,
-        degree=len(coefficients),
+        method_name=f"period_computation_{method}",
         execution_time=execution_time,
-        result=result,
-        error=error
+        result_correct=result_correct,
+        result_value=computed_period,
+        expected_value=expected_period,
+        parameters={
+            'coefficients': coefficients,
+            'field_order': field_order,
+            'method': method
+        }
     )
 
 
-def compare_benchmark_results(
-    results: List[BenchmarkResult]
-) -> Dict[str, Any]:
-    """
-    Compare benchmark results and generate comparison report.
-    
-    This function analyzes benchmark results to identify the fastest method,
-    accuracy differences, and performance trade-offs.
-    
-    **Key Terminology**:
-    
-    - **Performance Comparison**: Analyzing execution times to identify
-      the fastest or most efficient method.
-    
-    - **Trade-off Analysis**: Evaluating the balance between different
-      metrics (e.g., speed vs. accuracy, memory vs. time).
-    
-    - **Benchmark Report**: Summary of benchmark results with comparisons
-      and recommendations.
-    
-    Args:
-        results: List of benchmark results to compare
-    
-    Returns:
-        Dictionary with comparison analysis
-    """
-    valid_results = [r for r in results if r.error is None]
-    
-    if not valid_results:
-        return {
-            'status': 'error',
-            'message': 'No valid benchmark results to compare'
-        }
-    
-    # Find fastest method
-    fastest = min(valid_results, key=lambda r: r.execution_time)
-    
-    # Find slowest method
-    slowest = max(valid_results, key=lambda r: r.execution_time)
-    
-    # Check if results match
-    results_match = True
-    if len(valid_results) > 1:
-        reference_result = valid_results[0].result
-        for r in valid_results[1:]:
-            if r.result != reference_result:
-                results_match = False
-                break
-    
-    comparison = {
-        'status': 'success',
-        'total_methods': len(results),
-        'valid_methods': len(valid_results),
-        'fastest_method': fastest.method,
-        'fastest_time': fastest.execution_time,
-        'slowest_method': slowest.method,
-        'slowest_time': slowest.execution_time,
-        'speedup': slowest.execution_time / fastest.execution_time if fastest.execution_time > 0 else None,
-        'results_match': results_match,
-        'method_details': [
-            {
-                'method': r.method,
-                'time': r.execution_time,
-                'result': r.result,
-                'accuracy': r.accuracy
-            }
-            for r in valid_results
-        ]
-    }
-    
-    return comparison
-
-
-def save_benchmark_suite(
-    suite: BenchmarkSuite,
-    filename: str
-) -> None:
-    """
-    Save benchmark suite to JSON file.
-    
-    Args:
-        suite: BenchmarkSuite to save
-        filename: Output filename
-    """
-    data = {
-        'name': suite.name,
-        'description': suite.description,
-        'timestamp': suite.timestamp,
-        'metadata': suite.metadata,
-        'results': [asdict(r) for r in suite.results]
-    }
-    
-    with open(filename, 'w') as f:
-        json.dump(data, f, indent=2)
-
-
-def load_benchmark_suite(
-    filename: str
+def run_benchmark_suite(
+    test_cases: List[Dict[str, Any]],
+    suite_name: str = "LFSR Analysis Benchmarks"
 ) -> BenchmarkSuite:
     """
-    Load benchmark suite from JSON file.
+    Run a suite of benchmarks.
+    
+    This function runs multiple benchmarks and aggregates the results
+    for comparison and analysis.
     
     Args:
-        filename: Input filename
+        test_cases: List of test case dictionaries with benchmark parameters
+        suite_name: Name of the benchmark suite
     
     Returns:
-        BenchmarkSuite object
+        BenchmarkSuite with aggregated results
     """
-    with open(filename, 'r') as f:
-        data = json.load(f)
+    suite = BenchmarkSuite(suite_name=suite_name)
+    total_time = 0.0
     
-    results = [
-        BenchmarkResult(**r) for r in data['results']
-    ]
+    for test_case in test_cases:
+        benchmark_type = test_case.get('type', 'polynomial_order')
+        
+        if benchmark_type == 'polynomial_order':
+            from sage.all import PolynomialRing, GF
+            F = GF(test_case['field_order'])
+            R = PolynomialRing(F, "t")
+            poly = R(test_case['polynomial'])
+            result = benchmark_polynomial_order(
+                poly,
+                test_case['field_order'],
+                test_case.get('state_vector_dim', poly.degree()),
+                test_case.get('expected_order')
+            )
+        elif benchmark_type == 'period_computation':
+            result = benchmark_period_computation(
+                test_case['coefficients'],
+                test_case['field_order'],
+                test_case.get('method', 'enumeration'),
+                test_case.get('expected_period')
+            )
+        else:
+            continue
+        
+        suite.results.append(result)
+        total_time += result.execution_time
     
-    return BenchmarkSuite(
-        name=data['name'],
-        description=data['description'],
-        results=results,
-        metadata=data.get('metadata', {}),
-        timestamp=data.get('timestamp', '')
+    suite.total_time = total_time
+    suite.average_time = total_time / len(suite.results) if suite.results else 0.0
+    
+    return suite
+
+
+def compare_methods(
+    coefficients: List[int],
+    field_order: int,
+    expected_period: Optional[int] = None
+) -> Dict[str, BenchmarkResult]:
+    """
+    Compare different period computation methods.
+    
+    This function runs multiple methods on the same input and compares
+    their performance and accuracy.
+    
+    Args:
+        coefficients: LFSR coefficients
+        field_order: Field order
+        expected_period: Optional expected period for verification
+    
+    Returns:
+        Dictionary mapping method names to benchmark results
+    """
+    results = {}
+    
+    # Benchmark enumeration
+    enum_result = benchmark_period_computation(
+        coefficients, field_order, "enumeration", expected_period
     )
+    results['enumeration'] = enum_result
+    
+    # Benchmark factorization
+    try:
+        factor_result = benchmark_period_computation(
+            coefficients, field_order, "factorization", expected_period
+        )
+        results['factorization'] = factor_result
+    except Exception:
+        # Factorization may fail for some polynomials
+        pass
+    
+    return results

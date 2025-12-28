@@ -629,6 +629,45 @@ def parse_args(args: Optional[list] = None) -> argparse.Namespace:
         help="Length of sequence to generate (default: 1000)."
     )
     
+    # Theoretical analysis options
+    theoretical_group = parser.add_argument_group(
+        "theoretical analysis options",
+        "Options for theoretical analysis, LaTeX export, and research features"
+    )
+    
+    theoretical_group.add_argument(
+        "--export-latex",
+        type=str,
+        metavar="FILE",
+        help="Export analysis results to LaTeX format (specify output file)."
+    )
+    
+    theoretical_group.add_argument(
+        "--generate-paper",
+        type=str,
+        metavar="FILE",
+        help="Generate complete research paper from analysis results (specify output file)."
+    )
+    
+    theoretical_group.add_argument(
+        "--compare-known",
+        action="store_true",
+        help="Compare computed results with known results in database."
+    )
+    
+    theoretical_group.add_argument(
+        "--benchmark",
+        action="store_true",
+        help="Run performance benchmarks for analysis methods."
+    )
+    
+    theoretical_group.add_argument(
+        "--reproducibility-report",
+        type=str,
+        metavar="FILE",
+        help="Generate reproducibility report (specify output file)."
+    )
+    
     # NIST test suite options
     nist_group = parser.add_argument_group(
         "NIST SP 800-22 test suite options",
@@ -863,6 +902,125 @@ def cli_main() -> None:
                     max_equations=args.max_equations,
                     output_file=output_file
                 )
+            # Check if theoretical analysis features requested
+            elif args.export_latex or args.generate_paper or args.compare_known or args.benchmark or args.reproducibility_report:
+                from lfsr.io import read_coefficient_vectors
+                from lfsr.core import analyze_lfsr
+                from lfsr.export_latex import export_complete_analysis_to_latex, export_to_latex_file
+                from lfsr.paper_generator import generate_complete_paper
+                from lfsr.theoretical_db import get_database
+                from lfsr.benchmarking import compare_methods
+                from lfsr.reproducibility import generate_reproducibility_report, save_reproducibility_report
+                
+                # Load coefficients from input file
+                if not args.input_file:
+                    print("ERROR: Theoretical analysis features require input file with LFSR coefficients", file=sys.stderr)
+                    sys.exit(1)
+                
+                coeffs_list = read_coefficient_vectors(args.input_file, args.gf_order)
+                if not coeffs_list:
+                    print("ERROR: No valid coefficients found in input file", file=sys.stderr)
+                    sys.exit(1)
+                
+                # Use first set of coefficients
+                coefficients = coeffs_list[0]
+                
+                # Perform analysis to get results
+                seq_dict, period_dict, max_period, periods_sum, char_poly, char_poly_order, _ = analyze_lfsr(
+                    coefficients, args.gf_order
+                )
+                
+                # Prepare analysis results dictionary
+                from lfsr.polynomial import is_primitive_polynomial
+                is_primitive = is_primitive_polynomial(char_poly, args.gf_order)
+                theoretical_max = int(args.gf_order) ** len(coefficients) - 1
+                
+                analysis_results = {
+                    'field_order': args.gf_order,
+                    'lfsr_degree': len(coefficients),
+                    'coefficients': coefficients,
+                    'max_period': max_period,
+                    'theoretical_max_period': theoretical_max,
+                    'is_primitive': is_primitive,
+                    'polynomial': {
+                        'polynomial': char_poly,
+                        'order': int(char_poly_order) if char_poly_order != oo else None,
+                        'is_primitive': is_primitive,
+                        'is_irreducible': char_poly.is_irreducible(),
+                        'field_order': args.gf_order
+                    },
+                    'period_distribution': {
+                        'period_dict': period_dict,
+                        'field_order': args.gf_order,
+                        'lfsr_degree': len(coefficients),
+                        'is_primitive': is_primitive,
+                        'theoretical_max_period': theoretical_max
+                    }
+                }
+                
+                # LaTeX export
+                if args.export_latex:
+                    export_to_latex_file(analysis_results, args.export_latex, include_preamble=True)
+                    print(f"LaTeX export saved to {args.export_latex}", file=output_file)
+                
+                # Paper generation
+                if args.generate_paper:
+                    paper = generate_complete_paper(analysis_results)
+                    with open(args.generate_paper, 'w', encoding='utf-8') as f:
+                        f.write(paper)
+                    print(f"Research paper saved to {args.generate_paper}", file=output_file)
+                
+                # Compare with known results
+                if args.compare_known:
+                    db = get_database()
+                    comparison = db.compare_with_known(
+                        coefficients,
+                        args.gf_order,
+                        len(coefficients),
+                        int(char_poly_order) if char_poly_order != oo else None,
+                        is_primitive
+                    )
+                    print("=" * 70, file=output_file)
+                    print("Comparison with Known Results", file=output_file)
+                    print("=" * 70, file=output_file)
+                    print(f"Found in database: {comparison['found_in_database']}", file=output_file)
+                    if comparison['found_in_database']:
+                        print(f"Known order: {comparison['known_order']}", file=output_file)
+                        print(f"Known primitive: {comparison['known_is_primitive']}", file=output_file)
+                        print(f"Order match: {comparison['order_match']}", file=output_file)
+                        print(f"Primitive match: {comparison['primitive_match']}", file=output_file)
+                        print(f"Overall match: {comparison['matches']}", file=output_file)
+                    else:
+                        print("No matching results found in database", file=output_file)
+                    print("=" * 70, file=output_file)
+                
+                # Benchmarking
+                if args.benchmark:
+                    print("=" * 70, file=output_file)
+                    print("Performance Benchmarking", file=output_file)
+                    print("=" * 70, file=output_file)
+                    benchmark_results = compare_methods(coefficients, args.gf_order, max_period)
+                    for method, result in benchmark_results.items():
+                        print(f"\nMethod: {method}", file=output_file)
+                        print(f"  Execution time: {result.execution_time:.6f} seconds", file=output_file)
+                        print(f"  Result: {result.result_value}", file=output_file)
+                        if result.result_correct is not None:
+                            print(f"  Correct: {result.result_correct}", file=output_file)
+                    print("=" * 70, file=output_file)
+                
+                # Reproducibility report
+                if args.reproducibility_report:
+                    analysis_config = {
+                        'coefficients': coefficients,
+                        'field_order': args.gf_order,
+                        'degree': len(coefficients)
+                    }
+                    save_reproducibility_report(
+                        analysis_results,
+                        analysis_config,
+                        args.reproducibility_report
+                    )
+                    print(f"Reproducibility report saved to {args.reproducibility_report}", file=output_file)
             # Check if correlation attack mode
             elif args.correlation_attack:
                 from lfsr.cli_correlation import perform_correlation_attack_cli

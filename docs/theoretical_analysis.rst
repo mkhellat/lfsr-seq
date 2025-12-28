@@ -3,75 +3,63 @@ Theoretical Analysis
 
 This section provides comprehensive documentation for theoretical analysis
 features, including irreducible polynomial analysis, LaTeX export, research
-paper generation, known result databases, benchmarking, and reproducibility.
+paper generation, known result database, benchmarking, and reproducibility.
 
 **Key Terminology**:
 
 - **Theoretical Analysis**: Analysis that compares computed results with
   theoretical predictions and known results, ensuring correctness and
-  providing insights into mathematical properties.
+  providing research insights.
 
 - **Irreducible Polynomial**: A polynomial that cannot be factored into
   polynomials of lower degree over the given field.
 
 - **LaTeX Export**: Converting analysis results into LaTeX format for
-  inclusion in research papers and publications.
+  inclusion in research papers.
 
 - **Reproducibility**: The ability to reproduce research results using
-  the same methods, data, and configuration.
+  the same methods, data, and parameters.
 
 Introduction
 ------------
 
-The theoretical analysis module provides research-oriented features for
-LFSR analysis, enabling:
+The theoretical analysis features provide research-oriented capabilities
+for LFSR analysis, enabling:
 
-1. **Enhanced Polynomial Analysis**: Comprehensive analysis of irreducible
-   polynomials, factorization, and theoretical properties.
+1. **Enhanced Analysis**: Comprehensive irreducible polynomial analysis
+   with factorization and order computation
 
-2. **Publication-Quality Export**: LaTeX export for research papers with
-   professional formatting.
+2. **Publication Support**: LaTeX export and research paper generation
+   for documenting findings
 
-3. **Research Paper Generation**: Automatic generation of research paper
-   sections from analysis results.
+3. **Verification**: Comparison with known results database for correctness
+   verification
 
-4. **Known Result Database**: Storage and retrieval of known theoretical
-   results for comparison and verification.
+4. **Performance Analysis**: Benchmarking framework for comparing methods
 
-5. **Benchmarking**: Performance and accuracy comparison of different
-   analysis methods.
-
-6. **Reproducibility**: Complete documentation and verification for
-   research reproducibility.
+5. **Reproducibility**: Complete environment and configuration tracking
+   for scientific reproducibility
 
 Irreducible Polynomial Analysis
 --------------------------------
 
 **What is Irreducible Polynomial Analysis?**
 
-Irreducible polynomial analysis provides comprehensive examination of
-polynomial properties including irreducibility, factorization, factor orders,
-and relationships between factors and the full polynomial.
+Irreducible polynomial analysis provides comprehensive analysis of polynomial
+properties, including irreducibility, factorization, factor orders, and
+primitive factor detection.
 
-**Key Terminology**:
+**Key Features**:
 
-- **Irreducible Polynomial**: A polynomial that cannot be factored into
-  polynomials of lower degree. For example, over GF(2), t^2 + t + 1 is
-  irreducible, but t^2 + 1 = (t+1)^2 is not.
-
-- **Polynomial Factorization**: Decomposing a polynomial into irreducible
-  factors. For example, t^4 + t^3 + t + 1 = (t+1)(t^3 + t + 1) over GF(2).
-
-- **Factor Order**: The order of an irreducible factor f(t) is the smallest
-  positive integer n such that t^n ≡ 1 (mod f(t)).
-
-- **Polynomial Order**: The order of polynomial P(t) is the smallest positive
-  integer n such that t^n ≡ 1 (mod P(t)). For a polynomial with factors
-  f_i(t), the order is LCM(ord(f_1), ..., ord(f_k)).
+- **Irreducibility Testing**: Determine if polynomial is irreducible
+- **Factorization**: Factor polynomial into irreducible components
+- **Factor Orders**: Compute order of each irreducible factor
+- **Order Relationships**: Verify LCM of factor orders equals polynomial order
+- **Primitive Detection**: Identify primitive factors
 
 **Mathematical Foundation**:
 
-For a polynomial P(t) over GF(q) that factors as:
+For a polynomial P(t) that factors as:
 
 .. math::
 
@@ -83,7 +71,7 @@ where f_i(t) are irreducible factors, the order of P(t) is:
 
    \\text{ord}(P(t)) = \\text{lcm}(\\text{ord}(f_1(t)), \\ldots, \\text{ord}(f_k(t)))
 
-**Usage**:
+**Python API Usage**:
 
 .. code-block:: python
 
@@ -107,86 +95,69 @@ LaTeX Export
 LaTeX export converts analysis results into LaTeX format, enabling
 publication-quality output for research papers and reports.
 
-**Key Terminology**:
+**Key Features**:
 
-- **LaTeX**: A document preparation system widely used in academic
-  publishing for typesetting mathematical formulas and scientific documents.
+- **Polynomial Representation**: Convert polynomials to LaTeX format
+- **Table Generation**: Generate professional tables for analysis results
+- **Complete Documents**: Generate standalone LaTeX documents
+- **Table Fragments**: Generate tables for inclusion in existing papers
 
-- **LaTeX Table**: Structured data presentation in LaTeX using tabular
-  environment, commonly used in research papers.
-
-- **Polynomial Representation**: Mathematical notation for polynomials
-  in LaTeX format, e.g., t^4 + t^3 + t + 1.
-
-**Usage**:
+**Python API Usage**:
 
 .. code-block:: python
 
-   from lfsr.export_latex import export_polynomial_analysis_to_latex
-   from sage.all import *
+   from lfsr.export_latex import export_to_latex_file
    
-   F = GF(2)
-   R = PolynomialRing(F, "t")
-   p = R("t^4 + t^3 + t + 1")
+   analysis_results = {
+       'polynomial': {...},
+       'period_distribution': {...}
+   }
    
-   latex_code = export_polynomial_analysis_to_latex(
-       polynomial=p,
-       polynomial_order=6,
-       is_primitive=False,
-       is_irreducible=False,
-       field_order=2
-   )
-   
-   # Write to file
-   with open("analysis.tex", "w") as f:
-       f.write(latex_code)
+   export_to_latex_file(analysis_results, "results.tex")
+
+**Command-Line Usage**:
+
+.. code-block:: bash
+
+   lfsr-seq coefficients.csv 2 --export-latex results.tex
 
 Research Paper Generation
---------------------------
+-------------------------
 
 **What is Research Paper Generation?**
 
-Research paper generation automatically creates research paper sections
-(abstract, methodology, results, discussion) from analysis results.
+Research paper generation automatically creates complete research paper
+sections from analysis results, including abstract, methodology, results,
+and discussion.
 
-**Key Terminology**:
+**Key Features**:
 
-- **Research Paper**: A formal document presenting original research findings,
-  following standard academic structure and formatting conventions.
+- **Automatic Section Generation**: Generate all standard paper sections
+- **LaTeX Integration**: Integrates with LaTeX export for tables
+- **Customizable Content**: Customize title, author, focus, observations
+- **Professional Formatting**: Standard academic paper structure
 
-- **Abstract**: A brief summary of a research paper, typically 150-250 words.
-
-- **Methodology**: The section describing methods, techniques, and procedures
-  used to conduct the research.
-
-- **Results Section**: The section presenting findings, including tables and
-  statistical summaries.
-
-- **Discussion Section**: The section interpreting results and discussing
-  implications.
-
-**Usage**:
+**Python API Usage**:
 
 .. code-block:: python
 
    from lfsr.paper_generator import generate_complete_paper
    
-   analysis_results = {
-       'field_order': 2,
-       'lfsr_degree': 4,
-       'is_primitive': False,
-       'max_period': 6,
-       'theoretical_max_period': 15
-   }
-   
+   analysis_results = {...}
    paper = generate_complete_paper(
        analysis_results,
-       title="LFSR Period Analysis",
-       author="Research Team"
+       title="LFSR Analysis Results",
+       author="Researcher Name"
    )
    
    with open("paper.tex", "w") as f:
        f.write(paper)
+
+**Command-Line Usage**:
+
+.. code-block:: bash
+
+   lfsr-seq coefficients.csv 2 --generate-paper paper.tex
 
 Known Result Database
 ---------------------
@@ -196,181 +167,148 @@ Known Result Database
 The known result database stores and retrieves known theoretical results,
 enabling comparison with computed results for verification.
 
-**Key Terminology**:
+**Key Features**:
 
-- **Known Result Database**: A collection of precomputed or published
-  theoretical results for comparison and verification.
+- **Primitive Polynomial Storage**: Store known primitive polynomials
+- **Order Storage**: Store known polynomial orders
+- **Comparison**: Compare computed results with known results
+- **Verification**: Verify correctness of analysis algorithms
 
-- **Result Verification**: Comparing computed results with known results
-  to verify correctness.
-
-**Usage**:
+**Python API Usage**:
 
 .. code-block:: python
 
-   from lfsr.theoretical_db import TheoreticalDatabase
+   from lfsr.theoretical_db import get_database
    
-   db = TheoreticalDatabase()
-   
-   # Find known polynomial
-   known = db.find_polynomial([1, 0, 0, 1], 2)
-   if known:
-       print(f"Order: {known.order}")
-       print(f"Primitive: {known.is_primitive}")
-   
-   # Compare with computed results
+   db = get_database()
    comparison = db.compare_with_known(
-       [1, 0, 0, 1], 2,
-       computed_order=6,
-       computed_is_primitive=False
+       coefficients=[1, 0, 0, 1],
+       field_order=2,
+       degree=4,
+       computed_order=15,
+       computed_is_primitive=True
    )
-   print(f"Verification: {comparison['verification_status']}")
+   
+   print(f"Found in database: {comparison['found_in_database']}")
+   print(f"Matches: {comparison['matches']}")
 
-Benchmarking
-------------
+**Command-Line Usage**:
+
+.. code-block:: bash
+
+   lfsr-seq coefficients.csv 2 --compare-known
+
+Benchmarking Framework
+----------------------
 
 **What is Benchmarking?**
 
-Benchmarking compares performance and accuracy of different analysis methods,
-enabling method selection and performance optimization.
+Benchmarking measures and compares the performance of different analysis
+methods, helping identify the most efficient approach.
 
-**Key Terminology**:
+**Key Features**:
 
-- **Benchmarking**: Measuring and comparing performance or accuracy of
-  different methods or implementations.
+- **Performance Measurement**: Measure execution time of methods
+- **Accuracy Verification**: Verify correctness of results
+- **Method Comparison**: Compare different methods side-by-side
+- **Benchmark Suites**: Run multiple benchmarks and aggregate results
 
-- **Performance Benchmark**: Measuring execution time, memory usage, or
-  other resource consumption metrics.
-
-- **Accuracy Benchmark**: Comparing results to verify correctness and
-  measure accuracy differences.
-
-**Usage**:
+**Python API Usage**:
 
 .. code-block:: python
 
-   from lfsr.benchmarking import benchmark_period_computation, compare_benchmark_results
+   from lfsr.benchmarking import compare_methods
    
-   results = benchmark_period_computation(
-       [1, 0, 0, 1], 2,
-       methods=["enumeration", "factorization"]
+   results = compare_methods(
+       coefficients=[1, 0, 0, 1],
+       field_order=2,
+       expected_period=15
    )
    
-   comparison = compare_benchmark_results(results)
-   print(f"Fastest method: {comparison['fastest_method']}")
-   print(f"Speedup: {comparison['speedup']}x")
+   for method, result in results.items():
+       print(f"{method}: {result.execution_time:.6f} seconds")
 
-Reproducibility
----------------
+**Command-Line Usage**:
+
+.. code-block:: bash
+
+   lfsr-seq coefficients.csv 2 --benchmark
+
+Reproducibility Features
+------------------------
 
 **What is Reproducibility?**
 
-Reproducibility features ensure research results can be exactly reproduced
-through seed tracking, configuration export, and environment capture.
+Reproducibility ensures that research results can be reproduced by others
+using the same methods, data, and parameters.
 
-**Key Terminology**:
+**Key Features**:
 
-- **Reproducibility**: The ability to reproduce research results using
-  the same methods, data, and configuration.
+- **Seed Tracking**: Track random seeds for reproducibility
+- **Environment Capture**: Capture system and software environment
+- **Configuration Export**: Export complete analysis configuration
+- **Reproducibility Reports**: Generate comprehensive reproducibility reports
 
-- **Reproducibility Seed**: A value used to initialize random number
-  generators for deterministic execution.
-
-- **Environment Capture**: Recording system information and software
-  versions needed for reproduction.
-
-**Usage**:
+**Python API Usage**:
 
 .. code-block:: python
 
-   from lfsr.reproducibility import (
-       generate_reproducibility_report,
-       verify_reproducibility
-   )
+   from lfsr.reproducibility import generate_reproducibility_report
    
-   # Generate report
    report = generate_reproducibility_report(
-       analysis_config={'coefficients': [1, 0, 0, 1], 'field_order': 2},
-       analysis_results={'period': 6},
+       analysis_results={...},
+       analysis_config={...},
        seed=12345
    )
    
-   # Verify reproduction
-   verification = verify_reproducibility(
-       original_results={'period': 6},
-       reproduced_results={'period': 6}
-   )
-   print(f"Verified: {verification['verified']}")
+   with open("reproducibility.json", "w") as f:
+       f.write(report)
+
+**Command-Line Usage**:
+
+.. code-block:: bash
+
+   lfsr-seq coefficients.csv 2 --reproducibility-report report.json
 
 API Reference
 -------------
 
 See :doc:`api/theoretical` for complete API documentation.
 
-Command-Line Usage
------------------
-
-Theoretical analysis features can be accessed through the command line:
-
-.. code-block:: bash
-
-   # Export to LaTeX
-   lfsr-seq coefficients.csv 2 --export-latex output.tex
-   
-   # Generate paper
-   lfsr-seq coefficients.csv 2 --generate-paper paper.tex
-   
-   # Compare with known results
-   lfsr-seq coefficients.csv 2 --compare-known
-
 Glossary
 --------
 
-**Abstract**
-   Brief summary of a research paper (150-250 words).
-
 **Benchmarking**
-   Measuring and comparing performance or accuracy of different methods.
+   The process of measuring and comparing the performance of different
+   methods or algorithms.
+
+**Configuration Export**
+   Saving all parameters and settings used in an analysis for reproducibility.
 
 **Environment Capture**
-   Recording system information and software versions for reproducibility.
-
-**Factor Order**
-   Order of an irreducible factor of a polynomial.
+   Recording information about the computing environment for reproducibility.
 
 **Irreducible Polynomial**
-   Polynomial that cannot be factored into polynomials of lower degree.
+   A polynomial that cannot be factored into polynomials of lower degree.
 
 **Known Result Database**
-   Collection of precomputed theoretical results for comparison.
+   A collection of previously computed or published theoretical results.
 
 **LaTeX**
-   Document preparation system for academic publishing.
-
-**Methodology**
-   Section of research paper describing methods and procedures.
-
-**Polynomial Factorization**
-   Decomposing a polynomial into irreducible factors.
-
-**Polynomial Order**
-   Smallest positive integer n such that t^n ≡ 1 (mod P(t)).
+   A document preparation system for typesetting mathematical formulas.
 
 **Reproducibility**
-   Ability to reproduce research results using same methods and configuration.
+   The ability to reproduce research results using the same methods and data.
 
-**Reproducibility Seed**
-   Value used to initialize random number generators for deterministic execution.
+**Reproducibility Report**
+   A document containing all information needed to reproduce research results.
 
-**Research Paper**
-   Formal document presenting original research findings.
-
-**Result Verification**
-   Comparing computed results with known results to verify correctness.
+**Theoretical Analysis**
+   Analysis comparing computed results with theoretical predictions.
 
 Further Reading
 ---------------
 
 - Menezes, A. J., et al. (1996). "Handbook of Applied Cryptography"
-- Rueppel, R. A. (1986). "Analysis and Design of Stream Ciphers"
 - Golomb, S. W. (1967). "Shift Register Sequences"
+- Rueppel, R. A. (1986). "Analysis and Design of Stream Ciphers"
