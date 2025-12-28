@@ -8,7 +8,7 @@ This module provides functions to export analysis results in LaTeX format,
 enabling publication-quality output for research papers and reports.
 """
 
-from typing import Any, Dict, List, Optional, TextIO, Union
+from typing import Any, Dict, List, Optional, TextIO, Tuple, Union
 from datetime import datetime
 import json
 
