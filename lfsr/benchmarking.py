@@ -11,7 +11,7 @@ accuracy, and results across different analysis methods and configurations.
 import time
 import json
 from typing import Any, Dict, List, Optional, Tuple
-from dataclasses import dataclass, asdict
+from dataclasses import dataclass, field, asdict
 from datetime import datetime
 from pathlib import Path
 
@@ -24,297 +24,298 @@ class BenchmarkResult:
     Result from a single benchmark run.
     
     Attributes:
-        method: Analysis method used
+        method: Method name being benchmarked
         configuration: Configuration parameters
         execution_time: Execution time in seconds
-        memory_usage: Memory usage in bytes (optional)
-        result_accuracy: Accuracy metric (optional)
-        result_value: Actual result value
-        error_message: Error message if benchmark failed
+        memory_usage: Memory usage (if available)
+        result: The computed result
+        accuracy: Accuracy metric (if applicable)
+        success: Whether benchmark succeeded
+        error: Error message if failed
         timestamp: When benchmark was run
     """
     method: str
     configuration: Dict[str, Any]
     execution_time: float
-    memory_usage: Optional[int] = None
-    result_accuracy: Optional[float] = None
-    result_value: Optional[Any] = None
-    error_message: Optional[str] = None
-    timestamp: str = ""
+    memory_usage: Optional[float] = None
+    result: Any = None
+    accuracy: Optional[float] = None
+    success: bool = True
+    error: Optional[str] = None
+    timestamp: str = field(default_factory=lambda: datetime.now().isoformat())
 
 
+@dataclass
 class BenchmarkSuite:
     """
-    Benchmarking framework for LFSR analysis.
+    Collection of benchmark results.
     
-    This class provides a framework for benchmarking different analysis
-    methods, comparing performance, and tracking results over time.
+    Attributes:
+        name: Suite name
+        description: Suite description
+        results: List of benchmark results
+        metadata: Additional metadata
+    """
+    name: str
+    description: str
+    results: List[BenchmarkResult] = field(default_factory=list)
+    metadata: Dict[str, Any] = field(default_factory=dict)
+
+
+class BenchmarkFramework:
+    """
+    Framework for benchmarking LFSR analysis methods.
+    
+    This class provides a comprehensive benchmarking framework for comparing
+    different analysis methods, measuring performance, and tracking accuracy.
     
     **Key Terminology**:
     
     - **Benchmarking**: The process of measuring and comparing the performance
-      of different methods or configurations. Benchmarks help identify the most
-      efficient approaches and track performance over time.
+      of different methods or implementations. This includes execution time,
+      memory usage, and accuracy metrics.
     
-    - **Performance Metrics**: Quantitative measures of performance, such as
-      execution time, memory usage, and computational complexity. These metrics
-      help evaluate and compare different methods.
+    - **Performance Benchmark**: Measurement of how fast a method executes,
+      typically measured in seconds or operations per second.
     
-    - **Regression Testing**: Testing to ensure that changes don't degrade
-      performance. Benchmarking helps detect performance regressions.
+    - **Accuracy Benchmark**: Measurement of how correct a method's results are,
+      typically compared against known correct results or theoretical predictions.
     
-    - **Accuracy Benchmark**: Comparing computed results with known correct
-      results to verify accuracy. This ensures methods produce correct results.
+    - **Regression Testing**: Running benchmarks to detect performance or
+      accuracy regressions when code changes are made.
     
-    **Usage**:
+    **Benchmark Types**:
     
-        >>> suite = BenchmarkSuite()
-        >>> result = suite.benchmark_period_computation(
-        ...     coefficients=[1, 0, 0, 1],
-        ...     field_order=2,
-        ...     method="enumeration"
+    1. **Performance Benchmarks**: Measure execution time and resource usage
+    2. **Accuracy Benchmarks**: Compare results with known correct values
+    3. **Scalability Benchmarks**: Measure performance across different input sizes
+    4. **Method Comparison**: Compare different methods on the same inputs
+    
+    Example:
+        >>> framework = BenchmarkFramework()
+        >>> result = framework.benchmark_method(
+        ...     "enumeration",
+        ...     {"coefficients": [1, 0, 0, 1], "field_order": 2},
+        ...     lambda: compute_period_enumeration([1, 0, 0, 1], 2)
         ... )
-        >>> suite.save_results("benchmark_results.json")
+        >>> print(f"Execution time: {result.execution_time:.4f}s")
     """
     
     def __init__(self):
-        """Initialize benchmark suite."""
-        self.results: List[BenchmarkResult] = []
+        """Initialize benchmarking framework."""
+        self.suites: Dict[str, BenchmarkSuite] = {}
     
-    def benchmark_period_computation(
+    def benchmark_method(
         self,
-        coefficients: List[int],
-        field_order: int,
-        method: str = "enumeration",
-        state_vector_dim: Optional[int] = None
+        method_name: str,
+        configuration: Dict[str, Any],
+        function: callable,
+        expected_result: Optional[Any] = None,
+        accuracy_function: Optional[callable] = None
     ) -> BenchmarkResult:
         """
-        Benchmark period computation method.
+        Benchmark a single method execution.
         
         Args:
-            coefficients: LFSR coefficients
-            field_order: Field order
-            method: Method to use ("enumeration", "factorization", etc.)
-            state_vector_dim: Optional state vector dimension
+            method_name: Name of the method being benchmarked
+            configuration: Configuration parameters
+            function: Function to benchmark (should be callable with no args)
+            expected_result: Expected result for accuracy checking
+            accuracy_function: Function to compute accuracy (takes computed, expected)
         
         Returns:
-            BenchmarkResult with execution time and result
+            BenchmarkResult with execution metrics
         """
-        from lfsr.core import find_sequence_cycle
-        from lfsr.polynomial import compute_period_via_factorization
-        
-        config = {
-            'coefficients': coefficients,
-            'field_order': field_order,
-            'method': method,
-            'state_vector_dim': state_vector_dim
-        }
-        
         start_time = time.time()
-        error_message = None
-        result_value = None
+        result = None
+        error = None
+        success = True
         
         try:
-            if method == "enumeration":
-                # Use enumeration method
-                if state_vector_dim is None:
-                    state_vector_dim = len(coefficients)
-                # Simple benchmark: compute period for first non-zero state
-                initial_state = [1] + [0] * (state_vector_dim - 1)
-                cycle_result = find_sequence_cycle(
-                    coefficients,
-                    field_order,
-                    initial_state,
-                    method="enumeration"
-                )
-                result_value = cycle_result.get('period')
-            elif method == "factorization":
-                # Use factorization method
-                result_value = compute_period_via_factorization(
-                    coefficients,
-                    field_order,
-                    state_vector_dim
-                )
+            result = function()
+            execution_time = time.time() - start_time
+        except Exception as e:
+            execution_time = time.time() - start_time
+            error = str(e)
+            success = False
+        
+        # Compute accuracy if applicable
+        accuracy = None
+        if success and expected_result is not None and result is not None:
+            if accuracy_function:
+                accuracy = accuracy_function(result, expected_result)
+            elif result == expected_result:
+                accuracy = 1.0
             else:
-                error_message = f"Unknown method: {method}"
-        except Exception as e:
-            error_message = str(e)
-        
-        execution_time = time.time() - start_time
+                accuracy = 0.0
         
         return BenchmarkResult(
-            method=method,
-            configuration=config,
+            method=method_name,
+            configuration=configuration,
             execution_time=execution_time,
-            result_value=result_value,
-            error_message=error_message,
-            timestamp=datetime.now().isoformat()
-        )
-    
-    def benchmark_polynomial_analysis(
-        self,
-        coefficients: List[int],
-        field_order: int
-    ) -> BenchmarkResult:
-        """
-        Benchmark polynomial analysis operations.
-        
-        Args:
-            coefficients: LFSR coefficients
-            field_order: Field order
-        
-        Returns:
-            BenchmarkResult with execution time
-        """
-        from lfsr.polynomial import (
-            compute_characteristic_polynomial,
-            is_primitive_polynomial,
-            polynomial_order
-        )
-        
-        config = {
-            'coefficients': coefficients,
-            'field_order': field_order
-        }
-        
-        start_time = time.time()
-        error_message = None
-        result_value = None
-        
-        try:
-            char_poly = compute_characteristic_polynomial(coefficients, field_order)
-            is_primitive = is_primitive_polynomial(char_poly, field_order)
-            order = polynomial_order(char_poly, len(coefficients), field_order)
-            
-            result_value = {
-                'is_primitive': is_primitive,
-                'order': int(order) if order != oo else None
-            }
-        except Exception as e:
-            error_message = str(e)
-        
-        execution_time = time.time() - start_time
-        
-        return BenchmarkResult(
-            method="polynomial_analysis",
-            configuration=config,
-            execution_time=execution_time,
-            result_value=result_value,
-            error_message=error_message,
-            timestamp=datetime.now().isoformat()
+            result=result,
+            accuracy=accuracy,
+            success=success,
+            error=error
         )
     
     def compare_methods(
         self,
-        coefficients: List[int],
-        field_order: int,
-        methods: List[str]
-    ) -> Dict[str, Any]:
+        methods: List[Tuple[str, Dict[str, Any], callable]],
+        expected_result: Optional[Any] = None
+    ) -> List[BenchmarkResult]:
         """
         Compare multiple methods on the same configuration.
         
         Args:
-            coefficients: LFSR coefficients
-            field_order: Field order
-            methods: List of methods to compare
+            methods: List of (method_name, configuration, function) tuples
+            expected_result: Expected result for accuracy checking
         
         Returns:
-            Dictionary with comparison results
+            List of benchmark results for each method
         """
-        results = {}
+        results = []
         
-        for method in methods:
-            result = self.benchmark_period_computation(
-                coefficients,
-                field_order,
-                method=method
+        for method_name, config, function in methods:
+            result = self.benchmark_method(
+                method_name,
+                config,
+                function,
+                expected_result
             )
-            results[method] = result
-            self.results.append(result)
+            results.append(result)
         
-        # Find fastest method
-        valid_results = {
-            k: v for k, v in results.items()
-            if v.error_message is None
-        }
-        
-        if valid_results:
-            fastest = min(valid_results.items(), key=lambda x: x[1].execution_time)
-            comparison = {
-                'methods_tested': list(results.keys()),
-                'fastest_method': fastest[0],
-                'fastest_time': fastest[1].execution_time,
-                'results': {k: asdict(v) for k, v in results.items()},
-                'all_succeeded': all(r.error_message is None for r in results.values())
-            }
-        else:
-            comparison = {
-                'methods_tested': list(results.keys()),
-                'fastest_method': None,
-                'fastest_time': None,
-                'results': {k: asdict(v) for k, v in results.items()},
-                'all_succeeded': False
-            }
-        
-        return comparison
+        return results
     
-    def save_results(self, filename: str) -> None:
+    def create_suite(
+        self,
+        name: str,
+        description: str = ""
+    ) -> BenchmarkSuite:
         """
-        Save benchmark results to file.
+        Create a new benchmark suite.
         
         Args:
-            filename: Output filename (JSON format)
+            name: Suite name
+            description: Suite description
+        
+        Returns:
+            Created BenchmarkSuite
         """
+        suite = BenchmarkSuite(name=name, description=description)
+        self.suites[name] = suite
+        return suite
+    
+    def add_to_suite(
+        self,
+        suite_name: str,
+        result: BenchmarkResult
+    ) -> None:
+        """
+        Add benchmark result to a suite.
+        
+        Args:
+            suite_name: Name of the suite
+            result: Benchmark result to add
+        """
+        if suite_name not in self.suites:
+            self.create_suite(suite_name)
+        
+        self.suites[suite_name].results.append(result)
+    
+    def get_suite_summary(
+        self,
+        suite_name: str
+    ) -> Dict[str, Any]:
+        """
+        Get summary statistics for a benchmark suite.
+        
+        Args:
+            suite_name: Name of the suite
+        
+        Returns:
+            Dictionary with summary statistics
+        """
+        if suite_name not in self.suites:
+            return {}
+        
+        suite = self.suites[suite_name]
+        results = suite.results
+        
+        if not results:
+            return {'count': 0}
+        
+        successful = [r for r in results if r.success]
+        times = [r.execution_time for r in successful]
+        accuracies = [r.accuracy for r in successful if r.accuracy is not None]
+        
+        summary = {
+            'suite_name': suite_name,
+            'total_runs': len(results),
+            'successful_runs': len(successful),
+            'failed_runs': len(results) - len(successful),
+            'avg_time': sum(times) / len(times) if times else 0.0,
+            'min_time': min(times) if times else 0.0,
+            'max_time': max(times) if times else 0.0,
+            'avg_accuracy': sum(accuracies) / len(accuracies) if accuracies else None,
+        }
+        
+        return summary
+    
+    def export_suite(
+        self,
+        suite_name: str,
+        filename: str
+    ) -> None:
+        """
+        Export benchmark suite to JSON file.
+        
+        Args:
+            suite_name: Name of the suite
+            filename: Output filename
+        """
+        if suite_name not in self.suites:
+            raise ValueError(f"Suite '{suite_name}' not found")
+        
+        suite = self.suites[suite_name]
+        
+        # Convert to serializable format
         data = {
-            'benchmark_results': [asdict(r) for r in self.results],
-            'total_runs': len(self.results),
-            'generated_at': datetime.now().isoformat()
+            'name': suite.name,
+            'description': suite.description,
+            'metadata': suite.metadata,
+            'results': [asdict(r) for r in suite.results],
+            'summary': self.get_suite_summary(suite_name)
         }
         
         with open(filename, 'w') as f:
-            json.dump(data, f, indent=2)
+            json.dump(data, f, indent=2, default=str)
     
-    def load_results(self, filename: str) -> None:
+    def load_suite(
+        self,
+        filename: str
+    ) -> BenchmarkSuite:
         """
-        Load benchmark results from file.
+        Load benchmark suite from JSON file.
         
         Args:
-            filename: Input filename (JSON format)
+            filename: Input filename
+        
+        Returns:
+            Loaded BenchmarkSuite
         """
         with open(filename, 'r') as f:
             data = json.load(f)
         
-        self.results = [
-            BenchmarkResult(**r) for r in data.get('benchmark_results', [])
-        ]
-    
-    def get_statistics(self) -> Dict[str, Any]:
-        """
-        Get statistics about benchmark results.
+        suite = BenchmarkSuite(
+            name=data['name'],
+            description=data.get('description', ''),
+            metadata=data.get('metadata', {})
+        )
         
-        Returns:
-            Dictionary with statistics
-        """
-        if not self.results:
-            return {'total_runs': 0}
+        for r_data in data.get('results', []):
+            result = BenchmarkResult(**r_data)
+            suite.results.append(result)
         
-        valid_results = [r for r in self.results if r.error_message is None]
-        
-        if not valid_results:
-            return {
-                'total_runs': len(self.results),
-                'successful_runs': 0,
-                'failed_runs': len(self.results)
-            }
-        
-        execution_times = [r.execution_time for r in valid_results]
-        
-        return {
-            'total_runs': len(self.results),
-            'successful_runs': len(valid_results),
-            'failed_runs': len(self.results) - len(valid_results),
-            'avg_execution_time': sum(execution_times) / len(execution_times),
-            'min_execution_time': min(execution_times),
-            'max_execution_time': max(execution_times),
-            'methods_used': list(set(r.method for r in self.results))
-        }
+        self.suites[suite.name] = suite
+        return suite
