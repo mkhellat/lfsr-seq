@@ -46,6 +46,7 @@ Documentation Contents
    time_memory_tradeoff
    stream_ciphers
    advanced_lfsr_structures
+   theoretical_analysis
    nist_sp800_22
    optimization_techniques
 
