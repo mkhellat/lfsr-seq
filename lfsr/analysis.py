@@ -834,12 +834,16 @@ def _merge_parallel_results(
             # This is imperfect but avoids hangs
             cycle_key = (period, start_state)  # Use both to catch exact duplicates
             merge_debug(f'Sequence {idx+1}: Empty states_tuples! Using period+start_state as key: period={period}, start_state={start_state}')
+        elif len(states_tuples) == 1:
+            # Period-only mode: states_tuples contains the canonical min_state
+            # Use it directly as the key (all states from same cycle have same min_state)
+            cycle_key = states_tuples[0]  # Single state tuple is the key
+            merge_debug(f'Sequence {idx+1}: Period-only mode, using min_state as key: {cycle_key}, period={period}')
         else:
-            # Use sorted states as key (cycles are the same regardless of starting point)
+            # Full mode: Use sorted states as key (cycles are the same regardless of starting point)
             # Normalize by sorting to handle cycles starting at different points
-            # This works for both full mode and period-only mode (where we compute full sequence for dedup)
             cycle_key = tuple(sorted(states_tuples))
-            merge_debug(f'Sequence {idx+1}: {len(states_tuples)} states, period={period}, cycle_key length={len(cycle_key)}')
+            merge_debug(f'Sequence {idx+1}: Full mode, {len(states_tuples)} states, cycle_key length={len(cycle_key)}')
         
         if cycle_key not in seen_cycles:
             seen_cycles[cycle_key] = seq_info
@@ -1162,23 +1166,29 @@ def _process_state_chunk(
                     errors.append(f'Error computing period for state {state_tuple}: {str(e)}')
                     continue
                 
-                # CRITICAL FIX: For proper deduplication, we need to compute at least a few states
-                # from the cycle to create a canonical key. But we can't compute the full cycle
-                # because that causes hangs. Solution: Compute just 2-3 states to create a signature.
-                # This is a compromise between correctness and avoiding hangs.
+                # CRITICAL FIX: For proper deduplication in period-only mode, we need a canonical
+                # representation of the cycle. Since computing the full cycle causes hangs, we use
+                # a minimal signature: the minimum state tuple in the cycle (lexicographically).
+                # This requires computing states until we find the minimum, but we limit it to
+                # avoid hangs for very large periods.
                 debug_log(f'State {idx+1}: Period-only mode - computing cycle signature for deduplication...')
-                # Compute first 3 states of cycle to create a signature (minimal computation)
-                cycle_signature = [state_tuple]  # Start with initial state
+                # Find the minimum state (lexicographically) in the cycle as canonical key
+                # This ensures all states from the same cycle map to the same key
+                min_state = state_tuple
                 current = state
-                for _ in range(min(2, seq_period - 1)):  # Get 2 more states (3 total)
+                # Limit to first 100 states to avoid hangs (for very large periods)
+                max_check = min(100, seq_period)
+                for _ in range(max_check - 1):
                     current = current * state_update_matrix
-                    cycle_signature.append(tuple(current))
-                # Use sorted signature as canonical key (cycles are same regardless of start point)
-                states_tuples = tuple(sorted(cycle_signature))
-                debug_log(f'State {idx+1}: Cycle signature computed: {len(states_tuples)} states')
-                # Mark all states in signature as visited
-                for sig_state in cycle_signature:
-                    local_visited.add(sig_state)
+                    current_tuple = tuple(current)
+                    if current_tuple < min_state:  # Lexicographic comparison
+                        min_state = current_tuple
+                # Use the minimum state as the canonical key
+                # All states from the same cycle will have the same min_state
+                states_tuples = (min_state,)  # Single-element tuple for deduplication
+                debug_log(f'State {idx+1}: Cycle signature (min state): {min_state}')
+                # Mark start state as visited (we'll mark more in merge if needed)
+                local_visited.add(state_tuple)
             else:
                 # Full mode: get sequence normally
                 debug_log(f'State {idx+1}: Calling _find_sequence_cycle with period_only={period_only}, algorithm={algorithm}')
