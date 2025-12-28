@@ -1383,14 +1383,18 @@ def lfsr_sequence_mapper_parallel(
             if not no_progress:
                 print(f"  Using spawn mode (fork not available on this platform)")
         
+        # CRITICAL: Use context manager to ensure proper cleanup
+        # The 'with' statement ensures pool.terminate() and pool.join() are called
+        # even if an exception occurs, preventing zombie processes
         with ctx.Pool(processes=num_workers) as pool:
             if not no_progress:
                 print(f"  Pool created, starting workers...")
                 import sys
                 sys.stdout.flush()
             
-            # Use map_async with timeout for better control
-            async_result = pool.map_async(_process_state_chunk, chunk_data_list)
+            try:
+                # Use map_async with timeout for better control
+                async_result = pool.map_async(_process_state_chunk, chunk_data_list)
             
             if not no_progress:
                 timeout_msg = "120s" if ctx.get_start_method() == 'spawn' else "40s"
@@ -1413,13 +1417,27 @@ def lfsr_sequence_mapper_parallel(
                 if not no_progress:
                     print(f"  Workers completed in {elapsed:.2f}s")
             except multiprocessing.TimeoutError:
+                # CRITICAL: Properly terminate hung workers
+                import sys
+                print("WARNING: Parallel processing timed out - terminating workers...", file=sys.stderr)
+                
+                # Terminate all workers immediately (sends SIGTERM)
                 pool.terminate()
+                
+                # Wait for workers to terminate (with timeout)
                 try:
-                    pool.join(timeout=5)
+                    pool.join(timeout=10)  # Give workers 10s to clean up
                 except TypeError:
                     # Python < 3.7 doesn't support timeout in join()
                     pool.join()
-                import sys
+                
+                # Force kill if still alive (shouldn't happen with context manager, but be safe)
+                try:
+                    # Close the pool to release resources
+                    pool.close()
+                except:
+                    pass
+                
                 print("ERROR: Parallel processing timed out - workers may be hung", file=sys.stderr)
                 print("  This can happen with SageMath and multiprocessing in some configurations", file=sys.stderr)
                 print("  Falling back to sequential processing...", file=sys.stderr)
@@ -1432,6 +1450,16 @@ def lfsr_sequence_mapper_parallel(
                     algorithm,
                     period_only,
                 )
+            except KeyboardInterrupt:
+                # Handle Ctrl+C gracefully
+                import sys
+                print("\nWARNING: Interrupted by user - terminating workers...", file=sys.stderr)
+                pool.terminate()
+                try:
+                    pool.join(timeout=5)
+                except TypeError:
+                    pool.join()
+                raise  # Re-raise to exit properly
     except Exception as e:
         # Fallback to sequential on error
         import sys
