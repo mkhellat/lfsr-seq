@@ -1162,14 +1162,15 @@ def _process_state_chunk(
             # only for small periods (<= 100) to avoid hangs. For larger periods,
             # use simplified deduplication based on start_state+period.
             if period_only:
-                # CRITICAL: In parallel processing (fork mode), enumeration algorithm can hang
-                # due to matrix multiplication loops. Force Floyd's algorithm which is safer.
-                # Floyd's algorithm doesn't use tight loops that can hang in multiprocessing.
+                # CRITICAL DISCOVERY: Floyd's algorithm is MUCH slower than enumeration for large periods!
+                # Floyd does ~3x period matrix multiplications (tortoise + 2*hare per step)
+                # For period 3255: ~10,000 matrix multiplications vs enumeration's 3255
+                # Enumeration is actually FASTER and SAFER in fork mode when used correctly
                 debug_log(f'State {idx+1}: Period-only mode - computing period first...')
                 from lfsr.analysis import _find_period
-                # Force Floyd's algorithm in workers to avoid hangs
-                # Enumeration's matrix multiplication loop can hang in fork mode
-                worker_algorithm = "floyd" if algorithm in ["auto", "enumeration"] else algorithm
+                # Use enumeration (faster) - it's safe in fork mode when used in period-only mode
+                # The hang issue was from computing full sequences, not period computation
+                worker_algorithm = "enumeration" if algorithm in ["auto", "enumeration"] else algorithm
                 try:
                     seq_period = _find_period(state, state_update_matrix, algorithm=worker_algorithm)
                     debug_log(f'State {idx+1}: Period computed: {seq_period} (using {worker_algorithm})')
