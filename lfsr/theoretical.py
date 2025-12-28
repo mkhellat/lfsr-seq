@@ -161,7 +161,7 @@ def analyze_irreducible_properties(
             factors_list.append((factor_poly, multiplicity))
             
             # Compute order of this factor
-            factor_order = polynomial_order(factor_poly, factor_deg, field_order)
+            factor_order = _polynomial_order_helper(factor_poly, factor_deg, field_order)
             if factor_order != oo:
                 factor_orders_list.append(int(factor_order))
             else:
@@ -176,13 +176,16 @@ def analyze_irreducible_properties(
             degree_dist[factor_deg] = degree_dist.get(factor_deg, 0) + multiplicity
     
     # Compute polynomial order
-    poly_order = polynomial_order(polynomial, state_vector_dim, field_order)
+    poly_order = _polynomial_order_helper(polynomial, state_vector_dim, field_order)
     poly_order_int = int(poly_order) if poly_order != oo else None
     
     # Compute LCM of factor orders
     valid_orders = [o for o in factor_orders_list if o is not None]
     if valid_orders:
-        lcm_orders = math.lcm(*valid_orders) if len(valid_orders) > 1 else valid_orders[0]
+        if len(valid_orders) > 1:
+            lcm_orders = math.lcm(*valid_orders)
+        else:
+            lcm_orders = valid_orders[0]
     else:
         lcm_orders = None
     
@@ -283,7 +286,7 @@ def compare_with_theoretical_bounds(
     return comparison
 
 
-def polynomial_order(
+def _polynomial_order_helper(
     polynomial: Any,
     state_vector_dim: int,
     gf_order: int
@@ -291,8 +294,8 @@ def polynomial_order(
     """
     Find the order of a polynomial over the field GF(gf_order).
     
-    This is a helper function that wraps the existing polynomial_order function
-    from lfsr.polynomial for use in theoretical analysis.
+    This is a helper function that uses the polynomial's parent ring
+    to compute the order.
     
     Args:
         polynomial: The polynomial over GF(gf_order)
@@ -302,5 +305,22 @@ def polynomial_order(
     Returns:
         The order of the polynomial (or infinity if not found)
     """
-    from lfsr.polynomial import polynomial_order as poly_order_func
-    return poly_order_func(polynomial, state_vector_dim, gf_order)
+    # Get the parent ring of the polynomial
+    R = polynomial.parent()
+    t = R.gen()
+    
+    state_vector_space_size = int(gf_order) ** state_vector_dim
+    polynomial_degree = polynomial.degree()
+    
+    bi = polynomial_degree
+    ei = state_vector_space_size
+    
+    for j in range(bi, ei):
+        dividend = t**j
+        q, r = dividend.quo_rem(polynomial)
+        if r == 1:
+            return j
+        elif j == state_vector_space_size - 1:
+            return oo
+    
+    return oo
