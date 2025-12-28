@@ -4,149 +4,261 @@
 """
 ML model training pipeline for LFSR analysis.
 
-This module provides automated pipelines for training ML models on LFSR data,
-including data generation, preprocessing, training, and evaluation.
+This module provides automated training pipelines for ML models,
+including data collection, feature engineering, and model evaluation.
 """
 
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 import json
+import os
 from pathlib import Path
+from datetime import datetime
 
+from lfsr.ml.features import extract_polynomial_features
 from lfsr.ml.period_prediction import PeriodPredictor, train_period_predictor
-from lfsr.ml.base import FeatureExtractor
+from lfsr.theoretical_db import get_database
 
 
-def generate_training_data(
-    coefficients_list: List[List[int]],
-    field_order: int,
-    periods: List[int]
-) -> List[Dict[str, Any]]:
+class TrainingPipeline:
     """
-    Generate training data from LFSR analysis results.
+    Automated training pipeline for ML models.
     
-    This function converts LFSR analysis results into training data format
-    for machine learning models.
+    This class provides functionality to collect training data, engineer
+    features, train models, and evaluate performance.
     
     **Key Terminology**:
     
-    - **Training Data**: Examples with known outcomes used to train ML models.
-      Each example has input features (polynomial properties) and target
-      (actual period).
+    - **Training Pipeline**: An automated process for collecting data,
+      preparing features, training models, and evaluating performance.
+      This enables continuous improvement of ML models.
     
-    - **Data Generation**: Creating training examples from existing analysis
-      results. This enables model training without manual data collection.
+    - **Feature Engineering**: The process of creating and selecting
+      features that are most useful for ML models. Good features are
+      crucial for model performance.
     
-    Args:
-        coefficients_list: List of coefficient lists
-        field_order: Field order
-        periods: List of corresponding periods
+    - **Model Evaluation**: Assessing the performance of trained models
+      using metrics like accuracy, mean squared error, etc. This helps
+      select the best model.
     
-    Returns:
-        List of training data dictionaries
+    - **Cross-Validation**: A technique for evaluating models by splitting
+      data into training and validation sets multiple times to get more
+      reliable performance estimates.
     """
-    if len(coefficients_list) != len(periods):
-        raise ValueError("Coefficients and periods must have same length")
     
-    training_data = []
-    for coeffs, period in zip(coefficients_list, periods):
-        training_data.append({
-            'coefficients': coeffs,
-            'field_order': field_order,
-            'degree': len(coeffs),
-            'period': period
-        })
-    
-    return training_data
-
-
-def train_period_predictor_pipeline(
-    training_data: List[Dict[str, Any]],
-    model_type: str = "random_forest",
-    output_dir: Optional[str] = None
-) -> Dict[str, Any]:
-    """
-    Complete training pipeline for period predictor.
-    
-    This function provides a complete pipeline for training period prediction
-    models, including data preparation, training, evaluation, and saving.
-    
-    **Key Terminology**:
-    
-    - **Training Pipeline**: An automated sequence of steps for training
-      ML models, including data preparation, model training, evaluation,
-      and persistence.
-    
-    - **Model Evaluation**: Assessing model performance using metrics like
-      mean absolute error and R² score. This helps determine if the model
-      is ready for use.
-    
-    Args:
-        training_data: List of training data dictionaries
-        model_type: Type of model to train
-        output_dir: Optional directory to save model
-    
-    Returns:
-        Dictionary with training results and metrics
-    """
-    # Train model
-    predictor = train_period_predictor(training_data, model_type=model_type)
-    
-    # Extract features and targets for metrics
-    X = []
-    y = []
-    for data in training_data:
-        features = FeatureExtractor.extract_polynomial_features(
-            data['coefficients'],
-            data['field_order'],
-            data.get('degree')
-        )
-        X.append(features)
-        y.append(data['period'])
-    
-    # Get training metrics (already computed during training)
-    # We'll recompute for reporting
-    from lfsr.ml.period_prediction import HAS_SKLEARN
-    if HAS_SKLEARN:
-        from sklearn.model_selection import train_test_split
-        from sklearn.metrics import mean_absolute_error, r2_score
+    def __init__(self, data_dir: Optional[str] = None):
+        """
+        Initialize training pipeline.
         
-        X_array = predictor._features_to_array(X)
-        X_train, X_test, y_train, y_test = train_test_split(
-            X_array, y, test_size=0.2, random_state=42
-        )
+        Args:
+            data_dir: Directory for storing training data and models
+        """
+        if data_dir is None:
+            data_dir = str(Path(__file__).parent.parent.parent / "data" / "ml_training")
         
-        y_pred_train = predictor.model.predict(X_train)
-        y_pred_test = predictor.model.predict(X_test)
+        self.data_dir = Path(data_dir)
+        self.data_dir.mkdir(parents=True, exist_ok=True)
+        self.training_data_file = self.data_dir / "training_data.json"
+        self.models_dir = self.data_dir / "models"
+        self.models_dir.mkdir(exist_ok=True)
+    
+    def collect_training_data_from_database(self) -> List[Tuple[Dict[str, float], int]]:
+        """
+        Collect training data from known result database.
+        
+        This method extracts training examples from the known result
+        database, converting them to (features, period) pairs.
+        
+        Returns:
+            List of (features_dict, period) tuples
+        """
+        training_data = []
+        db = get_database()
+        
+        # Collect from primitive polynomials
+        for key, poly_data in db.db['primitive_polynomials'].items():
+            coeffs = poly_data['coefficients']
+            field_order = poly_data['field_order']
+            degree = poly_data['degree']
+            order = poly_data['order']
+            
+            # Create polynomial and extract features
+            try:
+                from sage.all import GF, PolynomialRing
+                F = GF(field_order)
+                R = PolynomialRing(F, "t")
+                poly_str = " + ".join([f"t^{i}" if i > 0 else "1" 
+                                      for i, c in enumerate(coeffs) if c != 0])
+                if not poly_str:
+                    poly_str = "1"
+                poly = R(poly_str)
+                
+                features = extract_polynomial_features(poly, coeffs, field_order, degree)
+                training_data.append((features, order))
+            except Exception:
+                # Skip if polynomial creation fails
+                continue
+        
+        # Collect from polynomial orders
+        for key, order_data in db.db['polynomial_orders'].items():
+            coeffs = order_data['coefficients']
+            field_order = order_data['field_order']
+            degree = order_data['degree']
+            order = order_data['order']
+            
+            try:
+                from sage.all import GF, PolynomialRing
+                F = GF(field_order)
+                R = PolynomialRing(F, "t")
+                poly_str = " + ".join([f"t^{i}" if i > 0 else "1" 
+                                      for i, c in enumerate(coeffs) if c != 0])
+                if not poly_str:
+                    poly_str = "1"
+                poly = R(poly_str)
+                
+                features = extract_polynomial_features(poly, coeffs, field_order, degree)
+                training_data.append((features, order))
+            except Exception:
+                continue
+        
+        return training_data
+    
+    def save_training_data(self, training_data: List[Tuple[Dict[str, float], int]]) -> None:
+        """Save training data to file."""
+        data_to_save = [
+            {
+                'features': features,
+                'period': period
+            }
+            for features, period in training_data
+        ]
+        
+        with open(self.training_data_file, 'w', encoding='utf-8') as f:
+            json.dump(data_to_save, f, indent=2)
+    
+    def load_training_data(self) -> List[Tuple[Dict[str, float], int]]:
+        """Load training data from file."""
+        if not self.training_data_file.exists():
+            return []
+        
+        with open(self.training_data_file, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+        
+        return [(item['features'], item['period']) for item in data]
+    
+    def train_period_predictor_model(
+        self,
+        training_data: Optional[List[Tuple[Dict[str, float], int]]] = None,
+        model_type: str = "linear",
+        save_model: bool = True
+    ) -> Tuple[PeriodPredictor, Dict[str, Any]]:
+        """
+        Train a period prediction model.
+        
+        Args:
+            training_data: Optional training data (if None, collects from database)
+            model_type: Type of model to train
+            save_model: Whether to save the trained model
+        
+        Returns:
+            Tuple of (trained model, evaluation metrics)
+        """
+        if training_data is None:
+            training_data = self.collect_training_data_from_database()
+        
+        if not training_data:
+            raise ValueError("No training data available")
+        
+        # Split into training and validation (80/20)
+        split_idx = int(0.8 * len(training_data))
+        train_data = training_data[:split_idx]
+        val_data = training_data[split_idx:]
+        
+        # Train model
+        predictor = train_period_predictor(train_data, model_type=model_type)
+        
+        # Evaluate on validation set
+        errors = []
+        for features, true_period in val_data:
+            predicted = predictor.predict(features)
+            error = abs(predicted - true_period)
+            errors.append(error)
         
         metrics = {
-            'train_mae': mean_absolute_error(y_train, y_pred_train),
-            'test_mae': mean_absolute_error(y_test, y_pred_test),
-            'train_r2': r2_score(y_train, y_pred_train),
-            'test_r2': r2_score(y_test, y_pred_test),
-        }
-    else:
-        metrics = {}
-    
-    # Save model if output directory provided
-    if output_dir:
-        output_path = Path(output_dir)
-        output_path.mkdir(parents=True, exist_ok=True)
-        model_path = output_path / f"period_predictor_{model_type}.pkl"
-        predictor.save(str(model_path))
-        
-        # Save metadata
-        metadata = {
+            'mean_absolute_error': sum(errors) / len(errors) if errors else 0.0,
+            'max_error': max(errors) if errors else 0.0,
+            'min_error': min(errors) if errors else 0.0,
+            'training_samples': len(train_data),
+            'validation_samples': len(val_data),
             'model_type': model_type,
-            'training_samples': len(training_data),
-            'metrics': metrics,
-            'feature_names': sorted(X[0].keys()) if X else []
+            'trained_at': datetime.now().isoformat()
         }
-        metadata_path = output_path / f"period_predictor_{model_type}_metadata.json"
-        with open(metadata_path, 'w') as f:
-            json.dump(metadata, f, indent=2)
+        
+        # Save model
+        if save_model:
+            model_file = self.models_dir / f"period_predictor_{model_type}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
+            predictor.save(str(model_file))
+            metrics['model_file'] = str(model_file)
+        
+        return predictor, metrics
     
-    return {
-        'predictor': predictor,
-        'metrics': metrics,
-        'model_path': str(output_path / f"period_predictor_{model_type}.pkl") if output_dir else None
-    }
+    def evaluate_model(
+        self,
+        model: PeriodPredictor,
+        test_data: List[Tuple[Dict[str, float], int]]
+    ) -> Dict[str, Any]:
+        """
+        Evaluate a trained model on test data.
+        
+        Args:
+            model: Trained model to evaluate
+            test_data: Test data as (features, period) tuples
+        
+        Returns:
+            Dictionary with evaluation metrics
+        """
+        errors = []
+        relative_errors = []
+        
+        for features, true_period in test_data:
+            predicted = model.predict(features)
+            error = abs(predicted - true_period)
+            errors.append(error)
+            
+            if true_period > 0:
+                rel_error = error / true_period
+                relative_errors.append(rel_error)
+        
+        metrics = {
+            'mean_absolute_error': sum(errors) / len(errors) if errors else 0.0,
+            'max_error': max(errors) if errors else 0.0,
+            'min_error': min(errors) if errors else 0.0,
+            'mean_relative_error': sum(relative_errors) / len(relative_errors) if relative_errors else 0.0,
+            'max_relative_error': max(relative_errors) if relative_errors else 0.0,
+            'test_samples': len(test_data)
+        }
+        
+        return metrics
+
+
+def train_models_from_database(
+    model_type: str = "linear",
+    save_models: bool = True
+) -> Tuple[PeriodPredictor, Dict[str, Any]]:
+    """
+    Train ML models from known result database.
+    
+    Convenience function to train models using the known result database.
+    
+    Args:
+        model_type: Type of model to train
+        save_models: Whether to save trained models
+    
+    Returns:
+        Tuple of (trained model, evaluation metrics)
+    """
+    pipeline = TrainingPipeline()
+    return pipeline.train_period_predictor_model(
+        training_data=None,
+        model_type=model_type,
+        save_model=save_models
+    )

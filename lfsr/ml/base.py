@@ -10,8 +10,8 @@ models and feature extraction in LFSR analysis.
 
 from abc import ABC, abstractmethod
 from typing import Any, Dict, List, Optional, Union
+import json
 import pickle
-import os
 from pathlib import Path
 
 
@@ -19,8 +19,8 @@ class FeatureExtractor:
     """
     Extract features from LFSR properties for ML models.
     
-    This class provides feature extraction functions that convert LFSR
-    properties into numerical features suitable for machine learning models.
+    This class provides methods to extract numerical features from LFSR
+    configurations and analysis results for use in machine learning models.
     
     **Key Terminology**:
     
@@ -29,11 +29,10 @@ class FeatureExtractor:
       can use. Features are the input variables for ML models.
     
     - **Feature Vector**: A list of numerical values representing the
-      extracted features. For example, [degree, field_order, sparsity, ...]
+      extracted features. For example, [degree, field_order, num_taps, ...]
     
     - **Feature Engineering**: The process of selecting and transforming
-      features to improve model performance. Good features are crucial
-      for ML model accuracy.
+      features to improve ML model performance.
     """
     
     @staticmethod
@@ -41,125 +40,119 @@ class FeatureExtractor:
         coefficients: List[int],
         field_order: int,
         degree: Optional[int] = None
-    ) -> Dict[str, Union[int, float]]:
+    ) -> List[float]:
         """
         Extract features from polynomial coefficients.
         
-        This function extracts numerical features from LFSR polynomial
-        coefficients that can be used for machine learning models.
-        
-        **Features Extracted**:
-        
-        - **Degree**: Polynomial degree (d)
-        - **Field Order**: Field order (q)
-        - **Sparsity**: Ratio of non-zero coefficients
-        - **Non-Zero Count**: Number of non-zero coefficients
-        - **Coefficient Sum**: Sum of all coefficients
-        - **First Coefficient**: First coefficient value
-        - **Last Coefficient**: Last coefficient value
-        - **Coefficient Pattern**: Pattern indicators (trinomial, pentanomial, etc.)
+        Features extracted:
+        - Degree
+        - Field order
+        - Number of non-zero coefficients (taps)
+        - Coefficient density
+        - Position of first/last non-zero coefficient
+        - Sum of coefficients
         
         Args:
-            coefficients: List of polynomial coefficients
+            coefficients: Polynomial coefficients
             field_order: Field order
             degree: Optional degree (defaults to len(coefficients))
         
         Returns:
-            Dictionary of feature names to values
+            List of feature values
         """
         if degree is None:
             degree = len(coefficients)
         
-        non_zero_count = sum(1 for c in coefficients if c != 0)
-        sparsity = non_zero_count / degree if degree > 0 else 0.0
+        # Count non-zero coefficients (taps)
+        num_taps = sum(1 for c in coefficients if c != 0)
+        
+        # Coefficient density
+        density = num_taps / degree if degree > 0 else 0.0
+        
+        # Position of first non-zero coefficient
+        first_tap = next((i for i, c in enumerate(coefficients) if c != 0), -1)
+        
+        # Position of last non-zero coefficient
+        last_tap = next((i for i, c in enumerate(reversed(coefficients)) if c != 0), -1)
+        if last_tap >= 0:
+            last_tap = degree - 1 - last_tap
+        
+        # Sum of coefficients
         coeff_sum = sum(coefficients)
         
-        # Pattern detection
-        is_trinomial = non_zero_count == 3
-        is_pentanomial = non_zero_count == 5
-        
-        features = {
-            'degree': degree,
-            'field_order': field_order,
-            'sparsity': sparsity,
-            'non_zero_count': non_zero_count,
-            'coefficient_sum': coeff_sum,
-            'first_coefficient': coefficients[0] if coefficients else 0,
-            'last_coefficient': coefficients[-1] if coefficients else 0,
-            'is_trinomial': 1 if is_trinomial else 0,
-            'is_pentanomial': 1 if is_pentanomial else 0,
-        }
-        
-        return features
+        return [
+            float(degree),
+            float(field_order),
+            float(num_taps),
+            density,
+            float(first_tap) if first_tap >= 0 else 0.0,
+            float(last_tap) if last_tap >= 0 else float(degree - 1),
+            float(coeff_sum)
+        ]
     
     @staticmethod
     def extract_sequence_features(
         sequence: List[int],
-        field_order: int = 2
-    ) -> Dict[str, Union[int, float]]:
+        max_length: int = 1000
+    ) -> List[float]:
         """
-        Extract features from sequence for pattern detection.
+        Extract features from sequence.
         
-        This function extracts statistical and frequency-domain features
-        from LFSR sequences for pattern detection and analysis.
-        
-        **Features Extracted**:
-        
-        - **Length**: Sequence length
-        - **Mean**: Mean value
-        - **Variance**: Variance of values
-        - **Balance**: Balance (for binary sequences)
-        - **Runs**: Number of runs
-        - **Autocorrelation**: First-order autocorrelation
+        Features extracted:
+        - Sequence length (truncated to max_length)
+        - Mean value
+        - Variance
+        - Number of unique values
+        - Run length statistics
         
         Args:
             sequence: Sequence of values
-            field_order: Field order (default: 2)
+            max_length: Maximum length to consider
         
         Returns:
-            Dictionary of feature names to values
+            List of feature values
         """
-        if not sequence:
-            return {}
+        seq = sequence[:max_length]
         
-        length = len(sequence)
-        mean = sum(sequence) / length if length > 0 else 0.0
+        if not seq:
+            return [0.0] * 10
         
-        # Variance
-        variance = sum((x - mean) ** 2 for x in sequence) / length if length > 0 else 0.0
+        # Basic statistics
+        mean_val = sum(seq) / len(seq)
+        variance = sum((x - mean_val) ** 2 for x in seq) / len(seq) if len(seq) > 1 else 0.0
+        unique_count = len(set(seq))
+        unique_ratio = unique_count / len(seq) if seq else 0.0
         
-        # Balance (for binary)
-        if field_order == 2:
-            ones = sum(sequence)
-            zeros = length - ones
-            balance = abs(ones - zeros) / length if length > 0 else 0.0
+        # Run length statistics (for binary sequences)
+        if all(x in [0, 1] for x in seq):
+            runs = []
+            current_run = 1
+            for i in range(1, len(seq)):
+                if seq[i] == seq[i-1]:
+                    current_run += 1
+                else:
+                    runs.append(current_run)
+                    current_run = 1
+            runs.append(current_run)
+            
+            avg_run_length = sum(runs) / len(runs) if runs else 0.0
+            max_run_length = max(runs) if runs else 0.0
         else:
-            balance = 0.0
+            avg_run_length = 0.0
+            max_run_length = 0.0
         
-        # Runs (consecutive identical values)
-        runs = 1
-        for i in range(1, length):
-            if sequence[i] != sequence[i-1]:
-                runs += 1
-        
-        # Autocorrelation (first-order)
-        autocorr = 0.0
-        if length > 1:
-            autocorr = sum(
-                (sequence[i] - mean) * (sequence[i+1] - mean)
-                for i in range(length - 1)
-            ) / (length - 1) if length > 1 else 0.0
-        
-        features = {
-            'length': length,
-            'mean': mean,
-            'variance': variance,
-            'balance': balance,
-            'runs': runs,
-            'autocorrelation': autocorr,
-        }
-        
-        return features
+        return [
+            float(len(seq)),
+            mean_val,
+            variance,
+            float(unique_count),
+            unique_ratio,
+            avg_run_length,
+            max_run_length,
+            float(seq[0]) if seq else 0.0,
+            float(seq[-1]) if seq else 0.0,
+            float(sum(seq[:10]))  # Sum of first 10 elements
+        ]
 
 
 class MLModel(ABC):
@@ -172,17 +165,18 @@ class MLModel(ABC):
     **Key Terminology**:
     
     - **Machine Learning Model**: A mathematical model that learns patterns
-      from data and can make predictions on new data. Models are trained
-      on examples and then used for inference.
+      from data and can make predictions on new data. Examples include
+      linear regression, neural networks, and decision trees.
     
-    - **Training**: The process of teaching a model by showing it examples
-      with known outcomes. The model learns patterns from these examples.
+    - **Training**: The process of teaching an ML model by showing it
+      examples (training data) with known outcomes. The model learns
+      patterns from these examples.
     
-    - **Inference**: Using a trained model to make predictions on new,
-      unseen data. This is also called prediction.
+    - **Prediction**: Using a trained ML model to make predictions on new,
+      unseen data. The model applies learned patterns to predict outcomes.
     
     - **Model Persistence**: Saving a trained model to disk so it can be
-      loaded later without retraining. This enables model reuse.
+      loaded and used later without retraining.
     """
     
     def __init__(self, model_name: str):
@@ -190,33 +184,33 @@ class MLModel(ABC):
         Initialize ML model.
         
         Args:
-            model_name: Name of the model
+            model_name: Name identifier for the model
         """
         self.model_name = model_name
-        self.model: Any = None
+        self.model = None
         self.is_trained = False
     
     @abstractmethod
-    def train(self, X: List[Dict[str, Union[int, float]]], y: List[Any]) -> None:
+    def train(self, X: List[List[float]], y: List[float]) -> None:
         """
         Train the model on data.
         
         Args:
-            X: List of feature dictionaries
-            y: List of target values
+            X: Feature vectors (list of feature lists)
+            y: Target values (list of floats)
         """
         pass
     
     @abstractmethod
-    def predict(self, X: List[Dict[str, Union[int, float]]]) -> List[Any]:
+    def predict(self, X: List[List[float]]) -> List[float]:
         """
-        Make predictions on data.
+        Make predictions on new data.
         
         Args:
-            X: List of feature dictionaries
+            X: Feature vectors (list of feature lists)
         
         Returns:
-            List of predictions
+            List of predicted values
         """
         pass
     
@@ -227,13 +221,14 @@ class MLModel(ABC):
         Args:
             filepath: Path to save model
         """
-        os.makedirs(os.path.dirname(filepath) if os.path.dirname(filepath) else '.', exist_ok=True)
+        model_data = {
+            'model_name': self.model_name,
+            'is_trained': self.is_trained,
+            'model': self._serialize_model()
+        }
+        
         with open(filepath, 'wb') as f:
-            pickle.dump({
-                'model': self.model,
-                'model_name': self.model_name,
-                'is_trained': self.is_trained
-            }, f)
+            pickle.dump(model_data, f)
     
     def load(self, filepath: str) -> None:
         """
@@ -242,11 +237,19 @@ class MLModel(ABC):
         Args:
             filepath: Path to load model from
         """
-        if not os.path.exists(filepath):
-            raise FileNotFoundError(f"Model file not found: {filepath}")
-        
         with open(filepath, 'rb') as f:
-            data = pickle.load(f)
-            self.model = data['model']
-            self.model_name = data['model_name']
-            self.is_trained = data['is_trained']
+            model_data = pickle.load(f)
+        
+        self.model_name = model_data['model_name']
+        self.is_trained = model_data['is_trained']
+        self._deserialize_model(model_data['model'])
+    
+    @abstractmethod
+    def _serialize_model(self) -> Any:
+        """Serialize model for storage."""
+        pass
+    
+    @abstractmethod
+    def _deserialize_model(self, data: Any) -> None:
+        """Deserialize model from storage."""
+        pass
