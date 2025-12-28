@@ -668,6 +668,44 @@ def parse_args(args: Optional[list] = None) -> argparse.Namespace:
         help="Generate reproducibility report (specify output file)."
     )
     
+    # Machine learning options
+    ml_group = parser.add_argument_group(
+        "machine learning options",
+        "Options for ML-based analysis (period prediction, pattern detection, anomaly detection)"
+    )
+    
+    ml_group.add_argument(
+        "--predict-period",
+        action="store_true",
+        help="Predict period using ML model (requires trained model)."
+    )
+    
+    ml_group.add_argument(
+        "--detect-patterns",
+        action="store_true",
+        help="Detect patterns in generated sequences."
+    )
+    
+    ml_group.add_argument(
+        "--detect-anomalies",
+        action="store_true",
+        help="Detect anomalies in sequences and distributions."
+    )
+    
+    ml_group.add_argument(
+        "--train-model",
+        type=str,
+        metavar="FILE",
+        help="Train ML model and save to file (specify output file)."
+    )
+    
+    ml_group.add_argument(
+        "--ml-model-file",
+        type=str,
+        metavar="FILE",
+        help="Path to trained ML model file (for prediction)."
+    )
+    
     # NIST test suite options
     nist_group = parser.add_argument_group(
         "NIST SP 800-22 test suite options",
