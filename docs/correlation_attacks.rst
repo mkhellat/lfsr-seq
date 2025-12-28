@@ -497,9 +497,10 @@ the LFSR state more efficiently than exhaustive search.
   from observed keystream, which is the goal of fast correlation attacks.
 
 **Key Advantages**:
+
 - More efficient than exhaustive search (complexity: :math:`O(2^d / \rho^2)` in
   best case vs :math:`O(2^d)` for exhaustive search)
-- Can handle weaker correlations (can work with |rho| as low as 0.1)
+- Can handle weaker correlations (can work with :math:`\rho` as low as 0.1)
 - Uses iterative decoding (belief propagation) to refine candidates
 - Better complexity for large state spaces
 - Can recover the actual LFSR state (not just detect correlation)
@@ -547,17 +548,18 @@ For |rho| = 0.3, the error probability is 0.35, meaning 35% of bits differ.
 - **Time Complexity**: :math:`O(N \cdot n)` where :math:`N` is the number of
   candidates tested and :math:`n` is the keystream length. In practice, this
   is much better than :math:`O(2^d)` for exhaustive search.
-
 - **Space Complexity**: :math:`O(d + n)` for storing the candidate state and
   keystream, where :math:`d` is the LFSR degree.
 
 **When to Use**:
+
 - Large state spaces where exhaustive search is infeasible (e.g., :math:`d > 20`)
 - Weaker correlations that basic attack cannot exploit (|rho| < 0.3)
 - Need for state recovery (not just detection)
 - When you have sufficient keystream (typically :math:`n > 100 \cdot d`)
 
 **Limitations**:
+
 - Requires sufficient correlation (typically |rho| > 0.1, better if |rho| > 0.2)
 - Performance depends on correlation strength (weaker correlations require
   more candidates and iterations)

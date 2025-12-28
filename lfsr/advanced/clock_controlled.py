@@ -5,56 +5,46 @@
 Clock-Controlled LFSR Analysis
 
 This module provides analysis capabilities for clock-controlled LFSRs, which
-have irregular clocking patterns controlled by clock control functions or other
-LFSRs.
+have irregular clocking patterns controlled by clock control functions or
+other LFSRs.
 
 **Historical Context**:
 
-Clock-controlled LFSRs were developed to introduce irregularity into LFSR sequences,
-making them harder to analyze. By controlling when LFSRs advance, clock control
-increases the complexity of the generated sequences.
+Clock-controlled LFSRs were developed to increase security by introducing
+irregularity in the clocking pattern. This makes linear analysis more
+difficult. Examples include the shrinking generator and self-shrinking generator.
 
 **Key Terminology**:
 
 - **Clock-Controlled LFSR**: An LFSR with irregular clocking, where the LFSR
-  doesn't always advance on each step. Clocking is controlled by a clock control
-  function or another LFSR.
+  doesn't always advance on each step. Clocking is controlled by a clock
+  control function or another LFSR.
 
-- **Clock Control Function**: A function that determines when the LFSR advances.
-  The function may depend on the LFSR's own state or on an external control signal.
+- **Clock Control Function**: Function determining when the LFSR advances.
+  The function takes the current state (or control LFSR output) and returns
+  whether to clock.
 
 - **Irregular Clocking**: Clocking pattern that is not regular (not every step).
-  The LFSR may advance 0, 1, or more steps depending on the clock control.
+  The LFSR may advance 0, 1, or more steps per output.
 
-- **Clock Control LFSR**: A separate LFSR that controls the clocking of another
-  LFSR. The output of the control LFSR determines when the data LFSR advances.
-
-- **Stop-and-Go**: A clock control pattern where the LFSR stops when control bit
-  is 0 and advances when control bit is 1.
-
-- **Step-1/Step-2**: A clock control pattern where the LFSR advances 1 or 2 steps
-  based on the control bit.
+- **Control LFSR**: Separate LFSR that controls the clocking of the main LFSR.
+  The control LFSR output determines when the main LFSR advances.
 
 **Mathematical Foundation**:
 
-A clock-controlled LFSR has:
-- Base LFSR with state S
-- Clock control function c: determines number of steps to advance
-
-The state update is:
+For a clock-controlled LFSR, the clocking is determined by a control function:
 
 .. math::
 
-   S_{i+1} = C^{c(S_i)} \\cdot S_i
+   \\text{clock} = c(S_{\\text{control}})
 
-where C is the state update matrix and c(S_i) is the number of steps to advance.
+where :math:`c` is the clock control function and :math:`S_{\\text{control}}`
+is the control state (or control LFSR output).
 
-Common clock control patterns:
-- **Stop-and-Go**: c(S) = 1 if control bit is 1, else 0
-- **Step-1/Step-2**: c(S) = 1 if control bit is 0, else 2
+The main LFSR advances only when :math:`\\text{clock} = 1`.
 """
 
-from typing import Callable, List, Optional
+from typing import List, Optional, Callable
 
 from sage.all import *
 
@@ -68,228 +58,206 @@ from lfsr.core import build_state_update_matrix
 
 class ClockControlledLFSR(AdvancedLFSR):
     """
-    Clock-Controlled LFSR implementation.
+    Clock-controlled LFSR implementation.
     
     A clock-controlled LFSR has irregular clocking controlled by a clock
-    control function. The LFSR may advance 0, 1, or more steps depending
-    on the control function.
+    control function or another LFSR. The main LFSR advances only when the
+    control function indicates.
     
     **Cipher Structure**:
     
-    - **Base LFSR**: Underlying LFSR that is clock-controlled
-    - **Clock Control Function**: Function determining number of steps to advance
-    - **State Size**: Same as base LFSR degree
-    - **Clocking Pattern**: Irregular (not every step)
-    
-    **Key Terminology**:
-    
-    - **Clock-Controlled LFSR**: LFSR with irregular clocking
-    - **Clock Control Function**: Function determining clocking behavior
-    - **Irregular Clocking**: Clocking pattern is not regular
+    - **Main LFSR**: The LFSR being clock-controlled
+    - **Clock Control**: Function or LFSR determining clocking
+    - **Irregular Clocking**: Main LFSR doesn't always advance
     
     **Example Usage**:
     
         >>> from lfsr.advanced.clock_controlled import ClockControlledLFSR
         >>> from lfsr.attacks import LFSRConfig
         >>> 
-        >>> base_lfsr = LFSRConfig(coefficients=[1, 0, 0, 1], field_order=2, degree=4)
+        >>> main_lfsr = LFSRConfig(coefficients=[1, 0, 0, 1], field_order=2, degree=4)
         >>> 
-        >>> # Define clock control: advance 1 step if state[0] == 1, else 0 steps
-        >>> def clock_control(state):
-        ...     return 1 if state[0] == 1 else 0
+        >>> # Simple clock control: advance if control bit is 1
+        >>> def clock_control(control_bit):
+        ...     return control_bit == 1
         >>> 
-        >>> cclfsr = ClockControlledLFSR(base_lfsr, clock_control)
-        >>> sequence = cclfsr.generate_sequence([1, 0, 1, 1], 100)
+        >>> # Use another LFSR as control
+        >>> control_lfsr = LFSRConfig(coefficients=[1, 1], field_order=2, degree=2)
+        >>> 
+        >>> cclfsr = ClockControlledLFSR(main_lfsr, control_lfsr, clock_control)
+        >>> sequence = cclfsr.generate_sequence([1, 0, 0, 0], [1, 0], 100)
     """
     
     def __init__(
         self,
-        base_lfsr_config: LFSRConfig,
-        clock_control_function: Callable[[List[int]], int]
+        main_lfsr_config: LFSRConfig,
+        control_lfsr_config: Optional[LFSRConfig] = None,
+        clock_control_function: Optional[Callable] = None
     ):
         """
         Initialize Clock-Controlled LFSR.
         
         Args:
-            base_lfsr_config: Base LFSR configuration
-            clock_control_function: Function returning number of steps to advance (0, 1, 2, ...)
+            main_lfsr_config: Configuration of main LFSR (being controlled)
+            control_lfsr_config: Optional control LFSR configuration
+            clock_control_function: Function determining clocking (takes control
+                state/output and returns bool)
         """
-        self.base_lfsr_config = base_lfsr_config
+        self.main_lfsr_config = main_lfsr_config
+        self.control_lfsr_config = control_lfsr_config
         self.clock_control_function = clock_control_function
-        self.state = None
         
-        # Build state update matrix
-        F = GF(base_lfsr_config.field_order)
-        self.C, self.CS = build_state_update_matrix(
-            base_lfsr_config.coefficients,
-            base_lfsr_config.field_order
+        # Build state update matrices
+        self.main_C, _ = build_state_update_matrix(
+            main_lfsr_config.coefficients,
+            main_lfsr_config.field_order
         )
+        
+        if control_lfsr_config:
+            self.control_C, _ = build_state_update_matrix(
+                control_lfsr_config.coefficients,
+                control_lfsr_config.field_order
+            )
+        else:
+            self.control_C = None
+        
+        # Default clock control: always clock
+        if clock_control_function is None:
+            self.clock_control_function = lambda x: True
     
     def get_config(self) -> AdvancedLFSRConfig:
         """Get Clock-Controlled LFSR configuration."""
         return AdvancedLFSRConfig(
             structure_type="clock_controlled",
-            base_lfsr_config=self.base_lfsr_config,
+            base_lfsr_config=self.main_lfsr_config,
             parameters={
-                'clock_control_type': 'function',
-                'degree': self.base_lfsr_config.degree,
-                'field_order': self.base_lfsr_config.field_order
+                'has_control_lfsr': self.control_lfsr_config is not None,
+                'has_clock_control': self.clock_control_function is not None
             }
         )
     
-    def _advance_steps(self, num_steps: int):
-        """
-        Advance LFSR by specified number of steps.
-        
-        Args:
-            num_steps: Number of steps to advance (0, 1, 2, ...)
-        """
-        if self.state is None:
-            raise ValueError("LFSR state not initialized")
-        
-        if num_steps == 0:
-            return
-        
-        F = GF(self.base_lfsr_config.field_order)
-        state_vec = vector(F, self.state)
-        
-        # Advance num_steps times
-        for _ in range(num_steps):
-            state_vec = self.C * state_vec
-        
-        self.state = [int(x) for x in state_vec]
-    
-    def _get_output(self) -> int:
-        """
-        Get output bit from LFSR.
-        
-        Returns:
-            Output bit (MSB of state)
-        """
-        if self.state is None:
-            raise ValueError("LFSR state not initialized")
-        
-        return self.state[0]
+    def _clock_lfsr(self, state: List[int], C, field_order: int) -> List[int]:
+        """Clock an LFSR one step."""
+        F = GF(field_order)
+        state_vec = vector(F, state)
+        new_state_vec = C * state_vec
+        return [int(x) for x in new_state_vec]
     
     def generate_sequence(
         self,
         initial_state: List[int],
-        length: int
+        length: int,
+        control_initial_state: Optional[List[int]] = None
     ) -> List[int]:
         """
         Generate sequence from initial state.
         
         Args:
-            initial_state: Initial state as a list of field elements
+            initial_state: Initial state of main LFSR
             length: Desired sequence length
+            control_initial_state: Optional initial state of control LFSR
         
         Returns:
             List of sequence elements
         """
-        if len(initial_state) != self.base_lfsr_config.degree:
-            raise ValueError(
-                f"Initial state must have length {self.base_lfsr_config.degree}, "
-                f"got {len(initial_state)}"
-            )
+        main_state = initial_state[:]
         
-        # Initialize state
-        self.state = initial_state.copy()
+        if self.control_lfsr_config:
+            if control_initial_state is None:
+                control_state = [1] * self.control_lfsr_config.degree
+            else:
+                control_state = control_initial_state[:]
+        else:
+            control_state = None
         
-        # Generate sequence
         sequence = []
+        
         for _ in range(length):
-            # Get output
-            output = self._get_output()
+            # Get control output
+            if control_state is not None:
+                control_output = control_state[0]  # MSB
+            else:
+                control_output = 1  # Default: always clock
+            
+            # Determine if main LFSR should clock
+            should_clock = self.clock_control_function(control_output)
+            
+            # Output from main LFSR
+            output = main_state[0]  # MSB
             sequence.append(output)
             
-            # Determine number of steps to advance
-            num_steps = self.clock_control_function(self.state)
+            # Clock main LFSR if control says so
+            if should_clock:
+                main_state = self._clock_lfsr(
+                    main_state,
+                    self.main_C,
+                    self.main_lfsr_config.field_order
+                )
             
-            # Advance LFSR
-            self._advance_steps(num_steps)
+            # Clock control LFSR (always)
+            if control_state is not None:
+                control_state = self._clock_lfsr(
+                    control_state,
+                    self.control_C,
+                    self.control_lfsr_config.field_order
+                )
         
         return sequence
     
     def analyze_structure(self) -> dict:
-        """
-        Analyze Clock-Controlled LFSR structure.
-        
-        Returns:
-            Dictionary of structure properties
-        """
-        base_properties = {
-            'degree': self.base_lfsr_config.degree,
-            'field_order': self.base_lfsr_config.field_order,
-            'coefficients': self.base_lfsr_config.coefficients,
-            'state_space_size': self.base_lfsr_config.field_order ** self.base_lfsr_config.degree
-        }
-        
+        """Analyze Clock-Controlled LFSR structure."""
         return {
-            'base_lfsr': base_properties,
-            'clock_control_type': 'function',
-            'degree': self.base_lfsr_config.degree,
-            'field_order': self.base_lfsr_config.field_order,
-            'state_space_size': self.base_lfsr_config.field_order ** self.base_lfsr_config.degree,
-            'note': 'Clocking is irregular (controlled by clock control function)'
+            'structure_type': 'ClockControlledLFSR',
+            'main_lfsr_degree': self.main_lfsr_config.degree,
+            'has_control_lfsr': self.control_lfsr_config is not None,
+            'control_lfsr_degree': (
+                self.control_lfsr_config.degree
+                if self.control_lfsr_config else None
+            ),
+            'has_irregular_clocking': True,
+            'note': 'Clock-controlled LFSR has irregular clocking pattern'
+        }
+    
+    def _assess_security(
+        self,
+        structure_properties: dict
+    ) -> dict:
+        """Assess Clock-Controlled LFSR security."""
+        return {
+            'irregularity': 'Irregular clocking provides resistance to linear analysis',
+            'known_vulnerabilities': [
+                'Clock control analysis',
+                'Correlation attacks (if correlations exist)'
+            ],
+            'recommendations': [
+                'Use complex clock control function',
+                'Ensure control LFSR is independent'
+            ]
         }
 
 
 def create_stop_and_go_lfsr(
-    base_lfsr_config: LFSRConfig,
-    control_bit_position: int = 0
+    main_lfsr_config: LFSRConfig,
+    control_lfsr_config: LFSRConfig
 ) -> ClockControlledLFSR:
     """
-    Create stop-and-go clock-controlled LFSR.
+    Create a stop-and-go clock-controlled LFSR.
     
-    In stop-and-go, the LFSR advances 1 step if control bit is 1, else 0 steps.
-    
-    **Key Terminology**:
-    
-    - **Stop-and-Go**: Clock control pattern where LFSR stops (0 steps) when
-      control bit is 0 and advances (1 step) when control bit is 1.
+    In stop-and-go, the main LFSR advances only when control LFSR output is 1.
+    When control output is 0, the main LFSR stops (doesn't advance).
     
     Args:
-        base_lfsr_config: Base LFSR configuration
-        control_bit_position: Position of control bit in state (default: 0)
+        main_lfsr_config: Main LFSR configuration
+        control_lfsr_config: Control LFSR configuration
     
     Returns:
-        ClockControlledLFSR instance with stop-and-go pattern
-    
-    Example:
-        >>> base_lfsr = LFSRConfig(coefficients=[1, 0, 0, 1], field_order=2, degree=4)
-        >>> cclfsr = create_stop_and_go_lfsr(base_lfsr, control_bit_position=0)
-        >>> sequence = cclfsr.generate_sequence([1, 0, 1, 1], 100)
+        ClockControlledLFSR instance with stop-and-go behavior
     """
-    def stop_and_go_control(state: List[int]) -> int:
-        """Stop-and-go clock control: 1 step if control bit is 1, else 0."""
-        return 1 if state[control_bit_position] == 1 else 0
+    def stop_and_go(control_output: int) -> bool:
+        return control_output == 1
     
-    return ClockControlledLFSR(base_lfsr_config, stop_and_go_control)
-
-
-def create_step1_step2_lfsr(
-    base_lfsr_config: LFSRConfig,
-    control_bit_position: int = 0
-) -> ClockControlledLFSR:
-    """
-    Create step-1/step-2 clock-controlled LFSR.
-    
-    In step-1/step-2, the LFSR advances 1 step if control bit is 0, else 2 steps.
-    
-    Args:
-        base_lfsr_config: Base LFSR configuration
-        control_bit_position: Position of control bit in state (default: 0)
-    
-    Returns:
-        ClockControlledLFSR instance with step-1/step-2 pattern
-    
-    Example:
-        >>> base_lfsr = LFSRConfig(coefficients=[1, 0, 0, 1], field_order=2, degree=4)
-        >>> cclfsr = create_step1_step2_lfsr(base_lfsr, control_bit_position=0)
-        >>> sequence = cclfsr.generate_sequence([1, 0, 1, 1], 100)
-    """
-    def step1_step2_control(state: List[int]) -> int:
-        """Step-1/step-2 clock control: 1 step if control bit is 0, else 2."""
-        return 1 if state[control_bit_position] == 0 else 2
-    
-    return ClockControlledLFSR(base_lfsr_config, step1_step2_control)
+    return ClockControlledLFSR(
+        main_lfsr_config,
+        control_lfsr_config,
+        stop_and_go
+    )

@@ -95,7 +95,7 @@ Trivium
 Trivium eSTREAM finalist stream cipher implementation.
 
 Grain Family
-~~~~~~~~~~~
+~~~~~~~~~~~~
 
 .. autoclass:: lfsr.ciphers.grain.Grain128
    :members:

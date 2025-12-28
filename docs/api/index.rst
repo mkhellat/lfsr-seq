@@ -42,6 +42,7 @@ Module Documentation
    optimization
    tmto
    ciphers
+   advanced
    export
    io
    formatter

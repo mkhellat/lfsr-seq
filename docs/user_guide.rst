@@ -25,24 +25,25 @@ Command-Line Options
 --------------------
 
 Positional Arguments:
-   input_file                 CSV file containing LFSR coefficient vectors
-   gf_order                   Galois field order (prime or prime power)
+   - `input_file`:            CSV file containing LFSR coefficient vectors
+   - `gf_order`:              Galois field order (prime or prime power)
 
 Optional Arguments:
-
    -h, --help                 Show help message and exit
    --version                  Show version and exit
    -o, --output FILE          Specify output file (default: input_file.out)
    -v, --verbose              Enable verbose output
    -q, --quiet                Enable quiet mode (suppress non-essential output)
    --no-progress              Disable progress bar display
-   --format {text,json,csv,xml}
+
+   --format {text|json|csv|xml}
                               Output format (default: text)
+			      
    --period-only              Compute periods only, without storing sequences.
                               Floyd's algorithm uses true O(1) space in this mode.
                               Both algorithms achieve O(1) space, but enumeration is faster.
 
-   --algorithm {floyd,brent,enumeration,auto}
+   --algorithm {floyd|brent|enumeration|auto}
                               Cycle detection algorithm (default: auto)
 
                               - enumeration: Default, faster for typical periods
@@ -79,7 +80,7 @@ Optional Arguments:
                               
    --no-period-stats          Disable period distribution statistics display.
 
-   --parallel                  Enable parallel state enumeration (auto-enabled for
+   --parallel                 Enable parallel state enumeration (auto-enabled for
                               large state spaces > 10,000 states with 2+ CPU cores).
                               Partitions the state space across multiple CPU cores
                               for faster processing. Falls back to sequential if
@@ -285,7 +286,7 @@ Example with primitive polynomial:
 Output will show:
 ::
 
-   ╎ t^4 + t^3 + 1                          ╎ O : 15           ╎
+   ╎ t^4 + t^3 + 1                         ╎ O : 15           ╎
    ╎                                       ╎ [PRIMITIVE]      ╎
 
 The ``[PRIMITIVE]`` indicator confirms that this polynomial is primitive and

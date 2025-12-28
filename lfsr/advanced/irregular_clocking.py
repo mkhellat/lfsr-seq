@@ -9,47 +9,37 @@ patterns, including stop-and-go, step-1/step-2, and other patterns.
 
 **Historical Context**:
 
-Irregular clocking patterns were developed to introduce unpredictability into
-LFSR sequences. By making the clocking pattern irregular, these patterns
-increase the complexity of the generated sequences and make cryptanalysis
-more difficult.
+Irregular clocking patterns were developed to increase security by introducing
+non-linearity through clock control. Different patterns provide different
+security properties and efficiency trade-offs.
 
 **Key Terminology**:
 
 - **Irregular Clocking**: Clocking pattern that is not regular (not every step).
-  The LFSR may advance 0, 1, or more steps depending on the pattern.
+  The LFSR may advance 0, 1, or more steps per output.
 
-- **Clock Control Pattern**: A specific pattern determining clocking behavior.
-  Common patterns include stop-and-go, step-1/step-2, and others.
+- **Stop-and-Go**: Pattern where LFSR stops when control bit is 0, advances
+  when control bit is 1.
 
-- **Stop-and-Go**: Clock control pattern where LFSR stops (0 steps) when control
-  bit is 0 and advances (1 step) when control bit is 1.
+- **Step-1/Step-2**: Pattern where LFSR advances 1 step when control bit is 0,
+  advances 2 steps when control bit is 1.
 
-- **Step-1/Step-2**: Clock control pattern where LFSR advances 1 step if control
-  bit is 0, else 2 steps.
-
-- **Shrinking Generator**: Pattern where LFSR advances only when control bit is 1,
-  and output is produced only when control bit is 1.
-
-- **Self-Shrinking Generator**: Pattern where LFSR controls its own clocking
-  based on its own state.
+- **Shrinking Generator**: Pattern where LFSR output is used only when control
+  bit is 1, otherwise discarded.
 
 **Mathematical Foundation**:
 
-Irregular clocking patterns can be described by a clock control function c that
-determines the number of steps to advance:
+For irregular clocking, the number of steps advanced is determined by a
+control function:
 
 .. math::
 
-   \\text{steps} = c(\\text{control\_bits})
+   \\text{steps} = f(c)
 
-Common patterns:
-- **Stop-and-Go**: c(b) = b (0 or 1 step)
-- **Step-1/Step-2**: c(b) = 1 if b == 0 else 2
-- **Shrinking**: c(b) = b, output only when b == 1
+where :math:`c` is the control value and :math:`f` is the clocking function.
 """
 
-from typing import List, Optional
+from typing import List, Optional, Callable
 
 from sage.all import *
 
@@ -58,24 +48,22 @@ from lfsr.advanced.base import (
     AdvancedLFSR,
     AdvancedLFSRConfig
 )
-from lfsr.advanced.clock_controlled import (
-    ClockControlledLFSR,
-    create_stop_and_go_lfsr,
-    create_step1_step2_lfsr
-)
+from lfsr.core import build_state_update_matrix
 
 
-class IrregularClockingLFSR(ClockControlledLFSR):
+class IrregularClockingLFSR(AdvancedLFSR):
     """
-    LFSR with irregular clocking pattern.
+    LFSR with irregular clocking pattern implementation.
     
-    This class provides a convenient interface for LFSRs with common irregular
-    clocking patterns.
+    An irregular clocking LFSR uses a clocking pattern function to determine
+    how many steps to advance per output. This creates irregularity in the
+    sequence generation.
     
-    **Key Terminology**:
+    **Cipher Structure**:
     
-    - **Irregular Clocking Pattern**: Specific pattern determining clocking behavior
-    - **Pattern Type**: Type of pattern (stop-and-go, step-1/step-2, etc.)
+    - **Base LFSR**: Underlying LFSR
+    - **Clocking Pattern Function**: Function determining steps to advance
+    - **Irregular Pattern**: Clocking is not regular
     
     **Example Usage**:
     
@@ -84,96 +72,184 @@ class IrregularClockingLFSR(ClockControlledLFSR):
         >>> 
         >>> base_lfsr = LFSRConfig(coefficients=[1, 0, 0, 1], field_order=2, degree=4)
         >>> 
-        >>> # Create stop-and-go LFSR
-        >>> irregular = IrregularClockingLFSR.create_stop_and_go(base_lfsr)
-        >>> sequence = irregular.generate_sequence([1, 0, 1, 1], 100)
+        >>> # Step-1/Step-2 pattern: advance 1 if control=0, 2 if control=1
+        >>> def step_pattern(control_bit):
+        ...     return 1 if control_bit == 0 else 2
+        >>> 
+        >>> # Use another LFSR for control
+        >>> control_lfsr = LFSRConfig(coefficients=[1, 1], field_order=2, degree=2)
+        >>> 
+        >>> iclfsr = IrregularClockingLFSR(base_lfsr, control_lfsr, step_pattern)
+        >>> sequence = iclfsr.generate_sequence([1, 0, 0, 0], [1, 0], 100)
     """
     
     def __init__(
         self,
         base_lfsr_config: LFSRConfig,
-        pattern_type: str,
-        control_bit_position: int = 0
+        control_lfsr_config: Optional[LFSRConfig] = None,
+        clocking_pattern_function: Optional[Callable[[int], int]] = None
     ):
         """
         Initialize Irregular Clocking LFSR.
         
         Args:
             base_lfsr_config: Base LFSR configuration
-            pattern_type: Type of pattern ("stop_and_go", "step1_step2", etc.)
-            control_bit_position: Position of control bit (default: 0)
+            control_lfsr_config: Optional control LFSR configuration
+            clocking_pattern_function: Function taking control value and returning
+                number of steps to advance
         """
-        self.pattern_type = pattern_type
+        self.base_lfsr_config = base_lfsr_config
+        self.control_lfsr_config = control_lfsr_config
+        self.clocking_pattern_function = clocking_pattern_function
         
-        # Create clock control function based on pattern type
-        if pattern_type == "stop_and_go":
-            clock_control = lambda state: 1 if state[control_bit_position] == 1 else 0
-        elif pattern_type == "step1_step2":
-            clock_control = lambda state: 1 if state[control_bit_position] == 0 else 2
+        # Build state update matrices
+        self.base_C, _ = build_state_update_matrix(
+            base_lfsr_config.coefficients,
+            base_lfsr_config.field_order
+        )
+        
+        if control_lfsr_config:
+            self.control_C, _ = build_state_update_matrix(
+                control_lfsr_config.coefficients,
+                control_lfsr_config.field_order
+            )
         else:
-            raise ValueError(f"Unknown pattern type: {pattern_type}")
+            self.control_C = None
         
-        super().__init__(base_lfsr_config, clock_control)
-    
-    @classmethod
-    def create_stop_and_go(
-        cls,
-        base_lfsr_config: LFSRConfig,
-        control_bit_position: int = 0
-    ) -> 'IrregularClockingLFSR':
-        """
-        Create stop-and-go irregular clocking LFSR.
-        
-        Args:
-            base_lfsr_config: Base LFSR configuration
-            control_bit_position: Position of control bit
-        
-        Returns:
-            IrregularClockingLFSR instance with stop-and-go pattern
-        """
-        return cls(base_lfsr_config, "stop_and_go", control_bit_position)
-    
-    @classmethod
-    def create_step1_step2(
-        cls,
-        base_lfsr_config: LFSRConfig,
-        control_bit_position: int = 0
-    ) -> 'IrregularClockingLFSR':
-        """
-        Create step-1/step-2 irregular clocking LFSR.
-        
-        Args:
-            base_lfsr_config: Base LFSR configuration
-            control_bit_position: Position of control bit
-        
-        Returns:
-            IrregularClockingLFSR instance with step-1/step-2 pattern
-        """
-        return cls(base_lfsr_config, "step1_step2", control_bit_position)
+        # Default pattern: always advance 1 step
+        if clocking_pattern_function is None:
+            self.clocking_pattern_function = lambda x: 1
     
     def get_config(self) -> AdvancedLFSRConfig:
         """Get Irregular Clocking LFSR configuration."""
-        config = super().get_config()
-        config.parameters['pattern_type'] = self.pattern_type
-        return config
+        return AdvancedLFSRConfig(
+            structure_type="irregular_clocking",
+            base_lfsr_config=self.base_lfsr_config,
+            parameters={
+                'has_control_lfsr': self.control_lfsr_config is not None,
+                'has_irregular_pattern': True
+            }
+        )
     
-    def analyze_structure(self) -> dict:
+    def _clock_lfsr(self, state: List[int], C, field_order: int, steps: int = 1) -> List[int]:
+        """Clock an LFSR specified number of steps."""
+        F = GF(field_order)
+        state_vec = vector(F, state)
+        
+        for _ in range(steps):
+            state_vec = C * state_vec
+        
+        return [int(x) for x in state_vec]
+    
+    def generate_sequence(
+        self,
+        initial_state: List[int],
+        length: int,
+        control_initial_state: Optional[List[int]] = None
+    ) -> List[int]:
         """
-        Analyze Irregular Clocking LFSR structure.
+        Generate sequence from initial state.
+        
+        Args:
+            initial_state: Initial state of base LFSR
+            length: Desired sequence length
+            control_initial_state: Optional initial state of control LFSR
         
         Returns:
-            Dictionary of structure properties
+            List of sequence elements
         """
-        base_analysis = super().analyze_structure()
-        base_analysis['pattern_type'] = self.pattern_type
-        base_analysis['pattern_description'] = self._get_pattern_description()
-        return base_analysis
-    
-    def _get_pattern_description(self) -> str:
-        """Get description of clocking pattern."""
-        if self.pattern_type == "stop_and_go":
-            return "Stop-and-go: LFSR advances 1 step if control bit is 1, else 0 steps"
-        elif self.pattern_type == "step1_step2":
-            return "Step-1/step-2: LFSR advances 1 step if control bit is 0, else 2 steps"
+        base_state = initial_state[:]
+        
+        if self.control_lfsr_config:
+            if control_initial_state is None:
+                control_state = [1] * self.control_lfsr_config.degree
+            else:
+                control_state = control_initial_state[:]
         else:
-            return f"Unknown pattern: {self.pattern_type}"
+            control_state = None
+        
+        sequence = []
+        
+        for _ in range(length):
+            # Get control output
+            if control_state is not None:
+                control_output = control_state[0]  # MSB
+            else:
+                control_output = 0  # Default
+            
+            # Output from base LFSR
+            output = base_state[0]  # MSB
+            sequence.append(output)
+            
+            # Determine steps to advance
+            steps = self.clocking_pattern_function(control_output)
+            
+            # Clock base LFSR
+            base_state = self._clock_lfsr(
+                base_state,
+                self.base_C,
+                self.base_lfsr_config.field_order,
+                steps
+            )
+            
+            # Clock control LFSR (always)
+            if control_state is not None:
+                control_state = self._clock_lfsr(
+                    control_state,
+                    self.control_C,
+                    self.control_lfsr_config.field_order,
+                    1
+                )
+        
+        return sequence
+    
+    def analyze_structure(self) -> dict:
+        """Analyze Irregular Clocking LFSR structure."""
+        return {
+            'structure_type': 'IrregularClockingLFSR',
+            'base_lfsr_degree': self.base_lfsr_config.degree,
+            'has_control_lfsr': self.control_lfsr_config is not None,
+            'control_lfsr_degree': (
+                self.control_lfsr_config.degree
+                if self.control_lfsr_config else None
+            ),
+            'has_irregular_pattern': True,
+            'note': 'Irregular clocking LFSR uses non-regular clocking pattern'
+        }
+    
+    def _assess_security(
+        self,
+        structure_properties: dict
+    ) -> dict:
+        """Assess Irregular Clocking LFSR security."""
+        return {
+            'irregularity': 'Irregular clocking provides resistance to linear analysis',
+            'known_vulnerabilities': [
+                'Clock control analysis',
+                'Pattern analysis'
+            ],
+            'recommendations': [
+                'Use complex clocking patterns',
+                'Ensure control is independent'
+            ]
+        }
+
+
+def create_stop_and_go_pattern() -> Callable[[int], int]:
+    """
+    Create stop-and-go clocking pattern function.
+    
+    Returns:
+        Function that returns 1 if control=1, 0 if control=0
+    """
+    return lambda control: 1 if control == 1 else 0
+
+
+def create_step_1_step_2_pattern() -> Callable[[int], int]:
+    """
+    Create step-1/step-2 clocking pattern function.
+    
+    Returns:
+        Function that returns 1 if control=0, 2 if control=1
+    """
+    return lambda control: 1 if control == 0 else 2

@@ -242,7 +242,7 @@ FastCorrelationAttackResult with attack results
        print(f"Recovered state: {result.recovered_state}")
 
 distinguishing_attack
-~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~
 
 .. autofunction:: lfsr.attacks.distinguishing_attack
    :no-index:

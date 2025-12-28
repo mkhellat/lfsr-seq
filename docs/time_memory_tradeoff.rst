@@ -90,7 +90,7 @@ This means that to reduce attack time by a factor of k, we need k^2 times
 more memory (or vice versa).
 
 Hellman Tables
-~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~
 
 **What is a Hellman Table?**
 
@@ -150,6 +150,7 @@ where N is the state space size.
 **Algorithm**:
 
 1. **Precomputation Phase**:
+   
    - Generate m random starting states S_0^{(1)}, ..., S_0^{(m)}
    - For each starting state, compute a chain:
      S_0 → f(S_0) → R(f(S_0)) → f(R(f(S_0))) → ... → S_t
@@ -157,6 +158,7 @@ where N is the state space size.
    - Repeat until m chains with distinguished endpoints are created
 
 2. **Lookup Phase**:
+   
    - Given target state S, apply reduction function: R(S)
    - Check if R(S) is a chain endpoint in table
    - If found, reconstruct chain from start to find S

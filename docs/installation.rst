@@ -13,27 +13,32 @@ Installing SageMath
 SageMath must be installed separately as it's not available via PyPI:
 
 **Debian/Ubuntu:**
+
 .. code-block:: bash
 
    sudo apt-get update
    sudo apt-get install sagemath
 
 **Fedora/RHEL:**
+
 .. code-block:: bash
 
    sudo dnf install sagemath
 
 **Arch Linux:**
+
 .. code-block:: bash
 
    sudo pacman -S sagemath
 
 **macOS (Homebrew):**
+
 .. code-block:: bash
 
    brew install sagemath
 
 **Conda:**
+
 .. code-block:: bash
 
    conda install -c conda-forge sage
