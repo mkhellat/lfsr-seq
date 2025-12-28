@@ -770,6 +770,12 @@ lfsr-seq/
 │   │   ├── clock_controlled.py  # Clock-controlled LFSRs
 │   │   ├── multi_output.py # Multi-output LFSRs
 │   │   └── irregular_clocking.py  # Irregular clocking patterns
+│   ├── theoretical.py     # Theoretical analysis (irreducible polynomials)
+│   ├── export_latex.py    # LaTeX export functionality
+│   ├── paper_generator.py # Research paper generation
+│   ├── theoretical_db.py  # Known result database
+│   ├── benchmarking.py    # Benchmarking framework
+│   └── reproducibility.py # Reproducibility features
 │   ├── cli_correlation.py  # CLI for correlation attacks
 │   ├── cli_algebraic.py    # CLI for algebraic attacks
 │   ├── cli_tmto.py         # CLI for TMTO attacks
@@ -1089,6 +1095,11 @@ compared with the periods of the listed sequences.
 - **Filtered LFSR**: LFSR (linear feedback) with non-linear output filtering
 - **Clock-Controlled LFSR**: LFSR (linear feedback) with irregular clocking
 - **Multi-Output LFSR**: LFSR (linear feedback) with multiple outputs per step
+- **Theoretical Analysis**: Research-oriented analysis comparing computed results with theoretical predictions
+- **LaTeX Export**: Converting analysis results to LaTeX format for research papers
+- **Reproducibility**: Ability to reproduce research results using same methods and parameters
+- **Benchmarking**: Measuring and comparing performance of different analysis methods
+- **Known Result Database**: Collection of known theoretical results for verification
 - **NIST SP 800-22**: Industry-standard statistical test suite for randomness
 - **Period Computation via Factorization**: Efficient period computation using polynomial factorization
 - **Result Caching**: Storing computed results for reuse without recomputation
@@ -1100,6 +1111,7 @@ For algebraic attack theory and usage, see [Algebraic Attacks Guide](docs/algebr
 For time-memory trade-off attacks, see [TMTO Attacks Guide](docs/time_memory_tradeoff.rst).
 For stream cipher analysis, see [Stream Ciphers Guide](docs/stream_ciphers.rst).
 For advanced LFSR structures, see [Advanced LFSR Structures Guide](docs/advanced_lfsr_structures.rst).
+For theoretical analysis features, see [Theoretical Analysis Guide](docs/theoretical_analysis.rst).
 For NIST test suite documentation, see [NIST SP 800-22 Guide](docs/nist_sp800_22.rst).
 For optimization techniques, see [Optimization Techniques Guide](docs/optimization_techniques.rst).
 
