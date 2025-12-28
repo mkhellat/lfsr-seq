@@ -1180,20 +1180,27 @@ def _process_state_chunk(
                     errors.append(f'Error computing period for state {state_tuple}: {str(e)}')
                     continue
                 
-                # CRITICAL FIX: For proper deduplication in period-only mode, we need a canonical
-                # representation of the cycle. Computing min_state requires matrix multiplication
-                # in a loop which can hang in fork mode. Use a simpler approach: hash of
-                # (period, start_state) as the key. This is less accurate but avoids hangs.
-                debug_log(f'State {idx+1}: Period-only mode - using simplified deduplication key...')
-                # Use period + start_state as deduplication key
-                # This avoids matrix multiplication loops that can hang in fork mode
-                # Trade-off: Less accurate deduplication, but safe and fast
-                import hashlib
-                key_data = (seq_period, state_tuple)
-                key_hash = hashlib.md5(str(key_data).encode()).hexdigest()[:16]  # 16-char hash
-                # Use hash as canonical key (all states from same cycle with same period map to same key)
-                states_tuples = (key_hash,)  # Single-element tuple for deduplication
-                debug_log(f'State {idx+1}: Cycle signature (hash): {key_hash[:8]}... (period={seq_period})')
+                # CRITICAL FIX: For proper deduplication, we need a canonical cycle representation.
+                # The min_state approach requires iterating through the cycle, which can be slow
+                # for large periods, but it's necessary for correct deduplication.
+                # We limit the iteration to avoid hangs, but still get a good canonical key.
+                debug_log(f'State {idx+1}: Period-only mode - computing canonical cycle key...')
+                # Find minimum state in cycle as canonical key (limited to first 1000 states for safety)
+                # This ensures all states from the same cycle map to the same key
+                min_state = state_tuple
+                current = state
+                max_check = min(1000, seq_period)  # Limit to 1000 states to avoid hangs
+                for i in range(max_check - 1):
+                    current = current * state_update_matrix
+                    current_tuple = tuple(current)
+                    if current_tuple < min_state:
+                        min_state = current_tuple
+                    # Periodic check every 100 iterations
+                    if i > 0 and i % 100 == 0:
+                        _ = len(str(current))  # Force evaluation
+                # Use min_state as canonical key
+                states_tuples = (min_state,)  # Single-element tuple for deduplication
+                debug_log(f'State {idx+1}: Cycle signature (min_state): {min_state[:5]}... (period={seq_period})')
                 # CRITICAL FIX: Mark ALL states in the cycle as visited (not just start state)
                 # This prevents workers from processing the same cycle multiple times
                 # Even though cycles can span chunks, marking all states prevents redundant work
