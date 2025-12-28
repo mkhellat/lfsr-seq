@@ -1338,15 +1338,17 @@ def lfsr_sequence_mapper_parallel(
             async_result = pool.map_async(_process_state_chunk, chunk_data_list)
             
             if not no_progress:
-                print(f"  Workers started, waiting for results (timeout: 40s total)...")
+                print(f"  Workers started, waiting for results (timeout: 120s total)...")
                 import sys
                 sys.stdout.flush()
             
             try:
                 # Wait with reasonable timeout
-                # Serial takes max 35s, so use 40s total timeout for parallel
-                # (parallel should be faster, but allow some overhead)
-                total_timeout = 40
+                # Serial takes max 35s, but spawn mode is slower due to process creation
+                # For large state spaces (32768 states), spawn mode needs more time
+                # Use 120s timeout for spawn mode to account for startup overhead and large workloads
+                # (fork mode would be faster, but spawn is more reliable with SageMath)
+                total_timeout = 120
                 worker_results = async_result.get(timeout=total_timeout)
                 
                 elapsed = time.time() - start_time
