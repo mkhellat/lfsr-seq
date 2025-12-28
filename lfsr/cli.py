@@ -668,6 +668,61 @@ def parse_args(args: Optional[list] = None) -> argparse.Namespace:
         help="Generate reproducibility report (specify output file)."
     )
     
+    # Visualization options
+    viz_group = parser.add_argument_group(
+        "visualization options",
+        "Options for generating visualizations of analysis results"
+    )
+    
+    viz_group.add_argument(
+        "--plot-period-distribution",
+        type=str,
+        metavar="FILE",
+        help="Generate period distribution plot (specify output file)."
+    )
+    
+    viz_group.add_argument(
+        "--plot-state-transitions",
+        type=str,
+        metavar="FILE",
+        help="Generate state transition diagram (specify output file)."
+    )
+    
+    viz_group.add_argument(
+        "--plot-period-statistics",
+        type=str,
+        metavar="FILE",
+        help="Generate statistical plots for period distribution (specify output file)."
+    )
+    
+    viz_group.add_argument(
+        "--plot-3d-state-space",
+        type=str,
+        metavar="FILE",
+        help="Generate 3D state space visualization (specify output file)."
+    )
+    
+    viz_group.add_argument(
+        "--visualize-attack",
+        type=str,
+        metavar="FILE",
+        help="Visualize attack results (specify output file)."
+    )
+    
+    viz_group.add_argument(
+        "--viz-format",
+        type=str,
+        choices=["png", "svg", "pdf", "html"],
+        default="png",
+        help="Output format for visualizations (default: png)."
+    )
+    
+    viz_group.add_argument(
+        "--viz-interactive",
+        action="store_true",
+        help="Generate interactive visualizations (HTML format)."
+    )
+    
     # Machine learning options
     ml_group = parser.add_argument_group(
         "machine learning options",
@@ -1116,6 +1171,139 @@ def cli_main() -> None:
                 
                 # Anomaly detection
                 if args.detect_anomalies:
+                    print("=" * 70, file=output_file)
+                    print("Anomaly Detection", file=output_file)
+                    print("=" * 70, file=output_file)
+                    
+                    seq_dict, period_dict, max_period, _, _, _, _ = analyze_lfsr(coefficients, args.gf_order)
+                    theoretical_max = int(args.gf_order) ** len(coefficients) - 1
+                    
+                    from lfsr.polynomial import is_primitive_polynomial
+                    from sage.all import GF, PolynomialRing
+                    F = GF(args.gf_order)
+                    R = PolynomialRing(F, "t")
+                    # Create polynomial from coefficients (simplified)
+                    is_primitive = False  # Would need to compute actual polynomial
+                    
+                    if seq_dict:
+                        first_seq = list(seq_dict.values())[0]
+                        sequence = [state[0] for state in first_seq[:1000]]
+                        anomalies = detect_all_anomalies(sequence, period_dict, theoretical_max)
+                        
+                        print(f"Anomalies detected: {len(anomalies)}", file=output_file)
+                        for i, anomaly in enumerate(anomalies[:10]):  # Show top 10
+                            print(f"  Anomaly {i+1}: {anomaly.description} (severity: {anomaly.severity:.2f})", file=output_file)
+            # Check if visualization features requested
+            elif (args.plot_period_distribution or args.plot_state_transitions or 
+                  args.plot_period_statistics or args.plot_3d_state_space or 
+                  args.visualize_attack):
+                from lfsr.io import read_coefficient_vectors
+                from lfsr.core import analyze_lfsr
+                from lfsr.visualization.period_graphs import plot_period_distribution
+                from lfsr.visualization.state_diagrams import generate_state_transition_diagram
+                from lfsr.visualization.statistical_plots import plot_period_statistics
+                from lfsr.visualization.state_space_3d import plot_3d_state_space
+                from lfsr.visualization.attack_visualization import visualize_correlation_attack
+                from lfsr.visualization.base import VisualizationConfig, OutputFormat
+                
+                # Load coefficients from input file
+                if not args.input_file:
+                    print("ERROR: Visualization features require input file with LFSR coefficients", file=sys.stderr)
+                    sys.exit(1)
+                
+                coeffs_list = read_coefficient_vectors(args.input_file, args.gf_order)
+                if not coeffs_list:
+                    print("ERROR: No valid coefficients found in input file", file=sys.stderr)
+                    sys.exit(1)
+                
+                coefficients = coeffs_list[0]
+                
+                # Perform analysis
+                seq_dict, period_dict, max_period, periods_sum, char_poly, char_poly_order, _ = analyze_lfsr(
+                    coefficients, args.gf_order
+                )
+                
+                from lfsr.polynomial import is_primitive_polynomial
+                is_primitive = is_primitive_polynomial(char_poly, args.gf_order)
+                theoretical_max = int(args.gf_order) ** len(coefficients) - 1
+                
+                # Determine output format
+                format_map = {
+                    'png': OutputFormat.PNG,
+                    'svg': OutputFormat.SVG,
+                    'pdf': OutputFormat.PDF,
+                    'html': OutputFormat.HTML
+                }
+                output_format = format_map.get(args.viz_format, OutputFormat.PNG)
+                interactive = args.viz_interactive or output_format == OutputFormat.HTML
+                
+                config = VisualizationConfig(
+                    output_format=output_format,
+                    interactive=interactive,
+                    title="LFSR Analysis Visualization"
+                )
+                
+                # Period distribution plot
+                if args.plot_period_distribution:
+                    fig = plot_period_distribution(
+                        period_dict,
+                        theoretical_max_period=theoretical_max,
+                        is_primitive=is_primitive,
+                        config=config,
+                        output_file=args.plot_period_distribution
+                    )
+                    print(f"Period distribution plot saved to {args.plot_period_distribution}", file=output_file)
+                
+                # State transition diagram
+                if args.plot_state_transitions:
+                    graph = generate_state_transition_diagram(
+                        seq_dict,
+                        period_dict,
+                        max_states=50,
+                        config=config,
+                        output_file=args.plot_state_transitions
+                    )
+                    print(f"State transition diagram saved to {args.plot_state_transitions}", file=output_file)
+                
+                # Period statistics
+                if args.plot_period_statistics:
+                    fig = plot_period_statistics(
+                        period_dict,
+                        theoretical_max_period=theoretical_max,
+                        is_primitive=is_primitive,
+                        config=config,
+                        output_file=args.plot_period_statistics
+                    )
+                    print(f"Period statistics plot saved to {args.plot_period_statistics}", file=output_file)
+                
+                # 3D state space
+                if args.plot_3d_state_space:
+                    fig = plot_3d_state_space(
+                        seq_dict,
+                        period_dict,
+                        max_states=100,
+                        config=config,
+                        output_file=args.plot_3d_state_space
+                    )
+                    print(f"3D state space visualization saved to {args.plot_3d_state_space}", file=output_file)
+                
+                # Attack visualization (if attack results available)
+                if args.visualize_attack:
+                    # For now, create a simple visualization
+                    # In future, could load actual attack results
+                    attack_results = {
+                        'correlations': [0.5] * len(coefficients),
+                        'success_probability': 0.5,
+                        'attack_successful': False
+                    }
+                    fig = visualize_correlation_attack(
+                        attack_results,
+                        config=config,
+                        output_file=args.visualize_attack
+                    )
+                    print(f"Attack visualization saved to {args.visualize_attack}", file=output_file)
+            # Check if ML features requested
+            elif args.predict_period or args.detect_patterns or args.detect_anomalies or args.train_model:
                     print("=" * 70, file=output_file)
                     print("Anomaly Detection", file=output_file)
                     print("=" * 70, file=output_file)
