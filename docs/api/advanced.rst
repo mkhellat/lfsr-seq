@@ -136,10 +136,11 @@ Create step-1/step-2 clocking pattern function.
 Important Notes
 ---------------
 
-**Terminology Clarification**: 
+**Terminology Clarification**:
+
 - **LFSR** = Linear Feedback Shift Register (feedback is ALWAYS linear/XOR only)
 - **NFSR** = Non-Linear Feedback Shift Register (feedback is non-linear, NOT an LFSR)
-- **Filtered/Clock-Controlled/Multi-Output LFSRs** = ARE LFSRs (linear feedback) with additional features (filtering, irregular clocking, multiple outputs).
+- **Filtered/Clock-Controlled/Multi-Output LFSRs** = ARE LFSRs (linear feedback) with additional features (filtering, irregular clocking, multiple outputs)
 
 **Non-Linearity**: Advanced structures introduce non-linearity in different ways:
 - **NFSRs**: Non-linear feedback (NOT LFSRs)
