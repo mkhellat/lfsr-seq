@@ -1182,17 +1182,44 @@ def cli_main() -> None:
                     from sage.all import GF, PolynomialRing
                     F = GF(args.gf_order)
                     R = PolynomialRing(F, "t")
-                    # Create polynomial from coefficients (simplified)
-                    is_primitive = False  # Would need to compute actual polynomial
+                    # Create polynomial from coefficients
+                    char_poly = R([1] + coefficients[::-1])  # Reverse for polynomial
+                    is_primitive = is_primitive_polynomial(char_poly, args.gf_order)
                     
                     if seq_dict:
                         first_seq = list(seq_dict.values())[0]
                         sequence = [state[0] for state in first_seq[:1000]]
-                        anomalies = detect_all_anomalies(sequence, period_dict, theoretical_max)
+                        anomalies = detect_all_anomalies(
+                            sequence=sequence,
+                            period_dict=period_dict,
+                            theoretical_max_period=theoretical_max,
+                            is_primitive=is_primitive
+                        )
                         
-                        print(f"Anomalies detected: {len(anomalies)}", file=output_file)
-                        for i, anomaly in enumerate(anomalies[:10]):  # Show top 10
-                            print(f"  Anomaly {i+1}: {anomaly.description} (severity: {anomaly.severity:.2f})", file=output_file)
+                        if isinstance(anomalies, dict):
+                            for anomaly_type, anomaly_list in anomalies.items():
+                                print(f"\n{anomaly_type}: {len(anomaly_list)} anomalies", file=output_file)
+                                for i, anomaly in enumerate(anomaly_list[:10]):  # Show top 10
+                                    print(f"  Anomaly {i+1}: {anomaly.description} (severity: {anomaly.severity:.2f})", file=output_file)
+                        else:
+                            print(f"Anomalies detected: {len(anomalies)}", file=output_file)
+                            for i, anomaly in enumerate(anomalies[:10]):  # Show top 10
+                                print(f"  Anomaly {i+1}: {anomaly.description} (severity: {anomaly.severity:.2f})", file=output_file)
+                
+                # Model training
+                if args.train_model:
+                    print("=" * 70, file=output_file)
+                    print("Training ML Model", file=output_file)
+                    print("=" * 70, file=output_file)
+                    
+                    model = train_period_prediction_model(
+                        model_type="random_forest",
+                        num_samples=100,
+                        max_degree=min(10, len(coefficients) + 2),
+                        field_order=args.gf_order,
+                        save_path=args.train_model
+                    )
+                    print(f"Model trained and saved to {args.train_model}", file=output_file)
             # Check if visualization features requested
             elif (args.plot_period_distribution or args.plot_state_transitions or 
                   args.plot_period_statistics or args.plot_3d_state_space or 
@@ -1302,54 +1329,6 @@ def cli_main() -> None:
                         output_file=args.visualize_attack
                     )
                     print(f"Attack visualization saved to {args.visualize_attack}", file=output_file)
-            # Check if ML features requested
-            elif args.predict_period or args.detect_patterns or args.detect_anomalies or args.train_model:
-                    print("=" * 70, file=output_file)
-                    print("Anomaly Detection", file=output_file)
-                    print("=" * 70, file=output_file)
-                    
-                    seq_dict, period_dict, max_period, _, _, _, _ = analyze_lfsr(coefficients, args.gf_order)
-                    theoretical_max = int(args.gf_order) ** len(coefficients) - 1
-                    
-                    from lfsr.polynomial import is_primitive_polynomial
-                    from sage.all import GF, PolynomialRing
-                    F = GF(args.gf_order)
-                    R = PolynomialRing(F, "t")
-                    # Create polynomial from coefficients (simplified)
-                    is_primitive = False  # Would need to compute actual polynomial
-                    
-                    if seq_dict:
-                        first_seq = list(seq_dict.values())[0]
-                        sequence = [state[0] for state in first_seq[:1000]]
-                    else:
-                        sequence = []
-                    
-                    anomalies = detect_all_anomalies(
-                        sequence=sequence if sequence else None,
-                        period_dict=period_dict,
-                        theoretical_max_period=theoretical_max,
-                        is_primitive=is_primitive
-                    )
-                    
-                    for anomaly_type, anomaly_list in anomalies.items():
-                        print(f"\n{anomaly_type}: {len(anomaly_list)} anomalies", file=output_file)
-                        for i, anomaly in enumerate(anomaly_list[:5]):  # Show top 5
-                            print(f"  Anomaly {i+1}: {anomaly.description} (severity: {anomaly.severity:.2f})", file=output_file)
-                
-                # Model training
-                if args.train_model:
-                    print("=" * 70, file=output_file)
-                    print("Training ML Model", file=output_file)
-                    print("=" * 70, file=output_file)
-                    
-                    model = train_period_prediction_model(
-                        model_type="random_forest",
-                        num_samples=100,
-                        max_degree=min(10, len(coefficients) + 2),
-                        field_order=args.gf_order,
-                        save_path=args.train_model
-                    )
-                    print(f"Model trained and saved to {args.train_model}", file=output_file)
             # Check if correlation attack mode
             elif args.correlation_attack:
                 from lfsr.cli_correlation import perform_correlation_attack_cli

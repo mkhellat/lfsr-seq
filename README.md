@@ -833,6 +833,14 @@ lfsr-seq/
 │       ├── pattern_detection.py  # Pattern detection
 │       ├── anomaly_detection.py  # Anomaly detection
 │       └── training.py    # Model training pipeline
+│   ├── visualization/     # Advanced visualization
+│       ├── __init__.py    # Visualization module initialization
+│       ├── base.py        # Base classes and configuration
+│       ├── period_graphs.py  # Period distribution visualizations
+│       ├── state_diagrams.py  # State transition diagrams
+│       ├── statistical_plots.py  # Statistical distribution plots
+│       ├── state_space_3d.py  # 3D state space visualizations
+│       └── attack_visualization.py  # Attack visualizations
 │   ├── cli_correlation.py  # CLI for correlation attacks
 │   ├── cli_algebraic.py    # CLI for algebraic attacks
 │   ├── cli_tmto.py         # CLI for TMTO attacks
@@ -1161,6 +1169,11 @@ compared with the periods of the listed sequences.
 - **Period Prediction**: ML models to predict LFSR periods from polynomial structure
 - **Pattern Detection**: Automatic detection of patterns in sequences and state transitions
 - **Anomaly Detection**: Identification of anomalies in sequences and distributions
+- **Visualization**: Interactive and publication-quality graphical representations of analysis results
+- **Period Distribution Plot**: Histogram showing distribution of periods across initial states
+- **State Transition Diagram**: Graph showing how states transition and form cycles
+- **3D State Space Visualization**: Interactive 3D representation of state spaces
+- **Attack Visualization**: Visual representation of cryptanalytic attack progress and results
 - **NIST SP 800-22**: Industry-standard statistical test suite for randomness
 - **Period Computation via Factorization**: Efficient period computation using polynomial factorization
 - **Result Caching**: Storing computed results for reuse without recomputation
@@ -1174,6 +1187,7 @@ For stream cipher analysis, see [Stream Ciphers Guide](docs/stream_ciphers.rst).
 For advanced LFSR structures, see [Advanced LFSR Structures Guide](docs/advanced_lfsr_structures.rst).
 For theoretical analysis features, see [Theoretical Analysis Guide](docs/theoretical_analysis.rst).
 For machine learning features, see [Machine Learning Guide](docs/machine_learning.rst) (if available).
+For visualization features, see [Visualization Guide](docs/visualization.rst).
 For NIST test suite documentation, see [NIST SP 800-22 Guide](docs/nist_sp800_22.rst).
 For optimization techniques, see [Optimization Techniques Guide](docs/optimization_techniques.rst).
 
