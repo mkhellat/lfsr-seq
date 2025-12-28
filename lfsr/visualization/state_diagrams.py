@@ -150,6 +150,7 @@ def _generate_diagram_matplotlib(
     """Generate simplified state transition diagram using matplotlib."""
     import matplotlib.pyplot as plt
     import matplotlib.patches as mpatches
+    import numpy as np
     
     fig, ax = plt.subplots(figsize=(config.width, config.height), dpi=config.dpi)
     
