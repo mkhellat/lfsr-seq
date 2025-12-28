@@ -4,226 +4,149 @@
 """
 ML model training pipeline for LFSR analysis.
 
-This module provides automated training pipelines for ML models using
-known results and generated datasets.
+This module provides automated pipelines for training ML models on LFSR data,
+including data generation, preprocessing, training, and evaluation.
 """
 
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional
 import json
-import os
 from pathlib import Path
 
-try:
-    import numpy as np
-    from sklearn.model_selection import GridSearchCV
-    HAS_SKLEARN = True
-except ImportError:
-    HAS_SKLEARN = False
-
-from lfsr.ml.models import PeriodPredictor
-from lfsr.ml.features import extract_polynomial_features
-from lfsr.theoretical_db import get_database
+from lfsr.ml.period_prediction import PeriodPredictor, train_period_predictor
+from lfsr.ml.base import FeatureExtractor
 
 
-def generate_training_dataset(
-    max_degree: int = 10,
-    field_order: int = 2,
-    num_samples: Optional[int] = None
-) -> List[Tuple[Dict[str, float], int]]:
+def generate_training_data(
+    coefficients_list: List[List[int]],
+    field_order: int,
+    periods: List[int]
+) -> List[Dict[str, Any]]:
     """
-    Generate training dataset from known results and computed periods.
+    Generate training data from LFSR analysis results.
     
-    This function generates a training dataset by extracting features from
-    known polynomials and their periods, suitable for training period
-    prediction models.
+    This function converts LFSR analysis results into training data format
+    for machine learning models.
     
     **Key Terminology**:
     
-    - **Training Dataset**: A collection of examples (polynomial features
-      and their corresponding periods) used to train machine learning models.
-      The model learns patterns from this data.
+    - **Training Data**: Examples with known outcomes used to train ML models.
+      Each example has input features (polynomial properties) and target
+      (actual period).
     
-    - **Feature-Label Pairs**: Each training example consists of features
-      (polynomial properties) and a label (the period). The model learns
-      to predict labels from features.
-    
-    - **Dataset Generation**: Creating training data from known results,
-      computed periods, or synthetic examples. Good datasets are diverse
-      and representative of the problem space.
+    - **Data Generation**: Creating training examples from existing analysis
+      results. This enables model training without manual data collection.
     
     Args:
-        max_degree: Maximum polynomial degree to include
+        coefficients_list: List of coefficient lists
         field_order: Field order
-        num_samples: Optional limit on number of samples
+        periods: List of corresponding periods
     
     Returns:
-        List of (features_dict, period) tuples
+        List of training data dictionaries
     """
-    if not HAS_SKLEARN:
-        raise ImportError("scikit-learn and numpy are required for training")
+    if len(coefficients_list) != len(periods):
+        raise ValueError("Coefficients and periods must have same length")
     
-    dataset = []
+    training_data = []
+    for coeffs, period in zip(coefficients_list, periods):
+        training_data.append({
+            'coefficients': coeffs,
+            'field_order': field_order,
+            'degree': len(coeffs),
+            'period': period
+        })
     
-    # Get known results from database
-    db = get_database()
-    
-    # Add known primitive polynomials
-    for key, poly_data in db.db['primitive_polynomials'].items():
-        if poly_data['degree'] <= max_degree and poly_data['field_order'] == field_order:
-            features = extract_polynomial_features(
-                poly_data['coefficients'],
-                poly_data['field_order']
-            )
-            dataset.append((features, poly_data['order']))
-    
-    # Add known polynomial orders
-    for key, order_data in db.db['polynomial_orders'].items():
-        if order_data['degree'] <= max_degree and order_data['field_order'] == field_order:
-            features = extract_polynomial_features(
-                order_data['coefficients'],
-                order_data['field_order']
-            )
-            dataset.append((features, order_data['order']))
-    
-    # Limit dataset size if requested
-    if num_samples and len(dataset) > num_samples:
-        import random
-        dataset = random.sample(dataset, num_samples)
-    
-    return dataset
+    return training_data
 
 
-def train_period_predictor(
-    training_data: Optional[List[Tuple[Dict[str, float], int]]] = None,
+def train_period_predictor_pipeline(
+    training_data: List[Dict[str, Any]],
     model_type: str = "random_forest",
-    max_degree: int = 10,
-    field_order: int = 2,
-    hyperparameter_tuning: bool = False
-) -> Tuple[PeriodPredictor, Dict[str, float]]:
+    output_dir: Optional[str] = None
+) -> Dict[str, Any]:
     """
-    Train a period prediction model.
+    Complete training pipeline for period predictor.
     
-    This function trains a period prediction model using either provided
-    training data or automatically generated data from known results.
+    This function provides a complete pipeline for training period prediction
+    models, including data preparation, training, evaluation, and saving.
     
     **Key Terminology**:
     
-    - **Model Training**: The process of teaching a machine learning model
-      to make predictions by showing it examples. The model adjusts its
-      parameters to minimize prediction error.
+    - **Training Pipeline**: An automated sequence of steps for training
+      ML models, including data preparation, model training, evaluation,
+      and persistence.
     
-    - **Hyperparameter Tuning**: Optimizing model settings (like number of
-      trees in a random forest) to improve performance. This is done using
-      techniques like grid search.
-    
-    - **Training Metrics**: Quantitative measures of model performance during
-      training, such as mean squared error (MSE) and R² score. These help
-      evaluate how well the model learned.
+    - **Model Evaluation**: Assessing model performance using metrics like
+      mean absolute error and R² score. This helps determine if the model
+      is ready for use.
     
     Args:
-        training_data: Optional training data (if None, generates automatically)
+        training_data: List of training data dictionaries
         model_type: Type of model to train
-        max_degree: Maximum degree for dataset generation
-        field_order: Field order
-        hyperparameter_tuning: Whether to perform hyperparameter tuning
+        output_dir: Optional directory to save model
     
     Returns:
-        Tuple of (trained model, training metrics)
+        Dictionary with training results and metrics
     """
-    if not HAS_SKLEARN:
-        raise ImportError("scikit-learn is required for training")
+    # Train model
+    predictor = train_period_predictor(training_data, model_type=model_type)
     
-    # Generate training data if not provided
-    if training_data is None:
-        training_data = generate_training_dataset(max_degree, field_order)
-    
-    if not training_data:
-        raise ValueError("No training data available")
-    
-    # Create and train model
-    predictor = PeriodPredictor(model_type=model_type)
-    
-    # Hyperparameter tuning if requested
-    if hyperparameter_tuning and model_type == "random_forest":
-        # Extract features and labels
-        X = []
-        y = []
-        feature_order = None
-        
-        for features_dict, period in training_data:
-            if feature_order is None:
-                feature_order = sorted(features_dict.keys())
-            from lfsr.ml.features import features_to_vector
-            feature_vector = features_to_vector(features_dict, feature_order)
-            X.append(feature_vector)
-            y.append(float(period))
-        
-        X = np.array(X)
-        y = np.array(y)
-        
-        # Grid search for hyperparameters
-        param_grid = {
-            'n_estimators': [50, 100, 200],
-            'max_depth': [None, 10, 20]
-        }
-        base_model = PeriodPredictor(model_type=model_type)
-        base_model._create_model()
-        grid_search = GridSearchCV(
-            base_model.model,
-            param_grid,
-            cv=5,
-            scoring='neg_mean_squared_error'
+    # Extract features and targets for metrics
+    X = []
+    y = []
+    for data in training_data:
+        features = FeatureExtractor.extract_polynomial_features(
+            data['coefficients'],
+            data['field_order'],
+            data.get('degree')
         )
-        grid_search.fit(X, y)
-        predictor.model = grid_search.best_estimator_
-        predictor.feature_order = feature_order
-        predictor.is_trained = True
+        X.append(features)
+        y.append(data['period'])
+    
+    # Get training metrics (already computed during training)
+    # We'll recompute for reporting
+    from lfsr.ml.period_prediction import HAS_SKLEARN
+    if HAS_SKLEARN:
+        from sklearn.model_selection import train_test_split
+        from sklearn.metrics import mean_absolute_error, r2_score
         
-        # Evaluate
-        from sklearn.metrics import mean_squared_error, r2_score
-        y_pred = predictor.model.predict(X)
+        X_array = predictor._features_to_array(X)
+        X_train, X_test, y_train, y_test = train_test_split(
+            X_array, y, test_size=0.2, random_state=42
+        )
+        
+        y_pred_train = predictor.model.predict(X_train)
+        y_pred_test = predictor.model.predict(X_test)
+        
         metrics = {
-            'train_mse': float(mean_squared_error(y, y_pred)),
-            'train_r2': float(r2_score(y, y_pred)),
-            'best_params': grid_search.best_params_
+            'train_mae': mean_absolute_error(y_train, y_pred_train),
+            'test_mae': mean_absolute_error(y_test, y_pred_test),
+            'train_r2': r2_score(y_train, y_pred_train),
+            'test_r2': r2_score(y_test, y_pred_test),
         }
     else:
-        metrics = predictor.train(training_data)
+        metrics = {}
     
-    return predictor, metrics
-
-
-def save_training_results(
-    model: PeriodPredictor,
-    metrics: Dict[str, float],
-    filepath: str
-) -> None:
-    """
-    Save trained model and training results.
+    # Save model if output directory provided
+    if output_dir:
+        output_path = Path(output_dir)
+        output_path.mkdir(parents=True, exist_ok=True)
+        model_path = output_path / f"period_predictor_{model_type}.pkl"
+        predictor.save(str(model_path))
+        
+        # Save metadata
+        metadata = {
+            'model_type': model_type,
+            'training_samples': len(training_data),
+            'metrics': metrics,
+            'feature_names': sorted(X[0].keys()) if X else []
+        }
+        metadata_path = output_path / f"period_predictor_{model_type}_metadata.json"
+        with open(metadata_path, 'w') as f:
+            json.dump(metadata, f, indent=2)
     
-    Args:
-        model: Trained model
-        metrics: Training metrics
-        filepath: Path to save model (without extension)
-    """
-    # Save model
-    model.save(f"{filepath}.pkl")
-    
-    # Save metrics
-    with open(f"{filepath}_metrics.json", 'w') as f:
-        json.dump(metrics, f, indent=2)
-
-
-def load_trained_model(filepath: str) -> PeriodPredictor:
-    """
-    Load a trained model from file.
-    
-    Args:
-        filepath: Path to model file
-    
-    Returns:
-        Loaded PeriodPredictor model
-    """
-    predictor = PeriodPredictor()
-    predictor.load(filepath)
-    return predictor
+    return {
+        'predictor': predictor,
+        'metrics': metrics,
+        'model_path': str(output_path / f"period_predictor_{model_type}.pkl") if output_dir else None
+    }

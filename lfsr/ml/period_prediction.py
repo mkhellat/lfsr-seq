@@ -2,237 +2,201 @@
 # -*- coding: utf-8 -*-
 
 """
-Period prediction using machine learning.
+Period prediction using machine learning models.
 
-This module provides ML-based period prediction models that predict LFSR
-periods from polynomial structure without full enumeration.
+This module provides ML-based period prediction from polynomial features.
 """
 
-from typing import Any, Dict, List, Optional, Union
-import warnings
+from typing import Any, Dict, List, Optional, Tuple
+import json
+import os
+from pathlib import Path
 
-try:
-    from sklearn.ensemble import RandomForestRegressor, GradientBoostingRegressor
-    from sklearn.model_selection import train_test_split
-    from sklearn.metrics import mean_absolute_error, r2_score
-    HAS_SKLEARN = True
-except ImportError:
-    HAS_SKLEARN = False
-    warnings.warn("scikit-learn not available. ML features will be limited.")
-
-from lfsr.ml.base import MLModel, FeatureExtractor
+from lfsr.ml.features import extract_polynomial_features, get_feature_vector
 
 
-class PeriodPredictor(MLModel):
+class PeriodPredictor:
     """
-    ML model for predicting LFSR periods from polynomial structure.
+    Machine learning model for predicting LFSR period from polynomial features.
     
-    This class provides period prediction using machine learning models
-    trained on polynomial features. It can predict periods without
-    performing full state enumeration.
+    This class provides period prediction using trained ML models. It supports
+    multiple model types and can be trained on known LFSR results.
     
     **Key Terminology**:
     
-    - **Period Prediction**: Using machine learning to predict the period
-      of an LFSR from its polynomial structure, without computing the
-      actual period through enumeration or factorization.
+    - **Period Prediction**: Using machine learning to predict the period of
+      an LFSR from its polynomial structure, without performing expensive
+      computation. This can provide quick estimates for large LFSRs.
     
-    - **Regression Model**: A machine learning model that predicts
-      continuous numerical values (like period) rather than categories.
-      Examples include Random Forest and Gradient Boosting.
+    - **Machine Learning Model**: A mathematical model trained on data to make
+      predictions. Common types include linear regression, decision trees, and
+      neural networks.
     
-    - **Feature-Based Prediction**: Making predictions based on extracted
-      features (polynomial properties) rather than the raw polynomial itself.
-      This enables generalization to unseen polynomials.
+    - **Training Data**: Known examples (polynomial features → period) used to
+      train the model. More training data generally leads to better predictions.
     
-    **Mathematical Foundation**:
-    
-    The model learns a function:
-    
-    .. math::
-    
-       P = f(\\text{degree}, \\text{field\_order}, \\text{sparsity}, \\ldots)
-    
-    where P is the predicted period and f is learned from training data.
+    - **Feature Vector**: Numerical representation of polynomial properties
+      used as input to the model.
     """
     
-    def __init__(self, model_type: str = "random_forest"):
+    def __init__(self, model_type: str = "linear"):
         """
         Initialize period predictor.
         
         Args:
-            model_type: Type of model ("random_forest" or "gradient_boosting")
+            model_type: Type of model ("linear", "polynomial", "simple")
         """
-        super().__init__(f"period_predictor_{model_type}")
         self.model_type = model_type
-        
-        if not HAS_SKLEARN:
-            self.model = None
-            return
-        
-        if model_type == "random_forest":
-            self.model = RandomForestRegressor(n_estimators=100, random_state=42)
-        elif model_type == "gradient_boosting":
-            self.model = GradientBoostingRegressor(n_estimators=100, random_state=42)
-        else:
-            raise ValueError(f"Unknown model type: {model_type}")
-    
-    def _features_to_array(self, X: List[Dict[str, Union[int, float]]]) -> List[List[float]]:
-        """Convert feature dictionaries to arrays."""
-        if not X:
-            return []
-        
-        # Get feature names from first example
-        feature_names = sorted(X[0].keys())
-        
-        # Convert to arrays
-        arrays = []
-        for x in X:
-            array = [float(x.get(name, 0)) for name in feature_names]
-            arrays.append(array)
-        
-        return arrays
+        self.model = None
+        self.feature_names = None
+        self.is_trained = False
     
     def train(
         self,
-        X: List[Dict[str, Union[int, float]]],
-        y: List[int],
-        test_size: float = 0.2
-    ) -> Dict[str, float]:
+        training_data: List[Tuple[Dict[str, float], int]]
+    ) -> None:
         """
         Train the period prediction model.
         
+        This method trains the model on provided training data consisting
+        of (features, period) pairs.
+        
         Args:
-            X: List of feature dictionaries
-            y: List of actual periods
-            test_size: Fraction of data to use for testing
-        
-        Returns:
-            Dictionary with training metrics
+            training_data: List of (features_dict, period) tuples
         """
-        if not HAS_SKLEARN:
-            raise RuntimeError("scikit-learn is required for training")
-        
-        if not X or not y:
+        if not training_data:
             raise ValueError("Training data cannot be empty")
         
-        # Convert features to arrays
-        X_array = self._features_to_array(X)
+        # Extract feature vectors and periods
+        X = []
+        y = []
         
-        # Split data
-        X_train, X_test, y_train, y_test = train_test_split(
-            X_array, y, test_size=test_size, random_state=42
-        )
+        # Determine feature names from first example
+        if training_data:
+            self.feature_names = sorted(training_data[0][0].keys())
         
-        # Train model
-        self.model.fit(X_train, y_train)
+        for features, period in training_data:
+            feature_vec = get_feature_vector(features, self.feature_names)
+            X.append(feature_vec)
+            y.append(float(period))
+        
+        # Train simple linear model (can be extended to use scikit-learn, etc.)
+        if self.model_type == "linear" or self.model_type == "simple":
+            self._train_linear_model(X, y)
+        else:
+            # For now, default to linear
+            self._train_linear_model(X, y)
+        
         self.is_trained = True
+    
+    def _train_linear_model(self, X: List[List[float]], y: List[float]) -> None:
+        """
+        Train a simple linear regression model.
         
-        # Evaluate
-        y_pred_train = self.model.predict(X_train)
-        y_pred_test = self.model.predict(X_test)
+        This implements a basic linear model: period ≈ sum(weight_i * feature_i)
         
-        metrics = {
-            'train_mae': mean_absolute_error(y_train, y_pred_train),
-            'test_mae': mean_absolute_error(y_test, y_pred_test),
-            'train_r2': r2_score(y_train, y_pred_train),
-            'test_r2': r2_score(y_test, y_pred_test),
+        Args:
+            X: Feature vectors
+            y: Target periods
+        """
+        if not X or not y:
+            return
+        
+        num_features = len(X[0])
+        
+        # Simple approach: use theoretical max as baseline, adjust based on features
+        # This is a placeholder - in production, use proper ML library
+        self.model = {
+            'type': 'linear',
+            'baseline': sum(y) / len(y) if y else 0.0,
+            'feature_weights': [0.0] * num_features
         }
         
-        return metrics
+        # Simple heuristic: weight features based on correlation with period
+        # (This is simplified - proper ML would use gradient descent, etc.)
+        for i in range(num_features):
+            feature_values = [x[i] for x in X]
+            # Simple correlation estimate
+            if len(feature_values) > 1:
+                mean_feat = sum(feature_values) / len(feature_values)
+                mean_period = sum(y) / len(y)
+                
+                numerator = sum((feature_values[j] - mean_feat) * (y[j] - mean_period)
+                               for j in range(len(feature_values)))
+                denominator = sum((feature_values[j] - mean_feat) ** 2
+                                for j in range(len(feature_values)))
+                
+                if denominator > 0:
+                    self.model['feature_weights'][i] = numerator / denominator
+                else:
+                    self.model['feature_weights'][i] = 0.0
     
-    def predict(self, X: List[Dict[str, Union[int, float]]]) -> List[float]:
+    def predict(self, features: Dict[str, float]) -> float:
         """
-        Predict periods from features.
+        Predict period from polynomial features.
         
         Args:
-            X: List of feature dictionaries
-        
-        Returns:
-            List of predicted periods
-        """
-        if not self.is_trained:
-            raise RuntimeError("Model must be trained before prediction")
-        
-        if not HAS_SKLEARN:
-            raise RuntimeError("scikit-learn is required for prediction")
-        
-        X_array = self._features_to_array(X)
-        predictions = self.model.predict(X_array)
-        return [float(p) for p in predictions]
-    
-    def predict_single(
-        self,
-        coefficients: List[int],
-        field_order: int,
-        degree: Optional[int] = None
-    ) -> float:
-        """
-        Predict period for a single polynomial.
-        
-        Convenience method for single predictions.
-        
-        Args:
-            coefficients: Polynomial coefficients
-            field_order: Field order
-            degree: Optional degree
+            features: Dictionary of polynomial features
         
         Returns:
             Predicted period
         """
-        features = FeatureExtractor.extract_polynomial_features(
-            coefficients, field_order, degree
-        )
-        predictions = self.predict([features])
-        return predictions[0]
+        if not self.is_trained:
+            raise ValueError("Model must be trained before prediction")
+        
+        feature_vec = get_feature_vector(features, self.feature_names)
+        
+        if self.model and self.model['type'] == 'linear':
+            # Linear prediction
+            prediction = self.model['baseline']
+            for i, weight in enumerate(self.model['feature_weights']):
+                if i < len(feature_vec):
+                    prediction += weight * feature_vec[i]
+            return max(1.0, prediction)  # Ensure positive period
+        else:
+            # Fallback to theoretical max
+            return features.get('theoretical_max_period', 1.0)
+    
+    def save(self, filepath: str) -> None:
+        """Save model to file."""
+        model_data = {
+            'model_type': self.model_type,
+            'model': self.model,
+            'feature_names': self.feature_names,
+            'is_trained': self.is_trained
+        }
+        
+        os.makedirs(os.path.dirname(filepath), exist_ok=True)
+        with open(filepath, 'w', encoding='utf-8') as f:
+            json.dump(model_data, f, indent=2)
+    
+    def load(self, filepath: str) -> None:
+        """Load model from file."""
+        with open(filepath, 'r', encoding='utf-8') as f:
+            model_data = json.load(f)
+        
+        self.model_type = model_data.get('model_type', 'linear')
+        self.model = model_data.get('model')
+        self.feature_names = model_data.get('feature_names')
+        self.is_trained = model_data.get('is_trained', False)
 
 
 def train_period_predictor(
-    training_data: List[Dict[str, Any]],
-    model_type: str = "random_forest"
+    training_data: List[Tuple[Dict[str, float], int]],
+    model_type: str = "linear"
 ) -> PeriodPredictor:
     """
-    Train a period predictor on provided data.
+    Train a period prediction model.
     
-    This function creates and trains a period prediction model on
-    provided training data.
-    
-    **Key Terminology**:
-    
-    - **Training Data**: Examples with known outcomes used to teach
-      the model. Each example has features (polynomial properties) and
-      a target (actual period).
-    
-    - **Model Training**: The process of teaching the model by showing
-      it many examples. The model learns patterns that map features to
-      periods.
+    Convenience function to create and train a period predictor.
     
     Args:
-        training_data: List of dictionaries with 'coefficients', 'field_order',
-            'degree', and 'period' keys
+        training_data: List of (features_dict, period) tuples
         model_type: Type of model to train
     
     Returns:
-        Trained PeriodPredictor
+        Trained PeriodPredictor instance
     """
-    if not HAS_SKLEARN:
-        raise RuntimeError("scikit-learn is required for training")
-    
-    # Extract features and targets
-    X = []
-    y = []
-    
-    for data in training_data:
-        features = FeatureExtractor.extract_polynomial_features(
-            data['coefficients'],
-            data['field_order'],
-            data.get('degree')
-        )
-        X.append(features)
-        y.append(data['period'])
-    
-    # Create and train model
     predictor = PeriodPredictor(model_type=model_type)
-    metrics = predictor.train(X, y)
-    
+    predictor.train(training_data)
     return predictor
