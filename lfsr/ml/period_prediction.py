@@ -2,130 +2,152 @@
 # -*- coding: utf-8 -*-
 
 """
-Period prediction using machine learning.
+Period prediction models using machine learning.
 
-This module provides ML-based period prediction models that can predict
-LFSR period from polynomial structure without full enumeration.
+This module provides ML-based period prediction for LFSRs, learning to
+predict periods from polynomial structure features.
 """
 
-from typing import List, Optional, Tuple, Dict, Any
-import math
+from typing import Any, Dict, List, Optional
+import json
+import os
+from pathlib import Path
 
-from lfsr.ml.base import MLModel, FeatureExtractor
+from lfsr.ml.base import BaseMLModel, MLModelConfig, extract_polynomial_features
 
-# Try to import scikit-learn, but make it optional
 try:
-    from sklearn.linear_model import LinearRegression
-    from sklearn.ensemble import RandomForestRegressor
-    from sklearn.preprocessing import StandardScaler
+    import numpy as np
+    HAS_NUMPY = True
+except ImportError:
+    HAS_NUMPY = False
+
+try:
+    from sklearn.ensemble import RandomForestRegressor, GradientBoostingRegressor
     from sklearn.model_selection import train_test_split
-    from sklearn.metrics import mean_absolute_error, r2_score
     HAS_SKLEARN = True
 except ImportError:
     HAS_SKLEARN = False
 
 
-class PeriodPredictor(MLModel):
+class PeriodPredictionModel(BaseMLModel):
     """
-    ML model for predicting LFSR period from polynomial features.
+    ML model for predicting LFSR periods from polynomial structure.
     
-    This class provides period prediction using machine learning models
-    trained on known LFSR configurations and their periods.
+    This model learns to predict the period of an LFSR from features
+    extracted from its characteristic polynomial.
     
     **Key Terminology**:
     
     - **Period Prediction**: Using machine learning to predict the period
-      of an LFSR from its polynomial structure without performing full
-      enumeration. This can be much faster than enumeration for large LFSRs.
+      of an LFSR from its polynomial structure, without computing the period
+      directly. This can be faster than enumeration for large LFSRs.
     
-    - **Regression Model**: A type of ML model that predicts continuous
-      numerical values (like period) rather than discrete categories.
-      Examples include linear regression and random forests.
+    - **Supervised Learning**: A type of machine learning where the model
+      learns from labeled examples (input-output pairs). For period prediction,
+      examples are (polynomial features, actual period) pairs.
     
-    - **Feature Engineering**: Selecting and transforming polynomial
-      properties into numerical features that help the model make accurate
-      predictions.
+    - **Regression**: A type of machine learning task where the goal is to
+      predict a continuous numerical value (like period) rather than a category.
+      Period prediction is a regression problem.
     
-    - **Training Data**: Examples of LFSR configurations with known periods
-      used to train the prediction model. The model learns patterns from
-      these examples.
+    - **Random Forest**: An ensemble ML method that combines multiple decision
+      trees to make predictions. It's interpretable and works well for
+      structured data like polynomial features.
+    
+    - **Gradient Boosting**: An ensemble ML method that builds models
+      sequentially, each correcting the errors of the previous ones. Often
+      more accurate than random forests but less interpretable.
     """
     
-    def __init__(self, model_type: str = "random_forest"):
+    def __init__(self, model_type: str = "random_forest", config: Optional[MLModelConfig] = None):
         """
-        Initialize period predictor.
+        Initialize period prediction model.
         
         Args:
-            model_type: Type of model ("linear" or "random_forest")
+            model_type: Type of model ("random_forest" or "gradient_boosting")
+            config: Optional model configuration
         """
-        super().__init__(f"period_predictor_{model_type}")
-        self.model_type = model_type
-        self.scaler = None
-        
-        if not HAS_SKLEARN:
-            raise ImportError(
-                "scikit-learn is required for period prediction. "
-                "Install with: pip install scikit-learn"
+        if config is None:
+            feature_names = [
+                'degree', 'field_order', 'num_coeffs', 'nonzero_count',
+                'sparsity', 'is_trinomial', 'is_pentanomial',
+                'coeff_sum', 'coeff_mean'
+            ]
+            config = MLModelConfig(
+                model_type=model_type,
+                model_params={},
+                feature_names=feature_names
             )
         
-        if model_type == "linear":
-            self.model = LinearRegression()
-        elif model_type == "random_forest":
-            self.model = RandomForestRegressor(n_estimators=100, random_state=42)
-        else:
-            raise ValueError(f"Unknown model type: {model_type}")
+        super().__init__(config)
+        self.model_type = model_type
         
-        self.scaler = StandardScaler()
+        if HAS_SKLEARN:
+            if model_type == "random_forest":
+                self.model = RandomForestRegressor(n_estimators=100, random_state=42)
+            elif model_type == "gradient_boosting":
+                self.model = GradientBoostingRegressor(n_estimators=100, random_state=42)
+            else:
+                raise ValueError(f"Unknown model type: {model_type}")
+        else:
+            self.model = None
     
-    def train(
-        self,
-        X: List[List[float]],
-        y: List[float]
-    ) -> Dict[str, float]:
+    def train(self, X: List[List[float]], y: List[float]) -> Dict[str, Any]:
         """
         Train the period prediction model.
         
-        This method trains the model on feature vectors (X) and known
-        periods (y), then evaluates the model's performance.
-        
         Args:
             X: Feature vectors (list of feature lists)
-            y: Known periods (list of floats)
+            y: Target periods (list of floats)
         
         Returns:
-            Dictionary with training metrics (MAE, R² score)
+            Dictionary with training metrics
         """
         if not HAS_SKLEARN:
-            raise ImportError("scikit-learn is required for training")
+            raise ImportError("scikit-learn is required for ML model training")
         
-        # Split data for evaluation
-        X_train, X_test, y_train, y_test = train_test_split(
-            X, y, test_size=0.2, random_state=42
-        )
+        if not self.model:
+            raise ValueError("Model not initialized")
         
-        # Scale features
-        X_train_scaled = self.scaler.fit_transform(X_train)
-        X_test_scaled = self.scaler.transform(X_test)
+        # Convert to numpy arrays if available
+        if HAS_NUMPY:
+            X_array = np.array(X)
+            y_array = np.array(y)
+        else:
+            X_array = X
+            y_array = y
         
         # Train model
-        self.model.fit(X_train_scaled, y_train)
+        self.model.fit(X_array, y_array)
         self.is_trained = True
         
-        # Evaluate
-        y_pred = self.model.predict(X_test_scaled)
-        mae = mean_absolute_error(y_test, y_pred)
-        r2 = r2_score(y_test, y_pred)
+        # Evaluate on training data
+        predictions = self.model.predict(X_array)
+        
+        if HAS_NUMPY:
+            mse = np.mean((y_array - predictions) ** 2)
+            rmse = np.sqrt(mse)
+            r2 = 1 - (np.sum((y_array - predictions) ** 2) / 
+                     np.sum((y_array - np.mean(y_array)) ** 2))
+        else:
+            n = len(y)
+            mse = sum((y[i] - predictions[i]) ** 2 for i in range(n)) / n
+            rmse = mse ** 0.5
+            y_mean = sum(y) / n
+            ss_tot = sum((y[i] - y_mean) ** 2 for i in range(n))
+            ss_res = sum((y[i] - predictions[i]) ** 2 for i in range(n))
+            r2 = 1 - (ss_res / ss_tot) if ss_tot > 0 else 0.0
         
         return {
-            'mean_absolute_error': mae,
-            'r2_score': r2,
-            'training_samples': len(X_train),
-            'test_samples': len(X_test)
+            'mse': float(mse),
+            'rmse': float(rmse),
+            'r2_score': float(r2),
+            'training_samples': len(X)
         }
     
     def predict(self, X: List[List[float]]) -> List[float]:
         """
-        Predict periods from feature vectors.
+        Predict periods from polynomial features.
         
         Args:
             X: Feature vectors (list of feature lists)
@@ -136,17 +158,16 @@ class PeriodPredictor(MLModel):
         if not self.is_trained:
             raise ValueError("Model must be trained before prediction")
         
-        if not HAS_SKLEARN:
-            raise ImportError("scikit-learn is required for prediction")
+        if not self.model:
+            raise ValueError("Model not initialized")
         
-        # Scale features
-        X_scaled = self.scaler.transform(X)
-        
-        # Predict
-        predictions = self.model.predict(X_scaled)
-        
-        # Ensure non-negative predictions
-        return [max(0.0, float(p)) for p in predictions]
+        if HAS_NUMPY:
+            X_array = np.array(X)
+            predictions = self.model.predict(X_array)
+            return [float(p) for p in predictions]
+        else:
+            predictions = self.model.predict(X)
+            return [float(p) for p in predictions]
     
     def predict_period(
         self,
@@ -155,94 +176,94 @@ class PeriodPredictor(MLModel):
         degree: Optional[int] = None
     ) -> float:
         """
-        Predict period from polynomial coefficients.
+        Predict period directly from polynomial coefficients.
         
-        Convenience method that extracts features and predicts in one call.
+        Convenience method that extracts features and makes prediction.
         
         Args:
             coefficients: Polynomial coefficients
             field_order: Field order
-            degree: Optional degree (defaults to len(coefficients))
+            degree: Optional polynomial degree
         
         Returns:
             Predicted period
         """
-        features = FeatureExtractor.extract_polynomial_features(
-            coefficients, field_order, degree
-        )
+        features = extract_polynomial_features(coefficients, field_order, degree)
         predictions = self.predict([features])
         return predictions[0]
     
-    def _serialize_model(self) -> Any:
-        """Serialize model for storage."""
-        return {
+    def save_model(self, filepath: str) -> None:
+        """
+        Save trained model to file.
+        
+        Args:
+            filepath: Path to save model
+        """
+        if not self.is_trained:
+            raise ValueError("Model must be trained before saving")
+        
+        model_dir = Path(filepath).parent
+        model_dir.mkdir(parents=True, exist_ok=True)
+        
+        # Save model using joblib if available, otherwise pickle
+        try:
+            import joblib
+            joblib.dump(self.model, filepath + '.model')
+        except ImportError:
+            import pickle
+            with open(filepath + '.model', 'wb') as f:
+                pickle.dump(self.model, f)
+        
+        # Save configuration
+        config_dict = {
             'model_type': self.model_type,
-            'model': self.model,
-            'scaler': self.scaler
+            'config': {
+                'model_type': self.config.model_type,
+                'model_params': self.config.model_params,
+                'feature_names': self.config.feature_names,
+                'model_version': self.config.model_version
+            },
+            'is_trained': self.is_trained
         }
+        
+        with open(filepath + '.config.json', 'w') as f:
+            json.dump(config_dict, f, indent=2)
     
-    def _deserialize_model(self, data: Any) -> None:
-        """Deserialize model from storage."""
-        self.model_type = data['model_type']
-        self.model = data['model']
-        self.scaler = data['scaler']
+    def load_model(self, filepath: str) -> None:
+        """
+        Load trained model from file.
+        
+        Args:
+            filepath: Path to load model from
+        """
+        # Load configuration
+        with open(filepath + '.config.json', 'r') as f:
+            config_dict = json.load(f)
+        
+        self.model_type = config_dict['model_type']
+        self.config = MLModelConfig(**config_dict['config'])
+        self.is_trained = config_dict['is_trained']
+        
+        # Load model
+        try:
+            import joblib
+            self.model = joblib.load(filepath + '.model')
+        except ImportError:
+            import pickle
+            with open(filepath + '.model', 'rb') as f:
+                self.model = pickle.load(f)
 
 
-def train_period_predictor(
-    training_data: List[Tuple[List[int], int, int]],
+def create_period_prediction_model(
     model_type: str = "random_forest"
-) -> PeriodPredictor:
+) -> PeriodPredictionModel:
     """
-    Train a period prediction model from training data.
-    
-    This function creates and trains a period prediction model using
-    provided training data consisting of (coefficients, field_order, period)
-    tuples.
-    
-    **Key Terminology**:
-    
-    - **Training Data**: Examples used to train the ML model. Each example
-      consists of an LFSR configuration (coefficients, field order) and
-      its known period.
-    
-    - **Model Training**: The process of teaching the model by showing it
-      many examples. The model learns patterns that relate polynomial
-      features to periods.
+    Create a new period prediction model.
     
     Args:
-        training_data: List of (coefficients, field_order, period) tuples
-        model_type: Type of model to train ("linear" or "random_forest")
+        model_type: Type of model ("random_forest" or "gradient_boosting")
     
     Returns:
-        Trained PeriodPredictor model
-    
-    Example:
-        >>> training_data = [
-        ...     ([1, 0, 0, 1], 2, 15),  # coefficients, field_order, period
-        ...     ([1, 1], 2, 3),
-        ... ]
-        >>> model = train_period_predictor(training_data)
-        >>> predicted = model.predict_period([1, 0, 0, 1], 2)
+        PeriodPredictionModel instance
     """
-    if not HAS_SKLEARN:
-        raise ImportError(
-            "scikit-learn is required for training. "
-            "Install with: pip install scikit-learn"
-        )
-    
-    # Extract features and targets
-    X = []
-    y = []
-    
-    for coefficients, field_order, period in training_data:
-        features = FeatureExtractor.extract_polynomial_features(
-            coefficients, field_order
-        )
-        X.append(features)
-        y.append(float(period))
-    
-    # Create and train model
-    predictor = PeriodPredictor(model_type=model_type)
-    metrics = predictor.train(X, y)
-    
-    return predictor
+    return PeriodPredictionModel(model_type=model_type)
