@@ -4,8 +4,19 @@
 """
 Multi-Output LFSR Analysis
 
-This module provides analysis capabilities for multi-output LFSRs, which
-produce multiple output bits per step rather than a single bit.
+This module provides analysis capabilities for multi-output LFSRs.
+
+**IMPORTANT TERMINOLOGY CLARIFICATION**:
+
+- **LFSR (Linear Feedback Shift Register)**: Feedback is ALWAYS linear (XOR only).
+  This is the definition of LFSR.
+
+- **Multi-Output LFSR**: An LFSR (with LINEAR feedback) that produces multiple
+  output bits per step. The feedback remains linear - only the output rate
+  is increased.
+
+This module implements multi-output LFSRs, which ARE LFSRs (linear feedback)
+with multiple output bits per step.
 
 **Historical Context**:
 
@@ -54,12 +65,20 @@ class MultiOutputLFSR(AdvancedLFSR):
     """
     Multi-output LFSR implementation.
     
+    **IMPORTANT**: A Multi-Output LFSR IS an LFSR (Linear Feedback Shift Register).
+    The feedback remains LINEAR (XOR only). Multiple bits are output per step,
+    but the feedback is still linear.
+    
     A multi-output LFSR produces multiple output bits per step, increasing
-    the output rate compared to single-output LFSRs.
+    the output rate compared to single-output LFSRs. The feedback is still linear.
     
-    **Cipher Structure**:
+    **Key Distinction**:
+    - **LFSR Feedback**: LINEAR (XOR only) - this is what makes it an LFSR
+    - **Output Rate**: Multiple bits per step (but feedback is linear)
     
-    - **Base LFSR**: Underlying LFSR
+    **Structure**:
+    
+    - **Base LFSR**: Underlying LFSR with LINEAR feedback
     - **Output Function**: Function mapping state to multiple output bits
     - **Output Rate**: Number of bits output per step
     

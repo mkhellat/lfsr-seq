@@ -4,9 +4,19 @@
 """
 Clock-Controlled LFSR Analysis
 
-This module provides analysis capabilities for clock-controlled LFSRs, which
-have irregular clocking patterns controlled by clock control functions or
-other LFSRs.
+This module provides analysis capabilities for clock-controlled LFSRs.
+
+**IMPORTANT TERMINOLOGY CLARIFICATION**:
+
+- **LFSR (Linear Feedback Shift Register)**: Feedback is ALWAYS linear (XOR only).
+  This is the definition of LFSR.
+
+- **Clock-Controlled LFSR**: An LFSR (with LINEAR feedback) that has irregular
+  clocking patterns. The feedback remains linear - only the clocking pattern
+  is irregular (the LFSR doesn't always advance).
+
+This module implements clock-controlled LFSRs, which ARE LFSRs (linear feedback)
+with irregular clocking patterns.
 
 **Historical Context**:
 
@@ -60,15 +70,23 @@ class ClockControlledLFSR(AdvancedLFSR):
     """
     Clock-controlled LFSR implementation.
     
+    **IMPORTANT**: A Clock-Controlled LFSR IS an LFSR (Linear Feedback Shift Register).
+    The feedback remains LINEAR (XOR only). The irregularity comes from the
+    clocking pattern, not from the feedback itself.
+    
     A clock-controlled LFSR has irregular clocking controlled by a clock
     control function or another LFSR. The main LFSR advances only when the
-    control function indicates.
+    control function indicates. The feedback is still linear.
     
-    **Cipher Structure**:
+    **Key Distinction**:
+    - **LFSR Feedback**: LINEAR (XOR only) - this is what makes it an LFSR
+    - **Clocking Pattern**: IRREGULAR (doesn't always advance)
     
-    - **Main LFSR**: The LFSR being clock-controlled
-    - **Clock Control**: Function or LFSR determining clocking
-    - **Irregular Clocking**: Main LFSR doesn't always advance
+    **Structure**:
+    
+    - **Main LFSR**: The LFSR with LINEAR feedback being clock-controlled
+    - **Clock Control**: Function or LFSR determining when to clock
+    - **Irregular Clocking**: Main LFSR doesn't always advance (but feedback is linear)
     
     **Example Usage**:
     

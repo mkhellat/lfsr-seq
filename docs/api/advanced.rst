@@ -2,8 +2,23 @@ Advanced LFSR Structures API
 ==============================
 
 The advanced LFSR structures module provides analysis capabilities for
-non-linear feedback, filtered, clock-controlled, multi-output, and irregular
-clocking LFSRs.
+advanced LFSR structures.
+
+**IMPORTANT TERMINOLOGY**:
+
+- **LFSR (Linear Feedback Shift Register)**: Feedback is ALWAYS linear (XOR only).
+  If feedback is non-linear, it is an NFSR, NOT an LFSR.
+
+- **NFSR (Non-Linear Feedback Shift Register)**: Feedback includes non-linear
+  operations. NFSRs are NOT LFSRs - they are a different structure.
+
+- **Filtered LFSR**: IS an LFSR (linear feedback) with non-linear output filtering.
+
+- **Clock-Controlled LFSR**: IS an LFSR (linear feedback) with irregular clocking.
+
+- **Multi-Output LFSR**: IS an LFSR (linear feedback) with multiple outputs.
+
+- **Irregular Clocking LFSR**: IS an LFSR (linear feedback) with irregular clocking.
 
 .. automodule:: lfsr.advanced
    :members:
@@ -121,9 +136,16 @@ Create step-1/step-2 clocking pattern function.
 Important Notes
 ---------------
 
-**Non-Linearity**: Advanced structures introduce non-linearity to break
-linearity weaknesses of basic LFSRs. This provides better security but
-may make analysis more complex.
+**Terminology Clarification**: 
+- **LFSR** = Linear Feedback Shift Register (feedback is ALWAYS linear/XOR only)
+- **NFSR** = Non-Linear Feedback Shift Register (feedback is non-linear, NOT an LFSR)
+- **Filtered/Clock-Controlled/Multi-Output LFSRs** = ARE LFSRs (linear feedback)
+  with additional features (filtering, irregular clocking, multiple outputs)
+
+**Non-Linearity**: Advanced structures introduce non-linearity in different ways:
+- **NFSRs**: Non-linear feedback (NOT LFSRs)
+- **Filtered LFSRs**: Linear feedback + non-linear output filtering (ARE LFSRs)
+- **Clock-Controlled LFSRs**: Linear feedback + irregular clocking (ARE LFSRs)
 
 **Security Trade-offs**: Each structure type has different security properties
 and trade-offs. Filtered LFSRs provide good security but require careful

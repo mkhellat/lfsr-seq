@@ -4,8 +4,19 @@
 """
 Filtered LFSR Analysis
 
-This module provides analysis capabilities for filtered LFSRs, which apply
-non-linear filtering functions to LFSR state to produce output.
+This module provides analysis capabilities for filtered LFSRs.
+
+**IMPORTANT TERMINOLOGY CLARIFICATION**:
+
+- **LFSR (Linear Feedback Shift Register)**: Feedback is ALWAYS linear (XOR only).
+  This is the definition of LFSR.
+
+- **Filtered LFSR**: An LFSR (with LINEAR feedback) where a non-linear filtering
+  function is applied to the state to produce output. The LFSR itself remains
+  linear - only the output is filtered through a non-linear function.
+
+This module implements filtered LFSRs, which ARE LFSRs (linear feedback) with
+non-linear output filtering.
 
 **Historical Context**:
 
@@ -60,16 +71,25 @@ class FilteredLFSR(AdvancedLFSR):
     """
     Filtered LFSR implementation.
     
+    **IMPORTANT**: A Filtered LFSR IS an LFSR (Linear Feedback Shift Register).
+    The feedback remains LINEAR (XOR only). The non-linearity comes from a
+    filter function applied to the output, not from the feedback itself.
+    
     A filtered LFSR applies a non-linear filtering function to the LFSR state
-    to produce output bits. This breaks the linearity of the LFSR and provides
-    security against linear attacks.
+    to produce output bits. The LFSR feedback is still linear, but the output
+    is filtered through a non-linear function, providing security against
+    linear attacks.
     
-    **Cipher Structure**:
+    **Key Distinction**:
+    - **LFSR Feedback**: LINEAR (XOR only) - this is what makes it an LFSR
+    - **Filter Function**: NON-LINEAR (applied to state to produce output)
     
-    - **Base LFSR**: Underlying linear LFSR
+    **Structure**:
+    
+    - **Base LFSR**: Underlying LFSR with LINEAR feedback
     - **Filter Function**: Non-linear function mapping state to output
     - **State Size**: Same as base LFSR
-    - **Output**: Result of filter function applied to state
+    - **Output**: Result of filter function applied to state (non-linear)
     
     **Example Usage**:
     

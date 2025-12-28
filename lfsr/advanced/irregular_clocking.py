@@ -5,7 +5,19 @@
 Irregular Clocking Patterns Analysis
 
 This module provides analysis capabilities for LFSRs with irregular clocking
-patterns, including stop-and-go, step-1/step-2, and other patterns.
+patterns.
+
+**IMPORTANT TERMINOLOGY CLARIFICATION**:
+
+- **LFSR (Linear Feedback Shift Register)**: Feedback is ALWAYS linear (XOR only).
+  This is the definition of LFSR.
+
+- **Irregular Clocking LFSR**: An LFSR (with LINEAR feedback) that uses an
+  irregular clocking pattern. The feedback remains linear - only the clocking
+  pattern is irregular (advances variable number of steps).
+
+This module implements irregular clocking LFSRs, which ARE LFSRs (linear feedback)
+with irregular clocking patterns.
 
 **Historical Context**:
 
@@ -53,17 +65,25 @@ from lfsr.core import build_state_update_matrix
 
 class IrregularClockingLFSR(AdvancedLFSR):
     """
-    LFSR with irregular clocking pattern implementation.
+    Irregular clocking LFSR implementation.
+    
+    **IMPORTANT**: An Irregular Clocking LFSR IS an LFSR (Linear Feedback Shift Register).
+    The feedback remains LINEAR (XOR only). The irregularity comes from the
+    clocking pattern (variable steps per output), not from the feedback itself.
     
     An irregular clocking LFSR uses a clocking pattern function to determine
     how many steps to advance per output. This creates irregularity in the
-    sequence generation.
+    sequence generation, but the feedback is still linear.
     
-    **Cipher Structure**:
+    **Key Distinction**:
+    - **LFSR Feedback**: LINEAR (XOR only) - this is what makes it an LFSR
+    - **Clocking Pattern**: IRREGULAR (variable steps per output)
     
-    - **Base LFSR**: Underlying LFSR
+    **Structure**:
+    
+    - **Base LFSR**: Underlying LFSR with LINEAR feedback
     - **Clocking Pattern Function**: Function determining steps to advance
-    - **Irregular Pattern**: Clocking is not regular
+    - **Irregular Pattern**: Clocking is not regular (but feedback is linear)
     
     **Example Usage**:
     

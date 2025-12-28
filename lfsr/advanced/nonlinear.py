@@ -2,11 +2,21 @@
 # -*- coding: utf-8 -*-
 
 """
-Non-Linear Feedback LFSR (NFSR) Analysis
+Non-Linear Feedback Shift Register (NFSR) Analysis
 
 This module provides analysis capabilities for Non-Linear Feedback Shift
-Registers (NFSRs), which generalize LFSRs by allowing non-linear feedback
-functions.
+Registers (NFSRs). 
+
+**IMPORTANT TERMINOLOGY CLARIFICATION**:
+
+- **LFSR (Linear Feedback Shift Register)**: Feedback is ALWAYS linear (XOR only).
+  If feedback is non-linear, it is NOT an LFSR.
+
+- **NFSR (Non-Linear Feedback Shift Register)**: Feedback includes non-linear
+  operations (AND, OR, etc.). NFSRs are NOT LFSRs - they are a different
+  structure that generalizes LFSRs by allowing non-linear feedback.
+
+This module implements NFSRs, which are distinct from LFSRs.
 
 **Historical Context**:
 
@@ -66,15 +76,23 @@ class NFSR(AdvancedLFSR):
     """
     Non-Linear Feedback Shift Register (NFSR) implementation.
     
-    An NFSR generalizes an LFSR by allowing non-linear feedback functions.
-    The feedback can include AND, OR, and other non-linear operations in
-    addition to XOR.
+    **IMPORTANT**: An NFSR is NOT an LFSR. LFSR stands for Linear Feedback
+    Shift Register - if feedback is non-linear, it is an NFSR, not an LFSR.
     
-    **Cipher Structure**:
+    An NFSR generalizes the concept of LFSRs by allowing non-linear feedback
+    functions. The feedback can include AND, OR, and other non-linear
+    operations in addition to XOR.
     
-    - **Base LFSR**: Underlying linear structure
+    **Key Distinction**:
+    - **LFSR**: Feedback is LINEAR (XOR only) - this is the definition
+    - **NFSR**: Feedback is NON-LINEAR (includes AND, OR, etc.) - different structure
+    
+    **Structure**:
+    
+    - **Base Configuration**: Uses LFSR configuration as reference for size
+      and field order, but feedback is non-linear
     - **Non-Linear Feedback**: Feedback function with non-linear terms
-    - **State Size**: Same as base LFSR
+    - **State Size**: Same as base configuration degree
     - **Output**: Typically from state (can be filtered)
     
     **Example Usage**:
@@ -104,10 +122,14 @@ class NFSR(AdvancedLFSR):
         """
         Initialize NFSR.
         
+        **Note**: The base_lfsr_config parameter provides size and field order
+        information, but the actual feedback is non-linear (not the LFSR feedback).
+        
         Args:
-            base_lfsr_config: Base LFSR configuration
+            base_lfsr_config: Base LFSR configuration (used for size/field info only)
             feedback_function: Non-linear feedback function taking state and
-                returning new feedback bit
+                returning new feedback bit. This function defines the NFSR,
+                not the LFSR configuration.
         """
         self.base_lfsr_config = base_lfsr_config
         self.feedback_function = feedback_function
