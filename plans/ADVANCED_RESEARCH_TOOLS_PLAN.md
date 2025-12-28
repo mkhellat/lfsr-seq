@@ -12,9 +12,9 @@ This plan details the implementation of Phase 4: Advanced Research Tools, which 
 
 ## Goals
 
-1. **Machine Learning Integration**: ML-based period prediction, pattern detection, and anomaly detection
+1. **Machine Learning Integration**: ML-based analysis for period prediction, pattern detection, and anomaly detection
 2. **Advanced Visualization**: Interactive graphs, state diagrams, and 3D visualizations
-3. **Research Collaboration**: Reproducible workflows, database export, and versioning
+3. **Research Collaboration**: Workflows, database export, and versioning for collaborative research
 
 ## Current Status
 
@@ -34,20 +34,20 @@ This plan details the implementation of Phase 4: Advanced Research Tools, which 
 **Features**:
 - Model abstraction layer
 - Feature extraction from LFSR properties
-- Model training and evaluation
+- Model training and inference pipeline
 - Model persistence and loading
-- Integration with existing analysis pipeline
+- Support for multiple ML libraries (scikit-learn, optional TensorFlow/PyTorch)
 
 **Implementation**:
 - Create `lfsr/ml/` module structure
-- Design model interfaces
-- Implement feature extractors
-- Add model management system
+- Design base classes for models
+- Implement feature extraction functions
+- Create model registry system
 
 **Deliverables**:
 - ML framework architecture
-- Model interfaces and base classes
-- Feature extraction system
+- Base model classes
+- Feature extraction functions
 
 ### 4.1.2 Period Prediction Models
 
@@ -55,88 +55,85 @@ This plan details the implementation of Phase 4: Advanced Research Tools, which 
 
 **Features**:
 - Feature extraction from polynomial coefficients
-- Period prediction models (regression)
-- Model training on known results
-- Prediction accuracy evaluation
-- Integration with analysis pipeline
+- Regression models for period prediction
+- Classification models for period range prediction
+- Model evaluation and metrics
 
 **Implementation**:
-- Extract polynomial features (degree, sparsity, coefficients)
-- Train regression models (linear, polynomial, neural networks)
-- Evaluate prediction accuracy
-- Provide confidence intervals
+- Extract features: degree, field order, coefficient patterns, sparsity
+- Train regression models (Random Forest, Gradient Boosting)
+- Train classification models (period ranges)
+- Implement prediction functions
 
 **Deliverables**:
 - Period prediction models
-- Feature extraction functions
-- Training and evaluation tools
+- Feature extraction pipeline
+- Prediction functions
 
 ### 4.1.3 Pattern Detection Algorithms
 
 **Goal**: Detect patterns in LFSR sequences using ML.
 
 **Features**:
-- Sequence pattern analysis
-- Recurring pattern detection
-- Statistical pattern identification
+- Sequence pattern detection
+- Recurring pattern identification
 - Pattern classification
-- Pattern visualization
+- Anomaly pattern detection
 
 **Implementation**:
-- Sequence feature extraction
-- Pattern detection algorithms
-- Classification models
-- Pattern reporting
+- Sequence feature extraction (statistical, frequency domain)
+- Pattern detection models (clustering, classification)
+- Pattern visualization
+- Pattern analysis functions
 
 **Deliverables**:
 - Pattern detection algorithms
-- Classification models
-- Pattern analysis tools
+- Pattern analysis functions
+- Pattern visualization
 
 ### 4.1.4 Anomaly Detection
 
-**Goal**: Detect anomalies in LFSR sequences and analysis results.
+**Goal**: Detect anomalies in LFSR sequences and properties.
 
 **Features**:
 - Statistical anomaly detection
-- Sequence anomaly identification
-- Period distribution anomalies
-- Outlier detection
-- Anomaly reporting
+- Sequence anomaly detection
+- Property anomaly detection
+- Anomaly scoring and reporting
 
 **Implementation**:
-- Anomaly detection algorithms
-- Statistical tests for anomalies
-- Outlier identification
-- Anomaly scoring
+- Isolation Forest for anomaly detection
+- Statistical outlier detection
+- Sequence-based anomaly detection
+- Anomaly reporting functions
 
 **Deliverables**:
-- Anomaly detection system
-- Statistical tests
-- Reporting tools
+- Anomaly detection models
+- Anomaly scoring functions
+- Anomaly reporting
 
 ### 4.1.5 ML Training Pipeline
 
-**Goal**: Automated ML model training and evaluation.
+**Goal**: Automated pipeline for training ML models.
 
 **Features**:
-- Dataset generation from known results
+- Data collection and preprocessing
 - Model training automation
-- Hyperparameter optimization
-- Model evaluation and comparison
-- Model versioning
+- Hyperparameter tuning
+- Model evaluation and selection
+- Model persistence
 
 **Implementation**:
-- Training pipeline framework
-- Dataset management
-- Model training automation
-- Evaluation metrics
-- Model storage
+- Training data generation
+- Preprocessing pipeline
+- Training automation
+- Model evaluation
+- Model saving/loading
 
 **Deliverables**:
 - Training pipeline
-- Dataset management
-- Model evaluation system
+- Model management system
+- Evaluation framework
 
 ---
 
@@ -147,106 +144,105 @@ This plan details the implementation of Phase 4: Advanced Research Tools, which 
 **Goal**: Design flexible visualization framework.
 
 **Features**:
-- Plot generation library
-- Interactive visualization support
-- Export to multiple formats
-- Customizable styling
-- Integration with analysis results
+- Multiple backend support (matplotlib, plotly)
+- Interactive visualization
+- Static visualization
+- Export capabilities
 
 **Implementation**:
 - Create `lfsr/visualization/` module
-- Implement plot generators
-- Add interactive support (matplotlib, plotly)
-- Export functionality
+- Design visualization base classes
+- Implement backend abstraction
+- Add export functions
 
 **Deliverables**:
 - Visualization framework
-- Plot generators
-- Export functionality
+- Backend abstraction
+- Export functions
 
 ### 4.2.2 Interactive Period Graphs
 
-**Goal**: Generate interactive period distribution graphs.
+**Goal**: Interactive visualization of period distributions.
 
 **Features**:
-- Period distribution histograms
-- Interactive period exploration
-- Period comparison graphs
+- Interactive period distribution plots
+- Zoom and pan capabilities
+- Period filtering
 - Statistical overlays
-- Export to HTML/PDF
 
 **Implementation**:
-- Period graph generators
-- Interactive features
-- Statistical overlays
-- Export functionality
+- Plotly-based interactive plots
+- Period distribution visualization
+- Interactive filtering
+- Statistical annotations
 
 **Deliverables**:
 - Interactive period graphs
-- Export tools
+- Filtering capabilities
+- Statistical overlays
 
 ### 4.2.3 State Transition Diagrams
 
-**Goal**: Generate state transition diagrams for LFSRs.
+**Goal**: Visualize LFSR state transitions.
 
 **Features**:
-- State graph generation
-- Transition visualization
+- Graph-based state visualization
 - Cycle highlighting
+- State path visualization
 - Interactive exploration
-- Export to image formats
 
 **Implementation**:
-- Graph generation (networkx)
-- Visualization (graphviz, matplotlib)
-- Interactive features
-- Export functionality
+- NetworkX for graph representation
+- Graph visualization (matplotlib/plotly)
+- Cycle detection and highlighting
+- Interactive graph exploration
 
 **Deliverables**:
-- State transition diagram generator
-- Visualization tools
+- State transition diagrams
+- Cycle visualization
+- Interactive exploration
 
 ### 4.2.4 Statistical Distribution Plots
 
-**Goal**: Generate statistical distribution visualizations.
+**Goal**: Visualize statistical properties of sequences.
 
 **Features**:
-- Period distribution plots
-- Statistical test result visualizations
-- Comparison plots
-- Histogram and density plots
-- Export functionality
+- Distribution plots
+- Histograms
+- Box plots
+- Correlation plots
 
 **Implementation**:
-- Distribution plot generators
-- Statistical overlays
-- Comparison tools
-- Export functionality
+- Statistical plotting functions
+- Distribution visualization
+- Multi-plot layouts
+- Export capabilities
 
 **Deliverables**:
-- Statistical plot library
-- Export tools
+- Statistical plotting library
+- Distribution visualizations
+- Export functions
 
 ### 4.2.5 3D State Space Visualization
 
-**Goal**: Visualize state spaces in 3D.
+**Goal**: 3D visualization of state spaces.
 
 **Features**:
 - 3D state space plots
 - Period visualization in 3D
 - Interactive 3D exploration
-- Rotation and zoom
-- Export to 3D formats
+- Animation capabilities
 
 **Implementation**:
-- 3D plotting (matplotlib, plotly)
-- State space mapping
-- Interactive controls
-- Export functionality
+- 3D plotting (matplotlib/plotly)
+- State space projection
+- Interactive 3D controls
+- Animation support
 
 **Deliverables**:
-- 3D visualization tools
-- Interactive controls
+- 3D visualization functions
+- Interactive 3D plots
+- Animation support
 
 ---
 
@@ -254,45 +250,45 @@ This plan details the implementation of Phase 4: Advanced Research Tools, which 
 
 ### 4.3.1 Reproducible Workflow System
 
-**Goal**: Enable reproducible research workflows.
+**Goal**: System for reproducible research workflows.
 
 **Features**:
-- Workflow definition language
-- Workflow execution engine
-- Dependency tracking
-- Result caching
+- Workflow definition
+- Workflow execution
+- Workflow versioning
 - Workflow sharing
 
 **Implementation**:
-- Workflow system design
-- Execution engine
-- Dependency management
-- Caching system
+- Workflow definition format (YAML/JSON)
+- Workflow execution engine
+- Version control integration
+- Workflow sharing mechanisms
 
 **Deliverables**:
 - Workflow system
 - Execution engine
+- Versioning support
 
 ### 4.3.2 Research Database Export
 
 **Goal**: Export results to research databases.
 
 **Features**:
-- Database schema design
-- Export to standard formats
-- Integration with research databases
-- Metadata management
-- Query interface
+- Standard format export
+- Database integration
+- Metadata export
+- Citation generation
 
 **Implementation**:
-- Database export functions
-- Schema definitions
-- Integration tools
-- Query interface
+- Export format design
+- Database connectors
+- Metadata extraction
+- Citation formatting
 
 **Deliverables**:
-- Database export system
-- Integration tools
+- Export formats
+- Database connectors
+- Citation system
 
 ### 4.3.3 Library Integration
 
@@ -300,41 +296,41 @@ This plan details the implementation of Phase 4: Advanced Research Tools, which 
 
 **Features**:
 - SageMath crypto integration
-- Other library integration
-- Unified interface
-- Feature compatibility
-- Documentation
+- Other library connectors
+- Data format conversion
+- API compatibility
 
 **Implementation**:
-- Integration layer
-- Interface design
-- Compatibility layer
-- Documentation
+- SageMath integration
+- Format converters
+- API wrappers
+- Compatibility layers
 
 **Deliverables**:
-- Library integration
-- Unified interface
+- Library integrations
+- Format converters
+- API compatibility
 
 ### 4.3.4 Analysis Versioning
 
 **Goal**: Version control for analyses.
 
 **Features**:
-- Analysis versioning system
+- Analysis versioning
 - Change tracking
 - Version comparison
-- Rollback capability
-- Version history
+- Rollback capabilities
 
 **Implementation**:
-- Versioning system
+- Version management system
 - Change tracking
-- Comparison tools
-- History management
+- Comparison functions
+- Rollback mechanisms
 
 **Deliverables**:
 - Versioning system
-- Management tools
+- Change tracking
+- Comparison tools
 
 ---
 
@@ -349,7 +345,7 @@ This plan details the implementation of Phase 4: Advanced Research Tools, which 
 ## Success Criteria
 
 - ✅ ML models provide useful predictions
-- ✅ Visualizations are informative and interactive
+- ✅ Visualizations are interactive and informative
 - ✅ Collaboration features enable reproducible research
 - ✅ Comprehensive documentation with examples
 - ✅ CLI integration for all features
@@ -360,10 +356,10 @@ This plan details the implementation of Phase 4: Advanced Research Tools, which 
 ## Timeline Estimate
 
 - **Phase 4.1**: 5-7 days (ML Integration)
-- **Phase 4.2**: 4-5 days (Visualization)
-- **Phase 4.3**: 3-4 days (Collaboration)
+- **Phase 4.2**: 4-6 days (Visualization)
+- **Phase 4.3**: 3-5 days (Collaboration)
 
-**Total**: ~12-16 days of focused development
+**Total**: ~12-18 days of focused development
 
 ---
 
@@ -375,4 +371,4 @@ This plan details the implementation of Phase 4: Advanced Research Tools, which 
 - Maintain backward compatibility
 - Update README.md with new features
 - Follow commit message conventions
-- Use optional ML dependencies (graceful degradation if not available)
+- ML features should be optional (graceful degradation if libraries unavailable)
