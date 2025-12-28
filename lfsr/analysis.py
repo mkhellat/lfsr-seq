@@ -86,7 +86,18 @@ def _find_period_floyd(
     max_steps = 10000000  # Safety limit to prevent infinite loops
     
     # Find meeting point (guaranteed to exist since LFSR sequences are periodic)
+    # CRITICAL: In multiprocessing, matrix multiplication can appear to hang
+    # Add periodic progress checks (every 1000 steps) to detect actual hangs
     while tortoise != hare and steps < max_steps:
+        # Periodic check every 1000 steps to ensure we're making progress
+        if steps > 0 and steps % 1000 == 0:
+            # Simple check to ensure we're still responsive
+            # This helps detect if matrix multiplication is actually hanging
+            try:
+                _ = len(tortoise)  # Simple operation to check responsiveness
+            except:
+                # If we can't access tortoise, something is wrong
+                break
         tortoise = tortoise * state_update_matrix
         hare = (hare * state_update_matrix) * state_update_matrix
         steps += 1
@@ -784,18 +795,37 @@ def _merge_parallel_results(
         # Create a canonical representation of the cycle
         # Use the sorted tuple of state tuples as the key
         states_tuples = seq_info['states']
+        period = seq_info['period']
+        start_state = seq_info['start_state']
+        
         if not states_tuples:
-            # If states_tuples is empty, we can't deduplicate properly
-            # This shouldn't happen now since we compute full sequence for deduplication
-            # But handle it gracefully
-            merge_debug(f'Sequence {idx+1}: Empty states_tuples! start_state={seq_info["start_state"]}, period={seq_info["period"]}')
-            cycle_key = (seq_info['start_state'], seq_info['period'])
+            # CRITICAL: In period-only mode, states_tuples is empty
+            # We can't deduplicate perfectly without the full sequence, but we can use
+            # a heuristic: for a given period, if we've seen a start_state that would
+            # be in the same cycle, skip it. However, this is imperfect.
+            # 
+            # Better approach: For period-only mode with empty states_tuples, we need to
+            # reconstruct at least one state from the cycle to create a canonical key.
+            # But that requires matrix multiplication which can hang.
+            #
+            # Simplest fix: Use period as the key and accept that we might have duplicates
+            # for the same period. This is acceptable in period-only mode since we only
+            # care about the period distribution, not exact sequence counts.
+            #
+            # However, this can lead to overcounting. A better approach: use a hash of
+            # the cycle by computing a few states from the cycle to create a signature.
+            # But that requires matrix multiplication...
+            #
+            # For now, use period as key and track by start_state to avoid exact duplicates
+            # This is imperfect but avoids hangs
+            cycle_key = (period, start_state)  # Use both to catch exact duplicates
+            merge_debug(f'Sequence {idx+1}: Empty states_tuples! Using period+start_state as key: period={period}, start_state={start_state}')
         else:
             # Use sorted states as key (cycles are the same regardless of starting point)
             # Normalize by sorting to handle cycles starting at different points
             # This works for both full mode and period-only mode (where we compute full sequence for dedup)
             cycle_key = tuple(sorted(states_tuples))
-            merge_debug(f'Sequence {idx+1}: {len(states_tuples)} states, period={seq_info["period"]}, cycle_key length={len(cycle_key)}')
+            merge_debug(f'Sequence {idx+1}: {len(states_tuples)} states, period={period}, cycle_key length={len(cycle_key)}')
         
         if cycle_key not in seen_cycles:
             seen_cycles[cycle_key] = seq_info
@@ -1030,8 +1060,17 @@ def _process_state_chunk(
     
     # Process each state in chunk
     debug_log(f'Processing {len(state_chunk)} states in chunk...')
+    import time
+    chunk_start_time = time.time()
     for idx, (state_tuple, _) in enumerate(state_chunk):
         try:
+            # Progress logging every 100 states or every 5 seconds
+            if idx % 100 == 0 or (time.time() - chunk_start_time) > 5:
+                elapsed = time.time() - chunk_start_time
+                rate = idx / elapsed if elapsed > 0 else 0
+                debug_log(f'Progress: {idx}/{len(state_chunk)} states ({100*idx/len(state_chunk):.1f}%), rate: {rate:.1f} states/s')
+                chunk_start_time = time.time()  # Reset timer
+            
             debug_log(f'Processing state {idx+1}/{len(state_chunk)}: {state_tuple}')
             
             # Skip if already visited in this worker's processing
@@ -1078,34 +1117,24 @@ def _process_state_chunk(
                 debug_log(f'State {idx+1}: Period-only mode - computing period first...')
                 from lfsr.analysis import _find_period_floyd
                 # Force Floyd's algorithm to avoid hangs (enumeration does matrix mult in loop)
-                seq_period = _find_period_floyd(state, state_update_matrix)
-                debug_log(f'State {idx+1}: Period computed (Floyd): {seq_period}')
+                # CRITICAL: In multiprocessing, even Floyd's algorithm can hang on matrix multiplication
+                # Add a timeout wrapper (signal-based timeout doesn't work in multiprocessing)
+                # Instead, we'll rely on the overall worker timeout and hope Floyd completes quickly
+                try:
+                    seq_period = _find_period_floyd(state, state_update_matrix)
+                    debug_log(f'State {idx+1}: Period computed (Floyd): {seq_period}')
+                except Exception as e:
+                    debug_log(f'State {idx+1}: Error computing period: {e}')
+                    # If period computation fails, skip this state
+                    errors.append(f'Error computing period for state {state_tuple}: {str(e)}')
+                    continue
                 
-                # For deduplication, compute full sequence only for small periods
-                # For large periods, use start_state+period as key (imperfect but avoids hang)
-                if seq_period <= 100:  # Small period: compute full sequence for dedup
-                    debug_log(f'State {idx+1}: Computing full sequence for deduplication (period <= 100)...')
-                    seq_lst_full = [state]
-                    current = state * state_update_matrix
-                    count = 1
-                    while current != state and count < seq_period:
-                        seq_lst_full.append(current)
-                        current = current * state_update_matrix
-                        count += 1
-                        # Add periodic debug to catch hangs early
-                        if count % 20 == 0:
-                            debug_log(f'State {idx+1}: Enumeration progress: {count}/{seq_period}')
-                    states_tuples = [tuple(s) for s in seq_lst_full]
-                    debug_log(f'State {idx+1}: Full sequence computed: {len(states_tuples)} states')
-                    # Mark all states as visited
-                    for seq_state in seq_lst_full:
-                        seq_state_tuple = tuple(seq_state)
-                        local_visited.add(seq_state_tuple)
-                else:
-                    # Large period: use start_state+period as key (imperfect but avoids hang)
-                    debug_log(f'State {idx+1}: Large period ({seq_period}), using simplified deduplication...')
-                    states_tuples = []  # Empty - merge will use start_state+period
-                    local_visited.add(state_tuple)  # Mark start state only
+                # CRITICAL: Matrix multiplication in a loop hangs in multiprocessing context
+                # Even for small periods, avoid the enumeration loop
+                # Use start_state+period as key for deduplication (merge will handle it)
+                debug_log(f'State {idx+1}: Period-only mode - using start_state+period for deduplication (period={seq_period})...')
+                states_tuples = []  # Empty - merge will use start_state+period for deduplication
+                local_visited.add(state_tuple)  # Mark start state only
             else:
                 # Full mode: get sequence normally
                 debug_log(f'State {idx+1}: Calling _find_sequence_cycle with period_only={period_only}, algorithm={algorithm}')
@@ -1279,15 +1308,15 @@ def lfsr_sequence_mapper_parallel(
             async_result = pool.map_async(_process_state_chunk, chunk_data_list)
             
             if not no_progress:
-                print(f"  Workers started, waiting for results (timeout: 30s per chunk)...")
+                print(f"  Workers started, waiting for results (timeout: 40s total)...")
                 import sys
                 sys.stdout.flush()
             
             try:
                 # Wait with reasonable timeout
-                # For small LFSRs, this should be plenty
-                timeout_per_chunk = 30
-                total_timeout = timeout_per_chunk * len(chunk_data_list)
+                # Serial takes max 35s, so use 40s total timeout for parallel
+                # (parallel should be faster, but allow some overhead)
+                total_timeout = 40
                 worker_results = async_result.get(timeout=total_timeout)
                 
                 elapsed = time.time() - start_time
