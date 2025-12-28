@@ -4,12 +4,11 @@
 """
 Attack visualization functions.
 
-This module provides functions to visualize attack processes and results,
-including correlation attacks, algebraic attacks, and attack comparisons.
+This module provides functions to visualize cryptanalytic attacks, including
+correlation attacks, algebraic attacks, and attack progress.
 """
 
 from typing import Any, Dict, List, Optional, Tuple
-from collections import defaultdict
 
 from lfsr.visualization.base import (
     VisualizationConfig,
@@ -33,99 +32,94 @@ def visualize_correlation_attack(
     **Key Terminology**:
     
     - **Correlation Attack Visualization**: Graphical representation of
-      correlation attack results, showing correlation coefficients, attack
-      progress, and success indicators.
+      correlation attack results, showing how correlation coefficients
+      vary and how the attack progresses.
     
     - **Correlation Coefficient**: A measure of linear relationship between
-      two sequences, ranging from -1 to 1. Values close to ±1 indicate
-      strong correlation.
+      two variables, ranging from -1 to 1. In correlation attacks, this
+      measures the correlation between keystream and LFSR output.
     
-    - **Attack Progress**: Visualization of how an attack progresses over
-      time, showing metrics like candidates tested, success rate, etc.
-    
-    - **Success Probability Curve**: A plot showing the probability of
-      attack success as a function of various parameters (e.g., keystream
-      length, correlation threshold).
+    - **Attack Progress**: Visualization showing how the attack progresses
+      over time, including success probability and candidate reduction.
     
     Args:
-        correlation_results: Dictionary containing correlation attack results
+        correlation_results: Dictionary with correlation attack results
         config: Optional visualization configuration
         output_file: Optional output filename
     
     Returns:
-        Plot object or list of plot objects
+        Plot object
     """
     config = config or VisualizationConfig()
     
-    plots = []
-    
-    # Correlation coefficient plot
-    if 'correlations' in correlation_results:
-        corr_plot = _plot_correlation_coefficients(
-            correlation_results['correlations'],
-            config,
-            output_file
-        )
-        plots.append(corr_plot)
-    
-    # Attack progress plot
-    if 'progress' in correlation_results:
-        progress_plot = _plot_attack_progress(
-            correlation_results['progress'],
-            config,
-            output_file
-        )
-        plots.append(progress_plot)
-    
-    # Success probability plot
-    if 'success_probability' in correlation_results:
-        prob_plot = _plot_success_probability(
-            correlation_results['success_probability'],
-            config,
-            output_file
-        )
-        plots.append(prob_plot)
-    
-    return plots[0] if len(plots) == 1 else plots
+    if config.interactive and HAS_PLOTLY:
+        return _visualize_correlation_interactive(correlation_results, config, output_file)
+    elif HAS_MATPLOTLIB:
+        return _visualize_correlation_static(correlation_results, config, output_file)
+    else:
+        raise ImportError("matplotlib or plotly required for visualization")
 
 
-def _plot_correlation_coefficients(
-    correlations: Dict[str, float],
+def _visualize_correlation_static(
+    results: Dict[str, Any],
     config: VisualizationConfig,
     output_file: Optional[str]
 ) -> Any:
-    """Plot correlation coefficients."""
-    if not HAS_MATPLOTLIB:
-        raise ImportError("matplotlib required for correlation plots")
-    
+    """Create static correlation attack visualization."""
     import matplotlib.pyplot as plt
     
-    lfsr_names = list(correlations.keys())
-    corr_values = list(correlations.values())
+    fig, axes = plt.subplots(2, 2, figsize=(config.width, config.height), dpi=config.dpi)
+    fig.suptitle(config.title or "Correlation Attack Analysis", fontsize=16, fontweight='bold')
     
-    fig, ax = plt.subplots(figsize=(config.width, config.height), dpi=config.dpi)
+    # 1. Correlation coefficients
+    ax1 = axes[0, 0]
+    if 'correlations' in results:
+        correlations = results['correlations']
+        lfsr_indices = range(len(correlations))
+        ax1.bar(lfsr_indices, correlations, alpha=0.7, edgecolor='black', linewidth=0.5)
+        ax1.axhline(0.5, color='red', linestyle='--', linewidth=1, label='Threshold (0.5)')
+        ax1.set_xlabel("LFSR Index", fontsize=10)
+        ax1.set_ylabel("Correlation Coefficient", fontsize=10)
+        ax1.set_title("Correlation Coefficients", fontsize=12, fontweight='bold')
+        ax1.grid(True, alpha=0.3)
+        ax1.legend()
     
-    colors = ['red' if abs(c) > 0.5 else 'blue' for c in corr_values]
-    bars = ax.bar(range(len(lfsr_names)), corr_values, color=colors, alpha=0.7, edgecolor='black')
+    # 2. Success probability
+    ax2 = axes[0, 1]
+    if 'success_probability' in results:
+        prob = results['success_probability']
+        ax2.barh(['Attack'], [prob], alpha=0.7, color='green' if prob > 0.5 else 'orange')
+        ax2.set_xlabel("Success Probability", fontsize=10)
+        ax2.set_title("Attack Success Probability", fontsize=12, fontweight='bold')
+        ax2.set_xlim(0, 1)
+        ax2.grid(True, alpha=0.3, axis='x')
     
-    # Add threshold lines
-    ax.axhline(y=0.5, color='red', linestyle='--', alpha=0.5, label='High Correlation Threshold')
-    ax.axhline(y=-0.5, color='red', linestyle='--', alpha=0.5)
-    ax.axhline(y=0, color='black', linestyle='-', alpha=0.3)
+    # 3. Candidate reduction (if available)
+    ax3 = axes[1, 0]
+    if 'candidates_over_time' in results:
+        candidates = results['candidates_over_time']
+        iterations = range(len(candidates))
+        ax3.plot(iterations, candidates, marker='o', linewidth=2)
+        ax3.set_xlabel("Iteration", fontsize=10)
+        ax3.set_ylabel("Number of Candidates", fontsize=10)
+        ax3.set_title("Candidate Reduction", fontsize=12, fontweight='bold')
+        ax3.grid(True, alpha=0.3)
     
-    ax.set_xticks(range(len(lfsr_names)))
-    ax.set_xticklabels(lfsr_names, rotation=45, ha='right')
-    ax.set_ylim(-1.1, 1.1)
+    # 4. Attack summary
+    ax4 = axes[1, 1]
+    ax4.axis('off')
     
-    title = config.title or "Correlation Coefficients"
-    ax.set_title(title, fontsize=14, fontweight='bold')
-    ax.set_ylabel(config.ylabel or "Correlation Coefficient", fontsize=12)
+    summary_text = "Correlation Attack Summary\n\n"
+    if 'target_lfsr' in results:
+        summary_text += f"Target LFSR: {results['target_lfsr']}\n"
+    if 'max_correlation' in results:
+        summary_text += f"Max Correlation: {results['max_correlation']:.4f}\n"
+    if 'success_probability' in results:
+        summary_text += f"Success Probability: {results['success_probability']:.2%}\n"
+    if 'attack_successful' in results:
+        summary_text += f"Attack Successful: {'Yes' if results['attack_successful'] else 'No'}\n"
     
-    if config.show_grid:
-        ax.grid(True, alpha=0.3, axis='y')
-    
-    if config.show_legend:
-        ax.legend()
+    ax4.text(0.1, 0.5, summary_text, fontsize=11, family='monospace', verticalalignment='center')
     
     plt.tight_layout()
     
@@ -135,102 +129,75 @@ def _plot_correlation_coefficients(
     return fig
 
 
-def _plot_attack_progress(
-    progress: Dict[str, List[Any]],
+def _visualize_correlation_interactive(
+    results: Dict[str, Any],
     config: VisualizationConfig,
     output_file: Optional[str]
 ) -> Any:
-    """Plot attack progress over time."""
-    if not HAS_MATPLOTLIB:
-        raise ImportError("matplotlib required for progress plots")
+    """Create interactive correlation attack visualization."""
+    import plotly.graph_objects as go
+    from plotly.subplots import make_subplots
     
-    import matplotlib.pyplot as plt
+    fig = make_subplots(
+        rows=2, cols=2,
+        subplot_titles=("Correlation Coefficients", "Success Probability", "Candidate Reduction", "Summary"),
+        specs=[[{"type": "bar"}, {"type": "bar"}],
+               [{"type": "scatter"}, {"type": "table"}]]
+    )
     
-    fig, ax = plt.subplots(figsize=(config.width, config.height), dpi=config.dpi)
+    # Correlation coefficients
+    if 'correlations' in results:
+        correlations = results['correlations']
+        fig.add_trace(
+            go.Bar(x=list(range(len(correlations))), y=correlations, name="Correlation"),
+            row=1, col=1
+        )
+        fig.add_hline(y=0.5, line_dash="dash", line_color="red", row=1, col=1)
     
-    # Plot different metrics
-    if 'iterations' in progress and 'candidates_tested' in progress:
-        iterations = progress['iterations']
-        candidates = progress['candidates_tested']
-        ax.plot(iterations, candidates, 'b-', linewidth=2, label='Candidates Tested')
+    # Success probability
+    if 'success_probability' in results:
+        prob = results['success_probability']
+        fig.add_trace(
+            go.Bar(x=['Attack'], y=[prob], name="Success", marker_color='green' if prob > 0.5 else 'orange'),
+            row=1, col=2
+        )
     
-    if 'iterations' in progress and 'success_rate' in progress:
-        iterations = progress['iterations']
-        success = progress['success_rate']
-        ax2 = ax.twinx()
-        ax2.plot(iterations, success, 'r-', linewidth=2, label='Success Rate', alpha=0.7)
-        ax2.set_ylabel('Success Rate', color='r', fontsize=12)
-        ax2.tick_params(axis='y', labelcolor='r')
+    # Candidate reduction
+    if 'candidates_over_time' in results:
+        candidates = results['candidates_over_time']
+        fig.add_trace(
+            go.Scatter(x=list(range(len(candidates))), y=candidates, mode='lines+markers', name="Candidates"),
+            row=2, col=1
+        )
     
-    title = config.title or "Attack Progress"
-    ax.set_title(title, fontsize=14, fontweight='bold')
-    ax.set_xlabel(config.xlabel or "Iteration", fontsize=12)
-    ax.set_ylabel(config.ylabel or "Candidates Tested", fontsize=12)
-    
-    if config.show_grid:
-        ax.grid(True, alpha=0.3)
-    
-    if config.show_legend:
-        ax.legend(loc='upper left')
-        if 'ax2' in locals():
-            ax2.legend(loc='upper right')
-    
-    plt.tight_layout()
-    
-    if output_file:
-        fig.savefig(output_file, dpi=config.dpi, bbox_inches='tight')
-    
-    return fig
-
-
-def _plot_success_probability(
-    success_data: Dict[str, Any],
-    config: VisualizationConfig,
-    output_file: Optional[str]
-) -> Any:
-    """Plot success probability curves."""
-    if not HAS_MATPLOTLIB:
-        raise ImportError("matplotlib required for probability plots")
-    
-    import matplotlib.pyplot as plt
-    
-    fig, ax = plt.subplots(figsize=(config.width, config.height), dpi=config.dpi)
-    
-    if 'parameter' in success_data and 'probability' in success_data:
-        param = success_data['parameter']
-        prob = success_data['probability']
-        ax.plot(param, prob, 'b-', linewidth=2, marker='o', markersize=4)
-    
-    title = config.title or "Attack Success Probability"
-    ax.set_title(title, fontsize=14, fontweight='bold')
-    ax.set_xlabel(config.xlabel or "Parameter", fontsize=12)
-    ax.set_ylabel(config.ylabel or "Success Probability", fontsize=12)
-    ax.set_ylim(0, 1.1)
-    
-    if config.show_grid:
-        ax.grid(True, alpha=0.3)
-    
-    plt.tight_layout()
+    fig.update_layout(
+        title=config.title or "Correlation Attack Analysis",
+        height=config.height * 80,
+        showlegend=False
+    )
     
     if output_file:
-        fig.savefig(output_file, dpi=config.dpi, bbox_inches='tight')
+        if output_file.endswith('.html'):
+            fig.write_html(output_file)
+        else:
+            fig.write_image(output_file)
     
     return fig
 
 
 def visualize_attack_comparison(
-    attack_results: Dict[str, Dict[str, Any]],
+    attack_results: List[Dict[str, Any]],
     config: Optional[VisualizationConfig] = None,
     output_file: Optional[str] = None
 ) -> Any:
     """
-    Visualize comparison of different attack methods.
+    Compare multiple attack methods visually.
     
-    This function creates side-by-side comparisons of multiple attack
-    methods, showing performance metrics and success rates.
+    This function creates side-by-side comparisons of different attack
+    methods, showing performance, success rates, and resource usage.
     
     Args:
-        attack_results: Dictionary mapping attack names to results
+        attack_results: List of attack result dictionaries
         config: Optional visualization configuration
         output_file: Optional output filename
     
@@ -238,42 +205,66 @@ def visualize_attack_comparison(
         Plot object
     """
     if not HAS_MATPLOTLIB:
-        raise ImportError("matplotlib required for comparison plots")
+        raise ImportError("matplotlib required for attack comparison")
     
     import matplotlib.pyplot as plt
     
     config = config or VisualizationConfig()
     
-    attack_names = list(attack_results.keys())
+    fig, axes = plt.subplots(2, 2, figsize=(config.width, config.height), dpi=config.dpi)
+    fig.suptitle(config.title or "Attack Method Comparison", fontsize=16, fontweight='bold')
     
-    # Extract metrics
-    execution_times = []
-    success_rates = []
+    attack_names = [r.get('method_name', f"Method {i}") for i, r in enumerate(attack_results)]
     
-    for name in attack_names:
-        results = attack_results[name]
-        execution_times.append(results.get('execution_time', 0))
-        success_rates.append(results.get('success_rate', 0))
-    
-    # Create comparison plot
-    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(config.width * 1.5, config.height), dpi=config.dpi)
-    
-    # Execution time comparison
-    ax1.bar(attack_names, execution_times, alpha=0.7, color='steelblue', edgecolor='black')
-    ax1.set_title("Execution Time Comparison", fontsize=12, fontweight='bold')
-    ax1.set_ylabel("Time (seconds)", fontsize=10)
-    ax1.tick_params(axis='x', rotation=45)
+    # 1. Success rates
+    ax1 = axes[0, 0]
+    success_rates = [r.get('success_rate', 0) for r in attack_results]
+    ax1.bar(attack_names, success_rates, alpha=0.7, edgecolor='black', linewidth=0.5)
+    ax1.set_ylabel("Success Rate", fontsize=10)
+    ax1.set_title("Success Rates", fontsize=12, fontweight='bold')
+    ax1.set_ylim(0, 1)
     ax1.grid(True, alpha=0.3, axis='y')
+    plt.setp(ax1.xaxis.get_majorticklabels(), rotation=45, ha='right')
     
-    # Success rate comparison
-    ax2.bar(attack_names, success_rates, alpha=0.7, color='green', edgecolor='black')
-    ax2.set_title("Success Rate Comparison", fontsize=12, fontweight='bold')
-    ax2.set_ylabel("Success Rate", fontsize=10)
-    ax2.set_ylim(0, 1.1)
-    ax2.tick_params(axis='x', rotation=45)
+    # 2. Execution times
+    ax2 = axes[0, 1]
+    execution_times = [r.get('execution_time', 0) for r in attack_results]
+    ax2.bar(attack_names, execution_times, alpha=0.7, edgecolor='black', linewidth=0.5, color='orange')
+    ax2.set_ylabel("Execution Time (seconds)", fontsize=10)
+    ax2.set_title("Performance", fontsize=12, fontweight='bold')
     ax2.grid(True, alpha=0.3, axis='y')
+    plt.setp(ax2.xaxis.get_majorticklabels(), rotation=45, ha='right')
     
-    fig.suptitle(config.title or "Attack Method Comparison", fontsize=14, fontweight='bold')
+    # 3. Resource usage (if available)
+    ax3 = axes[1, 0]
+    if any('memory_usage' in r for r in attack_results):
+        memory_usage = [r.get('memory_usage', 0) for r in attack_results]
+        ax3.bar(attack_names, memory_usage, alpha=0.7, edgecolor='black', linewidth=0.5, color='green')
+        ax3.set_ylabel("Memory Usage (MB)", fontsize=10)
+        ax3.set_title("Resource Usage", fontsize=12, fontweight='bold')
+        ax3.grid(True, alpha=0.3, axis='y')
+        plt.setp(ax3.xaxis.get_majorticklabels(), rotation=45, ha='right')
+    else:
+        ax3.axis('off')
+        ax3.text(0.5, 0.5, "Resource usage data not available", ha='center', va='center')
+    
+    # 4. Summary table
+    ax4 = axes[1, 1]
+    ax4.axis('off')
+    
+    table_data = [["Method", "Success", "Time (s)"]]
+    for i, result in enumerate(attack_results):
+        table_data.append([
+            attack_names[i],
+            f"{result.get('success_rate', 0):.2%}",
+            f"{result.get('execution_time', 0):.2f}"
+        ])
+    
+    table = ax4.table(cellText=table_data[1:], colLabels=table_data[0], cellLoc='center', loc='center')
+    table.auto_set_font_size(False)
+    table.set_fontsize(9)
+    table.scale(1, 2)
+    
     plt.tight_layout()
     
     if output_file:

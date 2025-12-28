@@ -9,12 +9,13 @@ spaces, including 3D scatter plots and projections.
 """
 
 from typing import Any, Dict, List, Optional, Tuple
-import math
+import numpy as np
 
 from lfsr.visualization.base import (
     VisualizationConfig,
     OutputFormat,
-    HAS_PLOTLY
+    HAS_PLOTLY,
+    HAS_MATPLOTLIB
 )
 
 
@@ -28,83 +29,91 @@ def plot_3d_state_space(
     """
     Create 3D visualization of state space.
     
-    This function generates interactive 3D scatter plots showing states
-    in the LFSR state space, with coloring by period or other properties.
+    This function generates a 3D scatter plot showing states in the state
+    space, with coloring by period or other properties.
     
     **Key Terminology**:
     
     - **3D Visualization**: A three-dimensional graphical representation
       that allows viewing data from different angles and perspectives.
-      Useful for understanding spatial relationships in high-dimensional data.
     
     - **State Space**: The set of all possible states an LFSR can be in.
       For an LFSR of degree d over GF(q), the state space has q^d elements.
     
-    - **Interactive 3D Plot**: A 3D plot that allows user interaction such
-      as rotation, zooming, and panning. Typically implemented using Plotly.
+    - **Interactive 3D Plot**: A 3D plot that allows rotation, zooming,
+      and panning, typically using libraries like Plotly.
     
-    - **State Coloring**: Assigning colors to states based on their properties
-      (e.g., period, cycle membership) to highlight patterns and relationships.
+    - **State Coloring**: Assigning colors to states based on their
+      properties (e.g., period, cycle membership).
     
     Args:
         state_sequences: Dictionary mapping sequence number to list of states
         period_dict: Dictionary mapping sequence number to period
         max_states: Maximum number of states to visualize
         config: Optional visualization configuration
-        output_file: Optional output filename (should be HTML for interactive)
+        output_file: Optional output filename
     
     Returns:
-        Plotly figure object
+        Plot object (plotly figure for interactive, matplotlib for static)
+    
+    Example:
+        >>> from lfsr.visualization.state_space_3d import plot_3d_state_space
+        >>> sequences = {0: [[1,0,0], [0,1,0], [0,0,1]]}
+        >>> periods = {0: 3}
+        >>> fig = plot_3d_state_space(sequences, periods)
     """
-    if not HAS_PLOTLY:
-        raise ImportError("plotly required for 3D visualizations. Install with: pip install plotly")
-    
-    import plotly.graph_objects as go
-    import numpy as np
-    
     config = config or VisualizationConfig()
     
-    # Collect states and their properties
+    # Extract states and periods
     states_3d = []
-    periods = []
-    colors = []
-    
+    periods_list = []
     state_count = 0
+    
     for seq_num, sequence in state_sequences.items():
         if state_count >= max_states:
             break
         
         period = period_dict.get(seq_num, len(sequence))
         
-        for i, state in enumerate(sequence[:min(period, max_states - state_count)]):
-            # Convert state to 3D coordinates
-            # For binary states, use first 3 bits as coordinates
-            if isinstance(state, (list, tuple)) and len(state) >= 3:
-                x, y, z = state[0], state[1], state[2]
-            else:
-                # Fallback: use state index and period
-                x, y, z = i % 10, (i // 10) % 10, period % 10
-            
-            states_3d.append((x, y, z))
-            periods.append(period)
-            colors.append(period)  # Color by period
-            state_count += 1
-            
-            if state_count >= max_states:
-                break
+        for state in sequence[:min(len(sequence), max_states - state_count)]:
+            if len(state) >= 3:
+                states_3d.append([state[0], state[1], state[2]])
+                periods_list.append(period)
+                state_count += 1
+                if state_count >= max_states:
+                    break
     
     if not states_3d:
-        raise ValueError("No states to visualize")
+        raise ValueError("No states with at least 3 dimensions found")
     
-    x_coords = [s[0] for s in states_3d]
-    y_coords = [s[1] for s in states_3d]
-    z_coords = [s[2] for s in states_3d]
+    states_array = np.array(states_3d)
     
-    # Create 3D scatter plot
+    if config.interactive and HAS_PLOTLY:
+        return _plot_3d_interactive(states_array, periods_list, config, output_file)
+    elif HAS_MATPLOTLIB:
+        return _plot_3d_static(states_array, periods_list, config, output_file)
+    else:
+        raise ImportError("plotly or matplotlib required for 3D visualization")
+
+
+def _plot_3d_interactive(
+    states: np.ndarray,
+    periods: List[int],
+    config: VisualizationConfig,
+    output_file: Optional[str]
+) -> Any:
+    """Create interactive 3D plot using plotly."""
+    import plotly.graph_objects as go
+    
+    # Create color map based on periods
+    unique_periods = list(set(periods))
+    color_map = {p: i for i, p in enumerate(unique_periods)}
+    colors = [color_map[p] for p in periods]
+    
     fig = go.Figure(data=go.Scatter3d(
-        x=x_coords,
-        y=y_coords,
-        z=z_coords,
+        x=states[:, 0],
+        y=states[:, 1],
+        z=states[:, 2],
         mode='markers',
         marker=dict(
             size=5,
@@ -114,17 +123,15 @@ def plot_3d_state_space(
             colorbar=dict(title="Period")
         ),
         text=[f"Period: {p}" for p in periods],
-        hovertemplate='X: %{x}<br>Y: %{y}<br>Z: %{z}<br>%{text}<extra></extra>'
+        hovertemplate='State: (%{x}, %{y}, %{z})<br>Period: %{text}<extra></extra>'
     ))
     
-    title = config.title or "3D State Space Visualization"
     fig.update_layout(
-        title=title,
+        title=config.title or "3D State Space Visualization",
         scene=dict(
-            xaxis_title="X",
-            yaxis_title="Y",
-            zaxis_title="Z",
-            camera=dict(eye=dict(x=1.5, y=1.5, z=1.5))
+            xaxis_title="State[0]",
+            yaxis_title="State[1]",
+            zaxis_title="State[2]"
         ),
         width=config.width * 80,
         height=config.height * 80
@@ -134,12 +141,49 @@ def plot_3d_state_space(
         if output_file.endswith('.html'):
             fig.write_html(output_file)
         else:
-            # For non-HTML, plotly needs kaleido for static export
-            try:
-                fig.write_image(output_file)
-            except Exception:
-                # Fallback: save as HTML
-                fig.write_html(output_file.replace('.png', '.html').replace('.pdf', '.html'))
+            fig.write_image(output_file)
+    
+    return fig
+
+
+def _plot_3d_static(
+    states: np.ndarray,
+    periods: List[int],
+    config: VisualizationConfig,
+    output_file: Optional[str]
+) -> Any:
+    """Create static 3D plot using matplotlib."""
+    from mpl_toolkits.mplot3d import Axes3D
+    import matplotlib.pyplot as plt
+    
+    fig = plt.figure(figsize=(config.width, config.height), dpi=config.dpi)
+    ax = fig.add_subplot(111, projection='3d')
+    
+    # Create color map based on periods
+    unique_periods = list(set(periods))
+    color_map = {p: i / len(unique_periods) for i, p in enumerate(unique_periods)}
+    colors = [color_map[p] for p in periods]
+    
+    scatter = ax.scatter(
+        states[:, 0],
+        states[:, 1],
+        states[:, 2],
+        c=colors,
+        cmap='viridis',
+        s=20,
+        alpha=0.7
+    )
+    
+    ax.set_xlabel("State[0]", fontsize=10)
+    ax.set_ylabel("State[1]", fontsize=10)
+    ax.set_zlabel("State[2]", fontsize=10)
+    ax.set_title(config.title or "3D State Space Visualization", fontsize=14, fontweight='bold')
+    
+    plt.colorbar(scatter, ax=ax, label="Period")
+    plt.tight_layout()
+    
+    if output_file:
+        fig.savefig(output_file, dpi=config.dpi, bbox_inches='tight')
     
     return fig
 
@@ -153,151 +197,96 @@ def plot_state_space_projection(
     output_file: Optional[str] = None
 ) -> Any:
     """
-    Create 2D projection of state space.
+    Create 2D projection of state space using dimensionality reduction.
     
-    This function projects high-dimensional state spaces to 2D for visualization
-    using dimensionality reduction techniques.
+    This function projects high-dimensional state spaces to 2D for
+    visualization using methods like PCA or t-SNE.
     
     **Key Terminology**:
     
     - **Dimensionality Reduction**: Techniques for reducing the number of
-      features (dimensions) in data while preserving important information.
-      Common methods include PCA and t-SNE.
+      dimensions in data while preserving important structure. Common methods
+      include PCA (Principal Component Analysis) and t-SNE (t-distributed
+      Stochastic Neighbor Embedding).
     
-    - **PCA (Principal Component Analysis)**: A linear dimensionality reduction
-      technique that finds the directions of maximum variance in data.
+    - **PCA (Principal Component Analysis)**: A linear dimensionality
+      reduction technique that finds the directions of maximum variance in
+      the data.
     
-    - **t-SNE (t-Distributed Stochastic Neighbor Embedding)**: A non-linear
-      dimensionality reduction technique that preserves local structure.
-    
-    - **Projection**: Mapping high-dimensional data to lower dimensions for
-      visualization while attempting to preserve relationships.
+    - **Projection**: Mapping high-dimensional data to lower dimensions
+      (e.g., 3D to 2D) for visualization.
     
     Args:
         state_sequences: Dictionary mapping sequence number to list of states
         period_dict: Dictionary mapping sequence number to period
-        projection_method: Projection method ("pca", "tsne", "simple")
-        max_states: Maximum number of states to project
+        projection_method: Method to use ("pca" or "tsne")
+        max_states: Maximum number of states to include
         config: Optional visualization configuration
         output_file: Optional output filename
     
     Returns:
         Plot object
     """
-    config = config or VisualizationConfig()
+    if not HAS_MATPLOTLIB:
+        raise ImportError("matplotlib required for projections")
     
-    # Collect states
-    states = []
-    periods = []
+    import matplotlib.pyplot as plt
     
+    # Extract states
+    states_list = []
+    periods_list = []
     state_count = 0
+    
     for seq_num, sequence in state_sequences.items():
         if state_count >= max_states:
             break
         
         period = period_dict.get(seq_num, len(sequence))
         
-        for state in sequence[:min(period, max_states - state_count)]:
-            if isinstance(state, (list, tuple)):
-                states.append(list(state))
-            else:
-                states.append([state])
-            periods.append(period)
+        for state in sequence[:min(len(sequence), max_states - state_count)]:
+            states_list.append(list(state))
+            periods_list.append(period)
             state_count += 1
-            
             if state_count >= max_states:
                 break
     
-    if not states:
-        raise ValueError("No states to project")
+    if not states_list:
+        raise ValueError("No states found")
     
-    if projection_method == "pca":
-        return _project_pca(states, periods, config, output_file)
-    elif projection_method == "simple":
-        return _project_simple(states, periods, config, output_file)
+    states_array = np.array(states_list)
+    
+    # Apply projection
+    if projection_method.lower() == "pca":
+        from sklearn.decomposition import PCA
+        pca = PCA(n_components=2)
+        projected = pca.fit_transform(states_array)
+    elif projection_method.lower() == "tsne":
+        try:
+            from sklearn.manifold import TSNE
+            tsne = TSNE(n_components=2, random_state=42)
+            projected = tsne.fit_transform(states_array)
+        except ImportError:
+            raise ImportError("scikit-learn required for t-SNE projection")
     else:
         raise ValueError(f"Unknown projection method: {projection_method}")
-
-
-def _project_pca(
-    states: List[List[int]],
-    periods: List[int],
-    config: VisualizationConfig,
-    output_file: Optional[str]
-) -> Any:
-    """Project using PCA."""
-    try:
-        from sklearn.decomposition import PCA
-        import numpy as np
-        import matplotlib.pyplot as plt
-    except ImportError:
-        raise ImportError("sklearn and numpy required for PCA projection")
-    
-    # Convert to numpy array
-    max_len = max(len(s) for s in states)
-    states_padded = [s + [0] * (max_len - len(s)) for s in states]
-    X = np.array(states_padded)
-    
-    # Apply PCA
-    if X.shape[1] < 2:
-        # Not enough dimensions, use simple projection
-        return _project_simple(states, periods, config, output_file)
-    
-    pca = PCA(n_components=2)
-    X_projected = pca.fit_transform(X)
     
     # Create plot
+    config = config or VisualizationConfig()
     fig, ax = plt.subplots(figsize=(config.width, config.height), dpi=config.dpi)
     
-    scatter = ax.scatter(X_projected[:, 0], X_projected[:, 1], c=periods, cmap='viridis', alpha=0.6, s=20)
-    plt.colorbar(scatter, ax=ax, label='Period')
+    # Color by period
+    unique_periods = list(set(periods_list))
+    color_map = {p: i / len(unique_periods) for i, p in enumerate(unique_periods)}
+    colors = [color_map[p] for p in periods_list]
     
-    title = config.title or "State Space Projection (PCA)"
-    ax.set_title(title, fontsize=14, fontweight='bold')
-    ax.set_xlabel(config.xlabel or "First Principal Component", fontsize=12)
-    ax.set_ylabel(config.ylabel or "Second Principal Component", fontsize=12)
+    scatter = ax.scatter(projected[:, 0], projected[:, 1], c=colors, cmap='viridis', s=20, alpha=0.7)
     
-    if config.show_grid:
-        ax.grid(True, alpha=0.3)
+    ax.set_xlabel(f"{projection_method.upper()} Component 1", fontsize=10)
+    ax.set_ylabel(f"{projection_method.upper()} Component 2", fontsize=10)
+    ax.set_title(config.title or f"State Space Projection ({projection_method.upper()})", fontsize=14, fontweight='bold')
+    ax.grid(True, alpha=0.3)
     
-    plt.tight_layout()
-    
-    if output_file:
-        fig.savefig(output_file, dpi=config.dpi, bbox_inches='tight')
-    
-    return fig
-
-
-def _project_simple(
-    states: List[List[int]],
-    periods: List[int],
-    config: VisualizationConfig,
-    output_file: Optional[str]
-) -> Any:
-    """Simple 2D projection using first two dimensions."""
-    if not HAS_MATPLOTLIB:
-        raise ImportError("matplotlib required for projections")
-    
-    import matplotlib.pyplot as plt
-    import numpy as np
-    
-    # Extract first two dimensions
-    x_coords = [s[0] if len(s) > 0 else 0 for s in states]
-    y_coords = [s[1] if len(s) > 1 else 0 for s in states]
-    
-    fig, ax = plt.subplots(figsize=(config.width, config.height), dpi=config.dpi)
-    
-    scatter = ax.scatter(x_coords, y_coords, c=periods, cmap='viridis', alpha=0.6, s=20)
-    plt.colorbar(scatter, ax=ax, label='Period')
-    
-    title = config.title or "State Space Projection (Simple)"
-    ax.set_title(title, fontsize=14, fontweight='bold')
-    ax.set_xlabel(config.xlabel or "First Dimension", fontsize=12)
-    ax.set_ylabel(config.ylabel or "Second Dimension", fontsize=12)
-    
-    if config.show_grid:
-        ax.grid(True, alpha=0.3)
-    
+    plt.colorbar(scatter, ax=ax, label="Period")
     plt.tight_layout()
     
     if output_file:
