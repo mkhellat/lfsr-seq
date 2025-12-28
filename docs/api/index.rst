@@ -41,6 +41,7 @@ Module Documentation
    attacks
    optimization
    tmto
+   visualization
    ciphers
    advanced
    export

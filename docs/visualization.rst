@@ -1,9 +1,9 @@
 Visualization
 =============
 
-This section provides comprehensive documentation for advanced visualization
-features, enabling interactive and publication-quality visualizations of LFSR
-analysis results.
+This section provides comprehensive documentation for visualization features,
+enabling interactive and publication-quality visualizations of LFSR analysis
+results.
 
 **Key Terminology**:
 
@@ -22,19 +22,22 @@ analysis results.
 Introduction
 ------------
 
-The visualization features provide powerful tools for understanding and
-presenting LFSR analysis results through graphical representations.
+The visualization features provide comprehensive graphical representations
+of LFSR analysis results, including:
 
-**Available Visualizations**:
+1. **Period Distributions**: Histograms and statistical plots showing how
+   periods are distributed across initial states
 
-1. **Period Graphs**: Interactive and static period distribution visualizations
-2. **State Transition Diagrams**: Graph representations of state transitions
-3. **Statistical Plots**: Publication-quality statistical visualizations
-4. **3D State Space**: Interactive 3D visualizations of state spaces
-5. **Attack Visualization**: Visualizations of attack processes and results
+2. **State Transitions**: Diagrams showing how states transition and form cycles
+
+3. **Statistical Analysis**: Publication-quality plots for sequence properties
+
+4. **3D Visualizations**: Interactive 3D representations of state spaces
+
+5. **Attack Visualization**: Visual representation of cryptanalytic attacks
 
 Period Distribution Visualization
----------------------------------
+----------------------------------
 
 **What is Period Distribution Visualization?**
 
@@ -45,39 +48,40 @@ all possible initial states, helping understand the period structure of an LFSR.
 
 - Histogram of period distribution
 - Comparison with theoretical bounds
-- Interactive tooltips and zooming
-- Export to multiple formats
+- Cumulative distribution plots
+- Interactive exploration
 
 **Python API Usage**:
 
 .. code-block:: python
 
    from lfsr.visualization.period_graphs import plot_period_distribution
-   from lfsr.visualization.base import VisualizationConfig, OutputFormat
    
    period_dict = {1: 1, 3: 2, 6: 4, 12: 8}
-   
-   # Static plot
-   config = VisualizationConfig(interactive=False, output_format=OutputFormat.PNG)
-   fig = plot_period_distribution(period_dict, theoretical_max_period=15, config=config)
-   fig.savefig("period_dist.png")
-   
-   # Interactive plot
-   config = VisualizationConfig(interactive=True, output_format=OutputFormat.HTML)
-   fig = plot_period_distribution(period_dict, theoretical_max_period=15, config=config)
-   fig.write_html("period_dist.html")
+   fig = plot_period_distribution(
+       period_dict,
+       theoretical_max_period=15,
+       is_primitive=False,
+       output_file="period_dist.png"
+   )
+
+**Command-Line Usage**:
+
+.. code-block:: bash
+
+   lfsr-seq coefficients.csv 2 --plot-period-distribution period_dist.png
 
 State Transition Diagrams
----------------------------
+-------------------------
 
 **What is a State Transition Diagram?**
 
 A state transition diagram is a graph showing how LFSR states transition from
-one to another, revealing the cycle structure of the state space.
+one to another, with cycles highlighted.
 
 **Key Features**:
 
-- Graph representation of transitions
+- Graph representation of state transitions
 - Cycle highlighting
 - State labeling
 - Export to Graphviz DOT format
@@ -91,26 +95,32 @@ one to another, revealing the cycle structure of the state space.
    
    sequences = {0: [[1,0,0], [0,1,0], [0,0,1], [1,0,0]]}
    periods = {0: 3}
-   
-   fig = generate_state_transition_diagram(sequences, periods, max_states=50)
-   fig.savefig("state_diagram.png")
+   graph = generate_state_transition_diagram(
+       sequences,
+       periods,
+       output_file="state_diagram.png"
+   )
+
+**Command-Line Usage**:
+
+.. code-block:: bash
+
+   lfsr-seq coefficients.csv 2 --plot-state-transitions state_diagram.png
 
 Statistical Distribution Plots
--------------------------------
+------------------------------
 
 **What are Statistical Distribution Plots?**
 
 Statistical plots provide publication-quality visualizations of period
-distributions and sequence properties using various plot types.
+distributions and sequence properties.
 
-**Available Plot Types**:
+**Key Features**:
 
-- **Histogram**: Frequency distribution of periods
-- **Box Plot**: Summary statistics (quartiles, median, outliers)
-- **Violin Plot**: Distribution shape and summary statistics
-- **Autocorrelation Plot**: Sequence autocorrelation analysis
-- **Frequency Distribution**: Element frequency in sequences
-- **Runs Analysis**: Distribution of run lengths
+- Histograms, box plots, violin plots
+- Cumulative distributions
+- Statistical summaries
+- Sequence analysis plots (autocorrelation, frequency, runs)
 
 **Python API Usage**:
 
@@ -119,30 +129,26 @@ distributions and sequence properties using various plot types.
    from lfsr.visualization.statistical_plots import plot_period_statistics
    
    period_dict = {1: 1, 3: 2, 6: 4, 12: 8}
-   
-   # Histogram
-   fig = plot_period_statistics(period_dict, plot_type="histogram")
-   
-   # Box plot
-   fig = plot_period_statistics(period_dict, plot_type="box")
-   
-   # Violin plot
-   fig = plot_period_statistics(period_dict, plot_type="violin")
+   fig = plot_period_statistics(
+       period_dict,
+       theoretical_max_period=15,
+       output_file="statistics.png"
+   )
 
 3D State Space Visualization
-------------------------------
+-----------------------------
 
 **What is 3D State Space Visualization?**
 
-3D visualization provides interactive exploration of LFSR state spaces,
-allowing viewing from different angles and perspectives.
+3D visualization shows states in three-dimensional space, allowing exploration
+of state space structure from different angles.
 
 **Key Features**:
 
-- Interactive 3D scatter plots
+- Interactive 3D plots
 - State coloring by period
 - Rotation and zooming
-- 2D projections (PCA, simple)
+- 2D projections using PCA or t-SNE
 
 **Python API Usage**:
 
@@ -150,11 +156,19 @@ allowing viewing from different angles and perspectives.
 
    from lfsr.visualization.state_space_3d import plot_3d_state_space
    
-   sequences = {...}
-   periods = {...}
-   
-   fig = plot_3d_state_space(sequences, periods, max_states=100)
-   fig.write_html("state_space_3d.html")
+   sequences = {0: [[1,0,0,1], [0,1,0,0], [0,0,1,0]]}
+   periods = {0: 3}
+   fig = plot_3d_state_space(
+       sequences,
+       periods,
+       output_file="state_space_3d.html"  # Interactive HTML
+   )
+
+**Command-Line Usage**:
+
+.. code-block:: bash
+
+   lfsr-seq coefficients.csv 2 --plot-3d-state-space state_space_3d.html
 
 Attack Visualization
 --------------------
@@ -162,12 +176,12 @@ Attack Visualization
 **What is Attack Visualization?**
 
 Attack visualization shows the progress and results of cryptanalytic attacks,
-helping understand attack effectiveness and identify vulnerabilities.
+including correlation attacks and attack comparisons.
 
 **Key Features**:
 
 - Correlation coefficient plots
-- Attack progress tracking
+- Attack progress visualization
 - Success probability curves
 - Side-by-side attack comparisons
 
@@ -178,42 +192,43 @@ helping understand attack effectiveness and identify vulnerabilities.
    from lfsr.visualization.attack_visualization import visualize_correlation_attack
    
    results = {
-       'correlations': {'LFSR1': 0.7, 'LFSR2': 0.3},
-       'progress': {'iterations': [1,2,3], 'candidates_tested': [10,20,30]}
+       'correlations': [0.45, 0.52, 0.38],
+       'success_probability': 0.75,
+       'attack_successful': True
    }
+   fig = visualize_correlation_attack(
+       results,
+       output_file="attack_analysis.png"
+   )
+
+**Command-Line Usage**:
+
+.. code-block:: bash
+
+   lfsr-seq coefficients.csv 2 --visualize-attack attack_analysis.png
+
+Output Formats
+---------------
+
+Visualizations can be exported in multiple formats:
+
+- **PNG**: Raster image format (good for documents)
+- **SVG**: Vector format (scalable, good for web)
+- **PDF**: Vector format (good for publications)
+- **HTML**: Interactive format (for web browsers)
+
+**Format Selection**:
+
+.. code-block:: python
+
+   from lfsr.visualization.base import VisualizationConfig, OutputFormat
    
-   plots = visualize_correlation_attack(results)
-   plots[0].savefig("correlation_attack.png")
-
-Command-Line Usage
-------------------
-
-Visualizations can be generated from the command line:
-
-**Basic Usage**:
-
-.. code-block:: bash
-
-   lfsr-seq coefficients.csv 2 --plot-period-distribution period_plot.png
-
-**State Transition Diagram**:
-
-.. code-block:: bash
-
-   lfsr-seq coefficients.csv 2 --plot-state-transitions state_diagram.png
-
-**3D State Space**:
-
-.. code-block:: bash
-
-   lfsr-seq coefficients.csv 2 --plot-3d-state-space state_space.html
-
-**CLI Options**:
-- ``--plot-period-distribution FILE``: Generate period distribution plot
-- ``--plot-state-transitions FILE``: Generate state transition diagram
-- ``--plot-3d-state-space FILE``: Generate 3D state space visualization
-- ``--visualize-attack TYPE``: Visualize attack results
-- ``--output-format FORMAT``: Specify format (png, svg, pdf, html)
+   config = VisualizationConfig(
+       output_format=OutputFormat.SVG,
+       interactive=False,
+       width=12.0,
+       height=8.0
+   )
 
 API Reference
 -------------
@@ -224,19 +239,18 @@ Glossary
 --------
 
 **3D Visualization**
-   A three-dimensional graphical representation allowing viewing from different angles.
-
-**Autocorrelation**
-   A measure of similarity between a sequence and a shifted version of itself.
+   A three-dimensional graphical representation allowing viewing from
+   different angles.
 
 **Box Plot**
-   A standardized display of data distribution showing quartiles and outliers.
+   A standardized way of displaying data distribution based on
+   five-number summary.
 
 **Histogram**
    A graphical representation of data distribution using bars.
 
 **Interactive Plot**
-   A plot allowing user interaction such as zooming and panning.
+   A plot that allows user interaction (zooming, panning, tooltips).
 
 **Publication Quality**
    Visualizations suitable for research papers with high resolution.
@@ -245,7 +259,7 @@ Glossary
    A graph showing how LFSR states transition and form cycles.
 
 **Violin Plot**
-   A combination of box plot and kernel density plot showing distribution shape.
+   A combination of box plot and kernel density plot.
 
 Further Reading
 ---------------
