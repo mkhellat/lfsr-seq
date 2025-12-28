@@ -748,6 +748,7 @@ lfsr-seq/
 │   ├── cli_algebraic.py    # CLI for algebraic attacks
 │   ├── cli_tmto.py         # CLI for TMTO attacks
 │   ├── cli_ciphers.py      # CLI for stream cipher analysis
+│   ├── cli_advanced.py     # CLI for advanced LFSR structures
 │   ├── cli_nist.py         # CLI for NIST tests
 │   ├── nist.py             # NIST SP 800-22 test suite
 │   └── constants.py        # Named constants
