@@ -55,6 +55,13 @@ cipher analysis, educational purposes, and security evaluation.
   - **Cipher Comparison**: Side-by-side analysis of multiple cipher designs
   - **Structure Analysis**: Analyze LFSR configurations, clocking mechanisms, combining functions
   - **Keystream Generation**: Generate keystreams from keys and IVs
+- **Advanced LFSR Structures**: Extensions beyond basic linear LFSRs
+  - **NFSRs**: Non-Linear Feedback Shift Registers (NOT LFSRs - non-linear feedback)
+  - **Filtered LFSRs**: LFSRs with non-linear output filtering (ARE LFSRs - linear feedback)
+  - **Clock-Controlled LFSRs**: LFSRs with irregular clocking patterns (ARE LFSRs - linear feedback)
+  - **Multi-Output LFSRs**: LFSRs producing multiple output bits per step (ARE LFSRs - linear feedback)
+  - **Irregular Clocking Patterns**: LFSRs with variable clocking patterns (ARE LFSRs - linear feedback)
+  - **Structure Analysis**: Analyze properties, security, and sequence characteristics
 - **NIST SP 800-22 Test Suite**: Industry-standard statistical tests for randomness (all 15 tests)
   - Frequency tests, runs tests, matrix rank, spectral tests
   - Template matching, Maurer's universal test, linear complexity test
@@ -684,6 +691,22 @@ lfsr-seq --cipher a5_1 --compare-ciphers
 lfsr-seq --cipher e0 --analyze-cipher --generate-keystream
 ```
 
+### Example 11: Advanced LFSR Structures
+
+```bash
+# Analyze filtered LFSR structure
+lfsr-seq coefficients.csv 2 --advanced-structure filtered \
+    --analyze-advanced-structure
+
+# Generate sequence from NFSR
+lfsr-seq coefficients.csv 2 --advanced-structure nfsr \
+    --generate-advanced-sequence --advanced-sequence-length 2000
+
+# Analyze clock-controlled LFSR
+lfsr-seq coefficients.csv 2 --advanced-structure clock_controlled \
+    --analyze-advanced-structure --generate-advanced-sequence
+```
+
 ## Project Structure
 
 ```
@@ -713,6 +736,14 @@ lfsr-seq/
 │   │   ├── grain.py        # Grain family
 │   │   ├── lili128.py      # LILI-128 academic design
 │   │   └── comparison.py   # Cipher comparison framework
+│   ├── advanced/           # Advanced LFSR structures
+│   │   ├── __init__.py     # Advanced structures module initialization
+│   │   ├── base.py         # Base classes and interfaces
+│   │   ├── nonlinear.py    # NFSRs (Non-Linear Feedback Shift Registers)
+│   │   ├── filtered.py     # Filtered LFSRs
+│   │   ├── clock_controlled.py  # Clock-controlled LFSRs
+│   │   ├── multi_output.py # Multi-output LFSRs
+│   │   └── irregular_clocking.py  # Irregular clocking patterns
 │   ├── cli_correlation.py  # CLI for correlation attacks
 │   ├── cli_algebraic.py    # CLI for algebraic attacks
 │   ├── cli_tmto.py         # CLI for TMTO attacks
