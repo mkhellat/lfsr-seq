@@ -69,6 +69,12 @@ cipher analysis, educational purposes, and security evaluation.
   - **Known Result Database**: Compare with known theoretical results
   - **Benchmarking Framework**: Performance and accuracy comparisons
   - **Reproducibility Features**: Seed tracking, environment capture, configuration export
+- **Machine Learning Integration**: ML-based analysis capabilities
+  - **Period Prediction**: Predict LFSR periods from polynomial structure using ML
+  - **Pattern Detection**: Automatically detect patterns in sequences and transitions
+  - **Anomaly Detection**: Identify anomalies in sequences and distributions
+  - **Model Training**: Train custom ML models for specific analysis tasks
+  - **Feature Extraction**: Extract features from polynomials and sequences
 - **NIST SP 800-22 Test Suite**: Industry-standard statistical tests for randomness (all 15 tests)
   - Frequency tests, runs tests, matrix rank, spectral tests
   - Template matching, Maurer's universal test, linear complexity test
