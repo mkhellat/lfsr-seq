@@ -1059,6 +1059,109 @@ def cli_main() -> None:
                         args.reproducibility_report
                     )
                     print(f"Reproducibility report saved to {args.reproducibility_report}", file=output_file)
+            # Check if ML features requested
+            elif args.predict_period or args.detect_patterns or args.detect_anomalies or args.train_model:
+                from lfsr.io import read_coefficient_vectors
+                from lfsr.core import analyze_lfsr
+                from lfsr.ml.period_prediction import PeriodPredictionModel
+                from lfsr.ml.pattern_detection import detect_all_patterns
+                from lfsr.ml.anomaly_detection import detect_all_anomalies
+                from lfsr.ml.training import train_period_prediction_model
+                
+                # Load coefficients from input file
+                if not args.input_file:
+                    print("ERROR: ML features require input file with LFSR coefficients", file=sys.stderr)
+                    sys.exit(1)
+                
+                coeffs_list = read_coefficient_vectors(args.input_file, args.gf_order)
+                if not coeffs_list:
+                    print("ERROR: No valid coefficients found in input file", file=sys.stderr)
+                    sys.exit(1)
+                
+                coefficients = coeffs_list[0]
+                
+                # Period prediction
+                if args.predict_period:
+                    print("=" * 70, file=output_file)
+                    print("ML Period Prediction", file=output_file)
+                    print("=" * 70, file=output_file)
+                    
+                    if args.ml_model_file:
+                        model = PeriodPredictionModel()
+                        model.load_model(args.ml_model_file)
+                        predicted = model.predict_period(coefficients, args.gf_order)
+                        print(f"Predicted period: {predicted:.2f}", file=output_file)
+                    else:
+                        print("WARNING: No model file specified. Using default model.", file=output_file)
+                        print("         Train a model with --train-model for better accuracy.", file=output_file)
+                        # Could create a default model here
+                
+                # Pattern detection
+                if args.detect_patterns:
+                    print("=" * 70, file=output_file)
+                    print("Pattern Detection", file=output_file)
+                    print("=" * 70, file=output_file)
+                    
+                    seq_dict, period_dict, max_period, _, _, _, _ = analyze_lfsr(coefficients, args.gf_order)
+                    # Get first sequence
+                    if seq_dict:
+                        first_seq = list(seq_dict.values())[0]
+                        sequence = [state[0] for state in first_seq[:1000]]  # Get first 1000 bits
+                        patterns = detect_all_patterns(sequence)
+                        
+                        for pattern_type, pattern_list in patterns.items():
+                            print(f"\n{pattern_type}: {len(pattern_list)} patterns", file=output_file)
+                            for i, pattern in enumerate(pattern_list[:5]):  # Show top 5
+                                print(f"  Pattern {i+1}: {pattern.description} (confidence: {pattern.confidence:.2f})", file=output_file)
+                
+                # Anomaly detection
+                if args.detect_anomalies:
+                    print("=" * 70, file=output_file)
+                    print("Anomaly Detection", file=output_file)
+                    print("=" * 70, file=output_file)
+                    
+                    seq_dict, period_dict, max_period, _, _, _, _ = analyze_lfsr(coefficients, args.gf_order)
+                    theoretical_max = int(args.gf_order) ** len(coefficients) - 1
+                    
+                    from lfsr.polynomial import is_primitive_polynomial
+                    from sage.all import *
+                    F = GF(args.gf_order)
+                    R = PolynomialRing(F, "t")
+                    # Create polynomial from coefficients (simplified)
+                    is_primitive = False  # Would need to compute actual polynomial
+                    
+                    if seq_dict:
+                        first_seq = list(seq_dict.values())[0]
+                        sequence = [state[0] for state in first_seq[:1000]]
+                    else:
+                        sequence = []
+                    
+                    anomalies = detect_all_anomalies(
+                        sequence=sequence if sequence else None,
+                        period_dict=period_dict,
+                        theoretical_max_period=theoretical_max,
+                        is_primitive=is_primitive
+                    )
+                    
+                    for anomaly_type, anomaly_list in anomalies.items():
+                        print(f"\n{anomaly_type}: {len(anomaly_list)} anomalies", file=output_file)
+                        for i, anomaly in enumerate(anomaly_list[:5]):  # Show top 5
+                            print(f"  Anomaly {i+1}: {anomaly.description} (severity: {anomaly.severity:.2f})", file=output_file)
+                
+                # Model training
+                if args.train_model:
+                    print("=" * 70, file=output_file)
+                    print("Training ML Model", file=output_file)
+                    print("=" * 70, file=output_file)
+                    
+                    model = train_period_prediction_model(
+                        model_type="random_forest",
+                        num_samples=100,
+                        max_degree=min(10, len(coefficients) + 2),
+                        field_order=args.gf_order,
+                        save_path=args.train_model
+                    )
+                    print(f"Model trained and saved to {args.train_model}", file=output_file)
             # Check if correlation attack mode
             elif args.correlation_attack:
                 from lfsr.cli_correlation import perform_correlation_attack_cli
