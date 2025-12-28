@@ -595,6 +595,40 @@ def parse_args(args: Optional[list] = None) -> argparse.Namespace:
         help="Compare multiple ciphers side-by-side."
     )
     
+    # Advanced LFSR structures options
+    advanced_group = parser.add_argument_group(
+        "advanced LFSR structures options",
+        "Options for analyzing advanced LFSR structures (filtered, clock-controlled, etc.)"
+    )
+    
+    advanced_group.add_argument(
+        "--advanced-structure",
+        type=str,
+        choices=["nfsr", "filtered", "clock_controlled", "multi_output", "irregular"],
+        metavar="TYPE",
+        help="Select advanced structure type: nfsr, filtered, clock_controlled, multi_output, or irregular."
+    )
+    
+    advanced_group.add_argument(
+        "--analyze-advanced-structure",
+        action="store_true",
+        help="Analyze advanced structure properties."
+    )
+    
+    advanced_group.add_argument(
+        "--generate-advanced-sequence",
+        action="store_true",
+        help="Generate sequence from advanced structure."
+    )
+    
+    advanced_group.add_argument(
+        "--advanced-sequence-length",
+        type=int,
+        default=1000,
+        metavar="N",
+        help="Length of sequence to generate (default: 1000)."
+    )
+    
     # NIST test suite options
     nist_group = parser.add_argument_group(
         "NIST SP 800-22 test suite options",
@@ -720,6 +754,37 @@ def cli_main() -> None:
                     significance_level=args.nist_significance_level,
                     block_size=args.nist_block_size,
                     output_format=args.nist_output_format
+                )
+            # Check if advanced structure analysis mode
+            elif args.advanced_structure:
+                from lfsr.cli_advanced import perform_advanced_structure_analysis_cli
+                
+                # Load coefficients from input file
+                if not args.input_file:
+                    print("ERROR: --advanced-structure requires input file with LFSR coefficients", file=sys.stderr)
+                    sys.exit(1)
+                
+                from lfsr.io import read_coefficient_vectors
+                coeffs_list = read_coefficient_vectors(args.input_file, args.gf_order)
+                if not coeffs_list:
+                    print("ERROR: No valid coefficients found in input file", file=sys.stderr)
+                    sys.exit(1)
+                
+                # Use first set of coefficients
+                coefficients = coeffs_list[0]
+                base_lfsr = LFSRConfig(
+                    coefficients=coefficients,
+                    field_order=args.gf_order,
+                    degree=len(coefficients)
+                )
+                
+                perform_advanced_structure_analysis_cli(
+                    structure_type=args.advanced_structure,
+                    base_lfsr_config=base_lfsr,
+                    analyze_structure=args.analyze_advanced_structure,
+                    generate_sequence=args.generate_advanced_sequence,
+                    sequence_length=args.advanced_sequence_length,
+                    output_file=output_file
                 )
             # Check if stream cipher analysis mode
             elif args.cipher:

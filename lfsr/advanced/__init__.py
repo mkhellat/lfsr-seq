@@ -21,21 +21,29 @@ from lfsr.advanced.base import (
 )
 
 # Import advanced structure implementations
-from lfsr.advanced.nonlinear import NonLinearLFSR, NFSR
-from lfsr.advanced.filtered import FilteredLFSR
-from lfsr.advanced.clock_controlled import ClockControlledLFSR
-from lfsr.advanced.multi_output import MultiOutputLFSR
-from lfsr.advanced.irregular_clocking import StopAndGoLFSR, Step1Step2LFSR
+from lfsr.advanced.nonlinear import NFSR, create_simple_nfsr
+from lfsr.advanced.filtered import FilteredLFSR, create_simple_filtered_lfsr
+from lfsr.advanced.clock_controlled import ClockControlledLFSR, create_stop_and_go_lfsr
+from lfsr.advanced.multi_output import MultiOutputLFSR, create_simple_multi_output_lfsr
+from lfsr.advanced.irregular_clocking import (
+    IrregularClockingLFSR,
+    create_stop_and_go_pattern,
+    create_step_1_step_2_pattern
+)
 
 __all__ = [
     "AdvancedLFSR",
     "AdvancedLFSRConfig",
     "AdvancedLFSRAnalysisResult",
-    "NonLinearLFSR",
     "NFSR",
+    "create_simple_nfsr",
     "FilteredLFSR",
+    "create_simple_filtered_lfsr",
     "ClockControlledLFSR",
+    "create_stop_and_go_lfsr",
     "MultiOutputLFSR",
-    "StopAndGoLFSR",
-    "Step1Step2LFSR",
+    "create_simple_multi_output_lfsr",
+    "IrregularClockingLFSR",
+    "create_stop_and_go_pattern",
+    "create_step_1_step_2_pattern",
 ]
