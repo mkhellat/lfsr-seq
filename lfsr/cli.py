@@ -1124,7 +1124,7 @@ def cli_main() -> None:
                     theoretical_max = int(args.gf_order) ** len(coefficients) - 1
                     
                     from lfsr.polynomial import is_primitive_polynomial
-                    from sage.all import *
+                    from sage.all import GF, PolynomialRing
                     F = GF(args.gf_order)
                     R = PolynomialRing(F, "t")
                     # Create polynomial from coefficients (simplified)
