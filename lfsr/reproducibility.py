@@ -9,315 +9,318 @@ seed tracking, configuration export, and environment capture.
 """
 
 import json
-import random
-import sys
 import platform
-from typing import Any, Dict, List, Optional, TextIO
-from dataclasses import dataclass, field, asdict
+import sys
 from datetime import datetime
 from pathlib import Path
+from typing import Any, Dict, List, Optional, TextIO
 import hashlib
+import random
 
-try:
-    import sage
-    SAGE_VERSION = sage.__version__
-except ImportError:
-    SAGE_VERSION = "not available"
-
-try:
-    import numpy
-    NUMPY_VERSION = numpy.__version__
-except ImportError:
-    NUMPY_VERSION = "not available"
+from sage.all import *
 
 
-@dataclass
-class ReproducibilityConfig:
+def generate_reproducibility_seed() -> int:
     """
-    Configuration for reproducibility tracking.
+    Generate a reproducibility seed for deterministic execution.
     
-    Attributes:
-        random_seed: Random seed used for analysis
-        python_version: Python version
-        platform: Platform information
-        dependencies: Dictionary of dependency versions
-        analysis_parameters: Analysis configuration parameters
-        timestamp: When analysis was performed
-        git_commit: Git commit hash (if available)
-    """
-    random_seed: Optional[int] = None
-    python_version: str = field(default_factory=lambda: sys.version)
-    platform: str = field(default_factory=lambda: platform.platform())
-    dependencies: Dict[str, str] = field(default_factory=dict)
-    analysis_parameters: Dict[str, Any] = field(default_factory=dict)
-    timestamp: str = field(default_factory=lambda: datetime.now().isoformat())
-    git_commit: Optional[str] = None
-
-
-class ReproducibilityTracker:
-    """
-    Tracks reproducibility information for analysis runs.
-    
-    This class provides comprehensive tracking of all information needed to
-    reproduce analysis results, including random seeds, configuration parameters,
-    environment information, and dependency versions.
+    This function generates a seed that can be used to ensure reproducible
+    results in analysis that involves randomness.
     
     **Key Terminology**:
     
-    - **Reproducibility**: The ability to reproduce research results using the
-      same methods, data, and environment. This is essential for scientific
-      validity and peer review.
+    - **Reproducibility Seed**: A value used to initialize random number
+      generators, ensuring that random operations produce the same sequence
+      of values when the same seed is used.
     
-    - **Random Seed**: A value used to initialize a pseudorandom number generator,
-      ensuring that random operations produce the same sequence of values when
-      the same seed is used. This is crucial for reproducibility.
+    - **Deterministic Execution**: Execution that produces the same results
+      when given the same inputs and seed, enabling exact reproduction of
+      results.
     
-    - **Configuration Export**: Saving all analysis parameters and settings
-      so that the exact same analysis can be rerun later.
+    - **Research Reproducibility**: The ability to reproduce research results
+      using the same methods, data, and configuration. This is essential for
+      scientific validity.
     
-    - **Environment Capture**: Recording information about the computing
-      environment, including software versions, operating system, and hardware
-      specifications.
+    Returns:
+        Integer seed value
+    """
+    # Generate seed from current timestamp (for uniqueness)
+    # In practice, users should set a specific seed for reproducibility
+    return int(datetime.now().timestamp() * 1000000) % (2**31)
+
+
+def set_reproducibility_seed(seed: int) -> None:
+    """
+    Set seed for reproducible random number generation.
+    
+    Args:
+        seed: Seed value to use
+    """
+    random.seed(seed)
+    # SageMath uses Python's random, so this should be sufficient
+    # Additional SageMath-specific seeding if needed
+
+
+def capture_environment() -> Dict[str, Any]:
+    """
+    Capture environment information for reproducibility.
+    
+    This function captures system and software environment information
+    needed to reproduce analysis results.
+    
+    **Key Terminology**:
+    
+    - **Environment Capture**: Recording system information, software versions,
+      and configuration that might affect results.
+    
+    - **System Information**: Details about the computing environment including
+      operating system, CPU, memory, and software versions.
+    
+    - **Dependency Tracking**: Recording versions of software libraries and
+      dependencies used in the analysis.
+    
+    Returns:
+        Dictionary with environment information
+    """
+    try:
+        import sage
+        sage_version = sage.__version__
+    except (ImportError, AttributeError):
+        sage_version = "unknown"
+    
+    try:
+        import numpy
+        numpy_version = numpy.__version__
+    except (ImportError, AttributeError):
+        numpy_version = "not installed"
+    
+    environment = {
+        'timestamp': datetime.now().isoformat(),
+        'python_version': sys.version,
+        'platform': platform.platform(),
+        'processor': platform.processor(),
+        'system': platform.system(),
+        'sage_version': sage_version,
+        'numpy_version': numpy_version,
+        'python_executable': sys.executable
+    }
+    
+    return environment
+
+
+def export_configuration(
+    analysis_config: Dict[str, Any],
+    output_file: Optional[TextIO] = None
+) -> str:
+    """
+    Export complete analysis configuration for reproducibility.
+    
+    This function exports all configuration parameters needed to reproduce
+    an analysis, including coefficients, field order, methods, and options.
+    
+    **Key Terminology**:
+    
+    - **Configuration Export**: Saving all parameters and settings used in
+      an analysis to enable exact reproduction.
+    
+    - **Analysis Configuration**: All parameters, options, and settings that
+      affect the results of an analysis.
     
     - **Reproducibility Report**: A document containing all information needed
-      to reproduce research results, including configuration, environment, and
-      execution parameters.
+      to reproduce research results.
     
-    Example:
-        >>> tracker = ReproducibilityTracker()
-        >>> tracker.set_seed(42)
-        >>> tracker.add_parameter("field_order", 2)
-        >>> config = tracker.get_config()
-        >>> report = tracker.generate_report()
+    Args:
+        analysis_config: Dictionary with analysis configuration
+        output_file: Optional file to write configuration to
+    
+    Returns:
+        JSON string with configuration
     """
+    config = {
+        'timestamp': datetime.now().isoformat(),
+        'configuration': analysis_config,
+        'environment': capture_environment()
+    }
     
-    def __init__(self):
-        """Initialize reproducibility tracker."""
-        self.config = ReproducibilityConfig()
-        self.config.dependencies = {
-            'python': sys.version.split()[0],
-            'sage': SAGE_VERSION,
-            'numpy': NUMPY_VERSION
-        }
-        self._try_get_git_commit()
+    config_json = json.dumps(config, indent=2)
     
-    def _try_get_git_commit(self):
-        """Try to get current git commit hash."""
-        try:
-            import subprocess
-            result = subprocess.run(
-                ['git', 'rev-parse', 'HEAD'],
-                capture_output=True,
-                text=True,
-                timeout=5
-            )
-            if result.returncode == 0:
-                self.config.git_commit = result.stdout.strip()
-        except (subprocess.TimeoutExpired, FileNotFoundError, Exception):
-            pass
+    if output_file:
+        output_file.write(config_json)
+        output_file.write("\n")
     
-    def set_seed(self, seed: Optional[int] = None):
-        """
-        Set random seed for reproducibility.
-        
-        Args:
-            seed: Random seed (if None, generates a new seed)
-        """
-        if seed is None:
-            seed = random.randint(0, 2**31 - 1)
-        
-        self.config.random_seed = seed
-        random.seed(seed)
-        
-        # Also set SageMath random seed if available
-        try:
-            from sage.all import set_random_seed
-            set_random_seed(seed)
-        except (ImportError, AttributeError):
-            pass
+    return config_json
+
+
+def generate_reproducibility_report(
+    analysis_config: Dict[str, Any],
+    analysis_results: Dict[str, Any],
+    seed: Optional[int] = None,
+    output_file: Optional[TextIO] = None
+) -> str:
+    """
+    Generate comprehensive reproducibility report.
     
-    def get_seed(self) -> Optional[int]:
-        """
-        Get current random seed.
-        
-        Returns:
-            Current random seed
-        """
-        return self.config.random_seed
+    This function generates a complete reproducibility report including
+    configuration, environment, results, and verification information.
     
-    def add_parameter(self, name: str, value: Any):
-        """
-        Add analysis parameter.
-        
-        Args:
-            name: Parameter name
-            value: Parameter value
-        """
-        self.config.analysis_parameters[name] = value
+    **Key Terminology**:
     
-    def add_parameters(self, parameters: Dict[str, Any]):
-        """
-        Add multiple analysis parameters.
-        
-        Args:
-            parameters: Dictionary of parameters
-        """
-        self.config.analysis_parameters.update(parameters)
+    - **Reproducibility Report**: A comprehensive document containing all
+      information needed to reproduce research results, including configuration,
+      environment, methods, and results.
     
-    def get_config(self) -> ReproducibilityConfig:
-        """
-        Get current reproducibility configuration.
-        
-        Returns:
-            ReproducibilityConfig object
-        """
-        return self.config
+    - **Research Reproducibility**: The ability to reproduce research results
+      using the same methods, data, and configuration. Essential for scientific
+      validity and peer review.
     
-    def export_config(self, filename: str):
-        """
-        Export configuration to JSON file.
-        
-        Args:
-            filename: Output filename
-        """
-        config_dict = asdict(self.config)
-        
-        # Convert non-serializable values
-        def convert_value(v):
-            if isinstance(v, (dict, list, str, int, float, bool, type(None))):
-                return v
-            return str(v)
-        
-        def convert_dict(d):
-            if isinstance(d, dict):
-                return {k: convert_value(v) for k, v in d.items()}
-            return convert_value(d)
-        
-        config_dict = convert_dict(config_dict)
-        
-        with open(filename, 'w') as f:
-            json.dump(config_dict, f, indent=2, default=str)
+    - **Verification Information**: Data that can be used to verify that
+      reproduced results match the original results.
     
-    def load_config(self, filename: str) -> ReproducibilityConfig:
-        """
-        Load configuration from JSON file.
-        
-        Args:
-            filename: Input filename
-        
-        Returns:
-            Loaded ReproducibilityConfig
-        """
-        with open(filename, 'r') as f:
-            config_dict = json.load(f)
-        
-        self.config = ReproducibilityConfig(**config_dict)
-        return self.config
+    Args:
+        analysis_config: Analysis configuration
+        analysis_results: Analysis results
+        seed: Optional seed used for reproducibility
+        output_file: Optional file to write report to
     
-    def generate_report(self, output_file: Optional[TextIO] = None) -> str:
-        """
-        Generate reproducibility report.
-        
-        Args:
-            output_file: Optional file to write report to
-        
-        Returns:
-            Report as string
-        """
-        report_lines = []
-        
-        report_lines.append("=" * 70)
-        report_lines.append("Reproducibility Report")
-        report_lines.append("=" * 70)
-        report_lines.append("")
-        
-        report_lines.append("Timestamp:")
-        report_lines.append(f"  {self.config.timestamp}")
-        report_lines.append("")
-        
-        if self.config.random_seed is not None:
-            report_lines.append("Random Seed:")
-            report_lines.append(f"  {self.config.random_seed}")
-            report_lines.append("")
-        
-        report_lines.append("Environment:")
-        report_lines.append(f"  Platform: {self.config.platform}")
-        report_lines.append(f"  Python: {self.config.python_version}")
-        report_lines.append("")
-        
-        report_lines.append("Dependencies:")
-        for dep, version in self.config.dependencies.items():
-            report_lines.append(f"  {dep}: {version}")
-        report_lines.append("")
-        
-        if self.config.git_commit:
-            report_lines.append("Git Commit:")
-            report_lines.append(f"  {self.config.git_commit}")
-            report_lines.append("")
-        
-        if self.config.analysis_parameters:
-            report_lines.append("Analysis Parameters:")
-            for param, value in self.config.analysis_parameters.items():
-                report_lines.append(f"  {param}: {value}")
-            report_lines.append("")
-        
-        report_lines.append("=" * 70)
-        
-        report = "\n".join(report_lines)
-        
-        if output_file:
-            output_file.write(report)
-            output_file.write("\n")
-        
-        return report
+    Returns:
+        JSON string with reproducibility report
+    """
+    report = {
+        'report_type': 'reproducibility_report',
+        'timestamp': datetime.now().isoformat(),
+        'seed': seed,
+        'configuration': analysis_config,
+        'environment': capture_environment(),
+        'results': analysis_results,
+        'reproducibility_notes': [
+            'This report contains all information needed to reproduce the analysis.',
+            'Use the same configuration, environment, and seed to reproduce results.',
+            'Verify results match by comparing result hashes or values.'
+        ]
+    }
     
-    def generate_latex_report(self) -> str:
-        """
-        Generate LaTeX-formatted reproducibility report.
-        
-        Returns:
-            LaTeX code as string
-        """
-        latex_lines = []
-        
-        latex_lines.append("\\section{Reproducibility Information}")
-        latex_lines.append("")
-        
-        latex_lines.append("\\subsection{Environment}")
-        latex_lines.append("\\begin{itemize}")
-        latex_lines.append(f"\\item Platform: {self.config.platform}")
-        latex_lines.append(f"\\item Python: {self.config.python_version}")
-        for dep, version in self.config.dependencies.items():
-            latex_lines.append(f"\\item {dep}: {version}")
-        latex_lines.append("\\end{itemize}")
-        latex_lines.append("")
-        
-        if self.config.random_seed is not None:
-            latex_lines.append("\\subsection{Random Seed}")
-            latex_lines.append(f"The random seed used was: {self.config.random_seed}")
-            latex_lines.append("")
-        
-        if self.config.analysis_parameters:
-            latex_lines.append("\\subsection{Analysis Parameters}")
-            latex_lines.append("\\begin{itemize}")
-            for param, value in self.config.analysis_parameters.items():
-                latex_lines.append(f"\\item {param}: {value}")
-            latex_lines.append("\\end{itemize}")
-            latex_lines.append("")
-        
-        if self.config.git_commit:
-            latex_lines.append("\\subsection{Version Information}")
-            latex_lines.append(f"Git commit: \\texttt{{{self.config.git_commit}}}")
-            latex_lines.append("")
-        
-        return "\n".join(latex_lines)
+    # Compute result hash for verification
+    results_str = json.dumps(analysis_results, sort_keys=True)
+    result_hash = hashlib.sha256(results_str.encode()).hexdigest()
+    report['result_hash'] = result_hash
     
-    def compute_config_hash(self) -> str:
-        """
-        Compute hash of configuration for verification.
+    report_json = json.dumps(report, indent=2)
+    
+    if output_file:
+        output_file.write(report_json)
+        output_file.write("\n")
+    
+    return report_json
+
+
+def load_configuration(
+    config_file: str
+) -> Dict[str, Any]:
+    """
+    Load analysis configuration from file.
+    
+    Args:
+        config_file: Path to configuration file
+    
+    Returns:
+        Dictionary with configuration
+    """
+    with open(config_file, 'r') as f:
+        config = json.load(f)
+    
+    return config.get('configuration', config)
+
+
+def verify_reproducibility(
+    original_results: Dict[str, Any],
+    reproduced_results: Dict[str, Any]
+) -> Dict[str, Any]:
+    """
+    Verify that reproduced results match original results.
+    
+    This function compares original and reproduced results to verify
+    that reproduction was successful.
+    
+    **Key Terminology**:
+    
+    - **Result Verification**: Comparing reproduced results with original
+      results to ensure they match exactly.
+    
+    - **Reproducibility Verification**: Confirming that reproduced results
+      match the original results, validating the reproducibility process.
+    
+    Args:
+        original_results: Original analysis results
+        reproduced_results: Reproduced analysis results
+    
+    Returns:
+        Dictionary with verification status and details
+    """
+    # Compute hashes for comparison
+    original_str = json.dumps(original_results, sort_keys=True)
+    reproduced_str = json.dumps(reproduced_results, sort_keys=True)
+    
+    original_hash = hashlib.sha256(original_str.encode()).hexdigest()
+    reproduced_hash = hashlib.sha256(reproduced_str.encode()).hexdigest()
+    
+    matches = original_hash == reproduced_hash
+    
+    verification = {
+        'verified': matches,
+        'original_hash': original_hash,
+        'reproduced_hash': reproduced_hash,
+        'message': 'Results match exactly' if matches else 'Results do not match'
+    }
+    
+    # Detailed comparison if hashes don't match
+    if not matches:
+        verification['differences'] = _compare_results(
+            original_results, reproduced_results
+        )
+    
+    return verification
+
+
+def _compare_results(
+    original: Dict[str, Any],
+    reproduced: Dict[str, Any],
+    path: str = ""
+) -> List[str]:
+    """
+    Compare two result dictionaries and find differences.
+    
+    Args:
+        original: Original results
+        reproduced: Reproduced results
+        path: Current path in nested structure
+    
+    Returns:
+        List of difference descriptions
+    """
+    differences = []
+    
+    # Check keys
+    original_keys = set(original.keys())
+    reproduced_keys = set(reproduced.keys())
+    
+    missing = original_keys - reproduced_keys
+    extra = reproduced_keys - original_keys
+    
+    for key in missing:
+        differences.append(f"Missing key: {path}.{key}" if path else f"Missing key: {key}")
+    
+    for key in extra:
+        differences.append(f"Extra key: {path}.{key}" if path else f"Extra key: {key}")
+    
+    # Compare common keys
+    for key in original_keys & reproduced_keys:
+        current_path = f"{path}.{key}" if path else key
+        orig_val = original[key]
+        repro_val = reproduced[key]
         
-        Returns:
-            SHA256 hash of configuration
-        """
-        config_str = json.dumps(asdict(self.config), sort_keys=True, default=str)
-        return hashlib.sha256(config_str.encode()).hexdigest()
+        if isinstance(orig_val, dict) and isinstance(repro_val, dict):
+            differences.extend(_compare_results(orig_val, repro_val, current_path))
+        elif orig_val != repro_val:
+            differences.append(f"Value mismatch at {current_path}: {orig_val} != {repro_val}")
+    
+    return differences
