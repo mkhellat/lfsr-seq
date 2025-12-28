@@ -1,22 +1,10 @@
 """
-Machine Learning Integration for LFSR Analysis
+Machine Learning Integration Module
 
-This module provides ML-based analysis capabilities including period prediction,
-pattern detection, and anomaly detection.
+This module provides ML-based analysis capabilities for LFSR sequences,
+including period prediction, pattern detection, anomaly detection, and
+attack success prediction.
 """
 
-from lfsr.ml.base import MLModel, FeatureExtractor
-from lfsr.ml.period_prediction import PeriodPredictor, train_period_predictor
-from lfsr.ml.pattern_detection import PatternDetector, detect_patterns
-from lfsr.ml.anomaly_detection import AnomalyDetector, detect_anomalies
-
-__all__ = [
-    "MLModel",
-    "FeatureExtractor",
-    "PeriodPredictor",
-    "train_period_predictor",
-    "PatternDetector",
-    "detect_patterns",
-    "AnomalyDetector",
-    "detect_anomalies",
-]
+# ML features will be imported here as they are implemented
+__all__ = []
