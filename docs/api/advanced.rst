@@ -2,8 +2,8 @@ Advanced LFSR Structures API
 ==============================
 
 The advanced LFSR structures module provides analysis capabilities for
-non-linear feedback, filtered LFSRs, clock-controlled LFSRs, multi-output
-LFSRs, and irregular clocking patterns.
+non-linear feedback, filtered, clock-controlled, multi-output, and irregular
+clocking LFSRs.
 
 .. automodule:: lfsr.advanced
    :members:
@@ -43,24 +43,19 @@ Results from advanced LFSR structure analysis.
 Structure Implementations
 --------------------------
 
-Non-Linear Feedback LFSRs
-~~~~~~~~~~~~~~~~~~~~~~~~~~
+Non-Linear Feedback LFSRs (NFSRs)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. autoclass:: lfsr.advanced.nonlinear.NFSR
    :members:
    :no-index:
 
-Non-Linear Feedback Shift Register (NFSR) implementation.
+Non-linear feedback shift register implementation.
 
-.. autofunction:: lfsr.advanced.nonlinear.create_nfsr_with_and_feedback
+.. autofunction:: lfsr.advanced.nonlinear.create_simple_nfsr
    :no-index:
 
-Create NFSR with AND-based feedback function.
-
-.. autofunction:: lfsr.advanced.nonlinear.create_nfsr_with_combined_feedback
-   :no-index:
-
-Create NFSR with combined linear and non-linear feedback.
+Helper function to create a simple NFSR.
 
 Filtered LFSRs
 ~~~~~~~~~~~~~~
@@ -71,10 +66,10 @@ Filtered LFSRs
 
 Filtered LFSR implementation.
 
-.. autofunction:: lfsr.advanced.filtered.create_filtered_lfsr_with_and_filter
+.. autofunction:: lfsr.advanced.filtered.create_simple_filtered_lfsr
    :no-index:
 
-Create Filtered LFSR with AND-based filter function.
+Helper function to create a simple filtered LFSR.
 
 Clock-Controlled LFSRs
 ~~~~~~~~~~~~~~~~~~~~~~
@@ -83,17 +78,12 @@ Clock-Controlled LFSRs
    :members:
    :no-index:
 
-Clock-Controlled LFSR implementation.
+Clock-controlled LFSR implementation.
 
 .. autofunction:: lfsr.advanced.clock_controlled.create_stop_and_go_lfsr
    :no-index:
 
-Create stop-and-go clock-controlled LFSR.
-
-.. autofunction:: lfsr.advanced.clock_controlled.create_step1_step2_lfsr
-   :no-index:
-
-Create step-1/step-2 clock-controlled LFSR.
+Create a stop-and-go clock-controlled LFSR.
 
 Multi-Output LFSRs
 ~~~~~~~~~~~~~~~~~~
@@ -102,12 +92,12 @@ Multi-Output LFSRs
    :members:
    :no-index:
 
-Multi-Output LFSR implementation.
+Multi-output LFSR implementation.
 
-.. autofunction:: lfsr.advanced.multi_output.create_direct_output_lfsr
+.. autofunction:: lfsr.advanced.multi_output.create_simple_multi_output_lfsr
    :no-index:
 
-Create multi-output LFSR with direct output from state positions.
+Helper function to create a simple multi-output LFSR.
 
 Irregular Clocking Patterns
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -116,31 +106,33 @@ Irregular Clocking Patterns
    :members:
    :no-index:
 
-LFSR with irregular clocking pattern.
+Irregular clocking LFSR implementation.
 
-**Example**:
+.. autofunction:: lfsr.advanced.irregular_clocking.create_stop_and_go_pattern
+   :no-index:
 
-.. code-block:: python
+Create stop-and-go clocking pattern function.
 
-   from lfsr.advanced import NFSR, FilteredLFSR, ClockControlledLFSR
-   from lfsr.attacks import LFSRConfig
-   
-   base_lfsr = LFSRConfig(coefficients=[1, 0, 0, 1], field_order=2, degree=4)
-   
-   # NFSR
-   def nfsr_feedback(state):
-       return (state[0] & state[1]) ^ state[2]
-   nfsr = NFSR(base_lfsr, nfsr_feedback)
-   
-   # Filtered LFSR
-   def filter_func(state):
-       return (state[0] & state[1]) ^ state[2]
-   filtered = FilteredLFSR(base_lfsr, filter_func)
-   
-   # Clock-controlled LFSR
-   def clock_control(state):
-       return 1 if state[0] == 1 else 0
-   cclfsr = ClockControlledLFSR(base_lfsr, clock_control)
+.. autofunction:: lfsr.advanced.irregular_clocking.create_step_1_step_2_pattern
+   :no-index:
+
+Create step-1/step-2 clocking pattern function.
+
+Important Notes
+---------------
+
+**Non-Linearity**: Advanced structures introduce non-linearity to break
+linearity weaknesses of basic LFSRs. This provides better security but
+may make analysis more complex.
+
+**Security Trade-offs**: Each structure type has different security properties
+and trade-offs. Filtered LFSRs provide good security but require careful
+filter function design. Clock-controlled LFSRs provide irregularity but
+may be vulnerable to clock control analysis.
+
+**Analysis Complexity**: Advanced structures are generally more complex to
+analyze than basic LFSRs. The tool provides analysis capabilities but
+full security assessment may require additional research.
 
 See Also
 --------
