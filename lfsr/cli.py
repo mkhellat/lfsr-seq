@@ -174,29 +174,34 @@ def main(
                 effective_algorithm = "enumeration"  # Enumeration is better for full mode
         
         # Decide whether to use parallel processing
-        # Auto-detect: use parallel if state space is large enough and parallel is enabled
+        # CRITICAL: Parallel processing is currently SLOWER than sequential due to overhead
+        # Disable by default until performance issues are resolved
+        # Users can still enable with --parallel flag if they want to test
         should_use_parallel = False
         if use_parallel is None:
-            # Auto-detect: use parallel for large state spaces
-            # Threshold: > 10,000 states and at least 2 CPU cores
-            import multiprocessing
-            should_use_parallel = (
-                state_vector_space_size > 10000
-                and multiprocessing.cpu_count() >= 2
-            )
+            # Auto-detect: DISABLED - parallel is currently slower than sequential
+            # The multiprocessing overhead (process creation, IPC, SageMath initialization)
+            # outweighs the benefits for most workloads
+            # TODO: Re-enable when parallel actually provides speedups
+            should_use_parallel = False
         else:
             should_use_parallel = use_parallel
         
         # Use parallel or sequential version
-        # NOTE: Parallel processing works reliably only in period-only mode
-        # In full sequence mode, it may hang due to SageMath/multiprocessing issues
+        # NOTE: Parallel processing currently has performance issues:
+        # - Slower than sequential due to multiprocessing overhead
+        # - Deduplication issues in period-only mode
+        # - SageMath initialization overhead in workers
+        # Use sequential by default for best performance
         if should_use_parallel:
+            import sys
+            print("WARNING: Parallel processing is currently EXPERIMENTAL and may be SLOWER than sequential.", file=sys.stderr)
+            print("  Performance issues: multiprocessing overhead, SageMath initialization, deduplication.", file=sys.stderr)
+            print("  For best performance, use --no-parallel (sequential mode).", file=sys.stderr)
             from lfsr.analysis import lfsr_sequence_mapper_parallel
             # Force period_only=True for parallel processing to avoid hangs
-            # This is a workaround until the matrix multiplication hang is fixed
             parallel_period_only = period_only if period_only else True
             if not period_only:
-                import sys
                 print("WARNING: Parallel processing forced to period-only mode to avoid hangs.", file=sys.stderr)
                 print("  Use --no-parallel for full sequence mode, or --period-only for parallel.", file=sys.stderr)
             seq_dict, period_dict, max_period, periods_sum = lfsr_sequence_mapper_parallel(

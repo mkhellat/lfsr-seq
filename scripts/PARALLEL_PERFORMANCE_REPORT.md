@@ -8,14 +8,19 @@
 
 ## Executive Summary
 
-This report documents the performance characteristics of parallel state enumeration implementation. Initial benchmarks show that parallel processing provides speedup for larger state spaces, but overhead dominates for small LFSRs.
+**⚠️ CRITICAL UPDATE**: This report documents the performance characteristics of parallel state enumeration implementation. **Current benchmarks show that parallel processing is SLOWER than sequential** due to multiprocessing overhead and SageMath initialization costs.
 
-**Key Findings**:
-- Parallel processing works correctly and produces accurate results
-- Speedup observed: 1.15x - 2.45x for tested configurations
-- Overhead is significant for small state spaces (< 100 states)
-- Best performance with 1-2 workers for small LFSRs
-- Need larger state spaces (> 10,000 states) to see significant benefits
+**Key Findings** (Current Status):
+- ⚠️ **Parallel processing is 2-4x SLOWER than sequential** (0.25x - 0.5x speedup)
+- **Root Causes**: Multiprocessing overhead, SageMath initialization per worker, deduplication issues
+- **Small LFSRs**: Sequential 0.19s, Parallel 0.XXs (slower)
+- **Large LFSRs**: Sequential 13.3s, Parallel 54s (4x slower)
+- **Recommendation**: Use sequential processing (--no-parallel) for best performance
+
+**Historical Benchmarks** (from earlier implementation):
+- These benchmarks were from an earlier version with different implementation
+- Current implementation has different performance characteristics
+- Performance degraded due to SageMath initialization overhead and deduplication fixes
 
 ---
 

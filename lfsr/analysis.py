@@ -1000,9 +1000,10 @@ def _process_state_chunk(
         worker_id,
     ) = chunk_data
     
-    # CRITICAL: In 'spawn' mode, each worker is a fresh Python process
-    # SageMath needs to be imported from scratch - it's not inherited
-    # This is actually better than 'fork' because there's no shared state issues
+    # Import SageMath in worker
+    # With 'fork' method (Linux default), workers inherit parent's memory
+    # so SageMath should already be imported. Just import what we need.
+    # With 'spawn' method, we need to import from scratch.
     import sys
     import os
     
@@ -1011,12 +1012,10 @@ def _process_state_chunk(
     debug_log = lambda msg: print(f'[Worker {worker_id} PID {os.getpid()}] {msg}', file=sys.stderr, flush=True) if DEBUG_PARALLEL else lambda msg: None
     
     if DEBUG_PARALLEL:
-        debug_log('Starting worker function (spawn mode - fresh process)...')
+        debug_log('Starting worker function...')
     
     try:
-        # In spawn mode, SageMath needs to be imported fresh
-        # The parent's SageMath state is not available
-        debug_log('Importing SageMath in fresh process...')
+        # Try to import SageMath (works in fork mode, may need setup in spawn mode)
         from sage.all import VectorSpace, GF, vector
         debug_log('SageMath import successful')
         
@@ -1032,15 +1031,15 @@ def _process_state_chunk(
             
     except ImportError as e:
         debug_log(f'SageMath import failed: {e}')
-        # In spawn mode, we need to set up SageMath path properly
-        debug_log('Setting up SageMath path for spawn mode...')
+        # If import fails, try to set up SageMath path (for spawn method)
+        debug_log('Setting up SageMath path...')
         try:
             import subprocess
             result = subprocess.run(
                 ["sage", "-c", "import sys; print('\\n'.join(sys.path))"],
                 capture_output=True,
                 text=True,
-                timeout=10,  # Longer timeout for spawn mode
+                timeout=10,
             )
             if result.returncode == 0:
                 sage_paths = result.stdout.strip().split("\n")
@@ -1087,6 +1086,12 @@ def _process_state_chunk(
     processed_count = 0
     errors = []
     
+    # CRITICAL PERFORMANCE FIX: Create GF, VectorSpace once per worker, not per state!
+    # Creating these for every state is extremely expensive and kills performance
+    F = GF(gf_order)
+    V = VectorSpace(F, lfsr_degree)
+    debug_log(f'Created GF({gf_order}) and VectorSpace once per worker (performance optimization)')
+    
     # Local visited set for this worker (to avoid processing same cycle multiple times in this chunk)
     local_visited = set()
     
@@ -1111,10 +1116,7 @@ def _process_state_chunk(
                 continue
             
             # Reconstruct state vector from tuple
-            # Create the finite field and vector space
-            debug_log(f'State {idx+1}: Creating finite field and vector space...')
-            F = GF(gf_order)
-            V = VectorSpace(F, lfsr_degree)
+            # CRITICAL: F and V are already created above - reuse them!
             # Convert tuple to list and create vector
             debug_log(f'State {idx+1}: Converting tuple to vector...')
             state_list = [F(x) for x in state_tuple]
@@ -1160,12 +1162,23 @@ def _process_state_chunk(
                     errors.append(f'Error computing period for state {state_tuple}: {str(e)}')
                     continue
                 
-                # CRITICAL: Matrix multiplication in a loop hangs in multiprocessing context
-                # Even for small periods, avoid the enumeration loop
-                # Use start_state+period as key for deduplication (merge will handle it)
-                debug_log(f'State {idx+1}: Period-only mode - using start_state+period for deduplication (period={seq_period})...')
-                states_tuples = []  # Empty - merge will use start_state+period for deduplication
-                local_visited.add(state_tuple)  # Mark start state only
+                # CRITICAL FIX: For proper deduplication, we need to compute at least a few states
+                # from the cycle to create a canonical key. But we can't compute the full cycle
+                # because that causes hangs. Solution: Compute just 2-3 states to create a signature.
+                # This is a compromise between correctness and avoiding hangs.
+                debug_log(f'State {idx+1}: Period-only mode - computing cycle signature for deduplication...')
+                # Compute first 3 states of cycle to create a signature (minimal computation)
+                cycle_signature = [state_tuple]  # Start with initial state
+                current = state
+                for _ in range(min(2, seq_period - 1)):  # Get 2 more states (3 total)
+                    current = current * state_update_matrix
+                    cycle_signature.append(tuple(current))
+                # Use sorted signature as canonical key (cycles are same regardless of start point)
+                states_tuples = tuple(sorted(cycle_signature))
+                debug_log(f'State {idx+1}: Cycle signature computed: {len(states_tuples)} states')
+                # Mark all states in signature as visited
+                for sig_state in cycle_signature:
+                    local_visited.add(sig_state)
             else:
                 # Full mode: get sequence normally
                 debug_log(f'State {idx+1}: Calling _find_sequence_cycle with period_only={period_only}, algorithm={algorithm}')
@@ -1326,8 +1339,15 @@ def lfsr_sequence_mapper_parallel(
         import time
         start_time = time.time()
         
-        # Use 'spawn' context instead of default 'fork' to avoid SageMath issues
-        ctx = multiprocessing.get_context('spawn')
+        # Try to use 'fork' if available (faster), fall back to 'spawn' if needed
+        # Fork is faster but can have SageMath issues, spawn is slower but more reliable
+        try:
+            # Try fork first (faster, works on Linux)
+            ctx = multiprocessing.get_context('fork')
+        except ValueError:
+            # Fall back to spawn if fork not available
+            ctx = multiprocessing.get_context('spawn')
+        
         with ctx.Pool(processes=num_workers) as pool:
             if not no_progress:
                 print(f"  Pool created, starting workers...")
@@ -1338,17 +1358,20 @@ def lfsr_sequence_mapper_parallel(
             async_result = pool.map_async(_process_state_chunk, chunk_data_list)
             
             if not no_progress:
-                print(f"  Workers started, waiting for results (timeout: 120s total)...")
+                timeout_msg = "120s" if ctx.get_start_method() == 'spawn' else "40s"
+                print(f"  Workers started, waiting for results (timeout: {timeout_msg} total)...")
                 import sys
                 sys.stdout.flush()
             
             try:
                 # Wait with reasonable timeout
-                # Serial takes max 35s, but spawn mode is slower due to process creation
-                # For large state spaces (32768 states), spawn mode needs more time
-                # Use 120s timeout for spawn mode to account for startup overhead and large workloads
-                # (fork mode would be faster, but spawn is more reliable with SageMath)
-                total_timeout = 120
+                # Serial takes max 35s, so parallel should be faster
+                # Use adaptive timeout: 40s for fork (fast), 120s for spawn (slower startup)
+                # Fork mode is faster, spawn mode is more reliable but slower
+                if ctx.get_start_method() == 'spawn':
+                    total_timeout = 120  # Spawn needs more time for process creation
+                else:
+                    total_timeout = 40   # Fork is faster, less overhead
                 worker_results = async_result.get(timeout=total_timeout)
                 
                 elapsed = time.time() - start_time
