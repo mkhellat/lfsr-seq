@@ -48,6 +48,7 @@ Documentation Contents
    advanced_lfsr_structures
    theoretical_analysis
    ml_integration
+   visualization
    nist_sp800_22
    optimization_techniques
 
