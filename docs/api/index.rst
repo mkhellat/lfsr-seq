@@ -20,6 +20,7 @@ The lfsr-seq package is organized into the following modules:
 * **TMTO Module** (`lfsr.tmto`): Time-memory trade-off attacks (Hellman and Rainbow tables)
 * **Ciphers Module** (`lfsr.ciphers`): Stream cipher analysis (A5/1, A5/2, E0, Trivium, Grain, LILI-128)
 * **Advanced Module** (`lfsr.advanced`): Advanced LFSR structures (non-linear, filtered, clock-controlled, multi-output)
+* **Visualization Module** (`lfsr.visualization`): Interactive and publication-quality visualizations
 * **Export Module** (`lfsr.export`): Multi-format export (JSON, CSV, XML)
 * **I/O Module** (`lfsr.io`): CSV file reading and validation
 * **Formatter Module** (`lfsr.formatter`): Output formatting and display
