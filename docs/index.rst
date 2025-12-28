@@ -47,6 +47,7 @@ Documentation Contents
    stream_ciphers
    advanced_lfsr_structures
    theoretical_analysis
+   ml_integration
    nist_sp800_22
    optimization_techniques
 

@@ -739,6 +739,22 @@ lfsr-seq coefficients.csv 2 --benchmark
 lfsr-seq coefficients.csv 2 --reproducibility-report report.json
 ```
 
+### Example 13: Machine Learning Analysis
+
+```bash
+# Predict period using ML model
+lfsr-seq coefficients.csv 2 --ml-predict-period
+
+# Detect patterns in sequence
+lfsr-seq coefficients.csv 2 --ml-detect-patterns --sequence-length 1000
+
+# Detect anomalies
+lfsr-seq coefficients.csv 2 --ml-detect-anomalies
+
+# Train custom ML model
+lfsr-seq coefficients.csv 2 --ml-train --model-type period_predictor
+```
+
 ## Project Structure
 
 ```
@@ -781,7 +797,16 @@ lfsr-seq/
 │   ├── paper_generator.py # Research paper generation
 │   ├── theoretical_db.py  # Known result database
 │   ├── benchmarking.py    # Benchmarking framework
-│   └── reproducibility.py # Reproducibility features
+│   ├── reproducibility.py # Reproducibility features
+│   └── ml/                # Machine learning integration
+│       ├── __init__.py    # ML module initialization
+│       ├── base.py        # Base ML classes and interfaces
+│       ├── features.py    # Feature extraction
+│       ├── models.py      # ML models
+│       ├── period_prediction.py  # Period prediction models
+│       ├── pattern_detection.py  # Pattern detection
+│       ├── anomaly_detection.py  # Anomaly detection
+│       └── training.py    # Model training pipeline
 │   ├── cli_correlation.py  # CLI for correlation attacks
 │   ├── cli_algebraic.py    # CLI for algebraic attacks
 │   ├── cli_tmto.py         # CLI for TMTO attacks
@@ -1106,6 +1131,10 @@ compared with the periods of the listed sequences.
 - **Reproducibility**: Ability to reproduce research results using same methods and parameters
 - **Benchmarking**: Measuring and comparing performance of different analysis methods
 - **Known Result Database**: Collection of known theoretical results for verification
+- **Machine Learning Integration**: ML-based analysis for period prediction, pattern detection, and anomaly detection
+- **Period Prediction**: ML models to predict LFSR periods from polynomial structure
+- **Pattern Detection**: Automatic detection of patterns in sequences and state transitions
+- **Anomaly Detection**: Identification of anomalies in sequences and distributions
 - **NIST SP 800-22**: Industry-standard statistical test suite for randomness
 - **Period Computation via Factorization**: Efficient period computation using polynomial factorization
 - **Result Caching**: Storing computed results for reuse without recomputation
@@ -1118,6 +1147,7 @@ For time-memory trade-off attacks, see [TMTO Attacks Guide](docs/time_memory_tra
 For stream cipher analysis, see [Stream Ciphers Guide](docs/stream_ciphers.rst).
 For advanced LFSR structures, see [Advanced LFSR Structures Guide](docs/advanced_lfsr_structures.rst).
 For theoretical analysis features, see [Theoretical Analysis Guide](docs/theoretical_analysis.rst).
+For machine learning features, see [Machine Learning Guide](docs/machine_learning.rst) (if available).
 For NIST test suite documentation, see [NIST SP 800-22 Guide](docs/nist_sp800_22.rst).
 For optimization techniques, see [Optimization Techniques Guide](docs/optimization_techniques.rst).
 
