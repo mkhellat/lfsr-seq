@@ -1012,6 +1012,22 @@ def _process_state_chunk(
         worker_id,
     ) = chunk_data
     
+    # Helper function to convert state tuple to index (for chunk boundary checking)
+    def tuple_to_index(state_tup, degree, field_order):
+        """Convert state tuple to index (inverse of state_index_to_tuple)."""
+        if field_order == 2:
+            # Binary to integer
+            idx = 0
+            for i, bit in enumerate(state_tup):
+                idx |= (int(bit) << i)
+            return idx
+        else:
+            # Base-q to integer
+            idx = 0
+            for i, digit in enumerate(state_tup):
+                idx += int(digit) * (field_order ** i)
+            return idx
+    
     # Import SageMath in worker
     # With 'fork' method (Linux default), workers inherit parent's memory
     # so SageMath should already be imported. Just import what we need.
