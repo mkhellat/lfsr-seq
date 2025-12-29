@@ -933,38 +933,35 @@ def _partition_state_space(
     # Calculate chunk size
     chunk_size = max(1, total_states // num_chunks)
     
-    # CRITICAL FIX: Use lazy iteration with early termination
-    # Don't materialize all states - just iterate and partition on-the-fly
+    # BUG FIX: Don't iterate VectorSpace! Use state indices directly.
+    # For GF(q)^d, state index i can be converted to tuple without iteration.
+    def state_index_to_tuple(state_index: int, degree: int, gf_order: int) -> Tuple[int, ...]:
+        """Convert state index to tuple representation without iterating VectorSpace."""
+        if gf_order == 2:
+            # Binary representation for GF(2) - FAST!
+            return tuple((state_index >> i) & 1 for i in range(degree))
+        else:
+            # For other fields, convert to base-q representation
+            result = []
+            num = state_index
+            for _ in range(degree):
+                result.append(num % gf_order)
+                num //= gf_order
+            return tuple(result)
+    
+    # Create chunks by computing state tuples from indices (NO ITERATION!)
     chunks = []
-    current_chunk = []
-    current_chunk_size = 0
-    
-    # Use enumerate for indexing, but don't store all states
-    for idx, state in enumerate(state_vector_space):
-        # Convert to tuple on-the-fly (minimal overhead)
-        state_tuple = tuple(state)
-        current_chunk.append((state_tuple, idx))
-        current_chunk_size += 1
+    for chunk_idx in range(num_chunks):
+        chunk = []
+        start_idx = chunk_idx * chunk_size
+        end_idx = min(start_idx + chunk_size, total_states)
         
-        # When chunk is full, add it and start new chunk
-        if current_chunk_size >= chunk_size:
-            chunks.append(current_chunk)
-            current_chunk = []
-            current_chunk_size = 0
-            
-            # Early termination: if we have enough chunks, stop iterating
-            if len(chunks) >= num_chunks:
-                break
+        for state_idx in range(start_idx, end_idx):
+            state_tuple = state_index_to_tuple(state_idx, d, gf_order)
+            chunk.append((state_tuple, state_idx))
+        
+        chunks.append(chunk)
     
-    # Add remaining states as final chunk (if any)
-    if current_chunk:
-        chunks.append(current_chunk)
-    
-    # If we stopped early, we need to handle the remaining states
-    # But actually, we should iterate through ALL states to ensure correct partitioning
-    # The real fix is to make tuple conversion faster, not skip states
-    
-    # Ensure we have at most num_chunks (may have fewer if state space is small)
     return chunks
 
 
@@ -1123,11 +1120,40 @@ def _process_state_chunk(
     # Local visited set for this worker (to avoid processing same cycle multiple times in this chunk)
     local_visited = set()
     
+    # BUG FIX: Determine chunk boundaries to prevent redundant cycle processing
+    # Only process cycles whose min_state is in this worker's chunk
+    if state_chunk:
+        chunk_indices = [state_idx for _, state_idx in state_chunk]
+        chunk_min_idx = min(chunk_indices)
+        chunk_max_idx = max(chunk_indices)
+        debug_log(f'Chunk boundaries: indices [{chunk_min_idx}, {chunk_max_idx}]')
+    else:
+        chunk_min_idx = 0
+        chunk_max_idx = 0
+    
+    # Helper function to convert state tuple to index
+    def tuple_to_state_index(state_tuple: Tuple[int, ...], degree: int, gf_order: int) -> int:
+        """Convert state tuple back to state index."""
+        if gf_order == 2:
+            # Binary to integer
+            index = 0
+            for i, bit in enumerate(state_tuple):
+                index |= (bit << i)
+            return index
+        else:
+            # Base-q to integer
+            index = 0
+            power = 1
+            for digit in state_tuple:
+                index += digit * power
+                power *= gf_order
+            return index
+    
     # Process each state in chunk
     debug_log(f'Processing {len(state_chunk)} states in chunk...')
     import time
     chunk_start_time = time.time()
-    for idx, (state_tuple, _) in enumerate(state_chunk):
+    for idx, (state_tuple, state_idx) in enumerate(state_chunk):
         try:
             # Progress logging every 100 states or every 5 seconds
             if idx % 100 == 0 or (time.time() - chunk_start_time) > 5:
@@ -1209,9 +1235,22 @@ def _process_state_chunk(
                     # Periodic check every 100 iterations
                     if i > 0 and i % 100 == 0:
                         _ = len(str(current))  # Force evaluation
+                # BUG FIX: Only process cycles whose min_state is in this worker's chunk
+                # This prevents redundant processing when cycles span chunks
+                min_state_index = tuple_to_state_index(min_state, lfsr_degree, gf_order)
+                
+                # Check if min_state is in this worker's chunk
+                if not (chunk_min_idx <= min_state_index <= chunk_max_idx):
+                    # Min_state is in another worker's chunk - skip this cycle
+                    # Another worker will process it
+                    debug_log(f'State {idx+1}: Min_state index {min_state_index} not in chunk [{chunk_min_idx}, {chunk_max_idx}], skipping (another worker will process)')
+                    # Still mark start state as visited to avoid reprocessing in this worker
+                    local_visited.add(state_tuple)
+                    continue
+                
                 # Use min_state as canonical key
                 states_tuples = (min_state,)  # Single-element tuple for deduplication
-                debug_log(f'State {idx+1}: Cycle signature (min_state): {min_state[:5]}... (period={seq_period})')
+                debug_log(f'State {idx+1}: Cycle signature (min_state): {min_state[:5]}... (period={seq_period}), min_state_index={min_state_index} in chunk')
                 # CRITICAL FIX: Mark ALL states in the cycle as visited (not just start state)
                 # This prevents workers from processing the same cycle multiple times
                 # Even though cycles can span chunks, marking all states prevents redundant work
