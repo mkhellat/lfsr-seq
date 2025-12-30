@@ -104,32 +104,42 @@ Example
 Parallel State Enumeration
 ---------------------------
 
-The module provides parallel processing capabilities for large state spaces:
+The module provides two parallel processing modes for large state spaces:
 
-**Parallel Mapper** (``lfsr_sequence_mapper_parallel``):
-   Parallel version of ``lfsr_sequence_mapper`` using multiprocessing.
-   Partitions the state space across multiple CPU cores for faster processing.
+**Static Parallel Mapper** (``lfsr_sequence_mapper_parallel``):
+   Parallel version using **static partitioning** (fixed work distribution).
+   Divides the state space into fixed, equal-sized chunks, one per worker process.
+   Best for LFSRs with few cycles (2-4 cycles) or when cycles are evenly distributed.
    Automatically falls back to sequential processing on timeout or error.
 
+**Dynamic Parallel Mapper** (``lfsr_sequence_mapper_parallel_dynamic``):
+   Parallel version using **dynamic load balancing** (shared task queue).
+   States are divided into small batches (200 states) in a shared queue.
+   Workers pull batches as they finish, providing automatic load balancing.
+   Best for LFSRs with many cycles (8+ cycles), reducing imbalance by 2-4x.
+
 **State Space Partitioning** (``_partition_state_space``):
-   Divides the state space into chunks for parallel processing.
+   Divides the state space into chunks for static parallel processing.
    Converts SageMath vectors to tuples for pickling/serialization.
    Returns list of chunks, each containing (state_tuple, index) pairs.
 
-**Worker Function** (``_process_state_chunk``):
-   Processes a single chunk of states in a worker process.
-   Reconstructs SageMath objects from serialized data.
-   **Critical Implementation Details**:
+**Worker Functions**:
+
+- ``_process_state_chunk``: Processes a fixed chunk of states (static mode)
+- ``_process_task_batch_dynamic``: Processes batches from shared queue (dynamic mode)
+
+   Each worker:
+   - Reconstructs SageMath objects from serialized data
    - Extracts coefficients from matrix **last column** (not last row)
-   - Uses Floyd's algorithm for period computation (enumeration hangs)
-   - Computes full sequences for small periods (≤100) for deduplication
-   - Returns sequences, periods, and statistics for the chunk.
+   - Uses enumeration algorithm for period computation
+   - Computes cycle signatures (min_state) for deduplication
+   - Returns sequences, periods, and work distribution statistics
 
 **Result Merging** (``_merge_parallel_results``):
    Merges results from multiple parallel workers.
    Handles deduplication of sequences found by multiple workers:
-   - Small periods (≤100): Uses sorted state tuples for accurate deduplication
-   - Large periods (>100): Uses (start_state, period) keys (simplified)
+   - Uses canonical cycle keys (min_state) for accurate deduplication
+   - Ensures correct results even when workers process overlapping cycles
    - Respects ``period_only`` flag (sequences computed but not stored)
    Reconstructs SageMath objects and assigns sequence numbers.
 
@@ -168,10 +178,17 @@ it via CLI flags:
    # Create vector space
    V = VectorSpace(GF(2), 4)
    
-   # Map sequences in parallel (period-only mode required)
+   # Map sequences in parallel - static mode (period-only mode required)
    seq_dict, period_dict, max_period, periods_sum = lfsr_sequence_mapper_parallel(
        C, V, 2, output_file=None, no_progress=False, 
-       algorithm="floyd", period_only=True, num_workers=2
+       algorithm="enumeration", period_only=True, num_workers=2
+   )
+   
+   # Map sequences in parallel - dynamic mode (better load balancing)
+   from lfsr.analysis import lfsr_sequence_mapper_parallel_dynamic
+   seq_dict, period_dict, max_period, periods_sum = lfsr_sequence_mapper_parallel_dynamic(
+       C, V, 2, output_file=None, no_progress=False,
+       period_only=True, num_workers=4, batch_size=200
    )
    
    print(f"Found {len(seq_dict)} sequences")
