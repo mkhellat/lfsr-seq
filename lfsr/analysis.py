@@ -1170,12 +1170,12 @@ def _process_state_chunk(
     chunk_start_time = time.time()
     
     # Work distribution metrics
-    states_processed = 0
-    states_skipped_visited = 0
-    states_skipped_claimed = 0
-    cycles_found = 0
-    cycles_claimed = 0
-    cycles_skipped = 0
+    states_processed = 0  # States we actually processed (found cycles from)
+    states_skipped_visited = 0  # States skipped because already in local_visited
+    states_skipped_claimed = 0  # States skipped because cycle already claimed by another worker
+    cycles_found = 0  # Total cycles found (before claiming check)
+    cycles_claimed = 0  # Cycles we successfully claimed
+    cycles_skipped = 0  # Cycles we skipped (already claimed)
     
     for idx, (state_tuple, state_idx) in enumerate(state_chunk):
         try:
@@ -1310,7 +1310,7 @@ def _process_state_chunk(
                     current_tuple = tuple(current)
                     local_visited.add(current_tuple)
                 debug_log(f'State {idx+1}: Marked {seq_period} states as visited in cycle')
-                states_processed += seq_period
+                states_processed += 1  # Count the start state we processed
                 cycles_found += 1
             else:
                 # Full mode: get sequence normally
@@ -1351,7 +1351,7 @@ def _process_state_chunk(
                 worker_max_period = seq_period
             
             processed_count += 1
-            states_processed += 1  # Count the start state
+            # states_processed already incremented when we found the cycle
             
         except Exception as e:
             if idx == 0:
