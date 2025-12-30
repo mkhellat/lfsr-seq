@@ -757,6 +757,7 @@ def _merge_parallel_results(
     worker_results: List[Dict[str, Any]],
     gf_order: int,
     lfsr_degree: int,
+    shared_cycles: Optional[Any] = None,  # Manager().dict() from workers
 ) -> Tuple[Dict[int, List[Any]], Dict[int, int], int, int]:
     """
     Merge results from multiple parallel workers.
