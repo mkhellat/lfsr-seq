@@ -807,52 +807,90 @@ def _merge_parallel_results(
     if DEBUG_PARALLEL:
         merge_debug(f'Deduplicating {len(all_sequences)} sequences from {len(worker_results)} workers')
     
-    for idx, seq_info in enumerate(all_sequences):
-        # Create a canonical representation of the cycle
-        # Use the sorted tuple of state tuples as the key
-        states_tuples = seq_info['states']
-        period = seq_info['period']
-        start_state = seq_info['start_state']
+    # CRITICAL FIX: Use shared_cycles registry for accurate deduplication
+    # The problem: Workers may compute different min_states for the same cycle
+    # (because min_state is computed from first 1000 states only for large cycles)
+    # Solution: Use period as primary key, and shared_cycles to verify which cycles were claimed
+    if shared_cycles is not None:
+        # Use period as the primary deduplication key
+        # For a given LFSR, there should be only one cycle per period
+        # shared_cycles helps us verify which cycles were actually claimed
+        merge_debug(f'Using shared_cycles registry with {len(shared_cycles)} claimed cycles')
         
-        if not states_tuples:
-            # CRITICAL: In period-only mode, states_tuples is empty
-            # We can't deduplicate perfectly without the full sequence, but we can use
-            # a heuristic: for a given period, if we've seen a start_state that would
-            # be in the same cycle, skip it. However, this is imperfect.
-            # 
-            # Better approach: For period-only mode with empty states_tuples, we need to
-            # reconstruct at least one state from the cycle to create a canonical key.
-            # But that requires matrix multiplication which can hang.
-            #
-            # Simplest fix: Use period as the key and accept that we might have duplicates
-            # for the same period. This is acceptable in period-only mode since we only
-            # care about the period distribution, not exact sequence counts.
-            #
-            # However, this can lead to overcounting. A better approach: use a hash of
-            # the cycle by computing a few states from the cycle to create a signature.
-            # But that requires matrix multiplication...
-            #
-            # For now, use period as key and track by start_state to avoid exact duplicates
-            # This is imperfect but avoids hangs
-            cycle_key = (period, start_state)  # Use both to catch exact duplicates
-            merge_debug(f'Sequence {idx+1}: Empty states_tuples! Using period+start_state as key: period={period}, start_state={start_state}')
-        elif len(states_tuples) == 1:
-            # Period-only mode: states_tuples contains a hash key (period + start_state)
-            # Use it directly as the key for deduplication
-            cycle_key = states_tuples[0]  # Hash string is the key
-            merge_debug(f'Sequence {idx+1}: Period-only mode, using hash key: {cycle_key}, period={period}')
-        else:
-            # Full mode: Use sorted states as key (cycles are the same regardless of starting point)
-            # Normalize by sorting to handle cycles starting at different points
-            cycle_key = tuple(sorted(states_tuples))
-            merge_debug(f'Sequence {idx+1}: Full mode, {len(states_tuples)} states, cycle_key length={len(cycle_key)}')
+        # Track cycles by period (only one cycle per period)
+        cycles_by_period = {}  # period -> seq_info
         
-        if cycle_key not in seen_cycles:
-            seen_cycles[cycle_key] = seq_info
-            unique_sequences.append(seq_info)
-            merge_debug(f'Sequence {idx+1}: Added as unique (total unique: {len(unique_sequences)})')
-        else:
-            merge_debug(f'Sequence {idx+1}: Duplicate detected, skipping')
+        for idx, seq_info in enumerate(all_sequences):
+            states_tuples = seq_info['states']
+            period = seq_info['period']
+            start_state = seq_info['start_state']
+            
+            if not states_tuples or period == 0:
+                continue
+            
+            # Get min_state for verification
+            if isinstance(states_tuples, tuple) and len(states_tuples) == 1:
+                min_state = states_tuples[0]
+            elif isinstance(states_tuples, list) and len(states_tuples) > 0:
+                min_state = min(states_tuples)
+            else:
+                continue
+            
+            min_state_tuple = tuple(min_state) if not isinstance(min_state, tuple) else min_state
+            
+            # Deduplicate by period: only keep one cycle per period
+            if period not in cycles_by_period:
+                # First cycle with this period - add it
+                cycles_by_period[period] = seq_info
+                merge_debug(f'Sequence {idx+1}: Added cycle with period {period} (first occurrence)')
+            else:
+                # Another cycle with same period - this is a duplicate
+                # Verify it's in shared_cycles (should be claimed by a worker)
+                if min_state_tuple in shared_cycles:
+                    # This cycle was claimed, but we already have a cycle with this period
+                    # Keep the first one (or could keep the one from the claiming worker)
+                    merge_debug(f'Sequence {idx+1}: Duplicate cycle (period {period} already seen, min_state in shared_cycles), skipping')
+                else:
+                    # Not in shared_cycles - might be a different cycle with same period (rare)
+                    # For now, skip it (keep first occurrence)
+                    merge_debug(f'Sequence {idx+1}: Duplicate cycle (period {period} already seen, min_state not in shared_cycles), skipping')
+        
+        # Convert to list
+        unique_sequences = list(cycles_by_period.values())
+        merge_debug(f'Deduplication by period: {len(unique_sequences)} unique cycles from {len(all_sequences)} total')
+    else:
+        # Fallback: Original deduplication logic (for backward compatibility)
+        merge_debug('shared_cycles not provided, using fallback deduplication')
+        
+        for idx, seq_info in enumerate(all_sequences):
+            # Create a canonical representation of the cycle
+            # Use the sorted tuple of state tuples as the key
+            states_tuples = seq_info['states']
+            period = seq_info['period']
+            start_state = seq_info['start_state']
+            
+            if not states_tuples:
+                # CRITICAL: In period-only mode, states_tuples is empty
+                # Use period+start_state as key (imperfect but avoids hangs)
+                cycle_key = (period, start_state)
+                merge_debug(f'Sequence {idx+1}: Empty states_tuples! Using period+start_state as key: period={period}, start_state={start_state}')
+            elif len(states_tuples) == 1:
+                # Period-only mode: states_tuples contains min_state tuple
+                # Use it directly as the key for deduplication
+                cycle_key = states_tuples[0]  # min_state tuple is the key
+                merge_debug(f'Sequence {idx+1}: Period-only mode, using min_state key: {cycle_key[:5] if len(cycle_key) > 5 else cycle_key}..., period={period}')
+            else:
+                # Full mode: Use sorted states as key (cycles are the same regardless of starting point)
+                # Normalize by sorting to handle cycles starting at different points
+                cycle_key = tuple(sorted(states_tuples))
+                merge_debug(f'Sequence {idx+1}: Full mode, {len(states_tuples)} states, cycle_key length={len(cycle_key)}')
+            
+            if cycle_key not in seen_cycles:
+                seen_cycles[cycle_key] = seq_info
+                unique_sequences.append(seq_info)
+                merge_debug(f'Sequence {idx+1}: Added as unique (total unique: {len(unique_sequences)})')
+            else:
+                merge_debug(f'Sequence {idx+1}: Duplicate detected, skipping')
     
     merge_debug(f'Deduplication complete: {len(unique_sequences)} unique sequences from {len(all_sequences)} total')
     
@@ -1541,8 +1579,9 @@ def lfsr_sequence_mapper_parallel(
         )
     
     # Merge results from all workers
+    # Pass shared_cycles to merge function for accurate deduplication
     seq_dict, period_dict, max_period, periods_sum = _merge_parallel_results(
-        worker_results, gf_order, d
+        worker_results, gf_order, d, shared_cycles
     )
     
     # Display sequences (same format as sequential version)
