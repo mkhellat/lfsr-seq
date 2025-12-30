@@ -54,22 +54,13 @@ class HellmanTable:
     transitions, allowing fast state recovery. Named after Martin Hellman
     (1980), it was the first time-memory trade-off technique.
 
-    A **Hellman Table** is a precomputed table storing chains of state
-    transitions. Each chain starts with a random state and ends with a
-    distinguished point. The table enables fast state recovery by looking up
-    chains that might contain the target state.
+    A **Hellman Table** is a precomputed table storing chains of state transitions. Each chain starts with a random state and ends with a distinguished point. The table enables fast state recovery by looking up chains that might contain the target state.
 
-    A **Chain** is a sequence of states connected by the state update
-    function. Each chain has length t and represents t consecutive state
-    transitions. Chains are the fundamental building blocks of Hellman tables.
+    A **Chain** is a sequence of states connected by the state update function. Each chain has length t and represents t consecutive state transitions. Chains are the fundamental building blocks of Hellman tables.
 
-    A **Distinguished Point** is a state with a special property (e.g., leading
-    k bits are zero) used to mark chain endpoints. Distinguished points make
-    chain endpoints easy to identify and store, reducing storage requirements.
+    A **Distinguished Point** is a state with a special property (e.g., leading k bits are zero) used to mark chain endpoints. Distinguished points make chain endpoints easy to identify and store, reducing storage requirements.
 
-    A **Reduction Function** is a function R that maps states to starting
-    points (keys). The reduction function creates chains: S_0 → f(S_0) →
-    R(f(S_0)) → f(R(f(S_0))) → ... where f is the state update function.
+    A **Reduction Function** is a function R that maps states to starting points (keys). The reduction function creates chains: S_0 → f(S_0) → R(f(S_0)) → f(R(f(S_0))) → ... where f is the state update function.
     
     - **Table Lookup**: The process of searching precomputed tables to find
       a target state. Lookup involves: (1) applying reduction function to
