@@ -40,6 +40,7 @@ Documentation Contents
    installation
    user_guide
    examples
+   parallelization
    mathematical_background
    correlation_attacks
    algebraic_attacks
