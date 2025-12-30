@@ -60,19 +60,19 @@ class HellmanTable:
     A Distinguished Point is a state with a special property used to mark chain
     endpoints. A Reduction Function maps states to starting points and creates
     chains through the state update function.
-    
-    - **Table Lookup**: The process of searching precomputed tables to find
-      a target state. Lookup involves: (1) applying reduction function to
-      target, (2) checking if result is a chain endpoint, (3) if found,
-      reconstructing chain to find target.
-    
-    - **False Alarm**: When a chain appears to contain the target state but
-      doesn't. This occurs due to collisions in the reduction function. False
-      alarms must be verified by reconstructing the chain.
-    
-    - **Coverage**: The fraction of the state space covered by the table.
-      Coverage = (number of unique states in table) / (total state space size).
-      Higher coverage increases success probability but requires more memory.
+
+    **Table Lookup** is the process of searching precomputed tables to find a
+    target state. Lookup involves applying reduction function to target,
+    checking if result is a chain endpoint, and if found, reconstructing chain
+    to find target.
+
+    **False Alarm** occurs when a chain appears to contain the target state but
+    doesn't. This occurs due to collisions in the reduction function. False
+    alarms must be verified by reconstructing the chain.
+
+    **Coverage** is the fraction of the state space covered by the table.
+    Coverage = (number of unique states in table) / (total state space size).
+    Higher coverage increases success probability but requires more memory.
     
     **Mathematical Foundation**:
     

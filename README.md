@@ -104,6 +104,8 @@ cipher analysis, educational purposes, and security evaluation.
 - **Period-Only Mode**: True O(1) space complexity for period computation without sequence storage
 - **Parallel State Enumeration**: Multi-process parallelization for large state space analysis
   - Uses fork mode (13-17x faster than spawn) with SageMath isolation
+  - Two modes available: static (fixed partitioning) and dynamic (shared task queue with load balancing)
+  - Dynamic mode provides 2-4x better load balancing for multi-cycle configurations
   - Provides 2-4x speedup for large LFSRs (> 10,000 states)
   - Automatic fallback to sequential for small LFSRs where overhead dominates
 - **Optimized State Tracking**: Set-based visited state tracking for O(1) lookups
@@ -298,6 +300,13 @@ Optional arguments:
                         - auto: Enumeration for full mode, floyd for period-only
   --check-primitive     Explicitly check for primitive polynomials
                         (detection is automatic, flag makes it explicit)
+  --parallel N          Enable parallel processing with N workers
+                        (default: sequential, recommended for large LFSRs)
+  --parallel-mode {static,dynamic}
+                        Parallel processing mode (default: static)
+                        - static: Fixed work distribution (lower overhead)
+                        - dynamic: Shared task queue with load balancing
+                        (better for multi-cycle configurations)
   --correlation-attack   Perform correlation attack analysis on combination
                         generators (requires --lfsr-configs)
   --lfsr-configs FILE   JSON file with combination generator configuration
@@ -352,6 +361,12 @@ lfsr-seq coefficients.csv 3
 
 # Check for primitive polynomials (automatic, but flag makes it explicit)
 lfsr-seq coefficients.csv 2 --check-primitive
+
+# Parallel processing with 4 workers (static mode)
+lfsr-seq coefficients.csv 2 --parallel 4
+
+# Parallel processing with dynamic load balancing (better for multi-cycle LFSRs)
+lfsr-seq coefficients.csv 2 --parallel 4 --parallel-mode dynamic
 ```
 
 ### Input Format
