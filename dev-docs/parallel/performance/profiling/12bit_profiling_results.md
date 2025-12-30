@@ -1,5 +1,4 @@
 # 12-Bit LFSR Parallel Execution Profiling Report
-**Date**: 2024-12-30 13:30:28
 **LFSR**: 12-bit, primitive polynomial x^12 + x^6 + x^4 + x + 1
 **Total States**: 4095
 **Algorithm**: enumeration

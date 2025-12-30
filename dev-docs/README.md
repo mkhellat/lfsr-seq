@@ -67,12 +67,6 @@ dev-docs/
 - [14-bit Profiling](./parallel/performance/profiling/14bit_profiling_results.md)
 - [Phase 2 Results](./parallel/performance/profiling/phase2_results.md)
 
-## Recent Updates
-
-- Organized documentation structure into `dev-docs/`
-- Added 14-bit profiling results
-- Added dynamic threading feasibility analysis
-- Moved setup documentation from `docs/`
 
 ## Related Documentation
 
