@@ -314,10 +314,10 @@ def profile_parallel(C, V, gf_order, num_workers, algorithm='enumeration', perio
                 merged_periods[period] = merged_periods.get(period, 0) + 1
                 total_periods_sum += period
     
-    # Convert to expected format
-    sequences = {0: []}  # Single worker representation
-    for period, seq_list in merged_sequences.items():
-        sequences[0].extend(seq_list)
+    # Convert to expected format (per-worker format for extract_cycle_signatures)
+    sequences = {}  # worker_id -> list of sequences
+    for worker_id, seq_list in sequences_dict.items():
+        sequences[worker_id] = seq_list
     
     periods = merged_periods
     total_states = sum(len(chunk) for chunk in chunks)
