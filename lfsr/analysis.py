@@ -1012,6 +1012,11 @@ def _process_state_chunk(
         worker_id,
     ) = chunk_data
     
+    # BUG FIX: Get chunk boundaries to check if min_state is in this worker's chunk
+    # This allows workers to skip cycles where min_state is in another worker's chunk
+    chunk_start_idx = state_chunk[0][1] if state_chunk else 0
+    chunk_end_idx = state_chunk[-1][1] if state_chunk else 0
+    
     # Helper function to convert state tuple to index (for chunk boundary checking)
     def tuple_to_index(state_tup, degree, field_order):
         """Convert state tuple to index (inverse of state_index_to_tuple)."""
@@ -1251,20 +1256,7 @@ def _process_state_chunk(
                     # Periodic check every 100 iterations
                     if i > 0 and i % 100 == 0:
                         _ = len(str(current))  # Force evaluation
-                # BUG FIX: Only process cycles whose min_state is in this worker's chunk
-                # This prevents redundant processing when cycles span chunks
-                min_state_index = tuple_to_state_index(min_state, lfsr_degree, gf_order)
-                
-                # Check if min_state is in this worker's chunk
-                if not (chunk_min_idx <= min_state_index <= chunk_max_idx):
-                    # Min_state is in another worker's chunk - skip this cycle
-                    # Another worker will process it
-                    debug_log(f'State {idx+1}: Min_state index {min_state_index} not in chunk [{chunk_min_idx}, {chunk_max_idx}], skipping (another worker will process)')
-                    # Still mark start state as visited to avoid reprocessing in this worker
-                    local_visited.add(state_tuple)
-                    continue
-                
-                # Use min_state as canonical key
+                # Use min_state as canonical key for deduplication
                 states_tuples = (min_state,)  # Single-element tuple for deduplication
                 debug_log(f'State {idx+1}: Cycle signature (min_state): {min_state[:5]}... (period={seq_period}), min_state_index={min_state_index} in chunk')
                 # CRITICAL FIX: Mark ALL states in the cycle as visited (not just start state)
