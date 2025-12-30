@@ -1,0 +1,81 @@
+{
+  "name": "12-bit-v2",
+  "coeffs": [
+    1,
+    0,
+    1,
+    0,
+    0,
+    1,
+    1,
+    0,
+    0,
+    0,
+    0,
+    0
+  ],
+  "state_space_size": 4096,
+  "timestamp": "2025-12-30T20:54:05.098868",
+  "sequential": {
+    "time": 0.5242886543273926,
+    "sequences": 8,
+    "periods_sum": 4096,
+    "max_period": 3255
+  },
+  "static_1w": {
+    "time": 0.4243927001953125,
+    "speedup": 1.235385655988207,
+    "sequences": 8,
+    "periods_sum": 4096,
+    "correct": true
+  },
+  "static_2w": {
+    "time": 0.4945199489593506,
+    "speedup": 1.0601971779514379,
+    "sequences": 8,
+    "periods_sum": 4096,
+    "correct": true
+  },
+  "static_4w": {
+    "time": 0.8666064739227295,
+    "speedup": 0.6049904658041367,
+    "sequences": 10,
+    "periods_sum": 10606,
+    "correct": false
+  },
+  "static_8w": {
+    "time": 0.5381877422332764,
+    "speedup": 0.9741742763441474,
+    "sequences": 8,
+    "periods_sum": 4096,
+    "correct": true
+  },
+  "dynamic_1w": {
+    "time": 0.5005266666412354,
+    "speedup": 1.047473969460231,
+    "sequences": 8,
+    "periods_sum": 4096,
+    "correct": true
+  },
+  "dynamic_2w": {
+    "time": 0.6800851821899414,
+    "speedup": 0.7709161558837841,
+    "sequences": 8,
+    "periods_sum": 4096,
+    "correct": true
+  },
+  "dynamic_4w": {
+    "time": 0.9516098499298096,
+    "speedup": 0.5509491672097172,
+    "sequences": 8,
+    "periods_sum": 4096,
+    "correct": true
+  },
+  "dynamic_8w": {
+    "time": 1.6327497959136963,
+    "speedup": 0.32110777514076955,
+    "sequences": 8,
+    "periods_sum": 4096,
+    "correct": true
+  }
+}
