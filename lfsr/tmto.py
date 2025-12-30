@@ -55,7 +55,7 @@ class HellmanTable:
     (1980), it was the first time-memory trade-off technique.
 
     **Key Terminology**:
-
+    
     - **Hellman Table**: A precomputed table storing chains of state
       transitions. Each chain starts with a random state and ends with a
       distinguished point. The table enables fast state recovery by looking
