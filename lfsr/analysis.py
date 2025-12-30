@@ -652,7 +652,8 @@ def lfsr_sequence_mapper(
     seq_dict = {}
     period_dict = {}
     visited_set = set()  # Use set for O(1) membership testing instead of O(n) list lookup
-    timer_lst = [datetime.datetime.now()]  # Initialize with first timestamp
+    from datetime import datetime
+    timer_lst = [datetime.now()]  # Initialize with first timestamp
     est_t_lst = []
     seq = 0
     counter = 0
