@@ -1,0 +1,106 @@
+{
+  "name": "16-bit-v2",
+  "timestamp": "2025-12-30T21:14:16.754672",
+  "static_1w": {
+    "time": 9.697869300842285,
+    "work_distribution": [
+      260
+    ],
+    "avg_work": 260.0,
+    "max_work": 260,
+    "min_work": 260,
+    "imbalance_pct": 0.0
+  },
+  "static_2w": {
+    "time": 11.053604125976562,
+    "work_distribution": [
+      73,
+      187
+    ],
+    "avg_work": 130.0,
+    "max_work": 187,
+    "min_work": 73,
+    "imbalance_pct": 43.84615384615385
+  },
+  "static_4w": {
+    "time": 20.492225646972656,
+    "work_distribution": [
+      3,
+      6,
+      194,
+      57
+    ],
+    "avg_work": 65.0,
+    "max_work": 194,
+    "min_work": 3,
+    "imbalance_pct": 198.46153846153845
+  },
+  "static_8w": {
+    "time": 30.215608596801758,
+    "work_distribution": [
+      3,
+      49,
+      1,
+      69,
+      0,
+      70,
+      0,
+      68
+    ],
+    "avg_work": 32.5,
+    "max_work": 70,
+    "min_work": 0,
+    "imbalance_pct": 115.38461538461537
+  },
+  "dynamic_1w": {
+    "time": 9.307693719863892,
+    "work_distribution": [
+      260
+    ],
+    "avg_work": 260.0,
+    "max_work": 260,
+    "min_work": 260,
+    "imbalance_pct": 0.0
+  },
+  "dynamic_2w": {
+    "time": 11.382575988769531,
+    "work_distribution": [
+      82,
+      178
+    ],
+    "avg_work": 130.0,
+    "max_work": 178,
+    "min_work": 82,
+    "imbalance_pct": 36.92307692307693
+  },
+  "dynamic_4w": {
+    "time": 15.524230003356934,
+    "work_distribution": [
+      61,
+      79,
+      22,
+      98
+    ],
+    "avg_work": 65.0,
+    "max_work": 98,
+    "min_work": 22,
+    "imbalance_pct": 50.76923076923077
+  },
+  "dynamic_8w": {
+    "time": 26.766990900039673,
+    "work_distribution": [
+      32,
+      35,
+      27,
+      21,
+      46,
+      22,
+      31,
+      46
+    ],
+    "avg_work": 32.5,
+    "max_work": 46,
+    "min_work": 21,
+    "imbalance_pct": 41.53846153846154
+  }
+}
