@@ -79,8 +79,9 @@ Dynamic Mode (Shared Task Queue with Load Balancing)
 
 **How It Works**:
 
-1. **Task Queue Creation**: States are divided into small batches (default: 200
-   states per batch) and placed in a shared queue accessible by all workers.
+1. **Task Queue Creation**: States are divided into batches and placed in a
+   shared queue accessible by all workers. Batch size is automatically selected
+   based on problem size for optimal performance (see Adaptive Batch Sizing below).
 
 2. **Dynamic Work Distribution**: Workers continuously pull batches from the
    queue:
@@ -93,11 +94,35 @@ Dynamic Mode (Shared Task Queue with Load Balancing)
 
 **Example**:
 
-For a 16,384-state space with 4 workers and batch size 200:
-- Queue contains 82 batches (16,384 / 200)
+For a 16,384-state space with 4 workers and auto-selected batch size (~200):
+- Queue contains ~82 batches (16,384 / 200)
 - Worker 0 pulls batch 0, processes it, then pulls batch 4, 8, 12...
 - Worker 1 pulls batch 1, processes it, then pulls batch 5, 9, 13...
 - Workers continue until queue is empty
+
+Adaptive Batch Sizing
+~~~~~~~~~~~~~~~~~~~~~
+
+Dynamic mode automatically selects optimal batch sizes based on the state space
+size to balance IPC overhead and load balancing granularity:
+
+- **Small problems (< 8K states)**: Batch size 500-1000
+  - Larger batches reduce IPC overhead (overhead dominates for small problems)
+  - Example: 4,096 states → batch size ~500-1000
+
+- **Medium problems (8K-64K states)**: Batch size 200-500
+  - Balanced approach for medium-sized problems
+  - Example: 16,384 states → batch size ~200-500
+
+- **Large problems (> 64K states)**: Batch size 100-200
+  - Smaller batches improve load balancing (computation dominates)
+  - Example: 65,536 states → batch size ~100-200
+
+The batch size is calculated as: ``state_space_size / (num_workers * factor)``
+where the factor depends on problem size (2 for small, 4 for medium, 8 for large).
+
+You can override the automatic selection using the ``--batch-size`` CLI option
+(see Command-Line Options below).
 
 **Advantages**:
 
@@ -430,14 +455,24 @@ Dynamic Mode
    C, _ = build_state_update_matrix(coeffs, 2)
    V = VectorSpace(GF(2), 14)
    
-   # Process with dynamic mode (4 workers, batch size 200)
+   # Process with dynamic mode (4 workers, auto batch size)
    seq_dict, period_dict, max_period, periods_sum = lfsr_sequence_mapper_parallel_dynamic(
        C, V, 2,
        output_file=None,
        no_progress=True,
        period_only=True,
        num_workers=4,
-       batch_size=200
+       batch_size=None  # Auto-select based on problem size
+   )
+   
+   # Or specify manual batch size
+   seq_dict, period_dict, max_period, periods_sum = lfsr_sequence_mapper_parallel_dynamic(
+       C, V, 2,
+       output_file=None,
+       no_progress=True,
+       period_only=True,
+       num_workers=4,
+       batch_size=200  # Manual override
    )
    
    print(f"Found {len(seq_dict)} sequences")
@@ -470,9 +505,10 @@ Dynamic Mode Implementation
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 1. **Task Queue Creation**:
-   - States divided into batches (default: 200 states per batch)
+   - States divided into batches (auto-selected based on problem size)
    - Batches placed in shared ``Manager().Queue()``
    - Sentinel values (``None``) signal queue end
+   - Batch size automatically optimized: 500-1000 (small), 200-500 (medium), 100-200 (large)
 
 2. **Worker Processing** (``_process_task_batch_dynamic``):
    - Workers continuously pull batches from queue
@@ -551,14 +587,43 @@ Performance Optimization
 Batch Size Tuning (Dynamic Mode)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The batch size in dynamic mode affects the balance between load balancing and
-IPC overhead:
+Dynamic mode automatically selects optimal batch sizes based on problem size
+to balance IPC overhead and load balancing granularity. The automatic selection
+can be overridden using the ``--batch-size`` CLI option.
+
+**Automatic Batch Size Selection**:
+
+- **Small problems (< 8K states)**: Batch size 500-1000
+  - Larger batches reduce IPC overhead (overhead dominates)
+  - Formula: ``max(500, min(1000, state_space_size // (num_workers * 2)))``
+  - Example: 4,096 states with 4 workers → batch size ~500-1000
+
+- **Medium problems (8K-64K states)**: Batch size 200-500
+  - Balanced approach for medium-sized problems
+  - Formula: ``max(200, min(500, state_space_size // (num_workers * 4)))``
+  - Example: 16,384 states with 4 workers → batch size ~200-500
+
+- **Large problems (> 64K states)**: Batch size 100-200
+  - Smaller batches improve load balancing (computation dominates)
+  - Formula: ``max(100, min(200, state_space_size // (num_workers * 8)))``
+  - Example: 65,536 states with 4 workers → batch size ~100-200
+
+**Manual Override**:
+
+You can override automatic selection using ``--batch-size N``:
+
+.. code-block:: bash
+
+   # Use batch size 300 (overrides auto-selection)
+   lfsr-seq coefficients.csv 2 --parallel --parallel-mode dynamic --batch-size 300
+
+**Batch Size Impact**:
 
 - **Small batches (50-100 states)**: Better load balancing, higher IPC overhead
-- **Medium batches (200-500 states)**: Good balance (default: 200)
-- **Large batches (500+ states)**: Lower IPC overhead, less effective load balancing
+- **Medium batches (200-500 states)**: Good balance (auto-selected for medium problems)
+- **Large batches (500-1000 states)**: Lower IPC overhead, less effective load balancing
 
-Default batch size of 200 provides good balance for most cases.
+The automatic selection ensures optimal performance across different problem sizes.
 
 Worker Count Selection
 ~~~~~~~~~~~~~~~~~~~~~~~

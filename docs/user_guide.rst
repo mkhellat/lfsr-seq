@@ -103,16 +103,28 @@ Optional Arguments:
                                 configurations with few cycles (2-4 cycles) or when
                                 cycles are evenly distributed.
                               
-                              - dynamic: Shared task queue - workers pull small batches
+                              - dynamic: Shared task queue - workers pull batches
                                 of states from a shared queue. Provides better load
                                 balancing for configurations with many cycles (8+
                                 cycles). Reduces load imbalance by 2-4x compared to
-                                static mode for multi-cycle LFSRs.
+                                static mode for multi-cycle LFSRs. Batch size is
+                                automatically optimized based on problem size.
                               
                               Recommendation: Use dynamic mode for LFSRs that produce
                               many cycles (e.g., 14-bit-v2 with 134 cycles, 16-bit-v2
                               with 260 cycles). Use static mode for LFSRs with few
                               cycles or when cycles ≈ workers.
+
+   --batch-size BATCH_SIZE    Batch size for dynamic parallel mode (states per batch).
+                              If not specified, automatically selected based on problem
+                              size:
+                              
+                              - Small problems (<8K states): 500-1000 states per batch
+                              - Medium problems (8K-64K states): 200-500 states per batch
+                              - Large problems (>64K states): 100-200 states per batch
+                              
+                              The automatic selection balances IPC overhead and load
+                              balancing granularity. Manual override is rarely needed.
 
 Input Format
 ------------
@@ -250,8 +262,11 @@ Analyze LFSR with parallel processing for faster results:
    # Use dynamic mode (better for LFSRs with many cycles)
    lfsr-seq coefficients.csv 2 --parallel --parallel-mode dynamic --period-only
 
-   # Use 4 workers with dynamic mode
+   # Use 4 workers with dynamic mode (auto batch size)
    lfsr-seq coefficients.csv 2 --parallel --parallel-mode dynamic --num-workers 4 --period-only
+   
+   # Use dynamic mode with manual batch size
+   lfsr-seq coefficients.csv 2 --parallel --parallel-mode dynamic --batch-size 300 --period-only
 
    # Auto-detection (for large state spaces)
    lfsr-seq large_lfsr.csv 2 --period-only

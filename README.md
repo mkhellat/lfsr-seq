@@ -106,6 +106,10 @@ cipher analysis, educational purposes, and security evaluation.
   - Uses fork mode (13-17x faster than spawn) with SageMath isolation
   - Two modes available: static (fixed partitioning) and dynamic (shared task queue with load balancing)
   - Dynamic mode provides 2-4x better load balancing for multi-cycle configurations
+  - **Adaptive batch sizing**: Automatically optimizes batch sizes based on problem size
+    - Small problems (<8K states): 500-1000 states per batch
+    - Medium problems (8K-64K states): 200-500 states per batch
+    - Large problems (>64K states): 100-200 states per batch
   - Provides 2-4x speedup for large LFSRs (> 10,000 states)
   - Automatic fallback to sequential for small LFSRs where overhead dominates
 - **Optimized State Tracking**: Set-based visited state tracking for O(1) lookups
@@ -307,6 +311,11 @@ Optional arguments:
                         - static: Fixed work distribution (lower overhead)
                         - dynamic: Shared task queue with load balancing
                         (better for multi-cycle configurations)
+  --batch-size N        Batch size for dynamic mode (states per batch)
+                        Auto-selected based on problem size if not specified:
+                        - Small (<8K states): 500-1000
+                        - Medium (8K-64K states): 200-500
+                        - Large (>64K states): 100-200
   --correlation-attack   Perform correlation attack analysis on combination
                         generators (requires --lfsr-configs)
   --lfsr-configs FILE   JSON file with combination generator configuration
@@ -367,6 +376,9 @@ lfsr-seq coefficients.csv 2 --parallel 4
 
 # Parallel processing with dynamic load balancing (better for multi-cycle LFSRs)
 lfsr-seq coefficients.csv 2 --parallel 4 --parallel-mode dynamic
+
+# Dynamic mode with manual batch size (auto-selection is usually optimal)
+lfsr-seq coefficients.csv 2 --parallel 4 --parallel-mode dynamic --batch-size 300
 ```
 
 ### Input Format
@@ -1004,7 +1016,7 @@ This creates distribution packages in the `dist/` directory.
 
 ### Building Documentation
 
-The project uses Sphinx for documentation. See `docs/BUILDING.md` for
+The project uses Sphinx for documentation. See `dev-docs/setup/BUILDING.md` for
 detailed instructions.
 
 **Quick Start:**

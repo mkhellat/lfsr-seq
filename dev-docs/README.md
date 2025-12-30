@@ -4,6 +4,20 @@ This directory contains all development documentation, analysis reports, and imp
 
 **Note**: This is separate from `docs/` which contains Sphinx documentation for the project.
 
+## Recent Updates
+
+### Parallel Processing
+- **Dynamic Threading**: Implemented shared task queue model for better load balancing
+- **Two Modes Available**: Static (fixed partitioning) and Dynamic (shared task queue)
+- **Adaptive Batch Sizing**: Automatic batch size optimization based on problem size
+  - Small problems (<8K): 500-1000 states per batch
+  - Medium problems (8K-64K): 200-500 states per batch
+  - Large problems (>64K): 100-200 states per batch
+- **Comprehensive Profiling**: 12-bit, 14-bit, and 16-bit LFSR profiling results available
+- **Load Balancing Analysis**: Detailed comparison of static vs dynamic modes
+- **Verification**: Correctness and metrics verified for adaptive batch sizing
+- See [Parallel Processing Documentation](./parallel/README.md) for details
+
 ## Quick Navigation
 
 ### Core Documentation
