@@ -536,12 +536,15 @@ def generate_detailed_report(all_profiles: Dict[str, Any]):
 def main():
     """Main profiling function."""
     import sys
-    sys.stdout.flush()
-    sys.stderr.flush()
+    import traceback
     
-    print("="*80, flush=True)
-    print("12-Bit LFSR Parallel Execution Profiling", flush=True)
-    print("="*80, flush=True)
+    try:
+        sys.stdout.flush()
+        sys.stderr.flush()
+        
+        print("="*80, flush=True)
+        print("12-Bit LFSR Parallel Execution Profiling", flush=True)
+        print("="*80, flush=True)
     
     # Create 12-bit LFSR
     print("\nCreating 12-bit LFSR...", flush=True)
@@ -616,6 +619,11 @@ def main():
         print(f"  {num_workers} workers: {par_profile['total_time']:.4f}s ({comp['performance']['speedup']:.2f}x, "
               f"correct={'✓' if comp['correctness']['cycles_match'] else '✗'}, "
               f"redundancy={'✓' if comp['redundancy']['no_redundancy'] else '✗'})")
+    
+    except Exception as e:
+        print(f"\nERROR: {e}", file=sys.stderr, flush=True)
+        traceback.print_exc(file=sys.stderr)
+        sys.exit(1)
 
 
 if __name__ == '__main__':
