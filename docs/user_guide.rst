@@ -82,8 +82,8 @@ Optional Arguments:
 
    --parallel                 Enable parallel state enumeration (auto-enabled for
                               large state spaces > 10,000 states with 2+ CPU cores).
-                              Partitions the state space across multiple CPU cores
-                              for faster processing. Falls back to sequential if
+                              Uses multiple CPU cores to process states in parallel
+                              for faster analysis. Falls back to sequential if
                               parallel processing fails or times out.
 
    --no-parallel              Disable parallel processing (force sequential mode).
@@ -94,6 +94,25 @@ Optional Arguments:
    --num-workers N            Set the number of parallel workers (default: CPU
                               count). Only used with --parallel. The actual number
                               of workers is clamped to available CPU cores.
+
+   --parallel-mode {static|dynamic}
+                              Choose parallel processing mode (default: static).
+                              
+                              - static: Fixed work distribution - divides state space
+                                into equal chunks, one per worker. Best for
+                                configurations with few cycles (2-4 cycles) or when
+                                cycles are evenly distributed.
+                              
+                              - dynamic: Shared task queue - workers pull small batches
+                                of states from a shared queue. Provides better load
+                                balancing for configurations with many cycles (8+
+                                cycles). Reduces load imbalance by 2-4x compared to
+                                static mode for multi-cycle LFSRs.
+                              
+                              Recommendation: Use dynamic mode for LFSRs that produce
+                              many cycles (e.g., 14-bit-v2 with 134 cycles, 16-bit-v2
+                              with 260 cycles). Use static mode for LFSRs with few
+                              cycles or when cycles ≈ workers.
 
 Input Format
 ------------
@@ -218,21 +237,30 @@ For detailed mathematical background on cycle detection algorithms, see the :doc
 Examples
 --------
 
-Parallel Processing Example
-~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Parallel Processing Examples
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Analyze LFSR with parallel processing for faster results:
 
 .. code-block:: bash
 
-   # Enable parallel processing
+   # Enable parallel processing (static mode, default)
    lfsr-seq coefficients.csv 2 --parallel --period-only
 
-   # Use 4 workers
-   lfsr-seq coefficients.csv 2 --parallel --num-workers 4 --period-only
+   # Use dynamic mode (better for LFSRs with many cycles)
+   lfsr-seq coefficients.csv 2 --parallel --parallel-mode dynamic --period-only
+
+   # Use 4 workers with dynamic mode
+   lfsr-seq coefficients.csv 2 --parallel --parallel-mode dynamic --num-workers 4 --period-only
 
    # Auto-detection (for large state spaces)
    lfsr-seq large_lfsr.csv 2 --period-only
+
+**Choosing the Right Mode**:
+
+- For LFSRs with many cycles (8+ cycles): Use ``--parallel-mode dynamic``
+- For LFSRs with few cycles (2-4 cycles): Use ``--parallel-mode static`` (default)
+- When in doubt: Try dynamic mode first, especially with 4+ workers
 
 For a complete working example, see ``examples/parallel_processing_example.py``.
 
@@ -308,13 +336,19 @@ Parallel State Enumeration
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The tool supports parallel processing of state spaces for improved performance
-on multi-core systems. Parallel processing provides **2-4x speedup** for large
-LFSRs (> 10,000 states) and is automatically enabled when multiple CPU cores
-are available.
+on multi-core systems. Two parallel processing modes are available: **static**
+(fixed work distribution) and **dynamic** (shared task queue with load balancing).
+
+**What is Parallel Processing?**
+
+Parallel processing uses multiple CPU cores simultaneously to analyze different
+parts of the LFSR state space. Instead of processing states one by one in order,
+the work is divided among multiple "worker" processes that run at the same time.
 
 **Performance Characteristics**:
 
-- **Large LFSRs (> 10,000 states)**: 2-4x speedup with 4 workers
+- **Large LFSRs (> 10,000 states)**: 2-4x speedup with 4 workers (when overhead
+  doesn't dominate)
 - **Medium LFSRs (1,000-10,000 states)**: 1.5-2x speedup
 - **Small LFSRs (< 1,000 states)**: Sequential is faster (overhead dominates)
 
@@ -324,6 +358,74 @@ are available.
 - Automatic SageMath object isolation in workers prevents category mismatch errors
 - Optimized IPC and process creation overhead
 - Automatic fallback to sequential for small LFSRs where overhead would dominate
+
+**Understanding Static vs Dynamic Modes**
+
+The tool offers two parallel processing modes, each with different work distribution
+strategies:
+
+1. **Static Mode (Default)**: Fixed Work Distribution
+   
+   - **How it works**: The state space is divided into fixed, equal-sized chunks
+     before processing starts. Each worker gets one chunk and processes all states
+     in that chunk.
+   
+   - **Best for**: 
+     * LFSRs with few cycles (2-4 cycles)
+     * When cycles are evenly distributed across the state space
+     * When the number of cycles is close to the number of workers
+   
+   - **Advantages**: Lower overhead, simpler implementation
+   
+   - **Limitations**: Can have severe load imbalance (100-500%) when cycles are
+     unevenly distributed or when cycles < workers
+
+2. **Dynamic Mode**: Shared Task Queue with Load Balancing
+   
+   - **How it works**: States are divided into small batches (200 states each)
+     and placed in a shared queue. Workers pull batches from the queue as they
+     finish their current work. This allows faster workers to take on more work,
+     naturally balancing the load.
+   
+   - **Best for**:
+     * LFSRs with many cycles (8+ cycles)
+     * Configurations where cycles are unevenly distributed
+     * When using 4+ workers
+   
+   - **Advantages**: 
+     * 2-4x better load balancing for multi-cycle configurations
+     * More consistent performance across different LFSR configurations
+     * Better utilization of all workers
+   
+   - **Limitations**: Slightly higher IPC overhead due to queue operations
+
+**Load Balancing Explained**
+
+Load balancing refers to how evenly work is distributed among workers. Perfect
+balance means all workers finish at the same time. Imbalance occurs when some
+workers finish much earlier than others, leaving CPU cores idle.
+
+**Example**: With 4 workers and 134 cycles:
+- **Static mode**: Worker distribution might be [4, 47, 1, 82] cycles, resulting
+  in 144.8% imbalance (some workers do 4x more work than others)
+- **Dynamic mode**: Worker distribution might be [37, 29, 46, 22] cycles, resulting
+  in 37.3% imbalance (much more balanced)
+
+**When to Use Each Mode**
+
+Based on profiling data from 12-bit, 14-bit, and 16-bit LFSRs:
+
+- **Use Dynamic Mode** when:
+  * Your LFSR produces many cycles (8+ cycles)
+  * You're using 4+ workers
+  * Load balancing is important for performance
+  * Examples: 14-bit-v2 (134 cycles), 16-bit-v2 (260 cycles)
+
+- **Use Static Mode** when:
+  * Your LFSR produces few cycles (2-4 cycles)
+  * The number of cycles is close to the number of workers
+  * You want lower overhead
+  * Examples: 12-bit-v1 (2 cycles), 14-bit-v1 (2 cycles), 16-bit-v1 (4 cycles)
 
 **Automatic Parallel Processing**:
 
@@ -339,12 +441,22 @@ are available.
    # Enable parallel processing (recommended for large LFSRs)
    lfsr-seq coefficients.csv 2 --parallel
 
+**Choose Parallel Mode**:
+
+.. code-block:: bash
+
+   # Use dynamic mode (better load balancing for many cycles)
+   lfsr-seq coefficients.csv 2 --parallel --parallel-mode dynamic
+
+   # Use static mode (default, lower overhead)
+   lfsr-seq coefficients.csv 2 --parallel --parallel-mode static
+
 **Control Number of Workers**:
 
 .. code-block:: bash
 
-   # Use 4 parallel workers
-   lfsr-seq coefficients.csv 2 --parallel --num-workers 4
+   # Use 4 parallel workers with dynamic mode
+   lfsr-seq coefficients.csv 2 --parallel --parallel-mode dynamic --num-workers 4
 
 **Disable Parallel Processing**:
 
@@ -355,8 +467,10 @@ are available.
 
 **How It Works**:
 
-1. **State Space Partitioning**: The state space is divided into chunks,
-   one per worker process. States are converted to tuples for serialization.
+**Static Mode (Fixed Chunks)**:
+
+1. **State Space Partitioning**: The state space is divided into fixed, equal-sized
+   chunks, one per worker process. States are converted to tuples for serialization.
 
 2. **SageMath Isolation**: Each worker creates fresh SageMath objects (GF, VectorSpace)
    to avoid category mismatch errors. This allows fork mode to be used safely.
@@ -365,13 +479,34 @@ are available.
    from coefficients extracted from the **last column** of the companion matrix
    (critical for correctness).
 
-4. **Parallel Processing**: Each worker processes its chunk independently:
+4. **Parallel Processing**: Each worker processes its assigned chunk independently:
    - Uses enumeration algorithm to compute periods (faster than Floyd)
    - Computes cycle signatures (min_state) for deduplication
    - Marks states as visited locally
 
 5. **Result Merging**: Results from all workers are merged, with automatic
    deduplication of sequences found by multiple workers using canonical cycle keys.
+
+**Dynamic Mode (Shared Task Queue)**:
+
+1. **Task Queue Creation**: States are divided into small batches (200 states each)
+   and placed in a shared queue accessible by all workers.
+
+2. **SageMath Isolation**: Each worker creates fresh SageMath objects (GF, VectorSpace)
+   to avoid category mismatch errors.
+
+3. **Matrix Reconstruction**: Each worker reconstructs the state update matrix
+   from coefficients (same as static mode).
+
+4. **Dynamic Work Distribution**: Workers continuously pull batches from the queue:
+   - When a worker finishes a batch, it immediately pulls the next available batch
+   - Faster workers naturally take on more work
+   - This provides automatic load balancing
+
+5. **Result Merging**: Results from all workers are merged with deduplication
+   (same as static mode).
+
+**Both Modes**:
 
 6. **Graceful Fallback**: If parallel processing fails or times out, the
    tool automatically falls back to sequential processing, ensuring the

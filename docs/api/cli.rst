@@ -81,6 +81,10 @@ The command-line interface supports the following options:
      --parallel            Enable parallel processing
      --no-parallel         Disable parallel processing
      --num-workers N       Number of parallel workers
+     --parallel-mode {static|dynamic}
+                          Parallel processing mode:
+                          - static: Fixed work distribution (default)
+                          - dynamic: Shared task queue with load balancing
    
    Correlation attack options:
      --correlation-attack   Perform correlation attack analysis
