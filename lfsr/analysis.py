@@ -2016,7 +2016,7 @@ def lfsr_sequence_mapper_parallel_dynamic(
     algorithm: str = "auto",
     period_only: bool = False,
     num_workers: Optional[int] = None,
-    batch_size: int = 200,
+    batch_size: Optional[int] = None,
 ) -> Tuple[Dict[int, List[Any]], Dict[int, int], int, int]:
     """
     Dynamic parallel version of lfsr_sequence_mapper using shared task queue.
@@ -2034,7 +2034,9 @@ def lfsr_sequence_mapper_parallel_dynamic(
         algorithm: Algorithm to use: "floyd", "brent", "enumeration", or "auto"
         period_only: If True, compute periods only without storing sequences
         num_workers: Number of parallel workers (default: CPU count)
-        batch_size: Number of states per batch in queue (default: 200)
+        batch_size: Number of states per batch in queue (default: auto-selected
+            based on state space size: 500-1000 for small, 200-500 for medium,
+            100-200 for large problems)
     
     Returns:
         Tuple of (seq_dict, period_dict, max_period, periods_sum)
@@ -2057,6 +2059,23 @@ def lfsr_sequence_mapper_parallel_dynamic(
     # Extract coefficients from matrix
     d = state_update_matrix.dimensions()[0]
     coeffs_vector = [int(state_update_matrix[i, d-1]) for i in range(d)]
+    
+    # Adaptive batch sizing based on state space size
+    # Goal: Balance IPC overhead vs. load balancing granularity
+    if batch_size is None or batch_size <= 0:
+        # Auto-select optimal batch size based on problem size
+        if state_space_size < 8192:  # Small problems (< 8K states)
+            # Larger batches to reduce IPC overhead (overhead dominates)
+            batch_size = max(500, min(1000, state_space_size // (num_workers * 2)))
+        elif state_space_size < 65536:  # Medium problems (8K-64K states)
+            # Medium batches for balance
+            batch_size = max(200, min(500, state_space_size // (num_workers * 4)))
+        else:  # Large problems (> 64K states)
+            # Smaller batches for better load balancing (computation dominates)
+            batch_size = max(100, min(200, state_space_size // (num_workers * 8)))
+    
+    # Ensure batch_size is reasonable (at least 10, at most state_space_size)
+    batch_size = max(10, min(batch_size, state_space_size))
     
     subsec_name = "STATES SEQUENCES"
     subsec_desc = "all possible state sequences " + "and their corresponding periods (dynamic parallel processing)"
@@ -2086,7 +2105,7 @@ def lfsr_sequence_mapper_parallel_dynamic(
             return tuple(result)
     
     if not no_progress:
-        print(f"  Populating task queue with batches of {batch_size} states...")
+        print(f"  Populating task queue with batches of {batch_size} states (auto-selected for {state_space_size:,} states)...")
         import sys
         sys.stdout.flush()
     

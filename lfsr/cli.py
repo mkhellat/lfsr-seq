@@ -60,6 +60,7 @@ def main(
     use_parallel: Optional[bool] = None,
     num_workers: Optional[int] = None,
     parallel_mode: str = "static",
+    batch_size: Optional[int] = None,
 ) -> None:
     """Main function to process LFSR coefficient vectors and perform analysis.
 
@@ -210,6 +211,9 @@ def main(
                 from lfsr.analysis import lfsr_sequence_mapper_parallel_dynamic
                 # Dynamic mode works best with period-only to minimize IPC overhead
                 parallel_period_only = period_only if period_only else True
+                if not period_only and batch_size is None:
+                    # Auto-adjust batch size for non-period-only mode (smaller batches)
+                    batch_size = 100  # Smaller batches when storing sequences
                 if not period_only:
                     print("INFO: Dynamic parallel processing using period-only mode for better performance.", file=sys.stderr)
                 seq_dict, period_dict, max_period, periods_sum = lfsr_sequence_mapper_parallel_dynamic(
@@ -418,6 +422,16 @@ def parse_args(args: Optional[list] = None) -> argparse.Namespace:
         default="static",
         dest="parallel_mode",
         help="Parallel processing mode: 'static' (fixed chunks) or 'dynamic' (shared task queue). Default: static.",
+    )
+    
+    parser.add_argument(
+        "--batch-size",
+        type=int,
+        default=None,
+        dest="batch_size",
+        help="Batch size for dynamic parallel mode (states per batch). "
+             "If not specified, automatically selected based on problem size. "
+             "Small problems (<8K): 500-1000, Medium (8K-64K): 200-500, Large (>64K): 100-200.",
     )
 
     parser.add_argument(
@@ -1402,6 +1416,7 @@ def cli_main() -> None:
                     use_parallel=args.use_parallel,
                     num_workers=args.num_workers,
                     parallel_mode=args.parallel_mode,
+                    batch_size=args.batch_size,
                 )
 
         if not args.quiet:
