@@ -211,14 +211,16 @@ def main(
                 from lfsr.analysis import lfsr_sequence_mapper_parallel_dynamic
                 # Dynamic mode works best with period-only to minimize IPC overhead
                 parallel_period_only = period_only if period_only else True
+                # Auto-adjust batch size for non-period-only mode if not specified
+                effective_batch_size = batch_size
                 if not period_only and batch_size is None:
-                    # Auto-adjust batch size for non-period-only mode (smaller batches)
-                    batch_size = 100  # Smaller batches when storing sequences
+                    effective_batch_size = 100  # Smaller batches when storing sequences
                 if not period_only:
                     print("INFO: Dynamic parallel processing using period-only mode for better performance.", file=sys.stderr)
                 seq_dict, period_dict, max_period, periods_sum = lfsr_sequence_mapper_parallel_dynamic(
                     C, V, gf_order, output_file, no_progress=no_progress, 
-                    algorithm=effective_algorithm, period_only=parallel_period_only, num_workers=num_workers
+                    algorithm=effective_algorithm, period_only=parallel_period_only, 
+                    num_workers=num_workers, batch_size=effective_batch_size
                 )
             else:
                 # Static mode (default)
