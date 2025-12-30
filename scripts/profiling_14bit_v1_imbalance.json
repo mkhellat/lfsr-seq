@@ -1,0 +1,106 @@
+{
+  "name": "14-bit-v1",
+  "timestamp": "2025-12-30T21:02:46.735589",
+  "static_1w": {
+    "time": 2.142076253890991,
+    "work_distribution": [
+      2
+    ],
+    "avg_work": 2.0,
+    "max_work": 2,
+    "min_work": 2,
+    "imbalance_pct": 0.0
+  },
+  "static_2w": {
+    "time": 2.730515241622925,
+    "work_distribution": [
+      1,
+      1
+    ],
+    "avg_work": 1.0,
+    "max_work": 1,
+    "min_work": 1,
+    "imbalance_pct": 0.0
+  },
+  "static_4w": {
+    "time": 4.108606815338135,
+    "work_distribution": [
+      1,
+      1,
+      0,
+      0
+    ],
+    "avg_work": 0.5,
+    "max_work": 1,
+    "min_work": 0,
+    "imbalance_pct": 100.0
+  },
+  "static_8w": {
+    "time": 8.029495239257812,
+    "work_distribution": [
+      1,
+      0,
+      0,
+      0,
+      0,
+      0,
+      1,
+      0
+    ],
+    "avg_work": 0.25,
+    "max_work": 1,
+    "min_work": 0,
+    "imbalance_pct": 300.0
+  },
+  "dynamic_1w": {
+    "time": 2.776350975036621,
+    "work_distribution": [
+      2
+    ],
+    "avg_work": 2.0,
+    "max_work": 2,
+    "min_work": 2,
+    "imbalance_pct": 0.0
+  },
+  "dynamic_2w": {
+    "time": 3.1661384105682373,
+    "work_distribution": [
+      1,
+      1
+    ],
+    "avg_work": 1.0,
+    "max_work": 1,
+    "min_work": 1,
+    "imbalance_pct": 0.0
+  },
+  "dynamic_4w": {
+    "time": 5.038776397705078,
+    "work_distribution": [
+      1,
+      0,
+      1,
+      0
+    ],
+    "avg_work": 0.5,
+    "max_work": 1,
+    "min_work": 0,
+    "imbalance_pct": 100.0
+  },
+  "dynamic_8w": {
+    "time": 9.403230905532837,
+    "work_distribution": [
+      1,
+      0,
+      0,
+      0,
+      0,
+      0,
+      1,
+      0
+    ],
+    "avg_work": 0.25,
+    "max_work": 1,
+    "min_work": 0,
+    "imbalance_pct": 300.0
+  }
+}
