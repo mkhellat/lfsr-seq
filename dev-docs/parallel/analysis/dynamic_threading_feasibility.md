@@ -99,6 +99,9 @@ Worker Process:
 ### Option 1: Shared Task Queue (Simplest)
 
 ```python
+import multiprocessing
+import queue
+
 def lfsr_sequence_mapper_parallel_dynamic(...):
     manager = multiprocessing.Manager()
     task_queue = manager.Queue()
@@ -119,7 +122,7 @@ def lfsr_sequence_mapper_parallel_dynamic(...):
                 if batch is None:  # Poison pill
                     break
                 process_batch(batch, shared_cycles, cycle_lock)
-            except:
+            except queue.Empty:
                 break  # Queue empty or timeout
     
     pool = multiprocessing.Pool(processes=num_workers)
@@ -139,6 +142,9 @@ def lfsr_sequence_mapper_parallel_dynamic(...):
 ### Option 2: Work Stealing (More Complex)
 
 ```python
+import multiprocessing
+import queue
+
 def lfsr_sequence_mapper_parallel_workstealing(...):
     manager = multiprocessing.Manager()
     worker_queues = [manager.Queue() for _ in range(num_workers)]
@@ -167,7 +173,7 @@ def lfsr_sequence_mapper_parallel_workstealing(...):
                             process_task(task, shared_cycles, cycle_lock)
                             stolen = True
                             break
-                        except:
+                        except queue.Empty:
                             continue  # Queue empty
                 if not stolen:
                     break  # No work left
@@ -188,6 +194,9 @@ def lfsr_sequence_mapper_parallel_workstealing(...):
 ### Option 3: Hybrid Approach (Recommended)
 
 ```python
+import multiprocessing
+import queue
+
 def lfsr_sequence_mapper_parallel_hybrid(...):
     # Start with static partitioning (like current)
     chunks = _partition_state_space(state_vector_space, num_workers)
@@ -215,7 +224,7 @@ def lfsr_sequence_mapper_parallel_hybrid(...):
                         stolen_task = work_queues[other_id].get_nowait()
                         my_work.append(stolen_task)
                         break
-                    except:
+                    except queue.Empty:
                         continue  # Queue empty
 ```
 
