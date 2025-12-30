@@ -54,12 +54,12 @@ class HellmanTable:
     transitions, allowing fast state recovery. Named after Martin Hellman
     (1980), it was the first time-memory trade-off technique.
 
-    Key Terminology:
+    Key terminology:
 
-    * **Hellman Table**: A precomputed table storing chains of state transitions.
-      Each chain starts with a random state and ends with a distinguished point.
-      The table enables fast state recovery by looking up chains that might
-      contain the target state.
+    * **Hellman Table**: A precomputed table storing chains of state
+      transitions. Each chain starts with a random state and ends with a
+      distinguished point. The table enables fast state recovery by looking
+      up chains that might contain the target state.
 
     * **Chain**: A sequence of states connected by the state update function.
       Each chain has length t and represents t consecutive state transitions.
