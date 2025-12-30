@@ -975,6 +975,8 @@ def _process_state_chunk(
         str,  # algorithm
         bool,  # period_only
         int,  # worker_id
+        Any,  # shared_cycles (Manager().dict())
+        Any,  # cycle_lock (Manager().Lock())
     ],
 ) -> Dict[str, Any]:
     """
@@ -1011,6 +1013,8 @@ def _process_state_chunk(
         algorithm,
         period_only,
         worker_id,
+        shared_cycles,
+        cycle_lock,
     ) = chunk_data
     
     # Import SageMath in worker
@@ -1208,6 +1212,41 @@ def _process_state_chunk(
                     if i > 0 and i % 100 == 0:
                         _ = len(str(current))  # Force evaluation
                 # Use min_state as canonical key for deduplication
+                min_state_tuple = tuple(min_state) if not isinstance(min_state, tuple) else min_state
+                
+                # REDUNDANCY FIX: Check if this cycle is already being processed by another worker
+                # Fast check (no lock) - if already claimed, skip immediately
+                if min_state_tuple in shared_cycles:
+                    claimed_by = shared_cycles[min_state_tuple]
+                    debug_log(f'State {idx+1}: Cycle with min_state {min_state_tuple[:5]}... already claimed by worker {claimed_by}, skipping')
+                    # Mark all states in cycle as visited locally to skip in this worker
+                    local_visited.add(state_tuple)
+                    current = state
+                    for _ in range(seq_period - 1):
+                        current = current * state_update_matrix
+                        current_tuple = tuple(current)
+                        local_visited.add(current_tuple)
+                    continue
+                
+                # Try to claim this cycle (with lock for atomicity)
+                with cycle_lock:
+                    # Double-check after acquiring lock (another worker might have claimed it)
+                    if min_state_tuple in shared_cycles:
+                        claimed_by = shared_cycles[min_state_tuple]
+                        debug_log(f'State {idx+1}: Cycle with min_state {min_state_tuple[:5]}... claimed by worker {claimed_by} (between check and lock), skipping')
+                        local_visited.add(state_tuple)
+                        current = state
+                        for _ in range(seq_period - 1):
+                            current = current * state_update_matrix
+                            current_tuple = tuple(current)
+                            local_visited.add(current_tuple)
+                        continue
+                    else:
+                        # Claim this cycle for this worker
+                        shared_cycles[min_state_tuple] = worker_id
+                        debug_log(f'State {idx+1}: Claimed cycle with min_state {min_state_tuple[:5]}... for worker {worker_id}')
+                
+                # Process cycle (we've successfully claimed it)
                 states_tuples = (min_state,)  # Single-element tuple for deduplication
                 debug_log(f'State {idx+1}: Cycle signature (min_state): {min_state[:5]}... (period={seq_period})')
                 # CRITICAL FIX: Mark ALL states in the cycle as visited (not just start state)
@@ -1357,6 +1396,12 @@ def lfsr_sequence_mapper_parallel(
         # Empty state space
         return {}, {}, 0, 0
     
+    # Create shared cycle registry to prevent redundancy
+    # Workers will check this before processing cycles to avoid duplicate work
+    manager = multiprocessing.Manager()
+    shared_cycles = manager.dict()  # min_state_tuple -> worker_id (who claimed it)
+    cycle_lock = manager.Lock()  # Lock for atomic check-and-set
+    
     # Prepare chunk data for workers
     chunk_data_list = []
     for worker_id, chunk in enumerate(chunks):
@@ -1368,6 +1413,8 @@ def lfsr_sequence_mapper_parallel(
             algorithm,
             period_only,
             worker_id,
+            shared_cycles,  # Shared cycle registry
+            cycle_lock,     # Lock for atomic claiming
         )
         chunk_data_list.append(chunk_data)
     
