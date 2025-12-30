@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env sage-python
 """
 Test script for 8-bit LFSR parallel execution verification.
 
@@ -6,6 +6,8 @@ Tests:
 1. Correctness: Results match sequential
 2. Redundancy: No cycles processed by multiple workers
 3. Performance: Compare 1, 2, 4, 8 workers vs sequential
+
+Run with: sage scripts/test_8bit_parallel.py
 """
 
 import os
@@ -16,7 +18,8 @@ from collections import defaultdict
 from typing import Dict, List, Any, Tuple
 
 # Add project root to path
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, project_root)
 
 from sage.all import GF, VectorSpace, vector
 from lfsr.analysis import lfsr_sequence_mapper, lfsr_sequence_mapper_parallel
@@ -364,17 +367,22 @@ def generate_report(all_results: Dict[str, Any]):
 
 def main():
     """Main test function."""
-    print("="*80)
-    print("8-Bit LFSR Parallel Execution Verification Test")
-    print("="*80)
+    import sys
+    sys.stdout.flush()
+    sys.stderr.flush()
+    
+    print("="*80, flush=True)
+    print("8-Bit LFSR Parallel Execution Verification Test", flush=True)
+    print("="*80, flush=True)
     
     # Create 8-bit LFSR
-    print("\nCreating 8-bit LFSR...")
+    print("\nCreating 8-bit LFSR...", flush=True)
     C, V, gf_order, coeffs_vector, degree = create_8bit_lfsr()
-    print(f"  Degree: {degree}")
-    print(f"  Field: GF({gf_order})")
-    print(f"  Coefficients: {coeffs_vector}")
-    print(f"  Total states: {2**degree}")
+    print(f"  Degree: {degree}", flush=True)
+    print(f"  Field: GF({gf_order})", flush=True)
+    print(f"  Coefficients: {coeffs_vector}", flush=True)
+    print(f"  Total states: {2**degree}", flush=True)
+    sys.stdout.flush()
     
     algorithm = 'enumeration'
     period_only = True
