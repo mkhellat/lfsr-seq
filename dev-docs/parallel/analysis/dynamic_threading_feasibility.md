@@ -23,16 +23,16 @@
 
 ```
 Main Process:
- - Create shared task queue
- - Populate with initial tasks (states or small chunks)
- - Workers pull tasks dynamically
+  - Create shared task queue
+  - Populate with initial tasks (states or small chunks)
+  - Workers pull tasks dynamically
 
 Worker Process:
- - While queue not empty:
- 1. Try to steal a task from queue
- 2. Process the task
- 3. If finds a cycle, mark states and continue
- 4. If idle, try to steal from other workers' queues
+  - While queue not empty:
+    1. Try to steal a task from queue
+    2. Process the task
+    3. If finds a cycle, mark states and continue
+    4. If idle, try to steal from other workers' queues
 ```
 
 ### Benefits
@@ -48,49 +48,49 @@ Worker Process:
 ### Feasible Aspects
 
 1. **Task Granularity**
- - Current: Large chunks (2048-8192 states per worker)
- - Dynamic: Small tasks (individual states or small batches)
- - **Feasible**: Can partition into smaller units
+   - Current: Large chunks (2048-8192 states per worker)
+   - Dynamic: Small tasks (individual states or small batches)
+   - **Feasible**: Can partition into smaller units
 
 2. **Shared Data Structures**
- - Current: `Manager().dict()` for shared cycles, `Manager().Lock()` for synchronization
- - Dynamic: `Manager().Queue()` for task queue, `Manager().dict()` for visited states
- - **Feasible**: Python multiprocessing supports these
+   - Current: `Manager().dict()` for shared cycles, `Manager().Lock()` for synchronization
+   - Dynamic: `Manager().Queue()` for task queue, `Manager().dict()` for visited states
+   - **Feasible**: Python multiprocessing supports these
 
 3. **Worker Coordination**
- - Current: Minimal (only cycle claiming)
- - Dynamic: More coordination (task queue, work stealing)
- - **Feasible**: Standard multiprocessing patterns
+   - Current: Minimal (only cycle claiming)
+   - Dynamic: More coordination (task queue, work stealing)
+   - **Feasible**: Standard multiprocessing patterns
 
 ### Challenges
 
 1. **SageMath Serialization Overhead**
- ```python
- # Current: Workers rebuild SageMath objects from coefficients
- state_update_matrix, _ = build_state_update_matrix(coeffs_vector, gf_order)
- V = VectorSpace(GF(gf_order), d)
- 
- # Dynamic: Would need to serialize/deserialize more frequently
- # - Task queue items (state tuples) - OK (already tuples)
- # - SageMath vectors - PROBLEM (SageMath objects don't pickle well)
- # - Matrices - PROBLEM (would need to rebuild anyway)
- ```
- **Impact**: Low - We already convert to tuples, serialization is minimal
+   ```python
+   # Current: Workers rebuild SageMath objects from coefficients
+   state_update_matrix, _ = build_state_update_matrix(coeffs_vector, gf_order)
+   V = VectorSpace(GF(gf_order), d)
+   
+   # Dynamic: Would need to serialize/deserialize more frequently
+   # - Task queue items (state tuples) - OK (already tuples)
+   # - SageMath vectors - PROBLEM (SageMath objects don't pickle well)
+   # - Matrices - PROBLEM (would need to rebuild anyway)
+   ```
+   **Impact**: Low - We already convert to tuples, serialization is minimal
 
 2. **IPC Overhead**
- - Current: One-time chunk assignment, minimal communication
- - Dynamic: Frequent queue operations (put/get), more lock contention
- - **Impact**: High - Could negate benefits for small problems
+   - Current: One-time chunk assignment, minimal communication
+   - Dynamic: Frequent queue operations (put/get), more lock contention
+   - **Impact**: High - Could negate benefits for small problems
 
 3. **Work Stealing Complexity**
- - Need per-worker queues or shared queue with locking
- - Lock contention could become bottleneck
- - **Impact**: Medium - Standard pattern, but adds complexity
+   - Need per-worker queues or shared queue with locking
+   - Lock contention could become bottleneck
+   - **Impact**: Medium - Standard pattern, but adds complexity
 
 4. **State Space Size**
- - For 16K states: 16,000+ queue operations
- - Each operation has IPC overhead
- - **Impact**: High for small problems, lower for large problems
+   - For 16K states: 16,000+ queue operations
+   - Each operation has IPC overhead
+   - **Impact**: High for small problems, lower for large problems
 
 ---
 
@@ -100,30 +100,30 @@ Worker Process:
 
 ```python
 def lfsr_sequence_mapper_parallel_dynamic(...):
- manager = multiprocessing.Manager()
- task_queue = manager.Queue()
+    manager = multiprocessing.Manager()
+    task_queue = manager.Queue()
     shared_cycles = manager.dict()
     cycle_lock = manager.Lock()
- 
- # Populate queue with initial tasks (small batches)
- batch_size = 100 # States per task
- for i in range(0, total_states, batch_size):
- batch = [(state_tuple, idx) for idx in range(i, min(i+batch_size, total_states))]
- task_queue.put(batch)
- 
- # Workers pull tasks dynamically
- def worker_process():
- while True:
- try:
- batch = task_queue.get(timeout=1)
- if batch is None: # Poison pill
- break
+    
+    # Populate queue with initial tasks (small batches)
+    batch_size = 100  # States per task
+    for i in range(0, total_states, batch_size):
+        batch = [(state_tuple, idx) for idx in range(i, min(i+batch_size, total_states))]
+        task_queue.put(batch)
+    
+    # Workers pull tasks dynamically
+    def worker_process():
+        while True:
+            try:
+                batch = task_queue.get(timeout=1)
+                if batch is None:  # Poison pill
+                    break
                 process_batch(batch, shared_cycles, cycle_lock)
- except queue.Empty:
- break
- 
- pool = multiprocessing.Pool(processes=num_workers)
- # Start workers...
+            except:
+                break  # Queue empty or timeout
+    
+    pool = multiprocessing.Pool(processes=num_workers)
+    # Start workers...
 ```
 
 **Pros:**
@@ -140,21 +140,21 @@ def lfsr_sequence_mapper_parallel_dynamic(...):
 
 ```python
 def lfsr_sequence_mapper_parallel_workstealing(...):
- manager = multiprocessing.Manager()
+    manager = multiprocessing.Manager()
     worker_queues = [manager.Queue() for _ in range(num_workers)]
     shared_cycles = manager.dict()
     cycle_lock = manager.Lock()
- 
- # Distribute initial work
- for i, state in enumerate(states):
- worker_id = i % num_workers
- worker_queues[worker_id].put(state)
- 
- def worker_process(worker_id):
- my_queue = worker_queues[worker_id]
- while True:
- # Try my queue first
- try:
+    
+    # Distribute initial work
+    for i, state in enumerate(states):
+        worker_id = i % num_workers
+        worker_queues[worker_id].put(state)
+    
+    def worker_process(worker_id):
+        my_queue = worker_queues[worker_id]
+        while True:
+            # Try my queue first
+            try:
                 task = my_queue.get_nowait()
                 process_task(task, shared_cycles, cycle_lock)
             except queue.Empty:
@@ -165,14 +165,14 @@ def lfsr_sequence_mapper_parallel_workstealing(...):
                         try:
                             task = worker_queues[other_id].get_nowait()
                             process_task(task, shared_cycles, cycle_lock)
- stolen = True
- break
- except queue.Empty:
- continue
- if not stolen:
- break # No work left
- 
- # Start workers...
+                            stolen = True
+                            break
+                        except:
+                            continue  # Queue empty
+                if not stolen:
+                    break  # No work left
+    
+    # Start workers...
 ```
 
 **Pros:**
@@ -189,9 +189,9 @@ def lfsr_sequence_mapper_parallel_workstealing(...):
 
 ```python
 def lfsr_sequence_mapper_parallel_hybrid(...):
- # Start with static partitioning (like current)
- chunks = _partition_state_space(state_vector_space, num_workers)
- 
+    # Start with static partitioning (like current)
+    chunks = _partition_state_space(state_vector_space, num_workers)
+    
     # But allow work stealing when workers finish early
     manager = multiprocessing.Manager()
     shared_cycles = manager.dict()
@@ -215,8 +215,8 @@ def lfsr_sequence_mapper_parallel_hybrid(...):
                         stolen_task = work_queues[other_id].get_nowait()
                         my_work.append(stolen_task)
                         break
-                    except queue.Empty:
-                        continue
+                    except:
+                        continue  # Queue empty
 ```
 
 **Pros:**
@@ -242,23 +242,23 @@ def lfsr_sequence_mapper_parallel_hybrid(...):
 **Optimistic Scenario:**
 - Perfect load balance: 1.99s / 4 = 0.50s per worker
 - Queue overhead: +0.10s (IPC, locking)
-- **Total: ~0.60s (3.3x speedup)** 
+- **Total: ~0.60s (3.3x speedup)**
 
 **Realistic Scenario:**
 - Good load balance: Max worker 0.60s
 - Queue overhead: +0.15s
 - Lock contention: +0.05s
-- **Total: ~0.80s (2.5x speedup)** 
+- **Total: ~0.80s (2.5x speedup)**
 
 **Pessimistic Scenario:**
 - Queue operations: 16,384 states / 100 per batch = 164 operations
 - IPC overhead: 164 * 0.001s = 0.16s
 - Lock contention: +0.10s
-- **Total: ~1.20s (1.7x speedup)** 
+- **Total: ~1.20s (1.7x speedup)**
 
 **Worst Case (Small Problem):**
 - Overhead dominates: 0.30s overhead for 1.99s work
-- **Total: ~2.30s (slower than sequential!)** 
+- **Total: ~2.30s (slower than sequential!)**
 
 ---
 
@@ -283,24 +283,24 @@ def lfsr_sequence_mapper_parallel_hybrid(...):
 
 ## Recommendations
 
-### **YES, but with caveats:**
+### YES, but with caveats:
 
 1. **Start Small**: Implement Option 1 (shared queue) as proof of concept
 2. **Benchmark Carefully**: Measure overhead vs. benefit for different problem sizes
 3. **Hybrid Approach**: Consider Option 3 (hybrid) for best results
 4. **Problem Size Matters**: 
- - Small problems (< 8K states): Static may be better (overhead dominates)
- - Medium problems (8K-64K states): Dynamic could help
- - Large problems (> 64K states): Dynamic likely beneficial
+   - Small problems (< 8K states): Static may be better (overhead dominates)
+   - Medium problems (8K-64K states): Dynamic could help
+   - Large problems (> 64K states): Dynamic likely beneficial
 
-### **Challenges to Address:**
+### Challenges to Address:
 
 1. **IPC Overhead**: Minimize queue operations (larger batches)
 2. **Lock Contention**: Use per-worker queues with work stealing
 3. **SageMath Serialization**: Already handled (convert to tuples)
 4. **Complexity**: Start simple, optimize later
 
-### **Expected Benefits:**
+### Expected Benefits:
 
 - **Load Imbalance**: Eliminated (or greatly reduced)
 - **Scalability**: Better with more workers
@@ -311,7 +311,7 @@ def lfsr_sequence_mapper_parallel_hybrid(...):
 
 ## Conclusion
 
-**Feasibility: HIGH** 
+**Feasibility: HIGH**
 
 Dynamic threading is **technically feasible** and could **significantly improve** load balancing. However:
 
@@ -321,3 +321,29 @@ Dynamic threading is **technically feasible** and could **significantly improve*
 4. **Problem size matters** - dynamic better for larger problems
 
 The main risk is **IPC overhead** dominating for small problems, but for medium-large problems (16K+ states), dynamic threading should provide substantial benefits.
+
+---
+
+## Technical Details
+
+### Current Implementation Notes
+
+1. **Partitioning**: Uses `state_index_to_tuple()` to avoid iterating VectorSpace
+2. **Shared Cycle Registry**: Uses `Manager().dict()` with `Manager().Lock()` for atomic check-and-set
+3. **State Serialization**: States are already converted to tuples for IPC
+4. **Fork Mode**: Uses fork mode (13-17x faster than spawn) with SageMath isolation
+
+### Dynamic Implementation Requirements
+
+1. **Task Queue**: Use `Manager().Queue()` for shared task queue
+2. **Batch Size**: Start with 100-500 states per batch (tune based on overhead)
+3. **Poison Pills**: Use None sentinel to signal workers to stop
+4. **Error Handling**: Workers should handle queue.Empty gracefully
+5. **Shared Cycles**: Keep existing shared cycle registry mechanism
+
+### Integration Points
+
+- Replace `_partition_state_space()` with task queue population
+- Modify `_process_state_chunk()` to accept tasks from queue instead of fixed chunk
+- Keep existing `shared_cycles` and `cycle_lock` mechanism
+- Maintain fork mode compatibility
