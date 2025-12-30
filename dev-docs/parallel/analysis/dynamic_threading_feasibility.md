@@ -75,7 +75,7 @@ Worker Process:
  # - SageMath vectors - PROBLEM (SageMath objects don't pickle well)
  # - Matrices - PROBLEM (would need to rebuild anyway)
  ```
- **Impact**: Medium - We already convert to tuples, but more frequent serialization
+ **Impact**: Low - We already convert to tuples, serialization is minimal
 
 2. **IPC Overhead**
  - Current: One-time chunk assignment, minimal communication
@@ -102,9 +102,8 @@ Worker Process:
 def lfsr_sequence_mapper_parallel_dynamic(...):
  manager = multiprocessing.Manager()
  task_queue = manager.Queue()
- shared_cycles = manager.dict()
- visited_lock = manager.Lock()
- visited_states = manager.dict() # Track globally visited states
+    shared_cycles = manager.dict()
+    cycle_lock = manager.Lock()
  
  # Populate queue with initial tasks (small batches)
  batch_size = 100 # States per task
@@ -119,7 +118,7 @@ def lfsr_sequence_mapper_parallel_dynamic(...):
  batch = task_queue.get(timeout=1)
  if batch is None: # Poison pill
  break
- process_batch(batch, shared_cycles, visited_states, visited_lock)
+                process_batch(batch, shared_cycles, cycle_lock)
  except queue.Empty:
  break
  
@@ -142,8 +141,9 @@ def lfsr_sequence_mapper_parallel_dynamic(...):
 ```python
 def lfsr_sequence_mapper_parallel_workstealing(...):
  manager = multiprocessing.Manager()
- worker_queues = [manager.Queue() for _ in range(num_workers)]
- shared_cycles = manager.dict()
+    worker_queues = [manager.Queue() for _ in range(num_workers)]
+    shared_cycles = manager.dict()
+    cycle_lock = manager.Lock()
  
  # Distribute initial work
  for i, state in enumerate(states):
@@ -155,16 +155,16 @@ def lfsr_sequence_mapper_parallel_workstealing(...):
  while True:
  # Try my queue first
  try:
- task = my_queue.get_nowait()
- process_task(task)
- except queue.Empty:
- # Steal from other workers
- stolen = False
- for other_id in range(num_workers):
- if other_id != worker_id:
- try:
- task = worker_queues[other_id].get_nowait()
- process_task(task)
+                task = my_queue.get_nowait()
+                process_task(task, shared_cycles, cycle_lock)
+            except queue.Empty:
+                # Steal from other workers
+                stolen = False
+                for other_id in range(num_workers):
+                    if other_id != worker_id:
+                        try:
+                            task = worker_queues[other_id].get_nowait()
+                            process_task(task, shared_cycles, cycle_lock)
  stolen = True
  break
  except queue.Empty:
@@ -192,28 +192,31 @@ def lfsr_sequence_mapper_parallel_hybrid(...):
  # Start with static partitioning (like current)
  chunks = _partition_state_space(state_vector_space, num_workers)
  
- # But allow work stealing within chunks
- # Or: Start with larger chunks, subdivide dynamically if worker finishes early
- 
- manager = multiprocessing.Manager()
- shared_cycles = manager.dict()
- 
- # Each worker gets initial chunk, but can steal from others
- def worker_process(worker_id, initial_chunk):
- my_work = list(initial_chunk)
- other_workers = [i for i in range(num_workers) if i != worker_id]
- 
- while my_work:
- # Process my work
- task = my_work.pop()
- process_task(task)
- 
- # If I'm done and others are busy, try to steal
- if not my_work:
- for other_id in other_workers:
- if can_steal_from(other_id):
- stolen_work = steal_work(other_id)
- my_work.extend(stolen_work)
+    # But allow work stealing when workers finish early
+    manager = multiprocessing.Manager()
+    shared_cycles = manager.dict()
+    cycle_lock = manager.Lock()
+    work_queues = [manager.Queue() for _ in range(num_workers)]
+    
+    # Each worker gets initial chunk, but can steal from others
+    def worker_process(worker_id, initial_chunk):
+        my_work = list(initial_chunk)
+        other_workers = [i for i in range(num_workers) if i != worker_id]
+        
+        while my_work:
+            # Process my work
+            task = my_work.pop()
+            process_task(task, shared_cycles, cycle_lock)
+            
+            # If I'm done and others are busy, try to steal
+            if not my_work:
+                for other_id in other_workers:
+                    try:
+                        stolen_task = work_queues[other_id].get_nowait()
+                        my_work.append(stolen_task)
+                        break
+                    except queue.Empty:
+                        continue
 ```
 
 **Pros:**
