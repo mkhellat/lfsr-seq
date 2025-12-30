@@ -811,15 +811,16 @@ def _merge_parallel_results(
     # CRITICAL FIX: Use shared_cycles registry for accurate deduplication
     # The problem: Workers may compute different min_states for the same cycle
     # (because min_state is computed from first 1000 states only for large cycles)
-    # Solution: Use period as primary key, and shared_cycles to verify which cycles were claimed
+    # Solution: Use min_state as the primary deduplication key (not period!)
+    # IMPORTANT: Multiple cycles can have the same period, so we cannot deduplicate by period alone.
     if shared_cycles is not None:
-        # Use period as the primary deduplication key
-        # For a given LFSR, there should be only one cycle per period
-        # shared_cycles helps us verify which cycles were actually claimed
+        # Use min_state as the primary deduplication key
+        # Each unique cycle has a unique min_state (canonical representation)
+        # shared_cycles tracks which cycles were claimed by which workers
         merge_debug(f'Using shared_cycles registry with {len(shared_cycles)} claimed cycles')
         
-        # Track cycles by period (only one cycle per period)
-        cycles_by_period = {}  # period -> seq_info
+        # Track cycles by min_state (canonical cycle representation)
+        cycles_by_min_state = {}  # min_state_tuple -> seq_info
         
         for idx, seq_info in enumerate(all_sequences):
             states_tuples = seq_info['states']
@@ -829,7 +830,7 @@ def _merge_parallel_results(
             if not states_tuples or period == 0:
                 continue
             
-            # Get min_state for verification
+            # Get min_state for deduplication
             if isinstance(states_tuples, tuple) and len(states_tuples) == 1:
                 min_state = states_tuples[0]
             elif isinstance(states_tuples, list) and len(states_tuples) > 0:
@@ -839,26 +840,19 @@ def _merge_parallel_results(
             
             min_state_tuple = tuple(min_state) if not isinstance(min_state, tuple) else min_state
             
-            # Deduplicate by period: only keep one cycle per period
-            if period not in cycles_by_period:
-                # First cycle with this period - add it
-                cycles_by_period[period] = seq_info
-                merge_debug(f'Sequence {idx+1}: Added cycle with period {period} (first occurrence)')
+            # Deduplicate by min_state: each unique cycle has a unique min_state
+            if min_state_tuple not in cycles_by_min_state:
+                # First occurrence of this cycle (by min_state) - add it
+                cycles_by_min_state[min_state_tuple] = seq_info
+                merge_debug(f'Sequence {idx+1}: Added cycle with min_state {min_state_tuple[:5] if len(min_state_tuple) > 5 else min_state_tuple}... (period {period})')
             else:
-                # Another cycle with same period - this is a duplicate
-                # Verify it's in shared_cycles (should be claimed by a worker)
-                if min_state_tuple in shared_cycles:
-                    # This cycle was claimed, but we already have a cycle with this period
-                    # Keep the first one (or could keep the one from the claiming worker)
-                    merge_debug(f'Sequence {idx+1}: Duplicate cycle (period {period} already seen, min_state in shared_cycles), skipping')
-                else:
-                    # Not in shared_cycles - might be a different cycle with same period (rare)
-                    # For now, skip it (keep first occurrence)
-                    merge_debug(f'Sequence {idx+1}: Duplicate cycle (period {period} already seen, min_state not in shared_cycles), skipping')
+                # Duplicate cycle (same min_state) - skip it
+                existing_period = cycles_by_min_state[min_state_tuple]['period']
+                merge_debug(f'Sequence {idx+1}: Duplicate cycle (min_state already seen, period {period} vs existing {existing_period}), skipping')
         
         # Convert to list
-        unique_sequences = list(cycles_by_period.values())
-        merge_debug(f'Deduplication by period: {len(unique_sequences)} unique cycles from {len(all_sequences)} total')
+        unique_sequences = list(cycles_by_min_state.values())
+        merge_debug(f'Deduplication by min_state: {len(unique_sequences)} unique cycles from {len(all_sequences)} total')
     else:
         # Fallback: Original deduplication logic (for backward compatibility)
         merge_debug('shared_cycles not provided, using fallback deduplication')
