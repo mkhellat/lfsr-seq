@@ -265,11 +265,8 @@ def profile_parallel(C, V, gf_order, num_workers, algorithm='enumeration', perio
     # Stage 5: Merge results
     print("  Stage 5: Merging results...", flush=True)
     stage_start = time.time()
-    # Merge worker results
-    from lfsr.analysis import _merge_worker_results
+    # Merge worker results (same logic as lfsr_sequence_mapper_parallel)
     sequences_dict = {}
-    all_periods = {}
-    total_periods_sum = 0
     max_period = 0
     
     for worker_id, result in worker_results:
@@ -278,10 +275,10 @@ def profile_parallel(C, V, gf_order, num_workers, algorithm='enumeration', perio
         if worker_max_period > max_period:
             max_period = worker_max_period
     
-    # Merge sequences (deduplication happens here)
-    merged_sequences = {}
-    merged_periods = {}
-    visited_cycles = {}  # min_state -> period
+    # Deduplicate sequences using min_state (same as merge logic)
+    visited_cycles = {}  # min_state_tuple -> period
+    merged_sequences_by_period = {}  # period -> list of sequences
+    periods = {}  # period -> count
     
     for worker_id, seq_list in sequences_dict.items():
         for seq in seq_list:
@@ -304,22 +301,19 @@ def profile_parallel(C, V, gf_order, num_workers, algorithm='enumeration', perio
             # Deduplicate: only keep first occurrence
             if min_state_tuple not in visited_cycles:
                 visited_cycles[min_state_tuple] = period
-                if period not in merged_sequences:
-                    merged_sequences[period] = []
-                merged_sequences[period].append({
+                if period not in merged_sequences_by_period:
+                    merged_sequences_by_period[period] = []
+                merged_sequences_by_period[period].append({
                     'states': states,
                     'period': period,
                     'start_state': seq.get('start_state')
                 })
-                merged_periods[period] = merged_periods.get(period, 0) + 1
-                total_periods_sum += period
+                periods[period] = periods.get(period, 0) + 1
     
     # Convert to expected format (per-worker format for extract_cycle_signatures)
-    sequences = {}  # worker_id -> list of sequences
-    for worker_id, seq_list in sequences_dict.items():
-        sequences[worker_id] = seq_list
+    # Keep per-worker format for redundancy detection
+    sequences = sequences_dict  # worker_id -> list of sequences
     
-    periods = merged_periods
     total_states = sum(len(chunk) for chunk in chunks)
     
     stage_end = time.time()
