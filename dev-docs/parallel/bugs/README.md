@@ -21,11 +21,6 @@ Comprehensive design document evaluating solution options (Shared Visited Set, S
 
 Overview of all bugs found and fixed in parallel execution, including correctness issues, performance problems, and implementation bugs.
 
-### [parallel_fundamental_problem.md](./parallel_fundamental_problem.md)
-**Fundamental problems with parallel execution**
-
-Analysis of fundamental issues with parallel execution, including load imbalance, overhead, and scalability problems.
-
 ### [parallel_worker_hang_analysis.md](./parallel_worker_hang_analysis.md)
 **Analysis of worker hang issues**
 

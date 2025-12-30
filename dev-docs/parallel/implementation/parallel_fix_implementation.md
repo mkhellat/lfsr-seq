@@ -1,7 +1,7 @@
 # Parallel Processing Fix Implementation Plan
 
-**Date**: 2025-01-XX  
-**Status**: Ready for Implementation  
+ 
+**Status**: Ready for Implementation 
 **Priority**: HIGH
 
 ---
@@ -29,26 +29,26 @@ Current parallel processing is **4-6x SLOWER** than sequential due to:
 
 #### Step 1: Ensure Fork Mode is Used
 
-**File**: `lfsr/analysis.py`  
+**File**: `lfsr/analysis.py` 
 **Location**: `lfsr_sequence_mapper_parallel()` function
 
 **Current Code** (lines 1354-1359):
 ```python
 try:
-    # Try fork first (faster, works on Linux)
-    ctx = multiprocessing.get_context('fork')
+ # Try fork first (faster, works on Linux)
+ ctx = multiprocessing.get_context('fork')
 except ValueError:
-    # Fall back to spawn if fork not available
-    ctx = multiprocessing.get_context('spawn')
+ # Fall back to spawn if fork not available
+ ctx = multiprocessing.get_context('spawn')
 ```
 
-**Status**: ✅ Already implemented
+**Status**: Already implemented
 
 ---
 
 #### Step 2: Isolate SageMath in Workers
 
-**File**: `lfsr/analysis.py`  
+**File**: `lfsr/analysis.py` 
 **Location**: `_process_state_chunk()` function
 
 **Current Code** (lines 1093-1097):
@@ -67,26 +67,26 @@ V = VectorSpace(F, lfsr_degree)
 # Even though fork inherits parent's memory, creating fresh objects
 # ensures proper category isolation
 try:
-    # Force fresh SageMath objects (avoids category mismatches in fork mode)
-    F = GF(gf_order)
-    V = VectorSpace(F, lfsr_degree)
-    # Test that objects work
-    _test_vec = vector(F, [0] * lfsr_degree)
-    debug_log(f'SageMath isolated successfully in worker')
+ # Force fresh SageMath objects (avoids category mismatches in fork mode)
+ F = GF(gf_order)
+ V = VectorSpace(F, lfsr_degree)
+ # Test that objects work
+ _test_vec = vector(F, [0] * lfsr_degree)
+ debug_log(f'SageMath isolated successfully in worker')
 except Exception as e:
-    debug_log(f'Warning: SageMath isolation failed: {e}')
-    # Continue anyway - might still work
-    F = GF(gf_order)
-    V = VectorSpace(F, lfsr_degree)
+ debug_log(f'Warning: SageMath isolation failed: {e}')
+ # Continue anyway - might still work
+ F = GF(gf_order)
+ V = VectorSpace(F, lfsr_degree)
 ```
 
-**Status**: ⏭️ Needs implementation
+**Status**: ⏭ Needs implementation
 
 ---
 
 #### Step 3: Rebuild Matrix in Worker (Already Done)
 
-**File**: `lfsr/analysis.py`  
+**File**: `lfsr/analysis.py` 
 **Location**: `_process_state_chunk()` function
 
 **Current Code** (lines 1066-1085):
@@ -94,11 +94,11 @@ except Exception as e:
 # Reconstruct state update matrix in worker
 debug_log(f'Reconstructing state update matrix from coeffs: {coeffs_vector}, gf_order: {gf_order}, degree: {lfsr_degree}')
 try:
-    from lfsr.core import build_state_update_matrix
-    state_update_matrix, _ = build_state_update_matrix(coeffs_vector, gf_order)
+ from lfsr.core import build_state_update_matrix
+ state_update_matrix, _ = build_state_update_matrix(coeffs_vector, gf_order)
 ```
 
-**Status**: ✅ Already implemented (matrix is rebuilt from coefficients)
+**Status**: Already implemented (matrix is rebuilt from coefficients)
 
 ---
 
@@ -107,12 +107,12 @@ try:
 **Test Script**: `scripts/test_fork_with_sagemath.py`
 
 **Test Cases**:
-1. ✅ Fork mode works without category mismatch errors
-2. ✅ Performance is better than spawn mode
-3. ✅ Results match sequential processing
-4. ✅ No hangs or deadlocks
+1. Fork mode works without category mismatch errors
+2. Performance is better than spawn mode
+3. Results match sequential processing
+4. No hangs or deadlocks
 
-**Status**: ⏭️ Needs testing
+**Status**: ⏭ Needs testing
 
 ---
 
@@ -136,14 +136,14 @@ try:
 
 **Small LFSR (1000 states, 4 workers)**:
 - Sequential: 1000 × 0.5ms = 500ms
-- Parallel (spawn): 200ms (overhead) + 125ms (computation) = 325ms + 200ms (IPC/merge) = 525ms ❌
-- Parallel (fork): 20ms (overhead) + 125ms (computation) = 145ms + 20ms (IPC/merge) = 165ms ✅
+- Parallel (spawn): 200ms (overhead) + 125ms (computation) = 325ms + 200ms (IPC/merge) = 525ms 
+- Parallel (fork): 20ms (overhead) + 125ms (computation) = 145ms + 20ms (IPC/merge) = 165ms 
 - **Speedup: 3x faster than sequential**
 
 **Large LFSR (32768 states, 4 workers)**:
 - Sequential: 32768 × 0.5ms = 16384ms = 16.4s
 - Parallel (spawn): 200ms + 4096ms = 4296ms + 200ms = 4.5s (but times out)
-- Parallel (fork): 20ms + 4096ms = 4116ms + 20ms = 4.1s ✅
+- Parallel (fork): 20ms + 4096ms = 4116ms + 20ms = 4.1s 
 - **Speedup: 4x faster than sequential**
 
 ---

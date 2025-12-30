@@ -1,6 +1,5 @@
 # Worker Redundancy Fix Plan
 
-**Date**: 2025-12-28  
 **Goal**: Fix worker redundancy bug - prevent workers from processing the same cycles
 
 ---
@@ -28,53 +27,53 @@
 ### Algorithm
 
 1. **Worker receives chunk data**:
-   - `state_chunk`: List of (state_tuple, index) pairs
-   - Worker can determine its chunk boundaries: `min_idx = min(c[1] for c in state_chunk)`, `max_idx = max(c[1] for c in state_chunk)`
+ - `state_chunk`: List of (state_tuple, index) pairs
+ - Worker can determine its chunk boundaries: `min_idx = min(c[1] for c in state_chunk)`, `max_idx = max(c[1] for c in state_chunk)`
 
 2. **For each state in chunk**:
-   - Compute period (already done)
-   - Compute min_state (already done, but limited to 1000 states)
-   - **NEW**: Convert min_state tuple to state index
-   - **NEW**: Check if min_state index is in this worker's chunk range
-   - **NEW**: If min_state is NOT in this chunk, SKIP processing (another worker will handle it)
+ - Compute period (already done)
+ - Compute min_state (already done, but limited to 1000 states)
+ - **NEW**: Convert min_state tuple to state index
+ - **NEW**: Check if min_state index is in this worker's chunk range
+ - **NEW**: If min_state is NOT in this chunk, SKIP processing (another worker will handle it)
 
 3. **Result**:
-   - Only the worker whose chunk contains the min_state processes the cycle
-   - Other workers skip it
-   - No redundant work!
+ - Only the worker whose chunk contains the min_state processes the cycle
+ - Other workers skip it
+ - No redundant work!
 
 ### Implementation Steps
 
 #### Step 1: Add Helper Function
 ```python
 def tuple_to_state_index(state_tuple: Tuple[int, ...], degree: int, gf_order: int) -> int:
-    """Convert state tuple back to state index."""
-    if gf_order == 2:
-        # Binary to integer
-        index = 0
-        for i, bit in enumerate(state_tuple):
-            index |= (bit << i)
-        return index
-    else:
-        # Base-q to integer
-        index = 0
-        power = 1
-        for digit in state_tuple:
-            index += digit * power
-            power *= gf_order
-        return index
+ """Convert state tuple back to state index."""
+ if gf_order == 2:
+ # Binary to integer
+ index = 0
+ for i, bit in enumerate(state_tuple):
+ index |= (bit << i)
+ return index
+ else:
+ # Base-q to integer
+ index = 0
+ power = 1
+ for digit in state_tuple:
+ index += digit * power
+ power *= gf_order
+ return index
 ```
 
 #### Step 2: Determine Chunk Boundaries in Worker
 ```python
 # In _process_state_chunk, at the start:
 if state_chunk:
-    chunk_indices = [idx for _, idx in state_chunk]
-    chunk_min_idx = min(chunk_indices)
-    chunk_max_idx = max(chunk_indices)
+ chunk_indices = [idx for _, idx in state_chunk]
+ chunk_min_idx = min(chunk_indices)
+ chunk_max_idx = max(chunk_indices)
 else:
-    chunk_min_idx = 0
-    chunk_max_idx = 0
+ chunk_min_idx = 0
+ chunk_max_idx = 0
 ```
 
 #### Step 3: Check Min_State Before Processing
@@ -84,17 +83,17 @@ min_state_index = tuple_to_state_index(min_state, lfsr_degree, gf_order)
 
 # Check if min_state is in this worker's chunk
 if not (chunk_min_idx <= min_state_index < chunk_max_idx + 1):
-    # Min_state is in another worker's chunk - skip this cycle
-    debug_log(f'State {idx+1}: Min_state {min_state_index} not in chunk [{chunk_min_idx}, {chunk_max_idx}], skipping')
-    continue  # Skip processing - another worker will handle it
+ # Min_state is in another worker's chunk - skip this cycle
+ debug_log(f'State {idx+1}: Min_state {min_state_index} not in chunk [{chunk_min_idx}, {chunk_max_idx}], skipping')
+ continue # Skip processing - another worker will handle it
 ```
 
 #### Step 4: Handle Edge Cases
 - **Empty chunks**: Skip
 - **Min_state computation limited to 1000 states**: May not find true min_state for large cycles
-  - **Solution**: If min_state is not in chunk but we only checked 1000 states, we might have missed the true min_state
-  - **Fix**: For cycles with period > 1000, check if ANY state in first 1000 is in chunk
-  - **Or**: Accept that we might process some cycles twice, but it's better than processing ALL cycles twice
+ - **Solution**: If min_state is not in chunk but we only checked 1000 states, we might have missed the true min_state
+ - **Fix**: For cycles with period > 1000, check if ANY state in first 1000 is in chunk
+ - **Or**: Accept that we might process some cycles twice, but it's better than processing ALL cycles twice
 
 ---
 
@@ -112,9 +111,9 @@ if not (chunk_min_idx <= min_state_index < chunk_max_idx + 1):
 
 ### Edge Cases
 - **Large cycles (period > 1000)**: Min_state computation is limited to 1000 states
-  - May not find true min_state
-  - Some cycles might still be processed by multiple workers
-  - But this is much better than processing ALL cycles twice
+ - May not find true min_state
+ - Some cycles might still be processed by multiple workers
+ - But this is much better than processing ALL cycles twice
 
 ---
 
@@ -129,7 +128,7 @@ if not (chunk_min_idx <= min_state_index < chunk_max_idx + 1):
 - **Min_state is canonical**: All states in same cycle have same min_state
 - **Chunk boundaries are known**: Workers can determine from chunk data
 - **Edge case**: Large cycles may have min_state beyond first 1000 states
-  - **Mitigation**: Check if ANY state in first 1000 is in chunk (more conservative)
+ - **Mitigation**: Check if ANY state in first 1000 is in chunk (more conservative)
 
 ### Alternative Approach (More Conservative)
 Instead of checking min_state, check if ANY state in the cycle (up to first 1000) is in this worker's chunk:
@@ -142,17 +141,17 @@ Instead of checking min_state, check if ANY state in the cycle (up to first 1000
 ## Testing Plan
 
 1. **Test with 16-bit LFSR**:
-   - Verify only one worker processes each cycle
-   - Check that results are correct (same sequences, same periods)
-   - Measure speedup improvement
+ - Verify only one worker processes each cycle
+ - Check that results are correct (same sequences, same periods)
+ - Measure speedup improvement
 
 2. **Test with 15-bit LFSR**:
-   - Verify performance improvement
-   - Check for edge cases
+ - Verify performance improvement
+ - Check for edge cases
 
 3. **Test with cycles that span chunks**:
-   - Verify min_state check works correctly
-   - Verify no cycles are missed
+ - Verify min_state check works correctly
+ - Verify no cycles are missed
 
 ---
 
@@ -170,20 +169,20 @@ Instead of checking min_state, check if ANY state in the cycle (up to first 1000
 ## Risks
 
 1. **Min_state computation limited**: For large cycles, might not find true min_state
-   - **Mitigation**: Use more conservative check (any state in first 1000)
-   
+ - **Mitigation**: Use more conservative check (any state in first 1000)
+ 
 2. **Chunk boundaries**: Need to ensure correct calculation
-   - **Mitigation**: Use min/max of chunk indices
+ - **Mitigation**: Use min/max of chunk indices
 
 3. **Edge cases**: Cycles with min_state exactly at chunk boundary
-   - **Mitigation**: Use inclusive range check
+ - **Mitigation**: Use inclusive range check
 
 ---
 
 ## Success Criteria
 
-- ✅ Only one worker processes each cycle
-- ✅ Results are correct (same as sequential)
-- ✅ Speedup improves from 1.48x to ~1.8x
-- ✅ No cycles are missed
-- ✅ Performance is stable
+- Only one worker processes each cycle
+- Results are correct (same as sequential)
+- Speedup improves from 1.48x to ~1.8x
+- No cycles are missed
+- Performance is stable

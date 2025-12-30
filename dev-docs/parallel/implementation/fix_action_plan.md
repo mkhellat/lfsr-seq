@@ -1,6 +1,5 @@
 # Fix Action Plan for Parallel Execution Issues
 
-**Date**: 2025-12-30  
 **Issues Identified**:
 1. Correctness bug: Deduplication failure with 4+ workers
 2. Performance degradation: 4+ workers slower than 2 workers due to load imbalance
@@ -13,9 +12,9 @@
 - **Symptom**: 4+ workers produce incorrect results (period sum 12286/24571 instead of 4096)
 - **Root Cause**: `_merge_parallel_results` uses incomplete min_state for deduplication
 - **Details**: 
-  - Workers compute min_state from first 1000 states only (to avoid hangs)
-  - For large cycles (period > 1000), different workers compute different min_states
-  - Merge function treats them as different cycles → duplicates
+ - Workers compute min_state from first 1000 states only (to avoid hangs)
+ - For large cycles (period > 1000), different workers compute different min_states
+ - Merge function treats them as different cycles → duplicates
 
 ### Solution Options
 
@@ -44,10 +43,10 @@
 - **Symptom**: 4+ workers slower than 2 workers (load imbalance 400-582%)
 - **Root Cause**: Work not evenly distributed - one worker does most work
 - **Details**:
-  - Large cycles span multiple chunks
-  - Only one worker claims each cycle
-  - Other workers in those chunks have little work
-  - Result: Poor load balancing
+ - Large cycles span multiple chunks
+ - Only one worker claims each cycle
+ - Other workers in those chunks have little work
+ - Result: Poor load balancing
 
 ### Solution Options
 
@@ -79,17 +78,17 @@
 
 ### Phase 1: Fix Correctness Bug (CRITICAL - Must Fix)
 
-**Priority**: HIGH  
+**Priority**: HIGH 
 **Estimated Time**: 2-3 hours
 
 #### Task 1.1: Fix Deduplication in `_merge_parallel_results`
 - **File**: `lfsr/analysis.py`
 - **Function**: `_merge_parallel_results` (line ~756)
 - **Action**: 
-  - Option C: Use shared_cycles registry from workers
-  - Pass shared_cycles to merge function
-  - Only deduplicate cycles not already in shared_cycles
-  - This ensures merge uses same deduplication logic as workers
+ - Option C: Use shared_cycles registry from workers
+ - Pass shared_cycles to merge function
+ - Only deduplicate cycles not already in shared_cycles
+ - This ensures merge uses same deduplication logic as workers
 
 #### Task 1.2: Update Function Signature
 - **File**: `lfsr/analysis.py`
@@ -106,33 +105,33 @@
 
 ### Phase 2: Improve Load Balancing (PERFORMANCE - Should Fix)
 
-**Priority**: MEDIUM  
+**Priority**: MEDIUM 
 **Estimated Time**: 4-6 hours
 
 #### Task 2.1: Analyze Work Distribution
 - **Action**: Add detailed profiling to measure:
-  - Actual work per worker (states processed, cycles found)
-  - Time spent waiting vs working
-  - Lock contention metrics
+ - Actual work per worker (states processed, cycles found)
+ - Time spent waiting vs working
+ - Lock contention metrics
 - **Goal**: Understand exact cause of imbalance
 
 #### Task 2.2: Implement Chunk Size Optimization
 - **File**: `lfsr/analysis.py`
 - **Function**: `_partition_state_space` or `lfsr_sequence_mapper_parallel`
 - **Action**: 
-  - For small problems (< 10K states), use fewer workers
-  - Auto-select optimal worker count: `min(num_workers, optimal_count)`
-  - Formula: `optimal_count = max(1, min(num_workers, state_space_size // 2000))`
+ - For small problems (< 10K states), use fewer workers
+ - Auto-select optimal worker count: `min(num_workers, optimal_count)`
+ - Formula: `optimal_count = max(1, min(num_workers, state_space_size // 2000))`
 - **Rationale**: Larger chunks = better load distribution
 
 #### Task 2.3: Add Worker Count Auto-Selection
 - **File**: `lfsr/analysis.py`
 - **Function**: `lfsr_sequence_mapper_parallel`
 - **Action**: 
-  - If `num_workers` is None, auto-select based on problem size
-  - Small (< 4K states): 1-2 workers
-  - Medium (4K-16K): 2-4 workers
-  - Large (> 16K): Use all available workers
+ - If `num_workers` is None, auto-select based on problem size
+ - Small (< 4K states): 1-2 workers
+ - Medium (4K-16K): 2-4 workers
+ - Large (> 16K): Use all available workers
 - **Goal**: Prevent user from selecting too many workers for small problems
 
 #### Task 2.4: Test Performance
@@ -143,15 +142,15 @@
 
 ### Phase 3: Documentation and Validation
 
-**Priority**: LOW  
+**Priority**: LOW 
 **Estimated Time**: 1-2 hours
 
 #### Task 3.1: Update Documentation
 - **Files**: `README.md`, `docs/`
 - **Action**: Document:
-  - Optimal worker counts for different problem sizes
-  - Known limitations (load imbalance with many workers)
-  - Correctness guarantees
+ - Optimal worker counts for different problem sizes
+ - Known limitations (load imbalance with many workers)
+ - Correctness guarantees
 
 #### Task 3.2: Add Performance Benchmarks
 - **File**: `scripts/benchmark_parallel.py`
@@ -161,9 +160,9 @@
 #### Task 3.3: Final Validation
 - **Action**: Run full test suite
 - **Success Criteria**: 
-  - All correctness tests pass
-  - Performance is acceptable
-  - No regressions
+ - All correctness tests pass
+ - Performance is acceptable
+ - No regressions
 
 ---
 
@@ -191,35 +190,35 @@
 ## Implementation Order
 
 1. **First**: Fix correctness bug (TODO-1 to TODO-4)
-   - This is critical - incorrect results are unacceptable
-   - Estimated: 2-3 hours
+ - This is critical - incorrect results are unacceptable
+ - Estimated: 2-3 hours
 
 2. **Second**: Improve load balancing (TODO-5 to TODO-8)
-   - This improves performance but correctness is more important
-   - Estimated: 4-6 hours
+ - This improves performance but correctness is more important
+ - Estimated: 4-6 hours
 
 3. **Third**: Documentation and validation (TODO-9 to TODO-11)
-   - Ensures long-term maintainability
-   - Estimated: 1-2 hours
+ - Ensures long-term maintainability
+ - Estimated: 1-2 hours
 
 ---
 
 ## Success Criteria
 
 ### Correctness
-- ✅ All worker counts (1, 2, 4, 8) produce correct results
-- ✅ Period sum matches sequential for all configurations
-- ✅ No duplicate cycles in results
+- All worker counts (1, 2, 4, 8) produce correct results
+- Period sum matches sequential for all configurations
+- No duplicate cycles in results
 
 ### Performance
-- ✅ 2 workers remains optimal for 12-bit LFSR
-- ✅ 4+ workers are not slower than 2 workers (or at least not significantly)
-- ✅ Load imbalance < 100% for all worker counts
+- 2 workers remains optimal for 12-bit LFSR
+- 4+ workers are not slower than 2 workers (or at least not significantly)
+- Load imbalance < 100% for all worker counts
 
 ### Code Quality
-- ✅ No regressions in existing functionality
-- ✅ All tests pass
-- ✅ Documentation updated
+- No regressions in existing functionality
+- All tests pass
+- Documentation updated
 
 ---
 

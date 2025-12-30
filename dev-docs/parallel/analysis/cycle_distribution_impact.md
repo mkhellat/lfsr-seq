@@ -1,6 +1,6 @@
 # Impact of Cycle Distribution on Load Imbalance
 
-## Hypothesis Confirmed ✅
+## Hypothesis Confirmed 
 
 **Question**: If we use a different 14-bit sequence with a different distribution of cycles, should we see a different imbalance distribution?
 
@@ -29,19 +29,19 @@
 ### Key Findings
 
 1. **2 Workers**: V2 shows **much better** load balance (58.4% vs 184%)
-   - V2: Max worker 2.02s, Min worker 0.00s, Average 1.28s
-   - V1: Max worker 1.77s, Min worker 0.07s, Average 0.92s
-   - **V2's cycles are better distributed across the 2 chunks**
+ - V2: Max worker 2.02s, Min worker 0.00s, Average 1.28s
+ - V1: Max worker 1.77s, Min worker 0.07s, Average 0.92s
+ - **V2's cycles are better distributed across the 2 chunks**
 
 2. **4 Workers**: V2 shows **better** load balance (226.5% vs 400%)
-   - V2: Max worker 2.02s, Min worker 0.00s, Average 0.89s
-   - V1: Max worker 3.99s, Min worker 0.00s, Average 1.00s
-   - **V2's cycles are better distributed across the 4 chunks**
+ - V2: Max worker 2.02s, Min worker 0.00s, Average 0.89s
+ - V1: Max worker 3.99s, Min worker 0.00s, Average 1.00s
+ - **V2's cycles are better distributed across the 4 chunks**
 
 3. **8 Workers**: V2 shows **worse** load balance (790.4% vs 683%)
-   - V2: Max worker 4.32s, Min worker 0.00s, Average 0.55s
-   - V1: Max worker 3.88s, Min worker 0.00s, Average 0.57s
-   - **With 8 workers, V2's large cycle happens to align poorly with chunk boundaries**
+ - V2: Max worker 4.32s, Min worker 0.00s, Average 0.55s
+ - V1: Max worker 3.88s, Min worker 0.00s, Average 0.57s
+ - **With 8 workers, V2's large cycle happens to align poorly with chunk boundaries**
 
 ---
 
@@ -58,18 +58,18 @@
 ### Observations
 
 1. **Sequential Performance**: V1 is **2.49x faster** than V2
-   - Different cycle structures lead to different traversal costs
-   - V2's cycle structure may be less cache-friendly or have longer paths
+ - Different cycle structures lead to different traversal costs
+ - V2's cycle structure may be less cache-friendly or have longer paths
 
 2. **2 Workers**: V1 is faster despite worse load balance
-   - V1: 1.93s (184% imbalance)
-   - V2: 3.52s (58.4% imbalance)
-   - **Better load balance doesn't always mean better performance** if sequential cost is higher
+ - V1: 1.93s (184% imbalance)
+ - V2: 3.52s (58.4% imbalance)
+ - **Better load balance doesn't always mean better performance** if sequential cost is higher
 
 3. **4 Workers**: V2 is faster despite worse sequential performance!
-   - V1: 4.04s (400% imbalance)
-   - V2: 3.35s (226.5% imbalance)
-   - **Better load balance can overcome sequential overhead** when imbalance is severe
+ - V1: 4.04s (400% imbalance)
+ - V2: 3.35s (226.5% imbalance)
+ - **Better load balance can overcome sequential overhead** when imbalance is severe
 
 ---
 
@@ -107,27 +107,27 @@ Work is divided by **state indices**, not by cycle structure:
 
 ## Conclusions
 
-1. ✅ **Hypothesis Confirmed**: Different cycle distributions produce different load imbalance patterns
+1. **Hypothesis Confirmed**: Different cycle distributions produce different load imbalance patterns
 
 2. **Load Imbalance is Cycle-Dependent**:
-   - V1: 184% (2w) → 400% (4w) → 683% (8w)
-   - V2: 58% (2w) → 227% (4w) → 790% (8w)
-   - **Pattern differs based on cycle alignment with chunk boundaries**
+ - V1: 184% (2w) → 400% (4w) → 683% (8w)
+ - V2: 58% (2w) → 227% (4w) → 790% (8w)
+ - **Pattern differs based on cycle alignment with chunk boundaries**
 
 3. **Better Load Balance ≠ Better Performance**:
-   - V2 has better balance for 2-4 workers
-   - But V1 is faster overall due to better sequential performance
-   - **Exception**: V2 is faster with 4 workers (3.35s vs 4.04s) because imbalance is less severe
+ - V2 has better balance for 2-4 workers
+ - But V1 is faster overall due to better sequential performance
+ - **Exception**: V2 is faster with 4 workers (3.35s vs 4.04s) because imbalance is less severe
 
 4. **Static Threading Limitations**:
-   - Performance is **unpredictable** - depends on cycle alignment
-   - No way to adapt to actual work distribution
-   - Different worker counts can have dramatically different performance
+ - Performance is **unpredictable** - depends on cycle alignment
+ - No way to adapt to actual work distribution
+ - Different worker counts can have dramatically different performance
 
 5. **Recommendations**:
-   - **Dynamic threading** (work stealing) would eliminate this dependency
-   - **Adaptive chunking** could help (start small, redistribute dynamically)
-   - **Fewer workers** reduces the impact (1-2 workers for small problems)
+ - **Dynamic threading** (work stealing) would eliminate this dependency
+ - **Adaptive chunking** could help (start small, redistribute dynamically)
+ - **Fewer workers** reduces the impact (1-2 workers for small problems)
 
 ---
 

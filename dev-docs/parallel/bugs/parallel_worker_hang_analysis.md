@@ -1,7 +1,7 @@
 # Parallel Worker Hang Analysis - strange.csv
 
-**Date**: 2025-01-XX  
-**Status**: Investigation Complete  
+ 
+**Status**: Investigation Complete 
 **Issue**: Workers hang when processing strange.csv in parallel mode
 
 ---
@@ -9,8 +9,8 @@
 ## Problem Summary
 
 When processing `strange.csv` (3 LFSRs) with parallel processing:
-- **Sequential**: 50.6s ✅
-- **Parallel (2 workers)**: 115.5s ❌ (2.3x SLOWER)
+- **Sequential**: 50.6s 
+- **Parallel (2 workers)**: 115.5s (2.3x SLOWER)
 - **Workers timeout**: After 40s, workers are terminated and fallback to sequential
 
 **Root Cause**: Workers hang during period computation, causing timeout and fallback to sequential.
@@ -22,16 +22,16 @@ When processing `strange.csv` (3 LFSRs) with parallel processing:
 ### Test 1: Sequential Baseline
 ```
 Time: 50.6s
-Status: ✅ Works correctly
+Status: Works correctly
 ```
 
 ### Test 2: Parallel with Debug Output
 ```
 Workers start successfully
-SageMath initialization: ✅ OK
-Matrix reconstruction: ✅ OK
-State processing starts: ✅ OK
-Period computation: ❌ HANGS at state 2
+SageMath initialization: OK
+Matrix reconstruction: OK
+State processing starts: OK
+Period computation: HANGS at state 2
 ```
 
 **Observation**: Workers hang when calling `_find_period()` with enumeration algorithm.
@@ -45,9 +45,9 @@ Period computation: ❌ HANGS at state 2
 **Problem**: Enumeration algorithm uses a tight matrix multiplication loop:
 ```python
 for i in range(period):
-    current = current * state_update_matrix
-    if current == start_state:
-        return i + 1
+ current = current * state_update_matrix
+ if current == start_state:
+ return i + 1
 ```
 
 **Why it hangs in fork mode**:
@@ -63,10 +63,10 @@ for i in range(period):
 **Problem**: Computing min_state requires iterating through cycle:
 ```python
 for _ in range(max_check - 1):
-    current = current * state_update_matrix
-    current_tuple = tuple(current)
-    if current_tuple < min_state:
-        min_state = current_tuple
+ current = current * state_update_matrix
+ current_tuple = tuple(current)
+ if current_tuple < min_state:
+ min_state = current_tuple
 ```
 
 **Why it might hang**:
@@ -92,15 +92,15 @@ for _ in range(max_check - 1):
 ## Current Status
 
 ### What Works
-- ✅ Sequential processing: 50.6s
-- ✅ Worker initialization: SageMath isolation works
-- ✅ Fallback mechanism: Times out and falls back to sequential
-- ✅ Worker termination: Proper cleanup with context manager
+- Sequential processing: 50.6s
+- Worker initialization: SageMath isolation works
+- Fallback mechanism: Times out and falls back to sequential
+- Worker termination: Proper cleanup with context manager
 
 ### What Doesn't Work
-- ❌ Parallel processing: Workers hang, timeout, fallback to sequential
-- ❌ Speedup: Parallel is 2.3x SLOWER than sequential
-- ❌ Period computation: Hangs even with Floyd's algorithm
+- Parallel processing: Workers hang, timeout, fallback to sequential
+- Speedup: Parallel is 2.3x SLOWER than sequential
+- Period computation: Hangs even with Floyd's algorithm
 
 ---
 
@@ -154,11 +154,11 @@ The hang is likely occurring in one of these places:
 
 ## Next Steps
 
-1. ✅ Test with Floyd's algorithm (done - still hangs)
-2. ⏭️ Simplify deduplication to avoid min_state loop
-3. ⏭️ Test with increased timeout
-4. ⏭️ Consider disabling parallel for multiple LFSRs
-5. ⏭️ Test threading if SageMath releases GIL
+1. Test with Floyd's algorithm (done - still hangs)
+2. ⏭ Simplify deduplication to avoid min_state loop
+3. ⏭ Test with increased timeout
+4. ⏭ Consider disabling parallel for multiple LFSRs
+5. ⏭ Test threading if SageMath releases GIL
 
 ---
 

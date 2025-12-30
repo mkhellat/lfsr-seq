@@ -1,6 +1,5 @@
 # Worker Redundancy Resolution Logic Flaws
 
-**Date**: 2025-12-28  
 **Analysis**: Code review of worker redundancy fix
 
 ---
@@ -40,11 +39,11 @@ chunk_max_idx = max(chunk_indices)
 ```python
 # Lines 1021-1034: Defined but NEVER USED
 def tuple_to_index(state_tup, degree, field_order):
-    # ... implementation
+ # ... implementation
 
 # Lines 1156-1171: Defined and ACTUALLY USED
 def tuple_to_state_index(state_tuple, degree, gf_order):
-    # ... similar implementation
+ # ... similar implementation
 ```
 
 **Issues**:
@@ -70,7 +69,7 @@ min_state = state_tuple
 current = state
 max_check = min(1000, seq_period)
 for i in range(max_check - 1):
-    # ... find min_state
+ # ... find min_state
 ```
 
 **Critical Issue**: 
@@ -92,9 +91,9 @@ for i in range(max_check - 1):
 
 **Problem**:
 ```python
-max_check = min(1000, seq_period)  # Limit to 1000 states to avoid hangs
+max_check = min(1000, seq_period) # Limit to 1000 states to avoid hangs
 for i in range(max_check - 1):
-    # ... find min_state
+ # ... find min_state
 ```
 
 **Critical Issue**:
@@ -123,7 +122,7 @@ for i in range(max_check - 1):
 **Problem**:
 ```python
 if not (chunk_min_idx <= min_state_index <= chunk_max_idx):
-    # Skip cycle
+ # Skip cycle
 ```
 
 **Issues**:
@@ -151,10 +150,10 @@ if not (chunk_min_idx <= min_state_index <= chunk_max_idx):
 **Problem**:
 ```python
 if not (chunk_min_idx <= min_state_index <= chunk_max_idx):
-    # Skip cycle
-    debug_log(f'... skipping ...')
-    local_visited.add(state_tuple)  # Only mark start state
-    continue
+ # Skip cycle
+ debug_log(f'... skipping ...')
+ local_visited.add(state_tuple) # Only mark start state
+ continue
 ```
 
 **Issue**:
@@ -166,16 +165,16 @@ if not (chunk_min_idx <= min_state_index <= chunk_max_idx):
 - Cycle spans chunks: states 1-100 in chunk 0, states 101-200 in chunk 1
 - True min_state is at index 150 (chunk 1)
 - Worker 0 processes state 1:
-  - Computes period = 200
-  - Computes min_state (first 1000) = state at index 150
-  - Checks: min_state not in chunk 0 → SKIPS
-  - Marks only state 1 as visited
+ - Computes period = 200
+ - Computes min_state (first 1000) = state at index 150
+ - Checks: min_state not in chunk 0 → SKIPS
+ - Marks only state 1 as visited
 - Worker 0 processes state 2 (same cycle):
-  - State 2 not in local_visited (only state 1 is marked)
-  - Computes period again (redundant!)
-  - Computes min_state again (redundant!)
-  - Skips again
-  - **Redundant work for states 2-100!**
+ - State 2 not in local_visited (only state 1 is marked)
+ - Computes period again (redundant!)
+ - Computes min_state again (redundant!)
+ - Skips again
+ - **Redundant work for states 2-100!**
 
 **Impact**: 
 - Workers still do redundant work within their own chunk

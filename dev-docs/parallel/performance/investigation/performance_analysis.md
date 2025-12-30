@@ -10,8 +10,8 @@
 
 For a period of 24:
 - **Floyd**: 92 operations
-  - Phase 1: 69 operations (tortoise: 23, hare: 46)
-  - Phase 2: 23 operations
+ - Phase 1: 69 operations (tortoise: 23, hare: 46)
+ - Phase 2: 23 operations
 - **Enumeration**: 24 operations
 - **Ratio**: 3.83x more operations for Floyd
 
@@ -33,9 +33,9 @@ Both algorithms achieve **true O(1) space** in period-only mode:
 ## Why Floyd is Slower
 
 1. **More Operations**: Floyd does ~4x more matrix multiplications
-   - Phase 1 requires moving both tortoise and hare
-   - Hare moves at 2x speed, doubling operations
-   - Phase 2 adds additional operations
+ - Phase 1 requires moving both tortoise and hare
+ - Hare moves at 2x speed, doubling operations
+ - Phase 2 adds additional operations
 
 2. **Overhead Dominates**: For small-to-medium periods (< 1000), the overhead of Phase 1+2 outweighs any benefits
 
@@ -66,9 +66,9 @@ Floyd's algorithm could be beneficial in these scenarios:
 ## Conclusion
 
 **Floyd's algorithm is correctly implemented** but **not beneficial for our use case**:
-- ✅ Algorithm is correct
-- ✅ O(1) space achieved in period-only mode
-- ❌ Slower due to operation overhead
-- ❌ No practical advantage over enumeration
+- Algorithm is correct
+- O(1) space achieved in period-only mode
+- Slower due to operation overhead
+- No practical advantage over enumeration
 
 **Recommendation**: Keep Floyd for educational/verification purposes, but make enumeration the default and clearly document that Floyd is slower for typical LFSR periods.

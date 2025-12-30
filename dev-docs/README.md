@@ -4,35 +4,35 @@ This directory contains all development documentation, analysis reports, and imp
 
 **Note**: This is separate from `docs/` which contains Sphinx documentation for the project.
 
-## 📚 Quick Navigation
+## Quick Navigation
 
 ### Core Documentation
 - **[Parallel Processing](./parallel/README.md)** - All parallel execution documentation
 - **[Plans](./plans/README.md)** - Feature plans and implementation documentation
 - **[Setup & Installation](./setup/README.md)** - Building and installation documentation
 
-## 📁 Directory Structure
+## Directory Structure
 
 ```
 dev-docs/
-├── parallel/          # Parallel processing documentation
-│   ├── analysis/     # Analysis and understanding
-│   ├── bugs/         # Bug reports and fixes
-│   ├── performance/  # Performance profiling results
-│   └── implementation/ # Implementation plans and fixes
-├── plans/            # Feature and implementation plans
-│   ├── parallel/     # Parallel processing plans
-│   ├── features/     # Feature plans
-│   ├── attacks/      # Attack method plans
-│   ├── analysis/     # Analysis tool plans
-│   ├── advanced/     # Advanced feature plans
-│   └── status/       # Status and review documents
-└── setup/            # Setup and installation docs
-    ├── BUILDING.md   # Building Sphinx documentation
-    └── INSTALLATION_LOCATION.md  # Installation location details
+├── parallel/ # Parallel processing documentation
+│ ├── analysis/ # Analysis and understanding
+│ ├── bugs/ # Bug reports and fixes
+│ ├── performance/ # Performance profiling results
+│ └── implementation/ # Implementation plans and fixes
+├── plans/ # Feature and implementation plans
+│ ├── parallel/ # Parallel processing plans
+│ ├── features/ # Feature plans
+│ ├── attacks/ # Attack method plans
+│ ├── analysis/ # Analysis tool plans
+│ ├── advanced/ # Advanced feature plans
+│ └── status/ # Status and review documents
+└── setup/ # Setup and installation docs
+ ├── BUILDING.md # Building Sphinx documentation
+ └── INSTALLATION_LOCATION.md # Installation location details
 ```
 
-## 🔍 Finding Documentation
+## Finding Documentation
 
 ### By Topic
 
@@ -67,14 +67,14 @@ dev-docs/
 - [14-bit Profiling](./parallel/performance/profiling/14bit_profiling_results.md)
 - [Phase 2 Results](./parallel/performance/profiling/phase2_results.md)
 
-## 📝 Recent Updates
+## Recent Updates
 
-- **2025-12-30**: Organized documentation structure into `dev-docs/`
-- **2025-12-30**: Added 14-bit profiling results
-- **2025-12-30**: Added dynamic threading feasibility analysis
-- **2025-12-30**: Moved setup documentation from `docs/`
+- Organized documentation structure into `dev-docs/`
+- Added 14-bit profiling results
+- Added dynamic threading feasibility analysis
+- Moved setup documentation from `docs/`
 
-## 🔗 Related Documentation
+## Related Documentation
 
 - **User Documentation**: See `docs/` for Sphinx-generated user documentation
 - **API Reference**: See `docs/api/` for API documentation

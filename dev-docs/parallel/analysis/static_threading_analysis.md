@@ -27,15 +27,15 @@ chunk_size = max(1, total_states // num_chunks)
 
 # Create chunks by computing state tuples from indices
 for chunk_idx in range(num_chunks):
-    chunk = []
-    start_idx = chunk_idx * chunk_size
-    end_idx = min(start_idx + chunk_size, total_states)
-    
-    for state_idx in range(start_idx, end_idx):
-        state_tuple = state_index_to_tuple(state_idx, degree, gf_order)
-        chunk.append((state_tuple, state_idx))
-    
-    chunks.append(chunk)
+ chunk = []
+ start_idx = chunk_idx * chunk_size
+ end_idx = min(start_idx + chunk_size, total_states)
+ 
+ for state_idx in range(start_idx, end_idx):
+ state_tuple = state_index_to_tuple(state_idx, degree, gf_order)
+ chunk.append((state_tuple, state_idx))
+ 
+ chunks.append(chunk)
 ```
 
 **Key characteristics:**
@@ -50,18 +50,18 @@ for chunk_idx in range(num_chunks):
 # lfsr/analysis.py:1509-1520
 chunk_data_list = []
 for worker_id, chunk in enumerate(chunks):
-    chunk_data = (
-        chunk,              # Fixed chunk assigned to this worker
-        coeffs_vector,
-        gf_order,
-        d,
-        algorithm,
-        period_only,
-        worker_id,
-        shared_cycles,
-        cycle_lock,
-    )
-    chunk_data_list.append(chunk_data)
+ chunk_data = (
+ chunk, # Fixed chunk assigned to this worker
+ coeffs_vector,
+ gf_order,
+ d,
+ algorithm,
+ period_only,
+ worker_id,
+ shared_cycles,
+ cycle_lock,
+ )
+ chunk_data_list.append(chunk_data)
 ```
 
 **Key characteristics:**
@@ -73,23 +73,23 @@ for worker_id, chunk in enumerate(chunks):
 #### 3. No Dynamic Work Redistribution
 
 **What we DON'T have:**
-- ❌ Work stealing (workers taking work from others when idle)
-- ❌ Dynamic load balancing (redistributing work based on runtime performance)
-- ❌ Adaptive chunking (adjusting chunk sizes during execution)
-- ❌ Task queues (workers pulling tasks dynamically)
+- Work stealing (workers taking work from others when idle)
+- Dynamic load balancing (redistributing work based on runtime performance)
+- Adaptive chunking (adjusting chunk sizes during execution)
+- Task queues (workers pulling tasks dynamically)
 
 **What we DO have:**
-- ✅ Fixed chunk assignment
-- ✅ Workers process their assigned chunks independently
-- ✅ Shared cycle registry (prevents redundancy, but doesn't redistribute work)
+- Fixed chunk assignment
+- Workers process their assigned chunks independently
+- Shared cycle registry (prevents redundancy, but doesn't redistribute work)
 
 #### 4. Static Execution Model
 
 ```python
 # lfsr/analysis.py:1525-1530
 async_results = [
-    pool.apply_async(_process_state_chunk, (chunk_data,))
-    for chunk_data in chunk_data_list
+ pool.apply_async(_process_state_chunk, (chunk_data,))
+ for chunk_data in chunk_data_list
 ]
 
 # Wait for all workers to complete
@@ -136,17 +136,17 @@ Our profiling results show severe load imbalance:
 ### Root Cause
 
 1. **Fixed Chunk Boundaries**: States are divided by index, not by work complexity
-   - Worker 0 gets states 0-4095
-   - Worker 1 gets states 4096-8191
-   - But the large cycle (period 16,383) might start in Worker 0's chunk
+ - Worker 0 gets states 0-4095
+ - Worker 1 gets states 4096-8191
+ - But the large cycle (period 16,383) might start in Worker 0's chunk
 
 2. **No Work Redistribution**: If Worker 0 finds a large cycle, it must process all 16,383 states
-   - Worker 1-7 finish quickly (their chunks contain states already in claimed cycles)
-   - No mechanism to redistribute work from Worker 0 to idle workers
+ - Worker 1-7 finish quickly (their chunks contain states already in claimed cycles)
+ - No mechanism to redistribute work from Worker 0 to idle workers
 
 3. **Deterministic but Unbalanced**: The partitioning is fair by state count, but not by work complexity
-   - Each chunk has ~8,192 states (for 2 workers)
-   - But processing complexity varies dramatically (large cycles vs. small cycles)
+ - Each chunk has ~8,192 states (for 2 workers)
+ - But processing complexity varies dramatically (large cycles vs. small cycles)
 
 ### Why Dynamic Threading Would Help
 
@@ -161,10 +161,10 @@ With dynamic threading (work stealing):
 
 **Yes, we are implementing static threading** because:
 
-1. ✅ Work is partitioned into **fixed chunks** before execution
-2. ✅ Each worker is assigned a **predetermined chunk**
-3. ✅ No **dynamic work redistribution** occurs
-4. ✅ Work assignment is **deterministic** and **unchanging**
+1. Work is partitioned into **fixed chunks** before execution
+2. Each worker is assigned a **predetermined chunk**
+3. No **dynamic work redistribution** occurs
+4. Work assignment is **deterministic** and **unchanging**
 
 **This explains the load imbalance** we observe:
 - Static partitioning divides work by state count, not by complexity

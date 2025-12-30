@@ -1,6 +1,5 @@
 # Parallel Implementation Bugs and Fixes
 
-**Date**: 2025-12-28  
 **Status**: Bugs identified, fixes in progress
 
 ---
@@ -29,18 +28,18 @@ The parallel implementation has **implementation bugs**, not "overhead". These b
 ```python
 # OLD (BUGGY):
 for idx, state in enumerate(state_vector_space):
-    state_tuple = tuple(state)  # Slow iteration!
-    current_chunk.append((state_tuple, idx))
+ state_tuple = tuple(state) # Slow iteration!
+ current_chunk.append((state_tuple, idx))
 
 # NEW (FIXED):
 def state_index_to_tuple(state_index, degree, gf_order):
-    if gf_order == 2:
-        return tuple((state_index >> i) & 1 for i in range(degree))
-    # ... for other fields
+ if gf_order == 2:
+ return tuple((state_index >> i) & 1 for i in range(degree))
+ # ... for other fields
 
 for state_idx in range(start_idx, end_idx):
-    state_tuple = state_index_to_tuple(state_idx, d, gf_order)
-    chunk.append((state_tuple, state_idx))
+ state_tuple = state_index_to_tuple(state_idx, d, gf_order)
+ chunk.append((state_tuple, state_idx))
 ```
 
 ---
@@ -51,9 +50,9 @@ for state_idx in range(start_idx, end_idx):
 - **Symptom**: Workers take 17.8s vs 8.9s sequential (should be ~4.5s each)
 - **Root Cause**: When cycles span chunks, BOTH workers process the ENTIRE cycle
 - **Example**: Cycle with period 65535 spans both chunks
-  - Worker 0: Processes state 1 (chunk 0), finds cycle, processes all 65535 states
-  - Worker 1: Processes state X (chunk 1, same cycle), finds cycle, processes all 65535 states
-  - **Result**: 2x redundant work!
+ - Worker 0: Processes state 1 (chunk 0), finds cycle, processes all 65535 states
+ - Worker 1: Processes state X (chunk 1, same cycle), finds cycle, processes all 65535 states
+ - **Result**: 2x redundant work!
 
 ### Why This Happens
 - Each worker has its own `local_visited` set
@@ -85,9 +84,9 @@ for state_idx in range(start_idx, end_idx):
 - But workers still do redundant work before merge
 
 ### Current Status
-- ✅ Min_state deduplication implemented
-- ✅ All states in cycle marked as visited (per worker)
-- ❌ Workers still process redundant cycles (separate processes)
+- Min_state deduplication implemented
+- All states in cycle marked as visited (per worker)
+- Workers still process redundant cycles (separate processes)
 
 ---
 
@@ -143,8 +142,8 @@ Workers should skip cycles that are already being processed by another worker. B
 
 **These are BUGS, not overhead!**
 
-1. ✅ **Partitioning bug**: FIXED (4.2s → 0.26s)
-2. ❌ **Worker redundancy bug**: NEEDS FIX (workers process redundant cycles)
-3. ❌ **Min_state computation**: Could be optimized (currently iterates up to 1000 states)
+1. **Partitioning bug**: FIXED (4.2s → 0.26s)
+2. **Worker redundancy bug**: NEEDS FIX (workers process redundant cycles)
+3. **Min_state computation**: Could be optimized (currently iterates up to 1000 states)
 
 The parallel implementation can work correctly and provide speedup once all bugs are fixed.

@@ -1,6 +1,5 @@
 # Worker Redundancy Fix - Design Document
 
-**Date**: 2025-12-30  
 **Problem**: Cycles spanning multiple chunks are processed by multiple workers, causing redundant work and worse performance.
 
 ---
@@ -12,19 +11,19 @@
 2. **Per-Worker Visited Sets**: Each worker has `local_visited` set (not shared)
 3. **Cycle Spanning**: Large cycles (e.g., period 4095) span multiple chunks
 4. **Redundancy**: Multiple workers process the same cycle because:
-   - Worker 0 processes state X (in chunk 0), finds cycle, marks all 4095 states in `local_visited[0]`
-   - Worker 1 processes state Y (in chunk 1, same cycle), doesn't see `local_visited[0]`, processes entire cycle again
+ - Worker 0 processes state X (in chunk 0), finds cycle, marks all 4095 states in `local_visited[0]`
+ - Worker 1 processes state Y (in chunk 1, same cycle), doesn't see `local_visited[0]`, processes entire cycle again
 5. **Result**: 2x (or more) redundant work, worse performance
 
 ### Evidence from Profiling
 - **12-bit LFSR (4096 states)**:
-  - Sequential: 0.49s
-  - 2 workers: 0.91s (1.85x slower!)
-  - Redundancy: Period-4095 cycle found by workers 0 and 1
+ - Sequential: 0.49s
+ - 2 workers: 0.91s (1.85x slower!)
+ - Redundancy: Period-4095 cycle found by workers 0 and 1
 - **Worker Statistics**:
-  - Worker 0: 2 states processed, 2 sequences found
-  - Worker 1: 1 state processed, 1 sequence found
-  - But both found the same large cycle (period 4095)
+ - Worker 0: 2 states processed, 2 sequences found
+ - Worker 1: 1 state processed, 1 sequence found
+ - But both found the same large cycle (period 4095)
 
 ---
 
@@ -47,18 +46,18 @@
 ```python
 # In main process
 manager = multiprocessing.Manager()
-shared_visited = manager.dict()  # min_state_tuple -> worker_id
+shared_visited = manager.dict() # min_state_tuple -> worker_id
 
 # In worker
 if min_state_tuple in shared_visited:
-    # Another worker is processing this cycle
-    continue
+ # Another worker is processing this cycle
+ continue
 else:
-    # Acquire lock, check again, add if not present
-    with lock:
-        if min_state_tuple not in shared_visited:
-            shared_visited[min_state_tuple] = worker_id
-            # Process cycle
+ # Acquire lock, check again, add if not present
+ with lock:
+ if min_state_tuple not in shared_visited:
+ shared_visited[min_state_tuple] = worker_id
+ # Process cycle
 ```
 
 **Performance Impact**: Lock contention could make this slower than current approach.
@@ -81,24 +80,24 @@ else:
 ```python
 # In main process
 manager = multiprocessing.Manager()
-shared_cycles = manager.dict()  # min_state_tuple -> True
+shared_cycles = manager.dict() # min_state_tuple -> True
 
 # In worker (after computing period and min_state)
 min_state_tuple = tuple(min_state)
 if min_state_tuple in shared_cycles:
-    # Another worker already processed this cycle
-    debug_log(f'Cycle with min_state {min_state_tuple} already processed, skipping')
-    local_visited.add(state_tuple)  # Mark start state to skip
-    continue
+ # Another worker already processed this cycle
+ debug_log(f'Cycle with min_state {min_state_tuple} already processed, skipping')
+ local_visited.add(state_tuple) # Mark start state to skip
+ continue
 else:
-    # Try to claim this cycle
-    with lock:
-        if min_state_tuple not in shared_cycles:
-            shared_cycles[min_state_tuple] = True
-            # Process and store cycle
-        else:
-            # Another worker claimed it first
-            continue
+ # Try to claim this cycle
+ with lock:
+ if min_state_tuple not in shared_cycles:
+ shared_cycles[min_state_tuple] = True
+ # Process and store cycle
+ else:
+ # Another worker claimed it first
+ continue
 ```
 
 **Performance Impact**: Minimal - only checks when cycle is found, not per-state.
@@ -160,76 +159,76 @@ else:
 #### Phase 1: Setup (Main Process)
 ```python
 def lfsr_sequence_mapper_parallel(...):
-    # ... existing code ...
-    
-    # Create shared cycle registry
-    manager = multiprocessing.Manager()
-    shared_cycles = manager.dict()  # min_state_tuple -> worker_id (who claimed it)
-    cycle_lock = manager.Lock()  # Lock for atomic check-and-set
-    
-    # Pass to workers via chunk_data
-    chunk_data = (
-        chunk,
-        coeffs_vector,
-        gf_order,
-        d,
-        algorithm,
-        period_only,
-        worker_id,
-        shared_cycles,  # NEW
-        cycle_lock,     # NEW
-    )
+ # ... existing code ...
+ 
+ # Create shared cycle registry
+ manager = multiprocessing.Manager()
+ shared_cycles = manager.dict() # min_state_tuple -> worker_id (who claimed it)
+ cycle_lock = manager.Lock() # Lock for atomic check-and-set
+ 
+ # Pass to workers via chunk_data
+ chunk_data = (
+ chunk,
+ coeffs_vector,
+ gf_order,
+ d,
+ algorithm,
+ period_only,
+ worker_id,
+ shared_cycles, # NEW
+ cycle_lock, # NEW
+ )
 ```
 
 #### Phase 2: Worker Logic
 ```python
 def _process_state_chunk(chunk_data):
-    # ... unpack chunk_data ...
-    shared_cycles, cycle_lock = chunk_data[-2:]  # NEW
-    
-    # ... existing code ...
-    
-    for state_tuple, state_idx in state_chunk:
-        if state_tuple in local_visited:
-            continue  # Fast path: already visited locally
-        
-        # ... compute period and min_state (existing code) ...
-        
-        # NEW: Check if cycle is already being processed
-        min_state_tuple = tuple(min_state)
-        
-        # Fast check (no lock)
-        if min_state_tuple in shared_cycles:
-            debug_log(f'Cycle {min_state_tuple} already claimed by worker {shared_cycles[min_state_tuple]}, skipping')
-            # Mark all states in cycle as visited locally (to skip in this worker)
-            local_visited.add(state_tuple)
-            current = state
-            for _ in range(seq_period - 1):
-                current = current * state_update_matrix
-                current_tuple = tuple(current)
-                local_visited.add(current_tuple)
-            continue
-        
-        # Try to claim cycle (with lock)
-        with cycle_lock:
-            if min_state_tuple in shared_cycles:
-                # Another worker claimed it between check and lock
-                debug_log(f'Cycle {min_state_tuple} claimed by another worker, skipping')
-                local_visited.add(state_tuple)
-                # Mark all states in cycle
-                current = state
-                for _ in range(seq_period - 1):
-                    current = current * state_update_matrix
-                    current_tuple = tuple(current)
-                    local_visited.add(current_tuple)
-                continue
-            else:
-                # Claim this cycle
-                shared_cycles[min_state_tuple] = worker_id
-                debug_log(f'Claimed cycle {min_state_tuple} for worker {worker_id}')
-        
-        # Process cycle (existing code)
-        # ... store sequence, mark states as visited ...
+ # ... unpack chunk_data ...
+ shared_cycles, cycle_lock = chunk_data[-2:] # NEW
+ 
+ # ... existing code ...
+ 
+ for state_tuple, state_idx in state_chunk:
+ if state_tuple in local_visited:
+ continue # Fast path: already visited locally
+ 
+ # ... compute period and min_state (existing code) ...
+ 
+ # NEW: Check if cycle is already being processed
+ min_state_tuple = tuple(min_state)
+ 
+ # Fast check (no lock)
+ if min_state_tuple in shared_cycles:
+ debug_log(f'Cycle {min_state_tuple} already claimed by worker {shared_cycles[min_state_tuple]}, skipping')
+ # Mark all states in cycle as visited locally (to skip in this worker)
+ local_visited.add(state_tuple)
+ current = state
+ for _ in range(seq_period - 1):
+ current = current * state_update_matrix
+ current_tuple = tuple(current)
+ local_visited.add(current_tuple)
+ continue
+ 
+ # Try to claim cycle (with lock)
+ with cycle_lock:
+ if min_state_tuple in shared_cycles:
+ # Another worker claimed it between check and lock
+ debug_log(f'Cycle {min_state_tuple} claimed by another worker, skipping')
+ local_visited.add(state_tuple)
+ # Mark all states in cycle
+ current = state
+ for _ in range(seq_period - 1):
+ current = current * state_update_matrix
+ current_tuple = tuple(current)
+ local_visited.add(current_tuple)
+ continue
+ else:
+ # Claim this cycle
+ shared_cycles[min_state_tuple] = worker_id
+ debug_log(f'Claimed cycle {min_state_tuple} for worker {worker_id}')
+ 
+ # Process cycle (existing code)
+ # ... store sequence, mark states as visited ...
 ```
 
 #### Phase 3: Cleanup
@@ -316,10 +315,10 @@ But start with Option B (simplest) and optimize if needed.
 
 ## Success Criteria
 
-1. ✅ **No Redundancy**: Profiling shows 0 redundant cycles
-2. ✅ **Correct Results**: Parallel results match sequential exactly
-3. ✅ **Performance Improvement**: 2 workers faster than sequential (currently slower)
-4. ✅ **Scalability**: Performance improves with more workers (up to reasonable limit)
+1. **No Redundancy**: Profiling shows 0 redundant cycles
+2. **Correct Results**: Parallel results match sequential exactly
+3. **Performance Improvement**: 2 workers faster than sequential (currently slower)
+4. **Scalability**: Performance improves with more workers (up to reasonable limit)
 
 ---
 

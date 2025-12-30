@@ -1,7 +1,6 @@
 # NIST SP 800-22 Test Suite Implementation Plan
 
-**Date**: 2025-12-27  
-**Status**: In Progress  
+**Status**: In Progress 
 **Version**: 1.0
 
 ---
@@ -246,47 +245,47 @@ This document outlines the implementation plan for the NIST SP 800-22 Statistica
 ```python
 @dataclass
 class NISTTestResult:
-    """Results from a single NIST test."""
-    test_name: str
-    p_value: float
-    passed: bool  # True if p_value >= significance_level
-    statistic: float  # Test statistic value
-    details: Dict[str, Any]  # Test-specific details
+ """Results from a single NIST test."""
+ test_name: str
+ p_value: float
+ passed: bool # True if p_value >= significance_level
+ statistic: float # Test statistic value
+ details: Dict[str, Any] # Test-specific details
 
 @dataclass
 class NISTTestSuiteResult:
-    """Results from the complete NIST test suite."""
-    sequence_length: int
-    tests_passed: int
-    tests_failed: int
-    total_tests: int
-    results: List[NISTTestResult]
-    overall_assessment: str  # "PASSED" or "FAILED"
+ """Results from the complete NIST test suite."""
+ sequence_length: int
+ tests_passed: int
+ tests_failed: int
+ total_tests: int
+ results: List[NISTTestResult]
+ overall_assessment: str # "PASSED" or "FAILED"
 ```
 
 ### Core Functions
 
 ```python
 def run_nist_test_suite(
-    sequence: List[int],
-    significance_level: float = 0.01
+ sequence: List[int],
+ significance_level: float = 0.01
 ) -> NISTTestSuiteResult:
-    """
-    Run all 15 NIST SP 800-22 tests on a binary sequence.
-    
-    Args:
-        sequence: Binary sequence (list of 0s and 1s)
-        significance_level: Statistical significance level (default: 0.01)
-    
-    Returns:
-        NISTTestSuiteResult with all test results
-    """
+ """
+ Run all 15 NIST SP 800-22 tests on a binary sequence.
+ 
+ Args:
+ sequence: Binary sequence (list of 0s and 1s)
+ significance_level: Statistical significance level (default: 0.01)
+ 
+ Returns:
+ NISTTestSuiteResult with all test results
+ """
 
 def frequency_test(sequence: List[int]) -> NISTTestResult:
-    """Test 1: Frequency (Monobit) Test."""
+ """Test 1: Frequency (Monobit) Test."""
 
 def block_frequency_test(sequence: List[int], block_size: int = 128) -> NISTTestResult:
-    """Test 2: Frequency Test within a Block."""
+ """Test 2: Frequency Test within a Block."""
 
 # ... (all 15 tests)
 ```
@@ -320,8 +319,8 @@ A test **fails** if:
 
 ```
 lfsr/
-  nist.py          # Main NIST test suite module
-  nist_tests.py    # Individual test implementations (optional, could be in nist.py)
+ nist.py # Main NIST test suite module
+ nist_tests.py # Individual test implementations (optional, could be in nist.py)
 ```
 
 ### Dependencies
@@ -346,37 +345,37 @@ lfsr/
 ### Sphinx Documentation Sections
 
 1. **Introduction to NIST SP 800-22**
-   - What is NIST SP 800-22?
-   - Why is it important?
-   - When to use it?
+ - What is NIST SP 800-22?
+ - Why is it important?
+ - When to use it?
 
 2. **Test Descriptions**
-   - Detailed explanation of each test
-   - What each test measures
-   - How to interpret results
+ - Detailed explanation of each test
+ - What each test measures
+ - How to interpret results
 
 3. **Mathematical Background**
-   - Statistical theory behind tests
-   - P-value computation
-   - Significance testing
+ - Statistical theory behind tests
+ - P-value computation
+ - Significance testing
 
 4. **API Reference**
-   - Function documentation
-   - Usage examples
+ - Function documentation
+ - Usage examples
 
 5. **Glossary**
-   - All statistical terms defined
-   - Beginner-friendly explanations
+ - All statistical terms defined
+ - Beginner-friendly explanations
 
 ---
 
 ## Success Criteria
 
-1. ✅ Implement all 15 NIST tests
-2. ✅ Correct p-value computation
-3. ✅ Comprehensive documentation
-4. ✅ CLI integration
-5. ✅ Examples and tutorials
+1. Implement all 15 NIST tests
+2. Correct p-value computation
+3. Comprehensive documentation
+4. CLI integration
+5. Examples and tutorials
 
 ---
 
@@ -392,29 +391,29 @@ lfsr/
 
 ---
 
-**Document Version**: 1.0  
-**Last Updated**: 2025-12-27  
-**Status**: ✅ **COMPLETE**  
-**Completion Date**: 2025-12-27
+**Document Version**: 1.0 
+**Last Updated**: 2024-12-27 
+**Status**: **COMPLETE** 
+**Completion Date**: 2024-12-27
 
 ## Implementation Status
 
-**Status**: ✅ **COMPLETE**
+**Status**: **COMPLETE**
 
 **Completion Summary**:
-- ✅ All 15 NIST SP 800-22 tests implemented
-- ✅ Test suite orchestrator (`run_nist_test_suite`) complete
-- ✅ CLI integration complete with `--nist-test` and output format options
-- ✅ Multi-format report generation (Text, JSON, CSV, XML, HTML)
-- ✅ Comprehensive Sphinx documentation with extensive terminology
-- ✅ Working examples in `examples/nist_test_example.py`
-- ✅ All features tested and documented
+- All 15 NIST SP 800-22 tests implemented
+- Test suite orchestrator (`run_nist_test_suite`) complete
+- CLI integration complete with `--nist-test` and output format options
+- Multi-format report generation (Text, JSON, CSV, XML, HTML)
+- Comprehensive Sphinx documentation with extensive terminology
+- Working examples in `examples/nist_test_example.py`
+- All features tested and documented
 
 **Implementation Details**:
 - All 15 tests implemented in `lfsr/nist.py`:
-  - Tests 1-5: Frequency, Block Frequency, Runs, Longest Run, Matrix Rank
-  - Tests 6-10: DFT, Template Matching (non-overlapping & overlapping), Maurer's Universal, Linear Complexity
-  - Tests 11-15: Serial, Approximate Entropy, Cumulative Sums, Random Excursions (both variants)
+ - Tests 1-5: Frequency, Block Frequency, Runs, Longest Run, Matrix Rank
+ - Tests 6-10: DFT, Template Matching (non-overlapping & overlapping), Maurer's Universal, Linear Complexity
+ - Tests 11-15: Serial, Approximate Entropy, Cumulative Sums, Random Excursions (both variants)
 - Export functions implemented in `lfsr/export.py`
 - CLI integration in `lfsr/cli.py` and `lfsr/cli_nist.py`
 - Comprehensive documentation in `docs/nist_sp800_22.rst`

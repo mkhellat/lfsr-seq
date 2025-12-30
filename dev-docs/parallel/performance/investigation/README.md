@@ -23,13 +23,3 @@ Analysis of parallel execution performance, including timing breakdown, overhead
 **Parallel execution overhead analysis**
 
 Detailed analysis of overhead in parallel execution, including process creation, IPC, and synchronization costs.
-
-### [parallel_performance_report.md](./parallel_performance_report.md)
-**Parallel performance report**
-
-Comprehensive performance report covering sequential vs. parallel execution, speedup analysis, and efficiency metrics.
-
-### [strange_csv_benchmark_results.md](./strange_csv_benchmark_results.md)
-**Benchmark results for strange.csv**
-
-Benchmark results for a specific test case (strange.csv), showing performance characteristics.

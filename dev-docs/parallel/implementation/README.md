@@ -33,8 +33,3 @@ Detailed documentation of parallel processing fixes, including fork mode migrati
 **Current status of parallel execution**
 
 Current status document describing the state of parallel execution, known issues, and next steps.
-
-### [proper_debug_analysis.md](./proper_debug_analysis.md)
-**Proper debugging analysis**
-
-Analysis of debugging approaches and proper investigation methods for parallel execution issues.

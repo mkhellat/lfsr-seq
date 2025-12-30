@@ -1,7 +1,6 @@
 # Correlation Attack Framework Implementation Plan
 
-**Date**: 2025-12-27  
-**Status**: In Progress  
+**Status**: In Progress 
 **Version**: 1.0
 
 ---
@@ -126,70 +125,70 @@ A **combination generator** consists of:
 ```python
 # Combination Generator
 class CombinationGenerator:
-    """Represents a combination generator with multiple LFSRs."""
-    lfsrs: List[LFSRConfig]  # List of LFSR configurations
-    combining_function: Callable  # Function to combine outputs
-    function_name: str  # Name of function (e.g., "majority", "xor")
-    
+ """Represents a combination generator with multiple LFSRs."""
+ lfsrs: List[LFSRConfig] # List of LFSR configurations
+ combining_function: Callable # Function to combine outputs
+ function_name: str # Name of function (e.g., "majority", "xor")
+ 
 # LFSR Configuration
 class LFSRConfig:
-    """Configuration for a single LFSR."""
-    coefficients: List[int]  # Feedback polynomial coefficients
-    field_order: int  # Field order (q)
-    degree: int  # LFSR degree
-    initial_state: Optional[List[int]]  # Optional initial state
+ """Configuration for a single LFSR."""
+ coefficients: List[int] # Feedback polynomial coefficients
+ field_order: int # Field order (q)
+ degree: int # LFSR degree
+ initial_state: Optional[List[int]] # Optional initial state
 
 # Correlation Attack Result
 class CorrelationAttackResult:
-    """Results from a correlation attack."""
-    target_lfsr_index: int  # Which LFSR was attacked
-    correlation_coefficient: float  # Measured correlation
-    statistical_significance: float  # p-value
-    attack_successful: bool  # Whether attack succeeded
-    required_keystream_bits: int  # Bits needed for attack
-    complexity_estimate: float  # Estimated attack complexity
+ """Results from a correlation attack."""
+ target_lfsr_index: int # Which LFSR was attacked
+ correlation_coefficient: float # Measured correlation
+ statistical_significance: float # p-value
+ attack_successful: bool # Whether attack succeeded
+ required_keystream_bits: int # Bits needed for attack
+ complexity_estimate: float # Estimated attack complexity
 ```
 
 ### Core Functions
 
 ```python
 def compute_correlation_coefficient(
-    keystream: List[int],
-    lfsr_sequence: List[int]
+ keystream: List[int],
+ lfsr_sequence: List[int]
 ) -> Tuple[float, float]:
-    """
-    Compute correlation coefficient between keystream and LFSR sequence.
-    
-    Returns:
-        (correlation_coefficient, p_value)
-    """
-    pass
+ """
+ Compute correlation coefficient between keystream and LFSR sequence.
+ 
+ Returns:
+ (correlation_coefficient, p_value)
+ """
+ pass
 
 def siegenthaler_correlation_attack(
-    combination_generator: CombinationGenerator,
-    keystream: List[int],
-    target_lfsr_index: int
+ combination_generator: CombinationGenerator,
+ keystream: List[int],
+ target_lfsr_index: int
 ) -> CorrelationAttackResult:
-    """
-    Perform Siegenthaler's basic correlation attack.
-    
-    This is the fundamental correlation attack that exploits
-    statistical correlation between keystream and individual LFSR.
-    """
-    pass
+ """
+ Perform Siegenthaler's basic correlation attack.
+ 
+ This is the fundamental correlation attack that exploits
+ statistical correlation between keystream and individual LFSR.
+ """
+ pass
 
 def analyze_combining_function(
-    function: Callable,
-    num_inputs: int,
-    field_order: int = 2
+ function: Callable,
+ num_inputs: int,
+ field_order: int = 2
 ) -> Dict[str, Any]:
-    """
-    Analyze correlation properties of a combining function.
-    
-    Returns:
-        Dictionary with correlation immunity, bias, etc.
-    """
-    pass
+ """
+ Analyze correlation properties of a combining function.
+ 
+ Returns:
+ Dictionary with correlation immunity, bias, etc.
+ """
+ pass
 ```
 
 ---
@@ -237,9 +236,9 @@ A combining function is **correlation immune of order m** if the output is stati
 
 ```
 lfsr/
-  attacks.py          # Main correlation attack module
-  combination.py      # Combination generator models
-  correlation.py       # Correlation computation functions
+ attacks.py # Main correlation attack module
+ combination.py # Combination generator models
+ correlation.py # Correlation computation functions
 ```
 
 ### Dependencies
@@ -264,40 +263,40 @@ lfsr/
 ### Sphinx Documentation Sections
 
 1. **Introduction to Correlation Attacks**
-   - What are correlation attacks?
-   - Why are they important?
-   - When are they applicable?
+ - What are correlation attacks?
+ - Why are they important?
+ - When are they applicable?
 
 2. **Mathematical Background**
-   - Correlation coefficient definition
-   - Statistical significance
-   - Siegenthaler's attack theory
-   - Correlation immunity
+ - Correlation coefficient definition
+ - Statistical significance
+ - Siegenthaler's attack theory
+ - Correlation immunity
 
 3. **API Reference**
-   - Function documentation
-   - Class documentation
-   - Usage examples
+ - Function documentation
+ - Class documentation
+ - Usage examples
 
 4. **Tutorials**
-   - Basic correlation attack example
-   - Analyzing combination generators
-   - Interpreting results
+ - Basic correlation attack example
+ - Analyzing combination generators
+ - Interpreting results
 
 5. **Glossary**
-   - All cryptographic terms defined
-   - Beginner-friendly explanations
+ - All cryptographic terms defined
+ - Beginner-friendly explanations
 
 ---
 
 ## Success Criteria
 
-1. ✅ Implement basic Siegenthaler attack
-2. ✅ Compute correlation coefficients correctly
-3. ✅ Analyze combination generators
-4. ✅ Comprehensive documentation
-5. ✅ CLI integration
-6. ✅ Examples and tutorials
+1. Implement basic Siegenthaler attack
+2. Compute correlation coefficients correctly
+3. Analyze combination generators
+4. Comprehensive documentation
+5. CLI integration
+6. Examples and tutorials
 
 ---
 
@@ -313,21 +312,21 @@ lfsr/
 
 ---
 
-**Document Version**: 1.0  
-**Last Updated**: 2025-12-27  
-**Status**: ✅ **COMPLETE**  
-**Completion Date**: 2025-12-27
+**Document Version**: 1.0 
+**Last Updated**: 2024-12-27 
+**Status**: **COMPLETE** 
+**Completion Date**: 2024-12-27
 
 ## Implementation Status
 
-**Status**: ✅ **COMPLETE**
+**Status**: **COMPLETE**
 
 **Completion Summary**:
-- ✅ Phase 1: Basic Correlation Attack (Siegenthaler's) - COMPLETE
-- ✅ Phase 2: Combining Function Analysis - COMPLETE
-- ✅ Phase 3: Attack Success Probability Estimation - COMPLETE
-- ✅ Phase 4: Fast Correlation Attack (Meier-Staffelbach) - COMPLETE (see FAST_CORRELATION_ATTACK_PLAN.md)
-- ✅ Phase 5: CLI Integration and Documentation - COMPLETE
+- Phase 1: Basic Correlation Attack (Siegenthaler's) - COMPLETE
+- Phase 2: Combining Function Analysis - COMPLETE
+- Phase 3: Attack Success Probability Estimation - COMPLETE
+- Phase 4: Fast Correlation Attack (Meier-Staffelbach) - COMPLETE (see FAST_CORRELATION_ATTACK_PLAN.md)
+- Phase 5: CLI Integration and Documentation - COMPLETE
 
 **Implementation Details**:
 - `siegenthaler_correlation_attack()` function implemented in `lfsr/attacks.py`

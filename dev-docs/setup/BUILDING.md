@@ -40,32 +40,32 @@ The built documentation will be in `docs/_build/html/`. Open `docs/_build/html/i
 If you prefer to build manually:
 
 1. **Install Sphinx and theme**:
-   ```bash
-   # In your virtual environment
-   pip install sphinx sphinx-rtd-theme
-   
-   # Or system-wide
-   python3 -m pip install sphinx sphinx-rtd-theme
-   ```
+ ```bash
+ # In your virtual environment
+ pip install sphinx sphinx-rtd-theme
+ 
+ # Or system-wide
+ python3 -m pip install sphinx sphinx-rtd-theme
+ ```
 
 2. **Build HTML documentation**:
-   ```bash
-   cd docs
-   sphinx-build -b html . _build/html
-   ```
+ ```bash
+ cd docs
+ sphinx-build -b html . _build/html
+ ```
 
 3. **View the documentation**:
-   ```bash
-   # Open in browser
-   # Linux:
-   xdg-open _build/html/index.html
-   
-   # macOS:
-   open _build/html/index.html
-   
-   # Windows:
-   start _build/html/index.html
-   ```
+ ```bash
+ # Open in browser
+ # Linux:
+ xdg-open _build/html/index.html
+ 
+ # macOS:
+ open _build/html/index.html
+ 
+ # Windows:
+ start _build/html/index.html
+ ```
 
 ## Build Options
 
@@ -149,25 +149,25 @@ The documentation is organized as follows:
 
 ```
 docs/
-├── conf.py              # Sphinx configuration
-├── index.rst            # Main documentation index
-├── installation.rst     # Installation guide
-├── user_guide.rst      # User guide
-├── mathematical_background.rst  # Mathematical theory
-├── examples.rst         # Usage examples
-├── api/                 # API reference
-│   ├── index.rst       # API index
-│   ├── core.rst        # Core module
-│   ├── analysis.rst    # Analysis module
-│   ├── polynomial.rst  # Polynomial module
-│   ├── field.rst       # Field module
-│   ├── synthesis.rst  # Synthesis module
-│   ├── statistics.rst # Statistics module
-│   ├── export.rst     # Export module
-│   ├── io.rst         # I/O module
-│   ├── formatter.rst  # Formatter module
-│   └── cli.rst        # CLI module
-└── _build/             # Build output (generated)
+├── conf.py # Sphinx configuration
+├── index.rst # Main documentation index
+├── installation.rst # Installation guide
+├── user_guide.rst # User guide
+├── mathematical_background.rst # Mathematical theory
+├── examples.rst # Usage examples
+├── api/ # API reference
+│ ├── index.rst # API index
+│ ├── core.rst # Core module
+│ ├── analysis.rst # Analysis module
+│ ├── polynomial.rst # Polynomial module
+│ ├── field.rst # Field module
+│ ├── synthesis.rst # Synthesis module
+│ ├── statistics.rst # Statistics module
+│ ├── export.rst # Export module
+│ ├── io.rst # I/O module
+│ ├── formatter.rst # Formatter module
+│ └── cli.rst # CLI module
+└── _build/ # Build output (generated)
 ```
 
 ## Configuration
@@ -186,9 +186,9 @@ The Sphinx configuration is in `docs/conf.py`. Key settings:
 If you get import errors when building:
 
 1. **Ensure the package is installed**:
-   ```bash
-   pip install -e .
-   ```
+ ```bash
+ pip install -e .
+ ```
 
 2. **Check Python path**: The `conf.py` adds the project root to `sys.path`, but ensure you're in the right directory.
 
@@ -224,10 +224,10 @@ The documentation can be built in CI/CD pipelines:
 ```yaml
 # Example GitHub Actions step
 - name: Build documentation
-  run: |
-    pip install sphinx sphinx-rtd-theme
-    cd docs
-    sphinx-build -b html . _build/html
+ run: |
+ pip install sphinx sphinx-rtd-theme
+ cd docs
+ sphinx-build -b html . _build/html
 ```
 
 ## Publishing Documentation
@@ -245,19 +245,19 @@ To publish on Read the Docs:
 To publish on GitHub Pages:
 
 1. Build the documentation:
-   ```bash
-   make docs
-   ```
+ ```bash
+ make docs
+ ```
 
 2. Copy to `gh-pages` branch:
-   ```bash
-   git checkout --orphan gh-pages
-   git rm -rf .
-   cp -r docs/_build/html/* .
-   git add .
-   git commit -m "Add documentation"
-   git push origin gh-pages
-   ```
+ ```bash
+ git checkout --orphan gh-pages
+ git rm -rf .
+ cp -r docs/_build/html/* .
+ git add .
+ git commit -m "Add documentation"
+ git push origin gh-pages
+ ```
 
 3. Enable GitHub Pages in repository settings
 

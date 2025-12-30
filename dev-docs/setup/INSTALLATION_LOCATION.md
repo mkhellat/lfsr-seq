@@ -8,7 +8,7 @@ After running `make install` or `make install-dev`, the package is installed in 
 
 - **Virtual Environment**: `.venv/` (created automatically)
 - **Package Location**: `.venv/lib/python3.X/site-packages/lfsr-seq.egg-link`
-  - Points to the project root directory (editable install)
+ - Points to the project root directory (editable install)
 - **Package Metadata**: `.venv/lib/python3.X/site-packages/lfsr-seq.egg-info/`
 
 ### Command Installation
@@ -33,10 +33,10 @@ To check where the package is installed:
 source .venv/bin/activate
 
 # Check package location
-python -c "import lfsr; print(lfsr.__file__)"  # After refactoring
+python -c "import lfsr; print(lfsr.__file__)" # After refactoring
 
 # Check if command exists (after entry points are enabled)
-which lfsr-seq  # Should show: /path/to/project/.venv/bin/lfsr-seq
+which lfsr-seq # Should show: /path/to/project/.venv/bin/lfsr-seq
 
 # List installed packages
 pip list | grep lfsr-seq

@@ -1,6 +1,5 @@
 # Parallel Execution Investigation Results
 
-**Date**: 2025-12-30  
 **LFSR**: 12-bit (4096 states)
 
 ---
@@ -34,8 +33,8 @@
 ### Conclusion
 
 **Correctness**: 
-- ✅ 1-2 workers: Results are CORRECT
-- ❌ 4+ workers: Results are INCORRECT due to deduplication failure
+- 1-2 workers: Results are CORRECT
+- 4+ workers: Results are INCORRECT due to deduplication failure
 
 **Problem**: The `_merge_parallel_results` function is not properly deduplicating cycles when multiple workers find the same cycle with different min_state values (due to incomplete min_state computation limited to 1000 states).
 
@@ -49,7 +48,7 @@
 |---------|----------|---------|------------|---------------|
 | Sequential | 1.2313 | 1.00x | - | Baseline |
 | 1 worker | 0.9140 | 1.35x | 134.7% | **1.35x faster** |
-| 2 workers | 0.4288 | 2.87x | 143.6% | **2.87x faster** ⭐ |
+| 2 workers | 0.4288 | 2.87x | 143.6% | **2.87x faster** |
 | 4 workers | 0.8055 | 1.53x | 38.2% | 1.53x faster (but incorrect) |
 | 8 workers | 0.7668 | 1.61x | 20.1% | 1.61x faster (but incorrect) |
 
@@ -75,15 +74,15 @@
 #### 4 Workers
 - **Worker execution time**: 0.5015s
 - **Max worker time**: 0.5014s
-- **Load imbalance**: 400.0% ⚠️
-- **Efficiency**: 25.0% ⚠️
+- **Load imbalance**: 400.0% 
+- **Efficiency**: 25.0% 
 - **Overhead**: 0.0442s (8.1%)
 
 #### 8 Workers
 - **Worker execution time**: 0.7717s
 - **Max worker time**: 0.5613s
-- **Load imbalance**: 581.9% ⚠️
-- **Efficiency**: 17.2% ⚠️
+- **Load imbalance**: 581.9% 
+- **Efficiency**: 17.2% 
 - **Overhead**: 0.0684s (8.1%)
 
 ### Root Causes (Evidence-Based)
@@ -131,19 +130,19 @@
 **Why 4/8 workers are slower:**
 
 1. **PRIMARY**: Severe load imbalance (400-582%)
-   - Work is not evenly distributed
-   - One worker does most of the work
-   - Other workers finish quickly but don't help
-   - Total time = max(worker_time) + overhead
+ - Work is not evenly distributed
+ - One worker does most of the work
+ - Other workers finish quickly but don't help
+ - Total time = max(worker_time) + overhead
 
 2. **SECONDARY**: Increased overhead (28-99% increase)
-   - More pool creation overhead
-   - More IPC overhead
-   - More shared memory operations
+ - More pool creation overhead
+ - More IPC overhead
+ - More shared memory operations
 
 3. **MINOR**: Lock contention (if any)
-   - Multiple workers competing for cycles
-   - But cycles are claimed quickly, so minimal impact
+ - Multiple workers competing for cycles
+ - But cycles are claimed quickly, so minimal impact
 
 **The fundamental issue**: With more workers, the work becomes more imbalanced because:
 - Large cycles span multiple chunks
@@ -158,14 +157,14 @@
 ### Immediate Fixes Needed
 
 1. **Fix Deduplication Bug** (CRITICAL)
-   - `_merge_parallel_results` must properly deduplicate cycles
-   - Issue: Incomplete min_state computation (limited to 1000 states) causes different min_states for same cycle
-   - Solution: Use full min_state computation OR improve deduplication logic
+ - `_merge_parallel_results` must properly deduplicate cycles
+ - Issue: Incomplete min_state computation (limited to 1000 states) causes different min_states for same cycle
+ - Solution: Use full min_state computation OR improve deduplication logic
 
 2. **Improve Load Balancing** (PERFORMANCE)
-   - Current partitioning by state index doesn't account for cycle distribution
-   - Consider: Dynamic work stealing, better partitioning strategy
-   - For now: 2 workers is optimal for this problem size
+ - Current partitioning by state index doesn't account for cycle distribution
+ - Consider: Dynamic work stealing, better partitioning strategy
+ - For now: 2 workers is optimal for this problem size
 
 ### Performance Recommendations
 
@@ -178,13 +177,13 @@
 ## 5. SUMMARY
 
 ### Correctness
-- ✅ 1-2 workers: **CORRECT**
-- ❌ 4+ workers: **INCORRECT** (deduplication bug)
+- 1-2 workers: **CORRECT**
+- 4+ workers: **INCORRECT** (deduplication bug)
 
 ### Speedup
-- ✅ 2 workers: **2.87x speedup** (best)
-- ✅ 1 worker: **1.35x speedup**
-- ⚠️ 4+ workers: Slower than 2 workers (load imbalance)
+- 2 workers: **2.87x speedup** (best)
+- 1 worker: **1.35x speedup**
+- 4+ workers: Slower than 2 workers (load imbalance)
 
 ### Why 4/8 Workers Are Slower
 1. **Severe load imbalance** (400-582%) - PRIMARY CAUSE

@@ -1,7 +1,7 @@
 # Parallel Processing Overhead Analysis
 
-**Date**: 2025-01-XX  
-**Status**: Investigation Complete  
+ 
+**Status**: Investigation Complete 
 **Purpose**: Identify bottlenecks and propose solutions for parallel processing performance
 
 ---
@@ -110,7 +110,7 @@ Current parallel processing implementation shows **4-6x slowdown** compared to s
 
 ## Proposed Solutions
 
-### Solution 1: Use Fork Mode with SageMath Isolation ⭐ RECOMMENDED
+### Solution 1: Use Fork Mode with SageMath Isolation RECOMMENDED
 
 **Approach**: Use fork mode but isolate SageMath initialization per worker.
 
@@ -243,31 +243,31 @@ Current parallel processing implementation shows **4-6x slowdown** compared to s
 
 ## Recommended Solution: Fork Mode with SageMath Isolation
 
-**Priority**: HIGH  
-**Effort**: MEDIUM  
+**Priority**: HIGH 
+**Effort**: MEDIUM 
 **Expected Impact**: 10-15x improvement
 
 ### Implementation Plan
 
 1. **Switch to fork mode** (already in code, but verify it works)
 2. **Isolate SageMath in workers**:
-   ```python
-   def _process_state_chunk(chunk_data):
-       # Reinitialize SageMath to avoid category mismatches
-       import sage.misc.reset_state
-       sage.misc.reset_state()  # If available
-       
-       # Or manually reset
-       from sage.all import GF, VectorSpace, vector
-       # Create fresh objects
-       F = GF(gf_order)
-       V = VectorSpace(F, lfsr_degree)
-   ```
+ ```python
+ def _process_state_chunk(chunk_data):
+ # Reinitialize SageMath to avoid category mismatches
+ import sage.misc.reset_state
+ sage.misc.reset_state() # If available
+ 
+ # Or manually reset
+ from sage.all import GF, VectorSpace, vector
+ # Create fresh objects
+ F = GF(gf_order)
+ V = VectorSpace(F, lfsr_degree)
+ ```
 
 3. **Test with fork mode**:
-   - Verify no category mismatch errors
-   - Verify no hangs
-   - Measure performance
+ - Verify no category mismatch errors
+ - Verify no hangs
+ - Measure performance
 
 4. **Fallback to spawn** if fork still has issues
 
@@ -291,11 +291,11 @@ Current parallel processing implementation shows **4-6x slowdown** compared to s
 
 ## Next Steps
 
-1. ✅ Complete overhead investigation (this document)
-2. ⏭️ Implement Solution 1: Fork mode with SageMath isolation
-3. ⏭️ Test GIL release behavior
-4. ⏭️ Benchmark and compare solutions
-5. ⏭️ Update code and documentation
+1. Complete overhead investigation (this document)
+2. ⏭ Implement Solution 1: Fork mode with SageMath isolation
+3. ⏭ Test GIL release behavior
+4. ⏭ Benchmark and compare solutions
+5. ⏭ Update code and documentation
 
 ---
 
