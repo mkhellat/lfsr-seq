@@ -55,23 +55,23 @@ class HellmanTable:
     (1980), it was the first time-memory trade-off technique.
 
     **Key Terminology**:
-    
-    - **Hellman Table**: A precomputed table storing chains of state
-      transitions. Each chain starts with a random state and ends with a
-      distinguished point. The table enables fast state recovery by looking
-      up chains that might contain the target state.
+
+    - **Hellman Table**: A precomputed table storing chains of state transitions.
+        Each chain starts with a random state and ends with a distinguished point.
+        The table enables fast state recovery by looking up chains that might
+        contain the target state.
 
     - **Chain**: A sequence of states connected by the state update function.
-      Each chain has length t and represents t consecutive state transitions.
-      Chains are the fundamental building blocks of Hellman tables.
+        Each chain has length t and represents t consecutive state transitions.
+        Chains are the fundamental building blocks of Hellman tables.
 
     - **Distinguished Point**: A state with a special property (e.g., leading
-      k bits are zero) used to mark chain endpoints. Distinguished points make
-      chain endpoints easy to identify and store, reducing storage requirements.
+        k bits are zero) used to mark chain endpoints. Distinguished points make
+        chain endpoints easy to identify and store, reducing storage requirements.
 
     - **Reduction Function**: A function R that maps states to starting points
-      (keys). The reduction function creates chains: S_0 → f(S_0) → R(f(S_0))
-      → f(R(f(S_0))) → ... where f is the state update function.
+        (keys). The reduction function creates chains: S_0 → f(S_0) → R(f(S_0))
+        → f(R(f(S_0))) → ... where f is the state update function.
     
     - **Table Lookup**: The process of searching precomputed tables to find
       a target state. Lookup involves: (1) applying reduction function to
