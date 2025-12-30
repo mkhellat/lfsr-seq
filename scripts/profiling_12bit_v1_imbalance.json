@@ -1,0 +1,46 @@
+{
+  "name": "12-bit-v1",
+  "timestamp": "2025-12-30T20:58:42.200841",
+  "static_1w": {
+    "time": 0.5699410438537598,
+    "work_distribution": [
+      2
+    ],
+    "avg_work": 2.0,
+    "max_work": 2,
+    "min_work": 2,
+    "imbalance_pct": 0.0
+  },
+  "static_2w": {
+    "time": 0.7151186466217041,
+    "work_distribution": [
+      1,
+      1
+    ],
+    "avg_work": 1.0,
+    "max_work": 1,
+    "min_work": 1,
+    "imbalance_pct": 0.0
+  },
+  "dynamic_1w": {
+    "time": 0.8005311489105225,
+    "work_distribution": [
+      2
+    ],
+    "avg_work": 2.0,
+    "max_work": 2,
+    "min_work": 2,
+    "imbalance_pct": 0.0
+  },
+  "dynamic_2w": {
+    "time": 0.6151142120361328,
+    "work_distribution": [
+      1,
+      1
+    ],
+    "avg_work": 1.0,
+    "max_work": 1,
+    "min_work": 1,
+    "imbalance_pct": 0.0
+  }
+}

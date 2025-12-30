@@ -1639,11 +1639,28 @@ def lfsr_sequence_mapper_parallel(
             period_only,
         )
     
+    # Extract work metrics from worker results for load imbalance analysis
+    work_metrics_list = [result.get('work_metrics', {}) for result in worker_results]
+    
     # Merge results from all workers
     # Pass shared_cycles to merge function for accurate deduplication
     seq_dict, period_dict, max_period, periods_sum = _merge_parallel_results(
         worker_results, gf_order, d, shared_cycles
     )
+    
+    # Calculate load imbalance from work metrics
+    if work_metrics_list and all('states_processed' in m for m in work_metrics_list):
+        states_processed_list = [m['states_processed'] for m in work_metrics_list]
+        total_states = sum(states_processed_list)
+        if total_states > 0:
+            avg_work = total_states / len(states_processed_list)
+            max_work = max(states_processed_list)
+            imbalance_pct = ((max_work - avg_work) / avg_work * 100) if avg_work > 0 else 0
+            # Store in a way that can be accessed (for now, just log if DEBUG)
+            import os
+            if os.environ.get('DEBUG_PARALLEL', '0') == '1':
+                import sys
+                print(f"[Load Imbalance] Workers: {states_processed_list}, Avg: {avg_work:.1f}, Max: {max_work}, Imbalance: {imbalance_pct:.1f}%", file=sys.stderr)
     
     # Display sequences (same format as sequential version)
     print("\n")
@@ -2159,10 +2176,27 @@ def lfsr_sequence_mapper_parallel_dynamic(
             period_only,
         )
     
+    # Extract work metrics from worker results for load imbalance analysis
+    work_metrics_list = [result.get('work_metrics', {}) for result in worker_results]
+    
     # Merge results
     seq_dict, period_dict, max_period, periods_sum = _merge_parallel_results(
         worker_results, gf_order, d, shared_cycles
     )
+    
+    # Calculate load imbalance from work metrics
+    if work_metrics_list and all('states_processed' in m for m in work_metrics_list):
+        states_processed_list = [m['states_processed'] for m in work_metrics_list]
+        total_states = sum(states_processed_list)
+        if total_states > 0:
+            avg_work = total_states / len(states_processed_list)
+            max_work = max(states_processed_list)
+            imbalance_pct = ((max_work - avg_work) / avg_work * 100) if avg_work > 0 else 0
+            # Store in a way that can be accessed (for now, just log if DEBUG)
+            import os
+            if os.environ.get('DEBUG_PARALLEL', '0') == '1':
+                import sys
+                print(f"[Load Imbalance] Workers: {states_processed_list}, Avg: {avg_work:.1f}, Max: {max_work}, Imbalance: {imbalance_pct:.1f}%", file=sys.stderr)
     
     # Display sequences (same format as sequential version)
     print("\n")

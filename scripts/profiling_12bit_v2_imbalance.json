@@ -1,0 +1,46 @@
+{
+  "name": "12-bit-v2",
+  "timestamp": "2025-12-30T20:59:09.776573",
+  "static_1w": {
+    "time": 0.5604233741760254,
+    "work_distribution": [
+      8
+    ],
+    "avg_work": 8.0,
+    "max_work": 8,
+    "min_work": 8,
+    "imbalance_pct": 0.0
+  },
+  "static_2w": {
+    "time": 0.7787530422210693,
+    "work_distribution": [
+      1,
+      7
+    ],
+    "avg_work": 4.0,
+    "max_work": 7,
+    "min_work": 1,
+    "imbalance_pct": 75.0
+  },
+  "dynamic_1w": {
+    "time": 1.4046735763549805,
+    "work_distribution": [
+      8
+    ],
+    "avg_work": 8.0,
+    "max_work": 8,
+    "min_work": 8,
+    "imbalance_pct": 0.0
+  },
+  "dynamic_2w": {
+    "time": 0.7944760322570801,
+    "work_distribution": [
+      1,
+      7
+    ],
+    "avg_work": 4.0,
+    "max_work": 7,
+    "min_work": 1,
+    "imbalance_pct": 75.0
+  }
+}
