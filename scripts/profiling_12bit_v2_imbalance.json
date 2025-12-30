@@ -42,5 +42,79 @@
     "max_work": 7,
     "min_work": 1,
     "imbalance_pct": 75.0
+  },
+  "coeffs": [
+    1,
+    0,
+    1,
+    0,
+    0,
+    1,
+    1,
+    0,
+    0,
+    0,
+    0,
+    0
+  ],
+  "static_4w": {
+    "time": 1.1078720092773438,
+    "work_distribution": [
+      1,
+      0,
+      7,
+      0
+    ],
+    "avg_work": 2.0,
+    "max_work": 7,
+    "min_work": 0,
+    "imbalance_pct": 250.0
+  },
+  "static_8w": {
+    "time": 1.5426115989685059,
+    "work_distribution": [
+      1,
+      6,
+      0,
+      0,
+      0,
+      1,
+      0,
+      0
+    ],
+    "avg_work": 1.0,
+    "max_work": 6,
+    "min_work": 0,
+    "imbalance_pct": 500.0
+  },
+  "dynamic_4w": {
+    "time": 1.1766164302825928,
+    "work_distribution": [
+      0,
+      8,
+      0,
+      0
+    ],
+    "avg_work": 2.0,
+    "max_work": 8,
+    "min_work": 0,
+    "imbalance_pct": 300.0
+  },
+  "dynamic_8w": {
+    "time": 1.6515848636627197,
+    "work_distribution": [
+      2,
+      0,
+      2,
+      4,
+      0,
+      0,
+      0,
+      0
+    ],
+    "avg_work": 1.0,
+    "max_work": 4,
+    "min_work": 0,
+    "imbalance_pct": 300.0
   }
 }
