@@ -192,6 +192,11 @@ def profile_parallel(C, V, gf_order, num_workers, algorithm='enumeration', perio
     d = C.dimensions()[0]
     coeffs_vector = [int(C[i, d-1]) for i in range(d)]
     
+    # Create shared cycle registry (same as in lfsr_sequence_mapper_parallel)
+    manager = multiprocessing.Manager()
+    shared_cycles = manager.dict()
+    cycle_lock = manager.Lock()
+    
     chunk_data_list = []
     for worker_id, chunk in enumerate(chunks):
         chunk_data = (
@@ -202,6 +207,8 @@ def profile_parallel(C, V, gf_order, num_workers, algorithm='enumeration', perio
             algorithm,
             period_only,
             worker_id,
+            shared_cycles,  # Shared cycle registry
+            cycle_lock,     # Lock for atomic claiming
         )
         chunk_data_list.append(chunk_data)
     stage_end = time.time()
