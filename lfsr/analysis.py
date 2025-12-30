@@ -1239,6 +1239,11 @@ def _process_state_chunk(
             
             debug_log(f'State {idx+1}: Cycle found: period={seq_period}, length={len(states_tuples)}')
             
+            # DEBUG: Log cycle signature for redundancy detection
+            if period_only and isinstance(states_tuples, tuple) and len(states_tuples) == 1:
+                min_state = states_tuples[0]
+                debug_log(f'State {idx+1}: Cycle signature (min_state) = {min_state[:min(8, len(min_state))]}... (full: {min_state})')
+            
             # Store sequence information
             # For period-only mode, we store the full sequence tuples for deduplication
             # but mark it as period-only so merge knows not to reconstruct SageMath objects
