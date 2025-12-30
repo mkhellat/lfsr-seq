@@ -265,13 +265,63 @@ def profile_parallel(C, V, gf_order, num_workers, algorithm='enumeration', perio
     # Stage 5: Merge results
     print("  Stage 5: Merging results...", flush=True)
     stage_start = time.time()
-    sequences, periods, total_states, max_period = lfsr_sequence_mapper_parallel(
-        C, V, gf_order,
-        algorithm=algorithm,
-        period_only=period_only,
-        num_workers=num_workers,
-        no_progress=True
-    )
+    # Merge worker results
+    from lfsr.analysis import _merge_worker_results
+    sequences_dict = {}
+    all_periods = {}
+    total_periods_sum = 0
+    max_period = 0
+    
+    for worker_id, result in worker_results:
+        sequences_dict[worker_id] = result.get('sequences', [])
+        worker_max_period = result.get('max_period', 0)
+        if worker_max_period > max_period:
+            max_period = worker_max_period
+    
+    # Merge sequences (deduplication happens here)
+    merged_sequences = {}
+    merged_periods = {}
+    visited_cycles = {}  # min_state -> period
+    
+    for worker_id, seq_list in sequences_dict.items():
+        for seq in seq_list:
+            states = seq.get('states', [])
+            period = seq.get('period', 0)
+            
+            if not states or period == 0:
+                continue
+            
+            # Get min_state for deduplication
+            if isinstance(states, tuple) and len(states) == 1:
+                min_state = states[0]
+            elif isinstance(states, list) and len(states) > 0:
+                min_state = min(states)
+            else:
+                continue
+            
+            min_state_tuple = tuple(min_state) if not isinstance(min_state, tuple) else min_state
+            
+            # Deduplicate: only keep first occurrence
+            if min_state_tuple not in visited_cycles:
+                visited_cycles[min_state_tuple] = period
+                if period not in merged_sequences:
+                    merged_sequences[period] = []
+                merged_sequences[period].append({
+                    'states': states,
+                    'period': period,
+                    'start_state': seq.get('start_state')
+                })
+                merged_periods[period] = merged_periods.get(period, 0) + 1
+                total_periods_sum += period
+    
+    # Convert to expected format
+    sequences = {0: []}  # Single worker representation
+    for period, seq_list in merged_sequences.items():
+        sequences[0].extend(seq_list)
+    
+    periods = merged_periods
+    total_states = sum(len(chunk) for chunk in chunks)
+    
     stage_end = time.time()
     profile['stages']['merging'] = stage_end - stage_start
     
