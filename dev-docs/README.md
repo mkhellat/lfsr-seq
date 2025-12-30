@@ -1,6 +1,8 @@
-# Documentation Index
+# Development Documentation
 
-This directory contains all project documentation, organized by topic.
+This directory contains all development documentation, analysis reports, and implementation plans.
+
+**Note**: This is separate from `docs/` which contains Sphinx documentation for the project.
 
 ## Quick Navigation
 
@@ -11,7 +13,7 @@ This directory contains all project documentation, organized by topic.
 ## Structure
 
 ```
-docs/
+dev-docs/
 ├── parallel/          # Parallel processing documentation
 │   ├── analysis/     # Analysis and understanding
 │   ├── bugs/         # Bug reports and fixes
