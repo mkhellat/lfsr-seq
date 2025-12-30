@@ -233,9 +233,23 @@ def profile_worker_timing(num_workers):
     
     print(f"\nPer-Worker Execution Times:")
     for worker_id, worker_time in enumerate(worker_times):
-        processed = worker_results[worker_id][1].get('processed_count', 0)
-        sequences = len(worker_results[worker_id][1].get('sequences', []))
-        print(f"  Worker {worker_id}: {worker_time:.4f}s ({processed} states, {sequences} sequences)")
+        result = worker_results[worker_id][1]
+        processed = result.get('processed_count', 0)
+        sequences = len(result.get('sequences', []))
+        work_metrics = result.get('work_metrics', {})
+        
+        print(f"  Worker {worker_id}: {worker_time:.4f}s")
+        print(f"    States processed: {processed}")
+        print(f"    Sequences found: {sequences}")
+        if work_metrics:
+            print(f"    Work metrics:")
+            print(f"      States in chunk: {work_metrics.get('total_states_in_chunk', 0)}")
+            print(f"      States processed: {work_metrics.get('states_processed', 0)}")
+            print(f"      States skipped (visited): {work_metrics.get('states_skipped_visited', 0)}")
+            print(f"      States skipped (claimed): {work_metrics.get('states_skipped_claimed', 0)}")
+            print(f"      Cycles found: {work_metrics.get('cycles_found', 0)}")
+            print(f"      Cycles claimed: {work_metrics.get('cycles_claimed', 0)}")
+            print(f"      Cycles skipped: {work_metrics.get('cycles_skipped', 0)}")
     
     # Analyze load balancing
     if len(worker_times) > 1:

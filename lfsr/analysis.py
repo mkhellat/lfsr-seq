@@ -1168,6 +1168,15 @@ def _process_state_chunk(
     debug_log(f'Processing {len(state_chunk)} states in chunk...')
     import time
     chunk_start_time = time.time()
+    
+    # Work distribution metrics
+    states_processed = 0
+    states_skipped_visited = 0
+    states_skipped_claimed = 0
+    cycles_found = 0
+    cycles_claimed = 0
+    cycles_skipped = 0
+    
     for idx, (state_tuple, state_idx) in enumerate(state_chunk):
         try:
             # Progress logging every 100 states or every 5 seconds
@@ -1182,6 +1191,7 @@ def _process_state_chunk(
             # Skip if already visited in this worker's processing
             if state_tuple in local_visited:
                 debug_log(f'State {idx+1} already visited, skipping')
+                states_skipped_visited += 1
                 continue
             
             # Reconstruct state vector from tuple
@@ -1265,6 +1275,8 @@ def _process_state_chunk(
                         current = current * state_update_matrix
                         current_tuple = tuple(current)
                         local_visited.add(current_tuple)
+                    states_skipped_claimed += seq_period
+                    cycles_skipped += 1
                     continue
                 
                 # Try to claim this cycle (with lock for atomicity)
@@ -1298,6 +1310,8 @@ def _process_state_chunk(
                     current_tuple = tuple(current)
                     local_visited.add(current_tuple)
                 debug_log(f'State {idx+1}: Marked {seq_period} states as visited in cycle')
+                states_processed += seq_period
+                cycles_found += 1
             else:
                 # Full mode: get sequence normally
                 debug_log(f'State {idx+1}: Calling _find_sequence_cycle with period_only={period_only}, algorithm={algorithm}')
@@ -1337,6 +1351,7 @@ def _process_state_chunk(
                 worker_max_period = seq_period
             
             processed_count += 1
+            states_processed += 1  # Count the start state
             
         except Exception as e:
             if idx == 0:
@@ -1345,11 +1360,24 @@ def _process_state_chunk(
             continue
     
     debug_log(f'Worker completed: {processed_count} states processed, {len(sequences)} sequences found')
+    
+    # Work distribution metrics
+    work_metrics = {
+        'states_processed': states_processed,
+        'states_skipped_visited': states_skipped_visited,
+        'states_skipped_claimed': states_skipped_claimed,
+        'cycles_found': cycles_found,
+        'cycles_claimed': cycles_claimed,
+        'cycles_skipped': cycles_skipped,
+        'total_states_in_chunk': len(state_chunk),
+    }
+    
     return {
         'sequences': sequences,
         'max_period': worker_max_period,
         'processed_count': processed_count,
         'errors': errors,
+        'work_metrics': work_metrics,  # NEW: Work distribution data
     }
 
 
