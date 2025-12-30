@@ -1444,7 +1444,42 @@ def lfsr_sequence_mapper_parallel(
     # Determine number of workers
     if num_workers is None:
         num_workers = multiprocessing.cpu_count()
-    num_workers = max(1, min(num_workers, multiprocessing.cpu_count()))
+    
+    # OPTIMIZATION: Auto-select optimal worker count based on problem size
+    # For small problems, too many workers cause load imbalance
+    # Calculate state space size
+    try:
+        d = len(state_vector_space.basis())
+        gf_order = state_vector_space.base_ring().order()
+        state_space_size = int(gf_order) ** d
+    except (AttributeError, TypeError):
+        # Fallback: estimate from vector space
+        state_space_size = sum(1 for _ in state_vector_space)
+    
+    # Optimal worker count based on problem size
+    # Formula: Use fewer workers for small problems to avoid load imbalance
+    if state_space_size < 2000:
+        optimal_workers = 1
+    elif state_space_size < 4000:
+        optimal_workers = 2
+    elif state_space_size < 16000:
+        optimal_workers = min(4, num_workers)
+    else:
+        optimal_workers = num_workers
+    
+    # Use the optimal count, but respect user's explicit choice if provided
+    # If user explicitly set num_workers, use it (they know what they want)
+    # If None (auto), use optimal
+    if num_workers is not None and num_workers != multiprocessing.cpu_count():
+        # User explicitly set num_workers, respect it
+        num_workers = max(1, min(num_workers, multiprocessing.cpu_count()))
+    else:
+        # Auto mode: use optimal
+        num_workers = max(1, min(optimal_workers, multiprocessing.cpu_count()))
+    
+    if not no_progress and num_workers != optimal_workers:
+        import sys
+        print(f"  Note: Using {num_workers} workers (optimal for {state_space_size} states would be {optimal_workers})", file=sys.stderr)
     
     # Extract coefficients from matrix for worker reconstruction
     # The matrix structure: coefficients are in the LAST COLUMN (not last row)
