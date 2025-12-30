@@ -1458,18 +1458,20 @@ def lfsr_sequence_mapper_parallel(
     
     # Optimal worker count based on problem size
     # Formula: Use fewer workers for small problems to avoid load imbalance
+    # Based on profiling: 2 workers optimal for 4K states, 4+ workers slower
     if state_space_size < 2000:
         optimal_workers = 1
-    elif state_space_size < 4000:
-        optimal_workers = 2
-    elif state_space_size < 16000:
-        optimal_workers = min(4, num_workers)
+    elif state_space_size < 8000:
+        optimal_workers = 2  # 2 workers optimal for 4K-8K states
+    elif state_space_size < 32000:
+        optimal_workers = 4  # 4 workers may help for 8K-32K states
     else:
-        optimal_workers = num_workers
+        optimal_workers = min(8, multiprocessing.cpu_count())  # Scale up for very large problems
     
     # Use the optimal count, but respect user's explicit choice if provided
     # If user explicitly set num_workers, use it (they know what they want)
     # If None (auto), use optimal
+    original_num_workers = num_workers
     if num_workers is not None and num_workers != multiprocessing.cpu_count():
         # User explicitly set num_workers, respect it
         num_workers = max(1, min(num_workers, multiprocessing.cpu_count()))
@@ -1477,9 +1479,9 @@ def lfsr_sequence_mapper_parallel(
         # Auto mode: use optimal
         num_workers = max(1, min(optimal_workers, multiprocessing.cpu_count()))
     
-    if not no_progress and num_workers != optimal_workers:
+    if not no_progress and original_num_workers is None and num_workers != optimal_workers:
         import sys
-        print(f"  Note: Using {num_workers} workers (optimal for {state_space_size} states would be {optimal_workers})", file=sys.stderr)
+        print(f"  Note: Using {num_workers} workers (optimal {optimal_workers} limited by CPU count {multiprocessing.cpu_count()})", file=sys.stderr)
     
     # Extract coefficients from matrix for worker reconstruction
     # The matrix structure: coefficients are in the LAST COLUMN (not last row)
