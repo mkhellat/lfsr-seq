@@ -1242,19 +1242,20 @@ def _process_state_chunk(
                 # for large periods, but it's necessary for correct deduplication.
                 # We limit the iteration to avoid hangs, but still get a good canonical key.
                 debug_log(f'State {idx+1}: Period-only mode - computing canonical cycle key...')
-                # Find minimum state in cycle as canonical key (limited to first 1000 states for safety)
-                # This ensures all states from the same cycle map to the same key
+                # Find minimum state in cycle as canonical key
+                # CRITICAL: Must check ALL states in cycle to get true minimum
+                # Otherwise, different workers starting from different states might compute different min_states
                 min_state = state_tuple
                 current = state
-                max_check = min(1000, seq_period)  # Limit to 1000 states to avoid hangs
-                for i in range(max_check - 1):
+                # Check entire cycle (not just first 1000) to ensure consistent min_state
+                for i in range(seq_period - 1):
                     current = current * state_update_matrix
                     current_tuple = tuple(current)
                     if current_tuple < min_state:
                         min_state = current_tuple
-                    # Periodic check every 100 iterations
-                    if i > 0 and i % 100 == 0:
-                        _ = len(str(current))  # Force evaluation
+                    # Periodic check every 1000 iterations for very large cycles
+                    if i > 0 and i % 1000 == 0:
+                        _ = len(str(current))  # Force evaluation to detect hangs
                 # Use min_state as canonical key for deduplication
                 min_state_tuple = tuple(min_state) if not isinstance(min_state, tuple) else min_state
                 
