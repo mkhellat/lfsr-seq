@@ -83,38 +83,29 @@ class HellmanTable:
     
        TM^2 = N^2
     
-    where:
-    - T is the time for online attack
-    - M is the memory (table size)
-    - N is the state space size (q^d for LFSR of degree d over GF(q))
+    where T is the time for online attack, M is the memory (table size),
+    and N is the state space size (q^d for LFSR of degree d over GF(q)).
     
     **Algorithm**:
-    
-    1. **Precomputation Phase**:
-       - Generate m random starting states
-       - For each starting state, compute a chain of length t
-       - Store only (start_state, end_state) pairs where end_state is
-         distinguished
-       - Repeat until m chains with distinguished endpoints are created
-    
-    2. **Lookup Phase**:
-       - Given target state S, apply reduction function: R(S)
-       - Check if R(S) is a chain endpoint in table
-       - If found, reconstruct chain from start to find S
-       - If not found, apply f then R repeatedly (up to t times)
-    
+
+    Precomputation Phase: Generate m random starting states. For each starting
+    state, compute a chain of length t. Store only (start_state, end_state)
+    pairs where end_state is distinguished. Repeat until m chains with
+    distinguished endpoints are created.
+
+    Lookup Phase: Given target state S, apply reduction function: R(S). Check
+    if R(S) is a chain endpoint in table. If found, reconstruct chain from
+    start to find S. If not found, apply f then R repeatedly (up to t times).
+
     **Advantages**:
-    
-    - Faster state recovery after precomputation
-    - Can attack multiple targets using same table
-    - Demonstrates practical attack scenarios
-    
+
+    Faster state recovery after precomputation. Can attack multiple targets
+    using same table. Demonstrates practical attack scenarios.
+
     **Limitations**:
-    
-    - Requires significant memory for large state spaces
-    - Precomputation can be time-consuming
-    - False alarms require verification
-    - Coverage may be incomplete
+
+    Requires significant memory for large state spaces. Precomputation can be
+    time-consuming. False alarms require verification. Coverage may be incomplete.
     
     Attributes:
         chain_count: Number of chains in the table
