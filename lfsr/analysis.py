@@ -1863,14 +1863,16 @@ def _process_task_batch_dynamic(
                         # Find min_state for deduplication (limited to first 1000 states)
                         min_state = state_tuple
                         current = state
-                        max_check = min(1000, seq_period)
-                        for i in range(max_check - 1):
+                        # CRITICAL: Must check ALL states in cycle to get true minimum
+                        # Otherwise, different workers starting from different states might compute different min_states
+                        for i in range(seq_period - 1):
                             current = current * state_update_matrix
                             current_tuple = tuple(current)
                             if current_tuple < min_state:
                                 min_state = current_tuple
-                            if i > 0 and i % 100 == 0:
-                                _ = len(str(current))
+                            # Periodic check every 1000 iterations for very large cycles
+                            if i > 0 and i % 1000 == 0:
+                                _ = len(str(current))  # Force evaluation to detect hangs
                         min_state_tuple = tuple(min_state) if not isinstance(min_state, tuple) else min_state
                         
                         # Check if cycle already claimed
@@ -1886,19 +1888,29 @@ def _process_task_batch_dynamic(
                             continue
                         
                         # Try to claim cycle
+                        cycle_claimed = False
                         with cycle_lock:
                             if min_state_tuple in shared_cycles:
+                                # Already claimed by another worker
                                 local_visited.add(state_tuple)
                                 current = state
                                 for _ in range(seq_period - 1):
                                     current = current * state_update_matrix
                                     current_tuple = tuple(current)
                                     local_visited.add(current_tuple)
+                                states_skipped_claimed += seq_period
+                                cycles_skipped += 1
                                 continue
                             else:
+                                # Claim this cycle for this worker
                                 shared_cycles[min_state_tuple] = worker_id
+                                cycle_claimed = True
                         
-                        # Process cycle
+                        # Only process if we successfully claimed the cycle
+                        if not cycle_claimed:
+                            continue
+                        
+                        # Process cycle (we've successfully claimed it)
                         states_tuples = (min_state,)
                         local_visited.add(state_tuple)
                         current = state
@@ -1908,6 +1920,7 @@ def _process_task_batch_dynamic(
                             local_visited.add(current_tuple)
                         states_processed += 1
                         cycles_found += 1
+                        cycles_claimed += 1
                     else:
                         # Full mode
                         local_visited_set = set()
