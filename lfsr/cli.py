@@ -59,6 +59,7 @@ def main(
     show_period_stats: bool = True,
     use_parallel: Optional[bool] = None,
     num_workers: Optional[int] = None,
+    parallel_mode: str = "static",
 ) -> None:
     """Main function to process LFSR coefficient vectors and perform analysis.
 
@@ -199,26 +200,35 @@ def main(
             should_use_parallel = use_parallel
         
         # Use parallel or sequential version
-        # NOTE: Parallel processing currently has performance issues:
-        # - Slower than sequential due to multiprocessing overhead
-        # - Deduplication issues in period-only mode
-        # - SageMath initialization overhead in workers
-        # Use sequential by default for best performance
+        # NOTE: Parallel processing is currently EXPERIMENTAL
+        # - Static mode: Fixed chunk assignment (current default)
+        # - Dynamic mode: Shared task queue with dynamic load balancing (new)
         if should_use_parallel:
             import sys
-            print("WARNING: Parallel processing is currently EXPERIMENTAL and may be SLOWER than sequential.", file=sys.stderr)
-            print("  Performance issues: multiprocessing overhead, SageMath initialization, deduplication.", file=sys.stderr)
-            print("  For best performance, use --no-parallel (sequential mode).", file=sys.stderr)
-            from lfsr.analysis import lfsr_sequence_mapper_parallel
-            # Force period_only=True for parallel processing to avoid hangs
-            parallel_period_only = period_only if period_only else True
-            if not period_only:
-                print("WARNING: Parallel processing forced to period-only mode to avoid hangs.", file=sys.stderr)
-                print("  Use --no-parallel for full sequence mode, or --period-only for parallel.", file=sys.stderr)
-            seq_dict, period_dict, max_period, periods_sum = lfsr_sequence_mapper_parallel(
-                C, V, gf_order, output_file, no_progress=no_progress, 
-                algorithm=effective_algorithm, period_only=parallel_period_only, num_workers=num_workers
-            )
+            if parallel_mode == "dynamic":
+                print("INFO: Using dynamic parallel processing (shared task queue)", file=sys.stderr)
+                from lfsr.analysis import lfsr_sequence_mapper_parallel_dynamic
+                # Dynamic mode works best with period-only to minimize IPC overhead
+                parallel_period_only = period_only if period_only else True
+                if not period_only:
+                    print("INFO: Dynamic parallel processing using period-only mode for better performance.", file=sys.stderr)
+                seq_dict, period_dict, max_period, periods_sum = lfsr_sequence_mapper_parallel_dynamic(
+                    C, V, gf_order, output_file, no_progress=no_progress, 
+                    algorithm=effective_algorithm, period_only=parallel_period_only, num_workers=num_workers
+                )
+            else:
+                # Static mode (default)
+                print("INFO: Using static parallel processing (fixed chunks)", file=sys.stderr)
+                from lfsr.analysis import lfsr_sequence_mapper_parallel
+                # Force period_only=True for parallel processing to avoid hangs
+                parallel_period_only = period_only if period_only else True
+                if not period_only:
+                    print("WARNING: Parallel processing forced to period-only mode to avoid hangs.", file=sys.stderr)
+                    print("  Use --no-parallel for full sequence mode, or --period-only for parallel.", file=sys.stderr)
+                seq_dict, period_dict, max_period, periods_sum = lfsr_sequence_mapper_parallel(
+                    C, V, gf_order, output_file, no_progress=no_progress, 
+                    algorithm=effective_algorithm, period_only=parallel_period_only, num_workers=num_workers
+                )
         else:
             seq_dict, period_dict, max_period, periods_sum = lfsr_sequence_mapper(
                 C, V, gf_order, output_file, no_progress=no_progress, 
@@ -399,6 +409,15 @@ def parse_args(args: Optional[list] = None) -> argparse.Namespace:
         default=None,
         metavar="N",
         help="Number of parallel workers (default: CPU count). Only used with --parallel.",
+    )
+
+    parser.add_argument(
+        "--parallel-mode",
+        type=str,
+        choices=["static", "dynamic"],
+        default="static",
+        dest="parallel_mode",
+        help="Parallel processing mode: 'static' (fixed chunks) or 'dynamic' (shared task queue). Default: static.",
     )
 
     parser.add_argument(
@@ -1382,6 +1401,7 @@ def cli_main() -> None:
                     show_period_stats=args.show_period_stats,
                     use_parallel=args.use_parallel,
                     num_workers=args.num_workers,
+                    parallel_mode=args.parallel_mode,
                 )
 
         if not args.quiet:
