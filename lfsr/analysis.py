@@ -664,7 +664,7 @@ def lfsr_sequence_mapper(
     state_vector_space_size = int(gf_order) ** d
 
     for bra in state_vector_space:
-        timer_lst.append(datetime.datetime.now())
+        timer_lst.append(datetime.now())
         counter += 1
 
         # Calculate elapsed time and estimates
