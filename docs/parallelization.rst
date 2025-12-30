@@ -75,7 +75,7 @@ For a 16,384-state space with 4 workers:
 - Small to medium problems where IPC overhead matters
 
 Dynamic Mode (Shared Task Queue with Load Balancing)
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 **How It Works**:
 
@@ -120,7 +120,7 @@ For a 16,384-state space with 4 workers and batch size 200:
 - When load balancing is critical for performance
 
 Load Balancing Explained
--------------------------
+------------------------
 
 **What is Load Balancing?**
 
@@ -138,6 +138,7 @@ Load imbalance is measured as a percentage:
    \text{Imbalance} = \frac{\text{Max Work} - \text{Average Work}}{\text{Average Work}} \times 100\%
 
 Where:
+
 - **Max Work**: Number of cycles/states processed by the busiest worker
 - **Average Work**: Average number of cycles/states per worker
 - **Imbalance**: Percentage difference between max and average
@@ -145,12 +146,15 @@ Where:
 **Example**:
 
 With 4 workers and 134 cycles:
+
 - **Static Mode**: Work distribution = [4, 47, 1, 82] cycles
+
   - Average = 33.5 cycles
   - Max = 82 cycles
   - Imbalance = (82 - 33.5) / 33.5 × 100% = **144.8%**
 
 - **Dynamic Mode**: Work distribution = [37, 29, 46, 22] cycles
+
   - Average = 33.5 cycles
   - Max = 46 cycles
   - Imbalance = (46 - 33.5) / 33.5 × 100% = **37.3%**
@@ -171,16 +175,37 @@ Based on comprehensive profiling of 12-bit, 14-bit, and 16-bit LFSRs:
 Average Speedup Across All Configurations
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-| Mode/Workers | Average Speedup | Notes |
-|--------------|-----------------|-------|
-| Static 1w    | 0.99x           | Near-sequential performance |
-| Static 2w    | 0.72x           | Overhead reduces speedup |
-| Static 4w    | 0.52x           | Overhead dominates |
-| Static 8w    | 0.68x           | Some configurations benefit |
-| Dynamic 1w   | 0.92x           | Slight overhead |
-| Dynamic 2w   | 0.79x           | Better than static 2w |
-| Dynamic 4w   | 0.62x           | Better than static 4w |
-| Dynamic 8w   | 0.38x           | Overhead significant |
+.. list-table::
+   :header-rows: 1
+   :widths: 20 20 60
+
+   * - Mode/Workers
+     - Average Speedup
+     - Notes
+   * - Static 1w
+     - 0.99x
+     - Near-sequential performance
+   * - Static 2w
+     - 0.72x
+     - Overhead reduces speedup
+   * - Static 4w
+     - 0.52x
+     - Overhead dominates
+   * - Static 8w
+     - 0.68x
+     - Some configurations benefit
+   * - Dynamic 1w
+     - 0.92x
+     - Slight overhead
+   * - Dynamic 2w
+     - 0.79x
+     - Better than static 2w
+   * - Dynamic 4w
+     - 0.62x
+     - Better than static 4w
+   * - Dynamic 8w
+     - 0.38x
+     - Overhead significant
 
 **Key Observations**:
 
@@ -199,18 +224,39 @@ Average Speedup Across All Configurations
    for small to medium LFSRs due to overhead.
 
 Load Imbalance Comparison
-~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-| Mode/Workers | Average Imbalance | Notes |
-|--------------|-------------------|-------|
-| Static 1w    | 0.0%              | Perfect (single worker) |
-| Static 2w    | 30.3%             | Moderate imbalance |
-| Static 4w    | 165.5%            | Severe imbalance |
-| Static 8w    | 269.7%            | Very severe imbalance |
-| Dynamic 1w   | 0.0%              | Perfect (single worker) |
-| Dynamic 2w    | 37.2%             | Similar to static |
-| Dynamic 4w   | 164.7%            | Similar average, but much better for multi-cycle |
-| Dynamic 8w   | 218.1%            | Better than static 8w |
+.. list-table::
+   :header-rows: 1
+   :widths: 20 20 60
+
+   * - Mode/Workers
+     - Average Imbalance
+     - Notes
+   * - Static 1w
+     - 0.0%
+     - Perfect (single worker)
+   * - Static 2w
+     - 30.3%
+     - Moderate imbalance
+   * - Static 4w
+     - 165.5%
+     - Severe imbalance
+   * - Static 8w
+     - 269.7%
+     - Very severe imbalance
+   * - Dynamic 1w
+     - 0.0%
+     - Perfect (single worker)
+   * - Dynamic 2w
+     - 37.2%
+     - Similar to static
+   * - Dynamic 4w
+     - 164.7%
+     - Similar average, but much better for multi-cycle
+   * - Dynamic 8w
+     - 218.1%
+     - Better than static 8w
 
 **Key Observations**:
 
@@ -251,7 +297,7 @@ Use Dynamic Mode When:
 - More consistent behavior across different LFSR configurations
 
 Use Static Mode When:
-~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~
 
 ✅ **Acceptable for**:
 
@@ -293,7 +339,7 @@ Command-Line Usage
 ------------------
 
 Basic Parallel Processing
-~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Enable parallel processing:
 
@@ -320,7 +366,7 @@ Use static mode (default, lower overhead):
    lfsr-seq coefficients.csv 2 --parallel --parallel-mode static --period-only
 
 Control Number of Workers
-~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Specify the number of workers:
 
@@ -401,7 +447,7 @@ Implementation Details
 ----------------------
 
 Static Mode Implementation
-~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 1. **State Space Partitioning** (``_partition_state_space``):
    - Divides state space into :math:`n` equal chunks

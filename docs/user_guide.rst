@@ -365,38 +365,41 @@ The tool offers two parallel processing modes, each with different work distribu
 strategies:
 
 1. **Static Mode (Default)**: Fixed Work Distribution
-   
+
    - **How it works**: The state space is divided into fixed, equal-sized chunks
      before processing starts. Each worker gets one chunk and processes all states
      in that chunk.
-   
-   - **Best for**: 
+
+   - **Best for**:
+
      * LFSRs with few cycles (2-4 cycles)
      * When cycles are evenly distributed across the state space
      * When the number of cycles is close to the number of workers
-   
+
    - **Advantages**: Lower overhead, simpler implementation
-   
+
    - **Limitations**: Can have severe load imbalance (100-500%) when cycles are
      unevenly distributed or when cycles < workers
 
 2. **Dynamic Mode**: Shared Task Queue with Load Balancing
-   
+
    - **How it works**: States are divided into small batches (200 states each)
      and placed in a shared queue. Workers pull batches from the queue as they
      finish their current work. This allows faster workers to take on more work,
      naturally balancing the load.
-   
+
    - **Best for**:
+
      * LFSRs with many cycles (8+ cycles)
      * Configurations where cycles are unevenly distributed
      * When using 4+ workers
-   
-   - **Advantages**: 
+
+   - **Advantages**:
+
      * 2-4x better load balancing for multi-cycle configurations
      * More consistent performance across different LFSR configurations
      * Better utilization of all workers
-   
+
    - **Limitations**: Slightly higher IPC overhead due to queue operations
 
 **Load Balancing Explained**
@@ -406,8 +409,10 @@ balance means all workers finish at the same time. Imbalance occurs when some
 workers finish much earlier than others, leaving CPU cores idle.
 
 **Example**: With 4 workers and 134 cycles:
+
 - **Static mode**: Worker distribution might be [4, 47, 1, 82] cycles, resulting
   in 144.8% imbalance (some workers do 4x more work than others)
+
 - **Dynamic mode**: Worker distribution might be [37, 29, 46, 22] cycles, resulting
   in 37.3% imbalance (much more balanced)
 
