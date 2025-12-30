@@ -1721,6 +1721,7 @@ def _process_task_batch_dynamic(
         int,  # worker_id
         Any,  # shared_cycles (Manager().dict())
         Any,  # cycle_lock (Manager().Lock())
+        int,  # batch_aggregation_count (number of batches to pull at once)
     ],
 ) -> Dict[str, Any]:
     """
@@ -1729,6 +1730,10 @@ def _process_task_batch_dynamic(
     This worker continuously pulls task batches from a shared queue until a sentinel
     value (None) is received, indicating no more work. This enables dynamic load
     balancing as workers pull work as they become available.
+    
+    **Batch Aggregation**: To reduce IPC overhead, this worker pulls multiple batches
+    at once using get_nowait() (non-blocking) with fallback to blocking get().
+    The number of batches pulled per operation is determined by batch_aggregation_count.
     
     Args:
         worker_data: Tuple containing:
@@ -1741,6 +1746,7 @@ def _process_task_batch_dynamic(
             - worker_id: Worker identifier
             - shared_cycles: Shared cycle registry (Manager().dict())
             - cycle_lock: Lock for atomic cycle claiming (Manager().Lock())
+            - batch_aggregation_count: Number of batches to pull at once (2-8, adaptive)
     
     Returns:
         Dictionary with same format as _process_state_chunk:
@@ -1760,6 +1766,7 @@ def _process_task_batch_dynamic(
         worker_id,
         shared_cycles,
         cycle_lock,
+        batch_aggregation_count,
     ) = worker_data
     
     # Import SageMath in worker (same setup as _process_state_chunk)
@@ -1832,33 +1839,17 @@ def _process_task_batch_dynamic(
     # Import cycle detection functions
     from lfsr.analysis import _find_sequence_cycle, _find_period
     
-    # Main loop: pull batches from queue until sentinel (None)
-    debug_log('Starting to pull batches from queue...')
-    import time
-    worker_start_time = time.time()
-    
-    while True:
-        try:
-            # Pull a batch from queue (with timeout to allow periodic checks)
-            # Use timeout=1 to periodically check for sentinel
+    # Helper function to process a single batch
+    def process_single_batch(batch):
+        """Process a single batch of states."""
+        nonlocal batches_processed, processed_count, worker_max_period, states_processed
+        nonlocal states_skipped_visited, states_skipped_claimed, cycles_found, cycles_claimed, cycles_skipped
+        
+        batches_processed += 1
+        batch_start_time = time.time()
+        
+        for idx, (state_tuple, state_idx) in enumerate(batch):
             try:
-                batch = task_queue.get(timeout=1)
-            except queue.Empty:
-                # Queue empty, check if we should continue waiting
-                # (In case all work is done but sentinel not yet sent)
-                continue
-            
-            # Sentinel value: None means no more work
-            if batch is None:
-                debug_log(f'Received sentinel, worker done. Processed {batches_processed} batches, {processed_count} states')
-                break
-            
-            # Process this batch (same logic as _process_state_chunk)
-            batches_processed += 1
-            batch_start_time = time.time()
-            
-            for idx, (state_tuple, state_idx) in enumerate(batch):
-                try:
                     # Skip if already visited
                     if state_tuple in local_visited:
                         states_skipped_visited += 1
@@ -1967,15 +1958,64 @@ def _process_task_batch_dynamic(
                     
                     processed_count += 1
                     
-                except Exception as e:
-                    errors.append(f'Error processing state {state_tuple}: {str(e)}')
+            except Exception as e:
+                errors.append(f'Error processing state {state_tuple}: {str(e)}')
+                continue
+        
+        batch_elapsed = time.time() - batch_start_time
+        if DEBUG_PARALLEL:
+            debug_log(f'Batch {batches_processed} completed in {batch_elapsed:.2f}s ({len(batch)} states)')
+    
+    # Main loop: pull batches from queue until sentinel (None)
+    debug_log(f'Starting to pull batches from queue (aggregation: {batch_aggregation_count})...')
+    import time
+    import queue as queue_module
+    worker_start_time = time.time()
+    
+    while True:
+        try:
+            # Batch aggregation: Pull multiple batches at once to reduce IPC overhead
+            # Use get_nowait() with fallback to reduce blocking
+            batches_to_process = []
+            sentinel_received = False
+            
+            # Try to pull multiple batches using get_nowait() (non-blocking)
+            for _ in range(batch_aggregation_count):
+                try:
+                    batch = task_queue.get_nowait()
+                    if batch is None:
+                        # Sentinel received - process remaining batches then exit
+                        sentinel_received = True
+                        break
+                    batches_to_process.append(batch)
+                except queue_module.Empty:
+                    # No more batches available right now, process what we have
+                    break
+            
+            # If we got a sentinel, process remaining batches then exit
+            if sentinel_received:
+                for remaining_batch in batches_to_process:
+                    process_single_batch(remaining_batch)
+                debug_log(f'Received sentinel, worker done. Processed {batches_processed} batches, {processed_count} states')
+                break
+            
+            # If no batches pulled (queue empty), try blocking get with timeout
+            if not batches_to_process:
+                try:
+                    batch = task_queue.get(timeout=0.5)
+                    if batch is None:
+                        debug_log(f'Received sentinel, worker done. Processed {batches_processed} batches, {processed_count} states')
+                        break
+                    batches_to_process.append(batch)
+                except queue_module.Empty:
+                    # Queue still empty, continue waiting
                     continue
             
-            batch_elapsed = time.time() - batch_start_time
-            if DEBUG_PARALLEL:
-                debug_log(f'Batch {batches_processed} completed in {batch_elapsed:.2f}s ({len(batch)} states)')
+            # Process all pulled batches
+            for batch in batches_to_process:
+                process_single_batch(batch)
         
-        except queue.Empty:
+        except queue_module.Empty:
             # Timeout - continue waiting (sentinel not received yet)
             continue
         except Exception as e:
@@ -2077,6 +2117,22 @@ def lfsr_sequence_mapper_parallel_dynamic(
     # Ensure batch_size is reasonable (at least 10, at most state_space_size)
     batch_size = max(10, min(batch_size, state_space_size))
     
+    # Calculate batch aggregation count (number of batches to pull at once)
+    # Goal: Reduce IPC overhead by pulling multiple batches per queue operation
+    # Adaptive based on problem size and number of workers
+    if state_space_size < 8192:  # Small problems
+        # Pull 2-3 batches at once (smaller aggregation for small problems)
+        batch_aggregation_count = max(2, min(3, num_workers))
+    elif state_space_size < 65536:  # Medium problems
+        # Pull 3-5 batches at once (good balance)
+        batch_aggregation_count = max(3, min(5, num_workers * 2))
+    else:  # Large problems
+        # Pull 4-8 batches at once (larger aggregation for large problems)
+        batch_aggregation_count = max(4, min(8, num_workers * 2))
+    
+    # Ensure reasonable bounds
+    batch_aggregation_count = max(1, min(batch_aggregation_count, 10))
+    
     subsec_name = "STATES SEQUENCES"
     subsec_desc = "all possible state sequences " + "and their corresponding periods (dynamic parallel processing)"
     subsection(subsec_name, subsec_desc, output_file)
@@ -2150,6 +2206,7 @@ def lfsr_sequence_mapper_parallel_dynamic(
             worker_id,
             shared_cycles,
             cycle_lock,
+            batch_aggregation_count,
         )
         worker_data_list.append(worker_data)
     
