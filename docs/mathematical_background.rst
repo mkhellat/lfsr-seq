@@ -493,11 +493,13 @@ achieve up to :math:`n`-fold speedup by processing states in parallel.
 
 **Architecture**:
 
-The parallel implementation uses a **static partitioning** approach:
+The parallel implementation provides two modes:
+
+**Static Partitioning (Fixed Work Distribution)**:
 
 1. **State Space Partitioning**: The entire state space is divided into
    :math:`n` roughly equal chunks, where :math:`n` is the number of worker
-   processes.
+   processes. Each worker gets one fixed chunk.
 
 2. **Independent Processing**: Each worker process processes its assigned
    chunk independently, finding cycles and computing periods without
@@ -506,6 +508,24 @@ The parallel implementation uses a **static partitioning** approach:
 3. **Result Merging**: After all workers complete, results are merged with
    automatic deduplication of sequences that may have been found by multiple
    workers.
+
+**Dynamic Load Balancing (Shared Task Queue)**:
+
+1. **Task Queue Creation**: States are divided into small batches (typically 200 states)
+   and placed in a shared queue accessible by all workers.
+
+2. **Dynamic Work Distribution**: Workers continuously pull batches from the queue:
+   - When a worker finishes a batch, it immediately pulls the next available batch
+   - Faster workers naturally take on more work
+   - This provides automatic load balancing, reducing imbalance by 2-4x for multi-cycle LFSRs
+
+3. **Result Merging**: After all workers complete, results are merged with
+   automatic deduplication (same as static mode).
+
+**When to Use Each Mode**:
+
+- **Static Mode**: Best for LFSRs with few cycles (2-4 cycles) or when cycles are evenly distributed
+- **Dynamic Mode**: Best for LFSRs with many cycles (8+ cycles), providing significantly better load balancing
 
 **Algorithm**:
 
