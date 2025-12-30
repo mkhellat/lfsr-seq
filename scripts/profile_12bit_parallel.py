@@ -546,79 +546,79 @@ def main():
         print("12-Bit LFSR Parallel Execution Profiling", flush=True)
         print("="*80, flush=True)
     
-    # Create 12-bit LFSR
-    print("\nCreating 12-bit LFSR...", flush=True)
-    C, V, gf_order, coeffs_vector, degree = create_12bit_lfsr()
-    print(f"  Degree: {degree}", flush=True)
-    print(f"  Field: GF({gf_order})", flush=True)
-    print(f"  Coefficients: {coeffs_vector}", flush=True)
-    print(f"  Total states: {2**degree}", flush=True)
-    sys.stdout.flush()
-    
-    algorithm = 'enumeration'
-    period_only = True
-    
-    all_profiles = {
-        'algorithm': algorithm,
-        'period_only': period_only,
-        'comparisons': {}
-    }
-    
-    # Profile sequential
-    seq_profile = profile_sequential(C, V, gf_order, algorithm=algorithm, period_only=period_only)
-    all_profiles['sequential'] = seq_profile
-    
-    # Profile parallel with different worker counts
-    worker_counts = [1, 2, 4, 8]
-    
-    for num_workers in worker_counts:
-        par_profile = profile_parallel(C, V, gf_order, num_workers, algorithm=algorithm, period_only=period_only)
-        all_profiles[num_workers] = par_profile
+        # Create 12-bit LFSR
+        print("\nCreating 12-bit LFSR...", flush=True)
+        C, V, gf_order, coeffs_vector, degree = create_12bit_lfsr()
+        print(f"  Degree: {degree}", flush=True)
+        print(f"  Field: GF({gf_order})", flush=True)
+        print(f"  Coefficients: {coeffs_vector}", flush=True)
+        print(f"  Total states: {2**degree}", flush=True)
+        sys.stdout.flush()
         
-        # Compare with sequential
-        comparison = compare_profiles(seq_profile, par_profile)
-        all_profiles['comparisons'][num_workers] = comparison
+        algorithm = 'enumeration'
+        period_only = True
         
-        # Print comparison
+        all_profiles = {
+            'algorithm': algorithm,
+            'period_only': period_only,
+            'comparisons': {}
+        }
+        
+        # Profile sequential
+        seq_profile = profile_sequential(C, V, gf_order, algorithm=algorithm, period_only=period_only)
+        all_profiles['sequential'] = seq_profile
+        
+        # Profile parallel with different worker counts
+        worker_counts = [1, 2, 4, 8]
+        
+        for num_workers in worker_counts:
+            par_profile = profile_parallel(C, V, gf_order, num_workers, algorithm=algorithm, period_only=period_only)
+            all_profiles[num_workers] = par_profile
+            
+            # Compare with sequential
+            comparison = compare_profiles(seq_profile, par_profile)
+            all_profiles['comparisons'][num_workers] = comparison
+            
+            # Print comparison
+            print(f"\n{'='*80}")
+            print(f"COMPARISON: Sequential vs {num_workers} Workers")
+            print(f"{'='*80}")
+            print(f"Correctness: ", end="")
+            if comparison['correctness']['cycles_match'] and comparison['correctness']['period_sum_match']:
+                print("✓ PASS")
+            else:
+                print("✗ FAIL")
+                print(f"  Missing cycles: {comparison['correctness']['missing_cycles']}")
+                print(f"  Extra cycles: {comparison['correctness']['extra_cycles']}")
+            
+            print(f"Redundancy: ", end="")
+            if comparison['redundancy']['no_redundancy']:
+                print("✓ No redundancy")
+            else:
+                print(f"✗ {comparison['redundancy']['redundant_count']} redundant cycles")
+            
+            print(f"Performance: {comparison['performance']['speedup']:.2f}x speedup, {comparison['performance']['efficiency']:.1%} efficiency")
+        
+        # Generate report
+        report = generate_detailed_report(all_profiles)
+        
+        report_file = 'scripts/12bit_parallel_profiling_report.md'
+        with open(report_file, 'w') as f:
+            f.write(report)
+        
         print(f"\n{'='*80}")
-        print(f"COMPARISON: Sequential vs {num_workers} Workers")
-        print(f"{'='*80}")
-        print(f"Correctness: ", end="")
-        if comparison['correctness']['cycles_match'] and comparison['correctness']['period_sum_match']:
-            print("✓ PASS")
-        else:
-            print("✗ FAIL")
-            print(f"  Missing cycles: {comparison['correctness']['missing_cycles']}")
-            print(f"  Extra cycles: {comparison['correctness']['extra_cycles']}")
+        print(f"Detailed report saved to: {report_file}")
+        print(f"{'='*80}\n")
         
-        print(f"Redundancy: ", end="")
-        if comparison['redundancy']['no_redundancy']:
-            print("✓ No redundancy")
-        else:
-            print(f"✗ {comparison['redundancy']['redundant_count']} redundant cycles")
-        
-        print(f"Performance: {comparison['performance']['speedup']:.2f}x speedup, {comparison['performance']['efficiency']:.1%} efficiency")
-    
-    # Generate report
-    report = generate_detailed_report(all_profiles)
-    
-    report_file = 'scripts/12bit_parallel_profiling_report.md'
-    with open(report_file, 'w') as f:
-        f.write(report)
-    
-    print(f"\n{'='*80}")
-    print(f"Detailed report saved to: {report_file}")
-    print(f"{'='*80}\n")
-    
-    # Print final summary
-    print("FINAL SUMMARY:")
-    print(f"  Sequential time: {seq_profile['total_time']:.4f}s")
-    for num_workers in worker_counts:
-        par_profile = all_profiles[num_workers]
-        comp = all_profiles['comparisons'][num_workers]
-        print(f"  {num_workers} workers: {par_profile['total_time']:.4f}s ({comp['performance']['speedup']:.2f}x, "
-              f"correct={'✓' if comp['correctness']['cycles_match'] else '✗'}, "
-              f"redundancy={'✓' if comp['redundancy']['no_redundancy'] else '✗'})")
+        # Print final summary
+        print("FINAL SUMMARY:")
+        print(f"  Sequential time: {seq_profile['total_time']:.4f}s")
+        for num_workers in worker_counts:
+            par_profile = all_profiles[num_workers]
+            comp = all_profiles['comparisons'][num_workers]
+            print(f"  {num_workers} workers: {par_profile['total_time']:.4f}s ({comp['performance']['speedup']:.2f}x, "
+                  f"correct={'✓' if comp['correctness']['cycles_match'] else '✗'}, "
+                  f"redundancy={'✓' if comp['redundancy']['no_redundancy'] else '✗'})")
     
     except Exception as e:
         print(f"\nERROR: {e}", file=sys.stderr, flush=True)
