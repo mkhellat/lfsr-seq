@@ -2299,14 +2299,19 @@ def lfsr_sequence_mapper_parallel_dynamic(
                 pass  # No producer needed in hybrid mode
             elif use_work_stealing:
                 # Phase 3.1: Distribute batches round-robin to worker queues
+                # CRITICAL: Use blocking put() to prevent unbounded queue growth
+                # If queue is full, producer will block until space is available
                 for batch in batch_generator():
                     worker_id = batches_created % num_workers
-                    worker_queues[worker_id].put(batch)
+                    # Blocking put() - will wait if queue is full (prevents memory leak)
+                    worker_queues[worker_id].put(batch, block=True, timeout=None)
                     batches_created += 1
             else:
                 # Original: Single shared queue
+                # CRITICAL: Use blocking put() to prevent unbounded queue growth
                 for batch in batch_generator():
-                    task_queue.put(batch)
+                    # Blocking put() - will wait if queue is full (prevents memory leak)
+                    task_queue.put(batch, block=True, timeout=None)
                     batches_created += 1
         except Exception as e:
             producer_error[0] = e
@@ -2337,12 +2342,14 @@ def lfsr_sequence_mapper_parallel_dynamic(
                         pass
     
     # Start producer thread (not needed for hybrid mode)
+    # CRITICAL: Producer thread is daemon=True so it terminates with main thread
+    # This prevents orphaned threads that could cause memory leaks
     if not use_hybrid_mode:
-        producer = threading.Thread(target=producer_thread, daemon=True)
+        producer = threading.Thread(target=producer_thread, daemon=True, name="BatchProducer")
         producer.start()
         
         if not no_progress:
-            print(f"  Producer thread started (lazy generation enabled)")
+            print(f"  Producer thread started (lazy generation enabled, daemon=True)")
             sys.stdout.flush()
     else:
         # Hybrid mode: No producer thread needed (static chunks assigned)
@@ -2486,12 +2493,16 @@ def lfsr_sequence_mapper_parallel_dynamic(
             print(f"  Workers completed in {elapsed:.2f}s")
         
         # Wait for producer thread to finish (if it exists)
+        # CRITICAL: Ensure producer thread terminates to prevent memory leaks
         if producer is not None:
             import sys
-            producer.join(timeout=5.0)
+            # Wait for producer with timeout
+            producer.join(timeout=10.0)  # Increased timeout for large problems
             if producer.is_alive():
                 if not no_progress:
-                    print(f"  Warning: Producer thread did not finish in time", file=sys.stderr)
+                    print(f"  WARNING: Producer thread did not finish in time - may indicate memory issue", file=sys.stderr)
+                # Force cleanup - daemon thread will terminate with main process
+                # But log warning for debugging
             
             # Check for producer errors
             if producer_error[0]:
