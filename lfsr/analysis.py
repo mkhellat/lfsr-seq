@@ -26,6 +26,24 @@ _worker_pool = None
 _worker_pool_context = None
 _worker_pool_size = 0
 
+def shutdown_worker_pool():
+    """Explicitly shutdown persistent worker pool."""
+    global _worker_pool, _worker_pool_context, _worker_pool_size
+    with _worker_pool_lock:
+        if _worker_pool is not None:
+            try:
+                _worker_pool.close()
+                _worker_pool.join(timeout=5.0)
+            except Exception:
+                pass  # Ignore errors during shutdown
+            _worker_pool = None
+            _worker_pool_context = None
+            _worker_pool_size = 0
+
+# Register cleanup handler for program exit
+import atexit
+atexit.register(shutdown_worker_pool)
+
 # Multiprocessing setup for compatibility
 # On some systems, we need to set the start method explicitly
 # But we'll use the default (fork on Linux) which should work
