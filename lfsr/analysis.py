@@ -2295,11 +2295,17 @@ def lfsr_sequence_mapper_parallel_dynamic(
             # Check if existing pool can be reused
             if _worker_pool is not None and _worker_pool_size == num_workers:
                 try:
-                    # Verify pool is still alive
-                    _worker_pool._check_running()
-                    return _worker_pool, _worker_pool_context, False  # is_temporary=False
-                except (ValueError, AssertionError):
-                    # Pool is dead, need to recreate
+                    # Verify pool is still alive (check if it has a _state attribute)
+                    # multiprocessing.Pool has _state that indicates if it's running
+                    if hasattr(_worker_pool, '_state') and _worker_pool._state == multiprocessing.pool.RUN:
+                        return _worker_pool, _worker_pool_context, False  # is_temporary=False
+                    else:
+                        # Pool is not running, need to recreate
+                        _worker_pool = None
+                        _worker_pool_context = None
+                        _worker_pool_size = 0
+                except (AttributeError, ValueError):
+                    # Pool is dead or invalid, need to recreate
                     _worker_pool = None
                     _worker_pool_context = None
                     _worker_pool_size = 0
