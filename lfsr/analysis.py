@@ -2005,12 +2005,21 @@ def _process_task_batch_dynamic(
         if DEBUG_PARALLEL:
             debug_log(f'Batch {batches_processed} completed in {batch_elapsed:.2f}s ({len(batch)} states)')
     
-    # Main loop: pull batches from queue until sentinel (None)
-    debug_log(f'Starting to pull batches from queue (aggregation: {batch_aggregation_count})...')
+    # Main loop: process assigned chunk first (hybrid), then pull batches from queue
+    debug_log(f'Starting worker (hybrid: {use_hybrid_mode}, work_stealing: {use_work_stealing}, aggregation: {batch_aggregation_count})...')
     import time
     import queue as queue_module
+    import random
     worker_start_time = time.time()
     
+    # Phase 3.2: Hybrid mode - process assigned chunk first (static, low overhead)
+    if use_hybrid_mode and assigned_chunk:
+        debug_log(f'Processing assigned static chunk ({len(assigned_chunk)} states)...')
+        # Process chunk as single batch (reuse batch processing logic)
+        process_single_batch(assigned_chunk)
+        debug_log(f'Static chunk completed, starting work stealing...')
+    
+    # Main loop: pull batches from queue until sentinel (None)
     while True:
         try:
             # Batch aggregation: Pull multiple batches at once to reduce IPC overhead
@@ -2184,18 +2193,50 @@ def lfsr_sequence_mapper_parallel_dynamic(
     use_hybrid_mode = False  # Enable hybrid mode (Phase 3.2) - combines static + dynamic
     use_work_stealing = True  # Enable work stealing (Phase 3.1) - used by hybrid mode too
     
-    if use_work_stealing:
-        # Per-worker queues for work stealing
-        worker_queues = [manager.Queue() for _ in range(num_workers)]
+    # Auto-select hybrid mode for medium problems (8K-64K states)
+    # Small problems: static is better (overhead dominates)
+    # Large problems: dynamic is better (load balancing more important)
+    if state_space_size >= 8192 and state_space_size < 65536:
+        use_hybrid_mode = True
+        if not no_progress:
+            print(f"  Auto-selected hybrid mode (Phase 3.2) for {state_space_size:,} states")
+            import sys
+            sys.stdout.flush()
+    
+    # CRITICAL: Add queue size limits to prevent memory leaks
+    # If producer generates batches faster than workers consume, queues can grow unbounded
+    # Limit queue size to prevent memory exhaustion (max 100 batches per queue)
+    max_queue_size = 100  # Maximum batches per queue before blocking
+    
+    if use_hybrid_mode:
+        # Phase 3.2: Hybrid mode - static partitioning + work stealing
+        # Partition state space into chunks (like static mode)
+        chunks = _partition_state_space(state_vector_space, num_workers)
+        
+        # Create work stealing queues for remaining work (with size limit)
+        worker_queues = [manager.Queue(maxsize=max_queue_size) for _ in range(num_workers)]
+        task_queue = None
+        
+        if not no_progress:
+            print(f"  Hybrid mode: {len(chunks)} static chunks + work stealing queues (max {max_queue_size} batches/queue)")
+            import sys
+            sys.stdout.flush()
+    elif use_work_stealing:
+        # Per-worker queues for work stealing (with size limit)
+        worker_queues = [manager.Queue(maxsize=max_queue_size) for _ in range(num_workers)]
         task_queue = None  # Not used in work stealing mode
         if not no_progress:
-            print(f"  Using work stealing with {num_workers} per-worker queues (Phase 3.1)")
+            print(f"  Using work stealing with {num_workers} per-worker queues (Phase 3.1, max {max_queue_size} batches/queue)")
             import sys
             sys.stdout.flush()
     else:
-        # Original shared queue (fallback)
-        task_queue = manager.Queue()
+        # Original shared queue (fallback, with size limit)
+        task_queue = manager.Queue(maxsize=max_queue_size * num_workers)  # Larger limit for shared queue
         worker_queues = None
+        if not no_progress:
+            print(f"  Using shared queue (max {max_queue_size * num_workers} batches)")
+            import sys
+            sys.stdout.flush()
     
     shared_cycles = manager.dict()
     cycle_lock = manager.Lock()
