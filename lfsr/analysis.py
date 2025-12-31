@@ -2054,6 +2054,11 @@ def _process_task_batch_dynamic(
         
         except queue_module.Empty:
             # Timeout - continue waiting (sentinel not received yet)
+            # CRITICAL: Don't loop forever - check if producer is done
+            # This prevents workers from blocking indefinitely if producer fails
+            # Note: producer_done and producer_stop_requested are not accessible here
+            # (they're in outer scope), so we rely on sentinel mechanism
+            # Workers will exit when they receive sentinel (None) from queue
             continue
         except Exception as e:
             debug_log(f'Error in worker loop: {e}')
@@ -2287,6 +2292,7 @@ def lfsr_sequence_mapper_parallel_dynamic(
     batches_created = 0
     producer_done = threading.Event()
     producer_error = [None]  # Use list to allow modification from nested function
+    producer_stop_requested = threading.Event()  # Emergency stop flag
     
     def producer_thread():
         """Background thread that generates batches and populates queues."""
@@ -2299,20 +2305,54 @@ def lfsr_sequence_mapper_parallel_dynamic(
                 pass  # No producer needed in hybrid mode
             elif use_work_stealing:
                 # Phase 3.1: Distribute batches round-robin to worker queues
-                # CRITICAL: Use blocking put() to prevent unbounded queue growth
+                # CRITICAL: Use blocking put() with timeout to prevent unbounded queue growth
                 # If queue is full, producer will block until space is available
+                # But check stop flag periodically to allow emergency shutdown
                 for batch in batch_generator():
+                    # Check for emergency stop
+                    if producer_stop_requested.is_set():
+                        debug_log("Producer: Emergency stop requested")
+                        break
+                    
                     worker_id = batches_created % num_workers
-                    # Blocking put() - will wait if queue is full (prevents memory leak)
-                    worker_queues[worker_id].put(batch, block=True, timeout=None)
-                    batches_created += 1
+                    # Blocking put() with timeout - allows checking stop flag
+                    # Use reasonable timeout (10s) to allow emergency shutdown
+                    try:
+                        worker_queues[worker_id].put(batch, block=True, timeout=10.0)
+                        batches_created += 1
+                    except queue_module.Full:
+                        # Queue full and timeout - this shouldn't happen with blocking put
+                        # But handle it gracefully
+                        debug_log(f"Producer: Queue {worker_id} full, retrying...")
+                        # Retry once
+                        try:
+                            worker_queues[worker_id].put(batch, block=True, timeout=10.0)
+                            batches_created += 1
+                        except queue_module.Full:
+                            producer_error[0] = RuntimeError(f"Queue {worker_id} persistently full - possible memory issue")
+                            break
             else:
                 # Original: Single shared queue
-                # CRITICAL: Use blocking put() to prevent unbounded queue growth
+                # CRITICAL: Use blocking put() with timeout to prevent unbounded queue growth
                 for batch in batch_generator():
-                    # Blocking put() - will wait if queue is full (prevents memory leak)
-                    task_queue.put(batch, block=True, timeout=None)
-                    batches_created += 1
+                    # Check for emergency stop
+                    if producer_stop_requested.is_set():
+                        debug_log("Producer: Emergency stop requested")
+                        break
+                    
+                    # Blocking put() with timeout - allows checking stop flag
+                    try:
+                        task_queue.put(batch, block=True, timeout=10.0)
+                        batches_created += 1
+                    except queue_module.Full:
+                        # Queue full and timeout - handle gracefully
+                        debug_log("Producer: Shared queue full, retrying...")
+                        try:
+                            task_queue.put(batch, block=True, timeout=10.0)
+                            batches_created += 1
+                        except queue_module.Full:
+                            producer_error[0] = RuntimeError("Shared queue persistently full - possible memory issue")
+                            break
         except Exception as e:
             producer_error[0] = e
         finally:
@@ -2323,21 +2363,21 @@ def lfsr_sequence_mapper_parallel_dynamic(
                 # Hybrid mode: One sentinel per worker queue (for work stealing)
                 for worker_queue in worker_queues:
                     try:
-                        worker_queue.put(None)
+                        worker_queue.put(None, block=False)  # Non-blocking for sentinel
                     except:
                         pass
             elif use_work_stealing:
                 # Phase 3.1: One sentinel per worker queue
                 for worker_queue in worker_queues:
                     try:
-                        worker_queue.put(None)
+                        worker_queue.put(None, block=False)  # Non-blocking for sentinel
                     except:
                         pass
             else:
                 # Original: One sentinel per worker in shared queue
                 for _ in range(num_workers):
                     try:
-                        task_queue.put(None)
+                        task_queue.put(None, block=False)  # Non-blocking for sentinel
                     except:
                         pass
     
@@ -2497,12 +2537,18 @@ def lfsr_sequence_mapper_parallel_dynamic(
         if producer is not None:
             import sys
             # Wait for producer with timeout
-            producer.join(timeout=10.0)  # Increased timeout for large problems
+            producer.join(timeout=30.0)  # Increased timeout for large problems
             if producer.is_alive():
                 if not no_progress:
-                    print(f"  WARNING: Producer thread did not finish in time - may indicate memory issue", file=sys.stderr)
-                # Force cleanup - daemon thread will terminate with main process
-                # But log warning for debugging
+                    print(f"  WARNING: Producer thread did not finish in time - requesting emergency stop", file=sys.stderr)
+                # Request emergency stop
+                producer_stop_requested.set()
+                # Wait a bit more for graceful shutdown
+                producer.join(timeout=5.0)
+                if producer.is_alive():
+                    if not no_progress:
+                        print(f"  ERROR: Producer thread still alive after stop request - possible memory leak", file=sys.stderr)
+                    # Daemon thread will terminate with main process, but log error
             
             # Check for producer errors
             if producer_error[0]:
@@ -2515,6 +2561,17 @@ def lfsr_sequence_mapper_parallel_dynamic(
         import sys
         print(f"ERROR: Dynamic parallel processing failed: {e}", file=sys.stderr)
         print("  Falling back to sequential processing...", file=sys.stderr)
+        
+        # CRITICAL: Request emergency stop for producer thread if it exists
+        # This prevents producer from continuing after error
+        try:
+            if 'producer_stop_requested' in locals():
+                producer_stop_requested.set()
+            if 'producer' in locals() and producer is not None:
+                producer.join(timeout=2.0)  # Quick cleanup
+        except:
+            pass  # Ignore cleanup errors
+        
         import traceback
         traceback.print_exc()
         return lfsr_sequence_mapper(
