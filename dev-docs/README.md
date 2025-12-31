@@ -13,6 +13,8 @@ This directory contains all development documentation, analysis reports, and imp
   - Small problems (<8K): 500-1000 states per batch
   - Medium problems (8K-64K): 200-500 states per batch
   - Large problems (>64K): 100-200 states per batch
+  - Reduces IPC overhead for small problems, improves load balancing for large problems
+  - Verified correct: All results match sequential, metrics are meaningful
 - **Batch Aggregation (Phase 2.2)**: IPC overhead reduction through batch aggregation
   - Workers pull multiple batches at once (2-8 batches per operation)
   - Non-blocking operations with fallback for better CPU utilization
@@ -22,6 +24,11 @@ This directory contains all development documentation, analysis reports, and imp
   - Reduces memory usage (only active batches in memory)
   - Faster startup time (workers can start immediately)
   - Better scalability for very large problems (>100K states)
+- **Persistent Worker Pool (Phase 2.3)**: Worker reuse across analyses
+  - Module-level pool that persists across multiple analyses
+  - Reduces process creation overhead for repeated analyses
+  - Expected 2-3x speedup for multiple analyses
+  - Automatic cleanup on program exit
 - **Comprehensive Profiling**: 12-bit, 14-bit, and 16-bit LFSR profiling results available
 - **Load Balancing Analysis**: Detailed comparison of static vs dynamic modes
 - **Verification**: Correctness and metrics verified for all optimizations
