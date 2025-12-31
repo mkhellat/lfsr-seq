@@ -114,6 +114,10 @@ cipher analysis, educational purposes, and security evaluation.
     - Reduces queue operations by 2-8x
     - Uses non-blocking operations with fallback for better CPU utilization
     - Provides 1.2-1.5x additional speedup by reducing queue contention
+  - **Lazy task generation**: Batches generated on-demand by background thread
+    - Reduces memory usage for large problems (only active batches in memory)
+    - Faster startup time (workers can start immediately)
+    - Better scalability for very large problems (>100K states)
   - Provides 2-4x speedup for large LFSRs (> 10,000 states)
   - Automatic fallback to sequential for small LFSRs where overhead dominates
 - **Optimized State Tracking**: Set-based visited state tracking for O(1) lookups

@@ -506,7 +506,9 @@ Dynamic Mode Implementation
 
 1. **Task Queue Creation**:
    - States divided into batches (auto-selected based on problem size)
-   - Batches placed in shared ``Manager().Queue()``
+   - **Lazy Generation (Phase 2.4)**: Batches generated on-demand by background producer thread
+   - Batches placed in shared ``Manager().Queue()`` as workers consume them
+   - Reduces memory usage and startup time for large problems
    - Sentinel values (``None``) signal queue end
    - Batch size automatically optimized: 500-1000 (small), 200-500 (medium), 100-200 (large)
 
@@ -641,6 +643,29 @@ You can override automatic selection using ``--batch-size N``:
 - **Large batches (500-1000 states)**: Lower IPC overhead, less effective load balancing
 
 The automatic selection ensures optimal performance across different problem sizes.
+
+Lazy Task Generation (Phase 2.4)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Dynamic mode uses **lazy task generation** to reduce memory usage and startup time:
+
+- **Background Producer Thread**: Generates batches on-demand instead of pre-generating all
+- **Memory Efficiency**: Only batches currently in queue are in memory
+- **Faster Startup**: Workers can start immediately, don't wait for all batches
+- **Scalability**: Better for very large problems (>100K states)
+
+**How It Works**:
+
+1. Generator function creates batches on-demand as workers consume them
+2. Background producer thread generates batches and puts them in queue
+3. Workers pull batches from queue (same as before)
+4. Producer adds sentinel values when all batches are generated
+
+**Benefits**:
+
+- **Reduced Memory**: Only active batches in memory (O(batch_size * queue_size))
+- **Faster Startup**: No upfront batch generation delay
+- **Correctness**: All batches still generated and processed correctly
 
 Worker Count Selection
 ~~~~~~~~~~~~~~~~~~~~~~~
