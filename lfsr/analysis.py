@@ -12,11 +12,19 @@ import datetime
 import multiprocessing
 import queue
 import textwrap
+import threading
 from typing import Any, Dict, List, Optional, Set, TextIO, Tuple
 
 from sage.all import *
 
 from lfsr.constants import PROGRESS_BAR_WIDTH, TABLE_ROW_WIDTH
+
+# Persistent worker pool management (Phase 2.3)
+# Module-level pool that can be reused across analyses
+_worker_pool_lock = threading.Lock()
+_worker_pool = None
+_worker_pool_context = None
+_worker_pool_size = 0
 
 # Multiprocessing setup for compatibility
 # On some systems, we need to set the start method explicitly
@@ -2251,39 +2259,91 @@ def lfsr_sequence_mapper_parallel_dynamic(
         import sys
         sys.stdout.flush()
     
+    # Persistent worker pool management (Phase 2.3)
+    # Use module-level pool that can be reused across analyses
+    def get_or_create_pool(num_workers, use_persistent_pool=True):
+        """Get or create persistent worker pool."""
+        global _worker_pool, _worker_pool_context, _worker_pool_size
+        
+        if not use_persistent_pool:
+            # Create temporary pool (original behavior)
+            try:
+                ctx = multiprocessing.get_context('fork')
+            except ValueError:
+                ctx = multiprocessing.get_context('spawn')
+            return ctx.Pool(processes=num_workers), ctx, True  # is_temporary=True
+        
+        with _worker_pool_lock:
+            # Check if existing pool can be reused
+            if _worker_pool is not None and _worker_pool_size == num_workers:
+                try:
+                    # Verify pool is still alive
+                    _worker_pool._check_running()
+                    return _worker_pool, _worker_pool_context, False  # is_temporary=False
+                except (ValueError, AssertionError):
+                    # Pool is dead, need to recreate
+                    _worker_pool = None
+                    _worker_pool_context = None
+                    _worker_pool_size = 0
+            
+            # Create new pool
+            try:
+                ctx = multiprocessing.get_context('fork')
+                if not no_progress:
+                    print(f"  Creating persistent worker pool ({num_workers} workers)...")
+            except ValueError:
+                ctx = multiprocessing.get_context('spawn')
+                if not no_progress:
+                    print(f"  Creating persistent worker pool ({num_workers} workers, spawn mode)...")
+            
+            pool = ctx.Pool(processes=num_workers)
+            _worker_pool = pool
+            _worker_pool_context = ctx
+            _worker_pool_size = num_workers
+            
+            if not no_progress:
+                print(f"  Persistent pool created (will be reused for subsequent analyses)")
+            
+            return pool, ctx, False  # is_temporary=False
+    
     try:
-        # Use fork context (preferred) or spawn (fallback)
-        try:
-            ctx = multiprocessing.get_context('fork')
-            if not no_progress:
-                print(f"  Using fork mode")
-        except ValueError:
-            ctx = multiprocessing.get_context('spawn')
-            if not no_progress:
-                print(f"  Using spawn mode")
+        # Get or create persistent pool
+        pool, ctx, is_temporary = get_or_create_pool(num_workers, use_persistent_pool=True)
+        
+        if not no_progress:
+            if is_temporary:
+                print(f"  Using temporary pool")
+            else:
+                print(f"  Using persistent pool (reused)")
         
         start_time = time.time()
         
-        with ctx.Pool(processes=num_workers) as pool:
+        # Use pool (don't use 'with' statement for persistent pool)
+        if is_temporary:
+            # Temporary pool: use context manager
+            with pool:
+                worker_results = pool.map(_process_task_batch_dynamic, worker_data_list)
+        else:
+            # Persistent pool: don't close, just use it
             worker_results = pool.map(_process_task_batch_dynamic, worker_data_list)
-            
-            elapsed = time.time() - start_time
+        
+        elapsed = time.time() - start_time
+        if not no_progress:
+            print(f"  Workers completed in {elapsed:.2f}s")
+        
+        # Wait for producer thread to finish (should already be done)
+        import sys
+        producer.join(timeout=5.0)
+        if producer.is_alive():
             if not no_progress:
-                print(f"  Workers completed in {elapsed:.2f}s")
-            
-            # Wait for producer thread to finish (should already be done)
-            import sys
-            producer.join(timeout=5.0)
-            if producer.is_alive():
-                if not no_progress:
-                    print(f"  Warning: Producer thread did not finish in time", file=sys.stderr)
-            
-            # Check for producer errors
-            if producer_error[0]:
-                raise RuntimeError(f"Producer thread error: {producer_error[0]}")
-            
-            if not no_progress:
-                print(f"  Producer completed: {batches_created} batches generated")
+                print(f"  Warning: Producer thread did not finish in time", file=sys.stderr)
+        
+        # Check for producer errors
+        if producer_error[0]:
+            raise RuntimeError(f"Producer thread error: {producer_error[0]}")
+        
+        if not no_progress:
+            print(f"  Producer completed: {batches_created} batches generated")
     
     except Exception as e:
         import sys
