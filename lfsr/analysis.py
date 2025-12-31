@@ -2167,8 +2167,9 @@ def lfsr_sequence_mapper_parallel_dynamic(
     manager = multiprocessing.Manager()
     
     # Phase 3.1: Work Stealing - Per-worker queues instead of single shared queue
-    # This reduces lock contention and improves scalability
-    use_work_stealing = True  # Enable work stealing (Phase 3.1)
+    # Phase 3.2: Hybrid mode - Static partitioning + work stealing
+    use_hybrid_mode = False  # Enable hybrid mode (Phase 3.2) - combines static + dynamic
+    use_work_stealing = True  # Enable work stealing (Phase 3.1) - used by hybrid mode too
     
     if use_work_stealing:
         # Per-worker queues for work stealing
