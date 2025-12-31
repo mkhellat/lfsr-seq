@@ -84,8 +84,10 @@ def profile_configuration(
     print(f"Profiling {desc} LFSR ({len(coeffs)}-bit)")
     print(f"{'='*80}")
     
-    # Build state update matrix
-    C, V = build_state_update_matrix(coeffs, gf_order)
+    # Build state update matrix and vector space
+    C = build_state_update_matrix(coeffs, gf_order)
+    F = GF(gf_order)
+    V = VectorSpace(F, len(coeffs))
     
     # Calculate state space size
     state_space_size = gf_order ** len(coeffs)
