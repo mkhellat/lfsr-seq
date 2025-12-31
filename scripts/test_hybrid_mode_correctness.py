@@ -69,9 +69,14 @@ except ImportError as e:
 
 def test_correctness(coeffs, gf_order, desc, num_workers=4):
     """Test that hybrid mode doesn't affect correctness."""
+    global _shutdown_requested
+    
+    # Check memory before starting
+    initial_memory = check_memory()
     print(f"\n{'='*80}")
     print(f"Testing Hybrid Mode: {desc} LFSR ({len(coeffs)}-bit)")
     print(f"{'='*80}")
+    print(f"Initial memory: {initial_memory:.1f}MB (limit: {MAX_MEMORY_MB}MB)")
     
     # Build state update matrix
     C, _ = build_state_update_matrix(coeffs, gf_order)
@@ -82,25 +87,67 @@ def test_correctness(coeffs, gf_order, desc, num_workers=4):
     state_space_size = gf_order ** len(coeffs)
     print(f"\nState space size: {state_space_size:,} states")
     
+    # Check memory after setup
+    setup_memory = check_memory()
+    print(f"Memory after setup: {setup_memory:.1f}MB")
+    
+    if _shutdown_requested:
+        print("⚠️  Emergency shutdown requested, aborting test")
+        return False
+    
     # Sequential baseline
     print(f"\n1. Sequential (baseline):")
+    seq_memory_before = check_memory()
     start = time.time()
     seq_dict, seq_period_dict, seq_max_period, seq_periods_sum = lfsr_sequence_mapper(
         C, V, gf_order, period_only=True, algorithm="enumeration", no_progress=True
     )
     seq_time = time.time() - start
+    seq_memory_after = check_memory()
     print(f"   ✓ Completed in {seq_time:.3f}s")
+    print(f"   Memory: {seq_memory_before:.1f}MB -> {seq_memory_after:.1f}MB (delta: {seq_memory_after - seq_memory_before:.1f}MB)")
     print(f"   Sequences: {len(seq_period_dict)}, Sum: {seq_periods_sum}, Max: {seq_max_period}")
+    
+    if _shutdown_requested:
+        print("⚠️  Emergency shutdown requested, aborting test")
+        return False
     
     # Dynamic with hybrid mode (Phase 3.2) - auto-selected for medium problems
     print(f"\n2. Dynamic mode with hybrid mode ({num_workers} workers):")
+    dyn_memory_before = check_memory()
     start = time.time()
-    dyn_dict, dyn_period_dict, dyn_max_period, dyn_periods_sum = lfsr_sequence_mapper_parallel_dynamic(
-        C, V, gf_order, period_only=True, algorithm="enumeration",
-        num_workers=num_workers, batch_size=None, no_progress=True
-    )
+    
+    # Monitor memory during execution
+    import threading
+    memory_monitor_active = True
+    
+    def memory_monitor():
+        """Background thread to monitor memory usage."""
+        while memory_monitor_active and not _shutdown_requested:
+            memory_mb = monitor_memory()
+            time.sleep(MEMORY_CHECK_INTERVAL)
+    
+    monitor_thread = threading.Thread(target=memory_monitor, daemon=True)
+    monitor_thread.start()
+    
+    try:
+        dyn_dict, dyn_period_dict, dyn_max_period, dyn_periods_sum = lfsr_sequence_mapper_parallel_dynamic(
+            C, V, gf_order, period_only=True, algorithm="enumeration",
+            num_workers=num_workers, batch_size=None, no_progress=True
+        )
+    finally:
+        memory_monitor_active = False
+        monitor_thread.join(timeout=1.0)
+    
     dyn_time = time.time() - start
+    dyn_memory_after = check_memory()
     dyn_speedup = seq_time / dyn_time if dyn_time > 0 else 0
+    
+    print(f"   Memory: {dyn_memory_before:.1f}MB -> {dyn_memory_after:.1f}MB (delta: {dyn_memory_after - dyn_memory_before:.1f}MB)")
+    
+    if _shutdown_requested:
+        print("⚠️  Emergency shutdown requested, aborting test")
+        return False
     
     correct = (
         len(dyn_period_dict) == len(seq_period_dict) and
@@ -122,9 +169,22 @@ def test_correctness(coeffs, gf_order, desc, num_workers=4):
 
 def main():
     """Run correctness tests."""
+    # Set up emergency signal handlers
+    signal.signal(signal.SIGUSR1, memory_check_handler)  # Custom signal for memory check
+    
+    # Set memory limit (soft limit)
+    try:
+        # Set soft memory limit (4GB)
+        resource.setrlimit(resource.RLIMIT_AS, (MAX_MEMORY_MB * 1024 * 1024, MAX_MEMORY_MB * 1024 * 1024))
+    except (ValueError, OSError) as e:
+        print(f"Warning: Could not set memory limit: {e}", file=sys.stderr)
+    
     print("="*80)
     print("HYBRID MODE CORRECTNESS TEST (Phase 3.2)")
     print("="*80)
+    print(f"Memory limit: {MAX_MEMORY_MB}MB")
+    print(f"Memory monitoring: Every {MEMORY_CHECK_INTERVAL}s")
+    print(f"Emergency shutdown: Enabled")
     
     # Test with medium-sized problem (should auto-select hybrid mode)
     test_cases = [

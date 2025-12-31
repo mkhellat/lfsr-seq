@@ -121,9 +121,21 @@ def test_correctness(coeffs, gf_order, desc, num_workers=4):
 
 def main():
     """Run correctness tests."""
+    # Set up emergency signal handlers
+    signal.signal(signal.SIGUSR1, memory_check_handler)
+    
+    # Set memory limit (soft limit)
+    try:
+        resource.setrlimit(resource.RLIMIT_AS, (MAX_MEMORY_MB * 1024 * 1024, MAX_MEMORY_MB * 1024 * 1024))
+    except (ValueError, OSError) as e:
+        print(f"Warning: Could not set memory limit: {e}", file=sys.stderr)
+    
     print("="*80)
     print("WORK STEALING CORRECTNESS TEST (Phase 3.1)")
     print("="*80)
+    print(f"Memory limit: {MAX_MEMORY_MB}MB")
+    print(f"Memory monitoring: Every {MEMORY_CHECK_INTERVAL}s")
+    print(f"Emergency shutdown: Enabled")
     
     # Test cases
     test_cases = [

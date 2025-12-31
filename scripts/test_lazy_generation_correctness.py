@@ -6,12 +6,48 @@ This script verifies that lazy task generation doesn't affect correctness:
 1. Results match sequential
 2. All batches are generated correctly
 3. Producer thread completes successfully
+
+MEMORY SAFETY: This script includes memory monitoring and emergency shutdown
+to prevent memory exhaustion during testing.
 """
 
 import sys
 import os
 import time
+import resource
+import signal
 from pathlib import Path
+
+# Memory limit: 4GB (as requested)
+MAX_MEMORY_MB = 4 * 1024  # 4GB in MB
+MEMORY_CHECK_INTERVAL = 5  # Check memory every 5 seconds
+
+# Emergency shutdown flag
+_shutdown_requested = False
+
+def memory_check_handler(signum, frame):
+    """Emergency shutdown if memory limit exceeded."""
+    global _shutdown_requested
+    _shutdown_requested = True
+    print("\n⚠️  EMERGENCY SHUTDOWN: Memory limit exceeded!", file=sys.stderr)
+    sys.exit(1)
+
+def check_memory():
+    """Check current memory usage and return MB used."""
+    try:
+        usage = resource.getrusage(resource.RUSAGE_SELF)
+        memory_mb = usage.ru_maxrss / 1024  # Convert KB to MB (Linux)
+        return memory_mb
+    except Exception:
+        return 0
+
+def monitor_memory():
+    """Monitor memory usage and trigger emergency shutdown if needed."""
+    memory_mb = check_memory()
+    if memory_mb > MAX_MEMORY_MB:
+        print(f"\n⚠️  MEMORY WARNING: Using {memory_mb:.1f}MB (limit: {MAX_MEMORY_MB}MB)", file=sys.stderr)
+        memory_check_handler(None, None)
+    return memory_mb
 
 # Add project root to path
 project_root = Path(__file__).parent.parent
@@ -85,9 +121,21 @@ def test_correctness(coeffs, gf_order, desc, num_workers=4):
 
 def main():
     """Run correctness tests."""
+    # Set up emergency signal handlers
+    signal.signal(signal.SIGUSR1, memory_check_handler)
+    
+    # Set memory limit (soft limit)
+    try:
+        resource.setrlimit(resource.RLIMIT_AS, (MAX_MEMORY_MB * 1024 * 1024, MAX_MEMORY_MB * 1024 * 1024))
+    except (ValueError, OSError) as e:
+        print(f"Warning: Could not set memory limit: {e}", file=sys.stderr)
+    
     print("="*80)
     print("LAZY TASK GENERATION CORRECTNESS TEST (Phase 2.4)")
     print("="*80)
+    print(f"Memory limit: {MAX_MEMORY_MB}MB")
+    print(f"Memory monitoring: Every {MEMORY_CHECK_INTERVAL}s")
+    print(f"Emergency shutdown: Enabled")
     
     # Test cases
     test_cases = [
