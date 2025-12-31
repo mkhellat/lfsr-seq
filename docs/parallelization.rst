@@ -508,6 +508,8 @@ Dynamic Mode Implementation
    - States divided into batches (auto-selected based on problem size)
    - **Lazy Generation (Phase 2.4)**: Batches generated on-demand by background producer thread
    - Batches placed in shared ``Manager().Queue()`` as workers consume them
+   - **Memory Safety**: Queue size limits (max 100 batches per queue) prevent unbounded memory growth
+   - **Backpressure**: Producer blocks when queue is full, preventing memory exhaustion
    - Reduces memory usage and startup time for large problems
    - Sentinel values (``None``) signal queue end
    - Batch size automatically optimized: 500-1000 (small), 200-500 (medium), 100-200 (large)
@@ -519,6 +521,7 @@ Dynamic Mode Implementation
    - Process all pulled batches, then immediately pull next set
    - Faster workers naturally take on more work
    - Returns when sentinel is received
+   - **Memory Safety**: Queue size limits ensure workers don't accumulate unbounded batches
 
 3. **Persistent Worker Pool (Phase 2.3)**:
    - Workers are reused across multiple analyses (pool stays alive)
@@ -694,11 +697,19 @@ Dynamic mode uses **lazy task generation** to reduce memory usage and startup ti
 3. Workers pull batches from queue (same as before)
 4. Producer adds sentinel values when all batches are generated
 
+**Memory Safety Features**:
+
+- **Queue Size Limits**: Each queue has a maximum size (100 batches) to prevent unbounded growth
+- **Producer Backpressure**: Producer blocks when queue is full, waiting for workers to consume batches
+- **Emergency Stop**: Producer can be stopped immediately if memory issues are detected
+- **Thread Cleanup**: Producer thread is properly cleaned up to prevent memory leaks
+
 **Benefits**:
 
 - **Reduced Memory**: Only active batches in memory (O(batch_size * queue_size))
 - **Faster Startup**: No upfront batch generation delay
 - **Correctness**: All batches still generated and processed correctly
+- **Memory Safe**: Queue limits and backpressure prevent memory exhaustion
 
 Worker Count Selection
 ~~~~~~~~~~~~~~~~~~~~~~~
@@ -733,6 +744,29 @@ Workers Hang or Timeout
 - Use ``--no-parallel`` to force sequential mode
 - Reduce number of workers
 - Ensure sufficient system resources (memory, CPU)
+
+Memory Issues
+~~~~~~~~~~~~~
+
+**Symptoms**: High memory usage, system slowdown, or out-of-memory errors
+
+**Causes**:
+- Very large state spaces (>1M states)
+- Too many workers causing excessive queue growth
+- System memory constraints
+
+**Solutions**:
+- Queue size limits (100 batches per queue) prevent unbounded growth
+- Producer backpressure automatically slows batch generation when queues are full
+- Reduce number of workers if memory is constrained
+- Use ``--no-parallel`` for very large problems if memory is limited
+- Monitor memory usage during processing
+
+**Memory Safety Features**:
+- All queues have size limits to prevent unbounded growth
+- Producer blocks when queues are full (backpressure mechanism)
+- Emergency stop mechanism can halt producer if memory issues detected
+- Proper thread cleanup prevents memory leaks
 
 Incorrect Results
 ~~~~~~~~~~~~~~~~~
