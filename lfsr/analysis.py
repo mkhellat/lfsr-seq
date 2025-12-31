@@ -1783,16 +1783,29 @@ def _process_task_batch_dynamic(
             - 'errors': List of error messages
             - 'work_metrics': Work distribution metrics
     """
-    # Detect work stealing mode: first element is list (worker_queues) vs Queue (task_queue)
-    if isinstance(worker_data[0], list):
+    # Detect mode: first element type determines mode
+    # Hybrid mode: first element is list (assigned_chunk), second is list (worker_queues)
+    # Work stealing mode: first element is list (worker_queues)
+    # Original mode: first element is Queue (task_queue)
+    if isinstance(worker_data[0], list) and len(worker_data) > 1 and isinstance(worker_data[1], list):
+        # Phase 3.2: Hybrid mode - static chunk + work stealing
+        assigned_chunk, worker_queues, worker_id, coeffs_vector, gf_order, lfsr_degree, algorithm, period_only, shared_cycles, cycle_lock, batch_aggregation_count = worker_data
+        task_queue = None
+        use_hybrid_mode = True
+        use_work_stealing = True
+    elif isinstance(worker_data[0], list):
         # Phase 3.1: Work stealing mode
         worker_queues, worker_id, coeffs_vector, gf_order, lfsr_degree, algorithm, period_only, shared_cycles, cycle_lock, batch_aggregation_count = worker_data
         task_queue = None
+        assigned_chunk = None
+        use_hybrid_mode = False
         use_work_stealing = True
     else:
         # Original: Shared queue mode
         task_queue, coeffs_vector, gf_order, lfsr_degree, algorithm, period_only, worker_id, shared_cycles, cycle_lock, batch_aggregation_count = worker_data
         worker_queues = None
+        assigned_chunk = None
+        use_hybrid_mode = False
         use_work_stealing = False
     
     # Import SageMath in worker (same setup as _process_state_chunk)
@@ -2238,7 +2251,12 @@ def lfsr_sequence_mapper_parallel_dynamic(
         """Background thread that generates batches and populates queues."""
         nonlocal batches_created
         try:
-            if use_work_stealing:
+            if use_hybrid_mode:
+                # Phase 3.2: Hybrid mode - no producer needed (static chunks assigned)
+                # Work stealing queues used only for overflow/remaining work
+                # Static chunks are assigned directly to workers
+                pass  # No producer needed in hybrid mode
+            elif use_work_stealing:
                 # Phase 3.1: Distribute batches round-robin to worker queues
                 for batch in batch_generator():
                     worker_id = batches_created % num_workers
@@ -2255,8 +2273,15 @@ def lfsr_sequence_mapper_parallel_dynamic(
             # Signal completion and add sentinels
             producer_done.set()
             # Add sentinel values (None) to signal workers to stop
-            if use_work_stealing:
-                # One sentinel per worker queue
+            if use_hybrid_mode:
+                # Hybrid mode: One sentinel per worker queue (for work stealing)
+                for worker_queue in worker_queues:
+                    try:
+                        worker_queue.put(None)
+                    except:
+                        pass
+            elif use_work_stealing:
+                # Phase 3.1: One sentinel per worker queue
                 for worker_queue in worker_queues:
                     try:
                         worker_queue.put(None)
@@ -2270,18 +2295,42 @@ def lfsr_sequence_mapper_parallel_dynamic(
                     except:
                         pass
     
-    # Start producer thread
-    producer = threading.Thread(target=producer_thread, daemon=True)
-    producer.start()
-    
-    if not no_progress:
-        print(f"  Producer thread started (lazy generation enabled)")
-        sys.stdout.flush()
+    # Start producer thread (not needed for hybrid mode)
+    if not use_hybrid_mode:
+        producer = threading.Thread(target=producer_thread, daemon=True)
+        producer.start()
+        
+        if not no_progress:
+            print(f"  Producer thread started (lazy generation enabled)")
+            sys.stdout.flush()
+    else:
+        # Hybrid mode: No producer thread needed (static chunks assigned)
+        producer = None
+        producer_done.set()  # Mark as done immediately
+        if not no_progress:
+            print(f"  Hybrid mode: Static chunks assigned, work stealing ready")
+            sys.stdout.flush()
     
     # Prepare worker data
     worker_data_list = []
     for worker_id in range(num_workers):
-        if use_work_stealing:
+        if use_hybrid_mode:
+            # Phase 3.2: Hybrid mode - static chunk + work stealing queues
+            assigned_chunk = chunks[worker_id] if worker_id < len(chunks) else []
+            worker_data = (
+                assigned_chunk,  # Static chunk assigned to this worker
+                worker_queues,  # List of all worker queues for work stealing
+                worker_id,  # This worker's ID
+                coeffs_vector,
+                gf_order,
+                d,
+                algorithm,
+                period_only,
+                shared_cycles,
+                cycle_lock,
+                batch_aggregation_count,
+            )
+        elif use_work_stealing:
             # Phase 3.1: Pass worker queues and worker_id for work stealing
             worker_data = (
                 worker_queues,  # List of all worker queues
@@ -2395,19 +2444,20 @@ def lfsr_sequence_mapper_parallel_dynamic(
         if not no_progress:
             print(f"  Workers completed in {elapsed:.2f}s")
         
-        # Wait for producer thread to finish (should already be done)
-        import sys
-        producer.join(timeout=5.0)
-        if producer.is_alive():
+        # Wait for producer thread to finish (if it exists)
+        if producer is not None:
+            import sys
+            producer.join(timeout=5.0)
+            if producer.is_alive():
+                if not no_progress:
+                    print(f"  Warning: Producer thread did not finish in time", file=sys.stderr)
+            
+            # Check for producer errors
+            if producer_error[0]:
+                raise RuntimeError(f"Producer thread error: {producer_error[0]}")
+            
             if not no_progress:
-                print(f"  Warning: Producer thread did not finish in time", file=sys.stderr)
-        
-        # Check for producer errors
-        if producer_error[0]:
-            raise RuntimeError(f"Producer thread error: {producer_error[0]}")
-        
-        if not no_progress:
-            print(f"  Producer completed: {batches_created} batches generated")
+                print(f"  Producer completed: {batches_created} batches generated")
     
     except Exception as e:
         import sys
