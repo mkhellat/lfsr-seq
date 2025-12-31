@@ -109,11 +109,21 @@ def profile_configuration(
     
     # Sequential baseline
     print(f"\n1. Sequential (baseline):")
+    # Suppress output during profiling
+    import sys
+    from io import StringIO
+    old_stdout = sys.stdout
+    sys.stdout = StringIO()
+    
     start = time.time()
     seq_dict, seq_period_dict, seq_max_period, seq_periods_sum = lfsr_sequence_mapper(
         C, V, gf_order, period_only=True, algorithm="enumeration", no_progress=True
     )
     seq_time = time.time() - start
+    
+    # Restore stdout
+    sys.stdout = old_stdout
+    
     result.sequential_time = seq_time
     print(f"   Time: {seq_time:.3f}s")
     print(f"   Sequences: {len(seq_period_dict)}, Sum: {seq_periods_sum}, Max: {seq_max_period}")
@@ -124,12 +134,19 @@ def profile_configuration(
         
         # Test with auto batch size
         print(f"   a. Auto batch size:")
+        # Suppress output during profiling
+        old_stdout = sys.stdout
+        sys.stdout = StringIO()
+        
         start = time.time()
         dyn_dict, dyn_period_dict, dyn_max_period, dyn_periods_sum = lfsr_sequence_mapper_parallel_dynamic(
             C, V, gf_order, period_only=True, algorithm="enumeration",
             num_workers=num_workers, batch_size=None, no_progress=True
         )
         dyn_time = time.time() - start
+        
+        # Restore stdout
+        sys.stdout = old_stdout
         dyn_speedup = seq_time / dyn_time if dyn_time > 0 else 0
         
         # Verify correctness
@@ -155,12 +172,19 @@ def profile_configuration(
         if batch_sizes:
             for batch_size in batch_sizes:
                 print(f"   b. Batch size {batch_size}:")
+                # Suppress output during profiling
+                old_stdout = sys.stdout
+                sys.stdout = StringIO()
+                
                 start = time.time()
                 dyn_dict, dyn_period_dict, dyn_max_period, dyn_periods_sum = lfsr_sequence_mapper_parallel_dynamic(
                     C, V, gf_order, period_only=True, algorithm="enumeration",
                     num_workers=num_workers, batch_size=batch_size, no_progress=True
                 )
                 dyn_time = time.time() - start
+                
+                # Restore stdout
+                sys.stdout = old_stdout
                 dyn_speedup = seq_time / dyn_time if dyn_time > 0 else 0
                 
                 correct = (
