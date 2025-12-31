@@ -1738,16 +1738,17 @@ def lfsr_sequence_mapper_parallel(
 
 def _process_task_batch_dynamic(
     worker_data: Tuple[
-        Any,  # task_queue (Manager().Queue())
-        List[int],  # coeffs_vector
-        int,  # gf_order
-        int,  # lfsr_degree
-        str,  # algorithm
-        bool,  # period_only
-        int,  # worker_id
-        Any,  # shared_cycles (Manager().dict())
-        Any,  # cycle_lock (Manager().Lock())
-        int,  # batch_aggregation_count (number of batches to pull at once)
+        Any,  # task_queue (Manager().Queue()) OR worker_queues (List[Manager().Queue()]) for work stealing
+        Any,  # worker_id (int) OR coeffs_vector (List[int]) depending on mode
+        Any,  # coeffs_vector (List[int]) OR gf_order (int) depending on mode
+        Any,  # gf_order (int) OR lfsr_degree (int) depending on mode
+        Any,  # lfsr_degree (int) OR algorithm (str) depending on mode
+        Any,  # algorithm (str) OR period_only (bool) depending on mode
+        Any,  # period_only (bool) OR shared_cycles (Manager().dict()) depending on mode
+        Any,  # worker_id (int) OR cycle_lock (Manager().Lock()) depending on mode
+        Any,  # shared_cycles (Manager().dict()) OR batch_aggregation_count (int) depending on mode
+        Any,  # cycle_lock (Manager().Lock()) OR None depending on mode
+        Any,  # batch_aggregation_count (int) OR None depending on mode
     ],
 ) -> Dict[str, Any]:
     """
@@ -1782,18 +1783,17 @@ def _process_task_batch_dynamic(
             - 'errors': List of error messages
             - 'work_metrics': Work distribution metrics
     """
-    (
-        task_queue,
-        coeffs_vector,
-        gf_order,
-        lfsr_degree,
-        algorithm,
-        period_only,
-        worker_id,
-        shared_cycles,
-        cycle_lock,
-        batch_aggregation_count,
-    ) = worker_data
+    # Detect work stealing mode: first element is list (worker_queues) vs Queue (task_queue)
+    if isinstance(worker_data[0], list):
+        # Phase 3.1: Work stealing mode
+        worker_queues, worker_id, coeffs_vector, gf_order, lfsr_degree, algorithm, period_only, shared_cycles, cycle_lock, batch_aggregation_count = worker_data
+        task_queue = None
+        use_work_stealing = True
+    else:
+        # Original: Shared queue mode
+        task_queue, coeffs_vector, gf_order, lfsr_degree, algorithm, period_only, worker_id, shared_cycles, cycle_lock, batch_aggregation_count = worker_data
+        worker_queues = None
+        use_work_stealing = False
     
     # Import SageMath in worker (same setup as _process_state_chunk)
     import sys
@@ -2176,7 +2176,24 @@ def lfsr_sequence_mapper_parallel_dynamic(
     
     # Create shared objects for workers
     manager = multiprocessing.Manager()
-    task_queue = manager.Queue()
+    
+    # Phase 3.1: Work Stealing - Per-worker queues instead of single shared queue
+    # This reduces lock contention and improves scalability
+    use_work_stealing = True  # Enable work stealing (Phase 3.1)
+    
+    if use_work_stealing:
+        # Per-worker queues for work stealing
+        worker_queues = [manager.Queue() for _ in range(num_workers)]
+        task_queue = None  # Not used in work stealing mode
+        if not no_progress:
+            print(f"  Using work stealing with {num_workers} per-worker queues (Phase 3.1)")
+            import sys
+            sys.stdout.flush()
+    else:
+        # Original shared queue (fallback)
+        task_queue = manager.Queue()
+        worker_queues = None
+    
     shared_cycles = manager.dict()
     cycle_lock = manager.Lock()
     
@@ -2228,23 +2245,40 @@ def lfsr_sequence_mapper_parallel_dynamic(
     producer_error = [None]  # Use list to allow modification from nested function
     
     def producer_thread():
-        """Background thread that generates batches and populates queue."""
+        """Background thread that generates batches and populates queues."""
         nonlocal batches_created
         try:
-            for batch in batch_generator():
-                task_queue.put(batch)
-                batches_created += 1
+            if use_work_stealing:
+                # Phase 3.1: Distribute batches round-robin to worker queues
+                for batch in batch_generator():
+                    worker_id = batches_created % num_workers
+                    worker_queues[worker_id].put(batch)
+                    batches_created += 1
+            else:
+                # Original: Single shared queue
+                for batch in batch_generator():
+                    task_queue.put(batch)
+                    batches_created += 1
         except Exception as e:
             producer_error[0] = e
         finally:
             # Signal completion and add sentinels
             producer_done.set()
             # Add sentinel values (None) to signal workers to stop
-            for _ in range(num_workers):
-                try:
-                    task_queue.put(None)
-                except:
-                    pass
+            if use_work_stealing:
+                # One sentinel per worker queue
+                for worker_queue in worker_queues:
+                    try:
+                        worker_queue.put(None)
+                    except:
+                        pass
+            else:
+                # Original: One sentinel per worker in shared queue
+                for _ in range(num_workers):
+                    try:
+                        task_queue.put(None)
+                    except:
+                        pass
     
     # Start producer thread
     producer = threading.Thread(target=producer_thread, daemon=True)
@@ -2257,18 +2291,34 @@ def lfsr_sequence_mapper_parallel_dynamic(
     # Prepare worker data
     worker_data_list = []
     for worker_id in range(num_workers):
-        worker_data = (
-            task_queue,
-            coeffs_vector,
-            gf_order,
-            d,
-            algorithm,
-            period_only,
-            worker_id,
-            shared_cycles,
-            cycle_lock,
-            batch_aggregation_count,
-        )
+        if use_work_stealing:
+            # Phase 3.1: Pass worker queues and worker_id for work stealing
+            worker_data = (
+                worker_queues,  # List of all worker queues
+                worker_id,  # This worker's ID
+                coeffs_vector,
+                gf_order,
+                d,
+                algorithm,
+                period_only,
+                shared_cycles,
+                cycle_lock,
+                batch_aggregation_count,
+            )
+        else:
+            # Original: Single shared queue
+            worker_data = (
+                task_queue,
+                coeffs_vector,
+                gf_order,
+                d,
+                algorithm,
+                period_only,
+                worker_id,
+                shared_cycles,
+                cycle_lock,
+                batch_aggregation_count,
+            )
         worker_data_list.append(worker_data)
     
     # Process with workers
