@@ -128,6 +128,13 @@ cipher analysis, educational purposes, and security evaluation.
     - Expected 2-3x speedup for multiple analyses in same program run
     - 10% speedup observed on second run (tested with 12-bit LFSR)
     - Automatic cleanup on program exit via atexit handler
+  - **Memory Safety (Critical Fix)**: Prevents memory exhaustion from unbounded queue growth
+    - **Queue size limits**: All queues have maximum size (100 batches per queue)
+    - **Producer backpressure**: Producer blocks when queue is full, preventing unbounded growth
+    - **Emergency stop**: Producer can be stopped immediately if memory issues detected
+    - **Thread cleanup**: Proper cleanup prevents memory leaks from orphaned threads
+    - **Memory monitoring**: Test scripts include 4GB memory limits and emergency shutdown
+    - Prevents DDoS-like memory exhaustion from queue overflow
   - Provides 2-4x speedup for large LFSRs (> 10,000 states)
   - Automatic fallback to sequential for small LFSRs where overhead dominates
 - **Optimized State Tracking**: Set-based visited state tracking for O(1) lookups
