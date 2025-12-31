@@ -17,6 +17,11 @@ This directory contains all development documentation, analysis reports, and imp
   - Workers pull multiple batches at once (2-8 batches per operation)
   - Non-blocking operations with fallback for better CPU utilization
   - Reduces queue operations by 2-8x, provides 1.2-1.5x speedup
+- **Lazy Task Generation (Phase 2.4)**: On-demand batch generation
+  - Background producer thread generates batches as workers consume
+  - Reduces memory usage (only active batches in memory)
+  - Faster startup time (workers can start immediately)
+  - Better scalability for very large problems (>100K states)
 - **Comprehensive Profiling**: 12-bit, 14-bit, and 16-bit LFSR profiling results available
 - **Load Balancing Analysis**: Detailed comparison of static vs dynamic modes
 - **Verification**: Correctness and metrics verified for all optimizations

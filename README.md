@@ -118,6 +118,10 @@ cipher analysis, educational purposes, and security evaluation.
     - Reduces memory usage for large problems (only active batches in memory)
     - Faster startup time (workers can start immediately)
     - Better scalability for very large problems (>100K states)
+  - **Persistent worker pool**: Workers reused across multiple analyses
+    - Reduces process creation overhead for repeated analyses
+    - Expected 2-3x speedup for multiple analyses in same program run
+    - Automatic cleanup on program exit
   - Provides 2-4x speedup for large LFSRs (> 10,000 states)
   - Automatic fallback to sequential for small LFSRs where overhead dominates
 - **Optimized State Tracking**: Set-based visited state tracking for O(1) lookups

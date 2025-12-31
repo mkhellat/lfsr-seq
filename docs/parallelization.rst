@@ -520,6 +520,12 @@ Dynamic Mode Implementation
    - Faster workers naturally take on more work
    - Returns when sentinel is received
 
+3. **Persistent Worker Pool (Phase 2.3)**:
+   - Workers are reused across multiple analyses (pool stays alive)
+   - Reduces process creation overhead for repeated analyses
+   - Expected 2-3x speedup for multiple analyses in same program run
+   - Automatic cleanup on program exit
+
 3. **Result Merging**:
    - Same as static mode
    - Uses canonical cycle keys (min_state) for deduplication
@@ -609,6 +615,33 @@ pulling one batch at a time, workers pull multiple batches per queue operation
 Workers use non-blocking ``get_nowait()`` to pull multiple batches efficiently,
 with fallback to blocking ``get()`` when the queue is empty. This reduces
 blocking time and improves CPU utilization.
+
+Persistent Worker Pool (Phase 2.3)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Dynamic mode uses a **persistent worker pool** that stays alive across multiple
+analyses:
+
+- **Pool Reuse**: Workers are created once and reused for subsequent analyses
+- **Reduced Overhead**: Eliminates process creation overhead for repeated analyses
+- **Faster Repeated Analyses**: Expected 2-3x speedup for multiple analyses
+- **Automatic Cleanup**: Pool cleaned up automatically on program exit
+
+**How It Works**:
+
+1. First analysis creates the worker pool
+2. Pool persists in memory for subsequent analyses
+3. Workers are reused (no process creation overhead)
+4. Pool is automatically cleaned up on program exit
+
+**Benefits**:
+
+- **2-3x speedup** for multiple analyses in same program run
+- **Faster startup** for subsequent analyses (no pool creation delay)
+- **Better resource utilization** (workers ready for work)
+
+**Note**: Each worker still creates fresh SageMath objects for each analysis,
+ensuring state isolation and correctness.
 
 **Automatic Batch Size Selection**:
 
