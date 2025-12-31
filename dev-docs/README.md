@@ -42,6 +42,15 @@ This directory contains all development documentation, analysis reports, and imp
   - All results verified correct (100% match with sequential)
   - Key finding: Overhead still dominates for small problems, approaching break-even for medium problems
   - See `scripts/phase2_profiling_analysis.md` for detailed analysis
+- **Memory Safety (Critical Fix)**: Fixed memory leak from unbounded queue growth
+  - **Queue size limits**: All queues have maxsize=100 to prevent unbounded growth
+  - **Producer backpressure**: Producer blocks when queue is full (blocking put with timeout)
+  - **Emergency stop**: producer_stop_requested Event allows immediate shutdown
+  - **Thread cleanup**: Improved producer thread cleanup with emergency stop mechanism
+  - **Memory monitoring**: All test scripts have 4GB memory limits and emergency shutdown
+  - **Test runner**: Created `scripts/test_memory_safe.py` for safe test execution
+  - Prevents DDoS-like memory exhaustion from queue overflow
+  - See `scripts/memory_leak_analysis.md` and `scripts/memory_leak_fixes_summary.md` for details
 - **Load Balancing Analysis**: Detailed comparison of static vs dynamic modes
 - **Verification**: Correctness and metrics verified for all optimizations
 - See [Parallel Processing Documentation](./parallel/README.md) for details
