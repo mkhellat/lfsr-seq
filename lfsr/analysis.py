@@ -2025,21 +2025,10 @@ def _process_task_batch_dynamic(
                 debug_log(f'Received sentinel, worker done. Processed {batches_processed} batches, {processed_count} states')
                 break
             
-            # If no batches pulled (queue empty), try blocking get with timeout
-            if not batches_to_process:
-                try:
-                    batch = task_queue.get(timeout=0.5)
-                    if batch is None:
-                        debug_log(f'Received sentinel, worker done. Processed {batches_processed} batches, {processed_count} states')
-                        break
-                    batches_to_process.append(batch)
-                except queue_module.Empty:
-                    # Queue still empty, continue waiting
-                    continue
-            
             # Process all pulled batches
-            for batch in batches_to_process:
-                process_single_batch(batch)
+            if batches_to_process:
+                for batch in batches_to_process:
+                    process_single_batch(batch)
         
         except queue_module.Empty:
             # Timeout - continue waiting (sentinel not received yet)
