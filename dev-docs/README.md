@@ -16,20 +16,32 @@ This directory contains all development documentation, analysis reports, and imp
   - Reduces IPC overhead for small problems, improves load balancing for large problems
   - Verified correct: All results match sequential, metrics are meaningful
 - **Batch Aggregation (Phase 2.2)**: IPC overhead reduction through batch aggregation
-  - Workers pull multiple batches at once (2-8 batches per operation)
-  - Non-blocking operations with fallback for better CPU utilization
+  - Workers pull multiple batches at once (2-8 batches per operation, adaptive based on problem size)
+  - Uses `get_nowait()` (non-blocking) with fallback to blocking `get()` for better CPU utilization
   - Reduces queue operations by 2-8x, provides 1.2-1.5x speedup
+  - Verified correct: All results match sequential, batch aggregation working as designed
 - **Lazy Task Generation (Phase 2.4)**: On-demand batch generation
-  - Background producer thread generates batches as workers consume
-  - Reduces memory usage (only active batches in memory)
-  - Faster startup time (workers can start immediately)
+  - Generator function creates batches on-demand instead of pre-generating all
+  - Background producer thread populates queue as workers consume batches
+  - Reduces memory usage (only active batches in memory, O(batch_size * queue_size))
+  - Faster startup time (workers can start immediately, no upfront batch generation delay)
   - Better scalability for very large problems (>100K states)
+  - Verified correct: All batches generated and processed correctly
 - **Persistent Worker Pool (Phase 2.3)**: Worker reuse across analyses
   - Module-level pool that persists across multiple analyses
+  - Pool created on first use, reused for subsequent analyses
   - Reduces process creation overhead for repeated analyses
   - Expected 2-3x speedup for multiple analyses
-  - Automatic cleanup on program exit
-- **Comprehensive Profiling**: 12-bit, 14-bit, and 16-bit LFSR profiling results available
+  - 10% speedup observed on second run (tested with 12-bit LFSR, 4 workers)
+  - Automatic cleanup on program exit via atexit handler
+  - Verified correct: Results match sequential across multiple analyses
+- **Comprehensive Profiling**: Phase 2.1 and 2.2 profiling completed
+  - Profiled 4-bit, 8-bit, 12-bit, and 14-bit LFSRs
+  - Tested with 2, 4, and 8 workers
+  - Tested auto and manual batch sizes
+  - All results verified correct (100% match with sequential)
+  - Key finding: Overhead still dominates for small problems, approaching break-even for medium problems
+  - See `scripts/phase2_profiling_analysis.md` for detailed analysis
 - **Load Balancing Analysis**: Detailed comparison of static vs dynamic modes
 - **Verification**: Correctness and metrics verified for all optimizations
 - See [Parallel Processing Documentation](./parallel/README.md) for details

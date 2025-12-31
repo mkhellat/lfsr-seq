@@ -106,17 +106,21 @@ cipher analysis, educational purposes, and security evaluation.
   - Uses fork mode (13-17x faster than spawn) with SageMath isolation
   - Two modes available: static (fixed partitioning) and dynamic (shared task queue with load balancing)
   - Dynamic mode provides 2-4x better load balancing for multi-cycle configurations
-  - **Adaptive batch sizing**: Automatically optimizes batch sizes based on problem size
+  - **Adaptive batch sizing (Phase 2.1)**: Automatically optimizes batch sizes based on problem size
     - Small problems (<8K states): 500-1000 states per batch
     - Medium problems (8K-64K states): 200-500 states per batch
     - Large problems (>64K states): 100-200 states per batch
-  - **Batch aggregation**: Workers pull multiple batches at once (2-8 batches) to reduce IPC overhead
+    - Reduces IPC overhead for small problems, improves load balancing for large problems
+  - **Batch aggregation (Phase 2.2)**: Workers pull multiple batches at once (2-8 batches) to reduce IPC overhead
+    - Adaptive aggregation count based on problem size (2-3 for small, 3-5 for medium, 4-8 for large)
     - Reduces queue operations by 2-8x
-    - Uses non-blocking operations with fallback for better CPU utilization
+    - Uses non-blocking operations (`get_nowait()`) with fallback to blocking `get()` for better CPU utilization
     - Provides 1.2-1.5x additional speedup by reducing queue contention
-  - **Lazy task generation**: Batches generated on-demand by background thread
-    - Reduces memory usage for large problems (only active batches in memory)
-    - Faster startup time (workers can start immediately)
+  - **Lazy task generation (Phase 2.4)**: Batches generated on-demand by background producer thread
+    - Generator function creates batches on-demand instead of pre-generating all
+    - Background producer thread populates queue as workers consume batches
+    - Reduces memory usage for large problems (only active batches in memory, O(batch_size * queue_size))
+    - Faster startup time (workers can start immediately, no upfront batch generation delay)
     - Better scalability for very large problems (>100K states)
   - **Persistent worker pool (Phase 2.3)**: Workers reused across multiple analyses
     - Module-level pool that persists across multiple analyses
