@@ -1,0 +1,290 @@
+[
+  {
+    "description": "4-bit",
+    "state_space_size": 16,
+    "category": "Small",
+    "sequential_time": 0.06782388687133789,
+    "dynamic_results": {
+      "2w_auto": {
+        "time": 0.06848478317260742,
+        "speedup": 0.9903497350702882,
+        "correct": true,
+        "num_workers": 2,
+        "batch_size": "auto"
+      },
+      "2w_batch100": {
+        "time": 0.05373883247375488,
+        "speedup": 1.2621019800618465,
+        "correct": true,
+        "num_workers": 2,
+        "batch_size": 100
+      },
+      "2w_batch500": {
+        "time": 0.05180644989013672,
+        "speedup": 1.3091784327080611,
+        "correct": true,
+        "num_workers": 2,
+        "batch_size": 500
+      },
+      "2w_batch1000": {
+        "time": 0.06086301803588867,
+        "speedup": 1.1143694325402111,
+        "correct": true,
+        "num_workers": 2,
+        "batch_size": 1000
+      },
+      "4w_auto": {
+        "time": 0.08214640617370605,
+        "speedup": 0.8256464284988695,
+        "correct": true,
+        "num_workers": 4,
+        "batch_size": "auto"
+      },
+      "4w_batch100": {
+        "time": 0.08121347427368164,
+        "speedup": 0.8351309616773428,
+        "correct": true,
+        "num_workers": 4,
+        "batch_size": 100
+      },
+      "4w_batch500": {
+        "time": 0.0724787712097168,
+        "speedup": 0.9357758932624557,
+        "correct": true,
+        "num_workers": 4,
+        "batch_size": 500
+      },
+      "4w_batch1000": {
+        "time": 0.08565354347229004,
+        "speedup": 0.7918398249720952,
+        "correct": true,
+        "num_workers": 4,
+        "batch_size": 1000
+      }
+    },
+    "timestamp": "2025-12-31T22:22:27.787567"
+  },
+  {
+    "description": "8-bit",
+    "state_space_size": 256,
+    "category": "Small",
+    "sequential_time": 0.02309441566467285,
+    "dynamic_results": {
+      "2w_auto": {
+        "time": 0.10015511512756348,
+        "speedup": 0.23058648213082714,
+        "correct": true,
+        "num_workers": 2,
+        "batch_size": "auto"
+      },
+      "2w_batch100": {
+        "time": 0.10126686096191406,
+        "speedup": 0.22805501666886407,
+        "correct": true,
+        "num_workers": 2,
+        "batch_size": 100
+      },
+      "2w_batch500": {
+        "time": 0.08886027336120605,
+        "speedup": 0.25989584311536945,
+        "correct": true,
+        "num_workers": 2,
+        "batch_size": 500
+      },
+      "2w_batch1000": {
+        "time": 0.08668637275695801,
+        "speedup": 0.26641345035190833,
+        "correct": true,
+        "num_workers": 2,
+        "batch_size": 1000
+      },
+      "4w_auto": {
+        "time": 0.11147856712341309,
+        "speedup": 0.20716462599582955,
+        "correct": true,
+        "num_workers": 4,
+        "batch_size": "auto"
+      },
+      "4w_batch100": {
+        "time": 0.11647486686706543,
+        "speedup": 0.19827810312958646,
+        "correct": true,
+        "num_workers": 4,
+        "batch_size": 100
+      },
+      "4w_batch500": {
+        "time": 0.11680030822753906,
+        "speedup": 0.19772563972761567,
+        "correct": true,
+        "num_workers": 4,
+        "batch_size": 500
+      },
+      "4w_batch1000": {
+        "time": 0.11587095260620117,
+        "speedup": 0.199311519800493,
+        "correct": true,
+        "num_workers": 4,
+        "batch_size": 1000
+      }
+    },
+    "timestamp": "2025-12-31T22:22:28.413970"
+  },
+  {
+    "description": "12-bit",
+    "state_space_size": 4096,
+    "category": "Small",
+    "sequential_time": 0.5552682876586914,
+    "dynamic_results": {
+      "2w_auto": {
+        "time": 1.248323678970337,
+        "speedup": 0.4448111471511115,
+        "correct": true,
+        "num_workers": 2,
+        "batch_size": "auto"
+      },
+      "2w_batch100": {
+        "time": 0.6600897312164307,
+        "speedup": 0.8412012206816616,
+        "correct": true,
+        "num_workers": 2,
+        "batch_size": 100
+      },
+      "2w_batch500": {
+        "time": 0.6547296047210693,
+        "speedup": 0.8480879490629557,
+        "correct": true,
+        "num_workers": 2,
+        "batch_size": 500
+      },
+      "2w_batch1000": {
+        "time": 0.6218769550323486,
+        "speedup": 0.8928909218541594,
+        "correct": true,
+        "num_workers": 2,
+        "batch_size": 1000
+      },
+      "4w_auto": {
+        "time": 0.9753928184509277,
+        "speedup": 0.5692765798097037,
+        "correct": true,
+        "num_workers": 4,
+        "batch_size": "auto"
+      },
+      "4w_batch100": {
+        "time": 1.0285751819610596,
+        "speedup": 0.5398421986033425,
+        "correct": true,
+        "num_workers": 4,
+        "batch_size": 100
+      },
+      "4w_batch500": {
+        "time": 1.2195532321929932,
+        "speedup": 0.4553046746964963,
+        "correct": true,
+        "num_workers": 4,
+        "batch_size": 500
+      },
+      "4w_batch1000": {
+        "time": 1.1883196830749512,
+        "speedup": 0.467271808728989,
+        "correct": true,
+        "num_workers": 4,
+        "batch_size": 1000
+      }
+    },
+    "timestamp": "2025-12-31T22:22:29.278155"
+  },
+  {
+    "description": "14-bit",
+    "state_space_size": 16384,
+    "category": "Medium",
+    "sequential_time": 2.084656000137329,
+    "dynamic_results": {
+      "2w_auto": {
+        "time": 2.2797350883483887,
+        "speedup": 0.9144290539685515,
+        "correct": true,
+        "num_workers": 2,
+        "batch_size": "auto"
+      },
+      "2w_batch100": {
+        "time": 2.3791890144348145,
+        "speedup": 0.8762044492848111,
+        "correct": true,
+        "num_workers": 2,
+        "batch_size": 100
+      },
+      "2w_batch200": {
+        "time": 2.3812005519866943,
+        "speedup": 0.8754642688109783,
+        "correct": true,
+        "num_workers": 2,
+        "batch_size": 200
+      },
+      "2w_batch500": {
+        "time": 2.307114362716675,
+        "speedup": 0.9035772278243734,
+        "correct": true,
+        "num_workers": 2,
+        "batch_size": 500
+      },
+      "4w_auto": {
+        "time": 3.8396739959716797,
+        "speedup": 0.5429252593643121,
+        "correct": true,
+        "num_workers": 4,
+        "batch_size": "auto"
+      },
+      "4w_batch100": {
+        "time": 4.111332416534424,
+        "speedup": 0.5070511914224035,
+        "correct": true,
+        "num_workers": 4,
+        "batch_size": 100
+      },
+      "4w_batch200": {
+        "time": 4.274368762969971,
+        "speedup": 0.48771084474443943,
+        "correct": true,
+        "num_workers": 4,
+        "batch_size": 200
+      },
+      "4w_batch500": {
+        "time": 4.770175218582153,
+        "speedup": 0.4370187476586981,
+        "correct": true,
+        "num_workers": 4,
+        "batch_size": 500
+      },
+      "8w_auto": {
+        "time": 6.689190149307251,
+        "speedup": 0.31164549872352204,
+        "correct": true,
+        "num_workers": 8,
+        "batch_size": "auto"
+      },
+      "8w_batch100": {
+        "time": 8.092763185501099,
+        "speedup": 0.2575950824648094,
+        "correct": true,
+        "num_workers": 8,
+        "batch_size": 100
+      },
+      "8w_batch200": {
+        "time": 10.214263200759888,
+        "speedup": 0.20409264566261046,
+        "correct": true,
+        "num_workers": 8,
+        "batch_size": 200
+      },
+      "8w_batch500": {
+        "time": 9.187850952148438,
+        "speedup": 0.226892666304068,
+        "correct": true,
+        "num_workers": 8,
+        "batch_size": 500
+      }
+    },
+    "timestamp": "2025-12-31T22:22:37.432810"
+  }
+]
