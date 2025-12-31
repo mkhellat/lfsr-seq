@@ -2168,38 +2168,64 @@ def lfsr_sequence_mapper_parallel_dynamic(
                 num //= gf_order
             return tuple(result)
     
+    # Lazy task generation: Use background thread to generate batches on-demand
+    # This reduces memory usage and startup time for large problems
+    import threading
+    import queue as queue_module
+    
     if not no_progress:
-        print(f"  Populating task queue with batches of {batch_size} states (auto-selected for {state_space_size:,} states)...")
+        print(f"  Using lazy task generation (batches of {batch_size} states)...")
         import sys
         sys.stdout.flush()
     
-    import time
-    queue_start_time = time.time()
-    batches_created = 0
-    current_batch = []
-    
-    for state_idx in range(state_space_size):
-        state_tuple = state_index_to_tuple(state_idx, d, gf_order_val)
-        current_batch.append((state_tuple, state_idx))
+    # Generator function for batches (lazy generation)
+    def batch_generator():
+        """Generate batches of states on-demand."""
+        current_batch = []
+        for state_idx in range(state_space_size):
+            state_tuple = state_index_to_tuple(state_idx, d, gf_order_val)
+            current_batch.append((state_tuple, state_idx))
+            
+            # When batch is full, yield it
+            if len(current_batch) >= batch_size:
+                yield current_batch
+                current_batch = []
         
-        # When batch is full, add to queue
-        if len(current_batch) >= batch_size:
-            task_queue.put(current_batch)
-            batches_created += 1
-            current_batch = []
+        # Yield remaining states as final batch
+        if current_batch:
+            yield current_batch
     
-    # Add remaining states as final batch
-    if current_batch:
-        task_queue.put(current_batch)
-        batches_created += 1
+    # Producer thread: generates batches and puts them in queue
+    batches_created = 0
+    producer_done = threading.Event()
+    producer_error = [None]  # Use list to allow modification from nested function
     
-    queue_elapsed = time.time() - queue_start_time
+    def producer_thread():
+        """Background thread that generates batches and populates queue."""
+        nonlocal batches_created
+        try:
+            for batch in batch_generator():
+                task_queue.put(batch)
+                batches_created += 1
+        except Exception as e:
+            producer_error[0] = e
+        finally:
+            # Signal completion and add sentinels
+            producer_done.set()
+            # Add sentinel values (None) to signal workers to stop
+            for _ in range(num_workers):
+                try:
+                    task_queue.put(None)
+                except:
+                    pass
+    
+    # Start producer thread
+    producer = threading.Thread(target=producer_thread, daemon=True)
+    producer.start()
+    
     if not no_progress:
-        print(f"  Queue populated: {batches_created} batches in {queue_elapsed:.2f}s")
-    
-    # Add sentinel values (None) to signal workers to stop
-    for _ in range(num_workers):
-        task_queue.put(None)
+        print(f"  Producer thread started (lazy generation enabled)")
+        sys.stdout.flush()
     
     # Prepare worker data
     worker_data_list = []
@@ -2243,6 +2269,20 @@ def lfsr_sequence_mapper_parallel_dynamic(
             elapsed = time.time() - start_time
             if not no_progress:
                 print(f"  Workers completed in {elapsed:.2f}s")
+            
+            # Wait for producer thread to finish (should already be done)
+            import sys
+            producer.join(timeout=5.0)
+            if producer.is_alive():
+                if not no_progress:
+                    print(f"  Warning: Producer thread did not finish in time", file=sys.stderr)
+            
+            # Check for producer errors
+            if producer_error[0]:
+                raise RuntimeError(f"Producer thread error: {producer_error[0]}")
+            
+            if not no_progress:
+                print(f"  Producer completed: {batches_created} batches generated")
     
     except Exception as e:
         import sys
