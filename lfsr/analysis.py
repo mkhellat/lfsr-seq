@@ -2172,6 +2172,7 @@ def lfsr_sequence_mapper_parallel_dynamic(
     # This reduces memory usage and startup time for large problems
     import threading
     import queue as queue_module
+    import time
     
     if not no_progress:
         print(f"  Using lazy task generation (batches of {batch_size} states)...")
