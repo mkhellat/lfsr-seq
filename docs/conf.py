@@ -247,10 +247,8 @@ latex_elements = {
     'papersize': 'a4paper',
     'pointsize': '10pt',
     'preamble': r'''
-% Ensure amsmath is loaded early to avoid conflicts
-% Sphinx loads amsmath, but we ensure it's available
-\RequirePackage{amsmath}
 % Define SageMath-specific LaTeX commands
+% Note: amsmath is loaded by Sphinx automatically, don't reload it
 \newcommand{\ZZ}{\mathbb{Z}}
 \newcommand{\QQ}{\mathbb{Q}}
 \newcommand{\RR}{\mathbb{R}}
@@ -326,13 +324,14 @@ latex_elements = {
 % \titlespacing*{\subsubsection}{0pt}{1em}{0.4em}  % Commented out
 
 % Compact list spacing
-% enumitem can conflict with amsmath - simplified configuration
-\usepackage{enumitem}
-% Use minimal settings to avoid conflicts with amsmath
-\setlist{nosep, leftmargin=*}
-\setlist[itemize]{topsep=0.2em, itemsep=0.1em}
-\setlist[enumerate]{topsep=0.2em, itemsep=0.1em}
-\setlist[description]{topsep=0.2em, itemsep=0.1em}
+% enumitem can conflict with amsmath align environments causing \omit errors
+% Removed to fix LaTeX compilation issues
+% \usepackage{enumitem}  % Commented out - causes \omit errors
+% \setlist{nosep, leftmargin=*}  % Commented out
+% \setlist[itemize]{topsep=0.2em, itemsep=0.1em}  % Commented out
+% \setlist[enumerate]{topsep=0.2em, itemsep=0.1em}  % Commented out
+% \setlist[description]{topsep=0.2em, itemsep=0.1em}  % Commented out
+% Use standard LaTeX list spacing instead (texinfo style is still maintained)
 ''',
     # Use two-column layout
     'extraclassoptions': 'twocolumn',
