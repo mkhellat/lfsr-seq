@@ -247,6 +247,12 @@ latex_elements = {
     'papersize': 'a4paper',
     'pointsize': '10pt',
     'preamble': r'''
+% Fix for \omit errors in nested align/split/equation environments
+% This is a known issue with Sphinx-generated LaTeX
+\makeatletter
+% Patch amsmath to handle nested environments correctly
+\def\math@cr@@@{\cr\noalign{\vskip\jot}}
+\makeatother
 % Define SageMath-specific LaTeX commands
 % Note: amsmath is loaded by Sphinx automatically, don't reload it
 \newcommand{\ZZ}{\mathbb{Z}}
