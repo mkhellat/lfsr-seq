@@ -286,10 +286,10 @@ latex_elements = {
 \geometry{margin=1in}
 % Note: multicol not needed when using twocolumn class option
 % Minimal package loading to avoid conflicts with amsmath align environments
-% Note: booktabs, titlesec, enumitem removed - all cause \omit errors
-% Safe packages that don't conflict with amsmath:
-\usepackage{fancyhdr}  % Headers and footers (safe)
-\usepackage{microtype}  % Typography improvements (safe)
+% Note: booktabs, titlesec, enumitem, fancyhdr, microtype removed - all cause \omit errors
+% Using minimal packages to ensure align environments work correctly
+% \usepackage{fancyhdr}  % Commented out - causes \omit errors
+% \usepackage{microtype}  % Commented out - causes \omit errors
 
 % Two-column layout (texinfo style)
 % Note: twocolumn is set via extraclassoptions
@@ -302,18 +302,20 @@ latex_elements = {
 \setlength{\parindent}{0pt}
 \setlength{\topskip}{1em}
 
-% Professional typography
-\microtypecontext{spacing=nonfrench}
-\DisableLigatures{encoding = *, family = *}
+% Professional typography (if microtype is loaded)
+% \microtypecontext{spacing=nonfrench}  % May cause issues, commented out
+% \DisableLigatures{encoding = *, family = *}  % May cause issues, commented out
 
 % Headers and footers (texinfo style)
-\pagestyle{fancy}
-\fancyhf{}
-\fancyhead[LE]{\leftmark}
-\fancyhead[RO]{\rightmark}
-\fancyfoot[C]{\thepage}
-\renewcommand{\headrulewidth}{0.4pt}
-\renewcommand{\footrulewidth}{0pt}
+% Note: fancyhdr removed to avoid \omit errors
+% \pagestyle{fancy}  % Commented out - fancyhdr removed
+% \fancyhf{}  % Commented out
+% \fancyhead[LE]{\leftmark}  % Commented out
+% \fancyhead[RO]{\rightmark}  % Commented out
+% \fancyfoot[C]{\thepage}  % Commented out
+% \renewcommand{\headrulewidth}{0.4pt}  % Commented out
+% \renewcommand{\footrulewidth}{0pt}  % Commented out
+% Use default page style instead
 
 % Compact section formatting
 % Note: titlesec removed to avoid \omit conflicts, using standard LaTeX spacing
