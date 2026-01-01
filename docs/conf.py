@@ -302,9 +302,10 @@ latex_elements = {
 \setlength{\parindent}{0pt}
 \setlength{\topskip}{1em}
 
-% Professional typography (if microtype is loaded)
-% \microtypecontext{spacing=nonfrench}  % May cause issues, commented out
-% \DisableLigatures{encoding = *, family = *}  % May cause issues, commented out
+% Professional typography
+% Note: microtype removed to avoid \omit errors
+% \microtypecontext{spacing=nonfrench}  % Commented out - microtype removed
+% \DisableLigatures{encoding = *, family = *}  % Commented out - microtype removed
 
 % Headers and footers (texinfo style)
 % Note: fancyhdr removed to avoid \omit errors
@@ -333,8 +334,10 @@ latex_elements = {
 % \setlist[description]{topsep=0.2em, itemsep=0.1em}  % Commented out
 % Use standard LaTeX list spacing instead (texinfo style is still maintained)
 ''',
-    # Use two-column layout
-    'extraclassoptions': 'twocolumn',
+    # Use two-column layout (texinfo style)
+    # Note: twocolumn can cause \omit errors in align environments
+    # Temporarily disabled to test if it's the cause
+    # 'extraclassoptions': 'twocolumn',  # Commented out - testing if this causes \omit
     # Compact document settings
     'sphinxsetup': 'verbatimwithframe=false, verbatimwrapslines=true, verbatimhintsturnover=false',
 }
