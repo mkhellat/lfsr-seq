@@ -301,11 +301,9 @@ latex_elements = {
 % \usepackage{fancyhdr}  % Commented out - causes \omit errors
 % \usepackage{microtype}  % Commented out - causes \omit errors
 
-% Two-column layout (texinfo style)
-% Note: twocolumn is set via extraclassoptions
-% Set column separation for two-column layout
-\setlength{\columnsep}{0.5in}
-\setlength{\columnseprule}{0.4pt}
+% Single-column layout (standard for software documentation)
+% Note: Two-column layout removed - not suitable for software docs
+% Column separation settings removed (not needed for single-column)
 
 % Compact spacing (texinfo style)
 \setlength{\parskip}{0.5em}
@@ -344,10 +342,9 @@ latex_elements = {
 % \setlist[description]{topsep=0.2em, itemsep=0.1em}  % Commented out
 % Use standard LaTeX list spacing instead (texinfo style is still maintained)
 ''',
-    # Use two-column layout (texinfo style)
-    # Note: twocolumn can cause \omit errors in align environments
-    # Temporarily disabled to test if it's the cause
-    # 'extraclassoptions': 'twocolumn',  # Commented out - testing if this causes \omit
+    # Single-column layout (standard for software documentation)
+    # Note: Two-column layout removed - not suitable for software docs or texinfo style
+    # 'extraclassoptions': 'twocolumn',  # Removed - not needed
     # Compact document settings
     'sphinxsetup': 'verbatimwithframe=false, verbatimwrapslines=true, verbatimhintsturnover=false',
 }
