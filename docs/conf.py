@@ -258,6 +258,7 @@ latex_elements = {
 % Support for Unicode characters that appear in docstrings
 \usepackage{textcomp}
 \usepackage{amssymb}
+\usepackage{textgreek}  % For Greek letters
 % Define Unicode symbol ≡ (U+2261) - use text mode equivalent
 % The symbol appears in text, so we need a text-mode version
 \DeclareUnicodeCharacter{2261}{$\equiv$}
@@ -267,17 +268,21 @@ latex_elements = {
 \DeclareUnicodeCharacter{2265}{$\geq$}
 \DeclareUnicodeCharacter{2212}{-}
 \DeclareUnicodeCharacter{2217}{*}
+% Superscript n (ⁿ) - U+207F
+\DeclareUnicodeCharacter{207F}{$^n$}
 
 % Texinfo-style formatting
 % Note: geometry is already loaded by Sphinx, use \geometry{} to modify
 \geometry{margin=1in}
-\usepackage{multicol}
+% Note: multicol not needed when using twocolumn class option
 \usepackage{fancyhdr}
 \usepackage{titlesec}
 \usepackage{booktabs}
 \usepackage{microtype}
 
 % Two-column layout (texinfo style)
+% Note: twocolumn is set via extraclassoptions
+% Set column separation for two-column layout
 \setlength{\columnsep}{0.5in}
 \setlength{\columnseprule}{0.4pt}
 
