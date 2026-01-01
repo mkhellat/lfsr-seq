@@ -258,7 +258,6 @@ latex_elements = {
 % Support for Unicode characters that appear in docstrings
 \usepackage{textcomp}
 \usepackage{amssymb}
-\usepackage{textgreek}  % For Greek letters
 % Define Unicode symbol ≡ (U+2261) - use text mode equivalent
 % The symbol appears in text, so we need a text-mode version
 \DeclareUnicodeCharacter{2261}{$\equiv$}
@@ -266,10 +265,11 @@ latex_elements = {
 \DeclareUnicodeCharacter{2260}{$\neq$}
 \DeclareUnicodeCharacter{2264}{$\leq$}
 \DeclareUnicodeCharacter{2265}{$\geq$}
+\DeclareUnicodeCharacter{2248}{$\approx$}  % Approximately equal (≈)
 \DeclareUnicodeCharacter{2212}{-}
 \DeclareUnicodeCharacter{2217}{*}
-% Superscript n (ⁿ) - U+207F
-\DeclareUnicodeCharacter{207F}{$^n$}
+% Superscript n (ⁿ) - U+207F - use math mode
+\DeclareUnicodeCharacter{207F}{\ensuremath{^n}}
 
 % Texinfo-style formatting
 % Note: geometry is already loaded by Sphinx, use \geometry{} to modify
