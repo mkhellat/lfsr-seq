@@ -59,10 +59,10 @@ multiplication modulo :math:`p`.
 
 .. math::
 
-   \begin{align}
+   \begin{aligned}
    0 + 0 &= 0, \quad 0 + 1 = 1, \quad 1 + 0 = 1, \quad 1 + 1 = 0 \\
    0 \cdot 0 &= 0, \quad 0 \cdot 1 = 0, \quad 1 \cdot 0 = 0, \quad 1 \cdot 1 = 1
-   \end{align}
+   \end{aligned}
 
 Extension Fields :math:`\mathbb{F}_{p^n}`
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -145,7 +145,7 @@ Computing the product:
 
 .. math::
 
-   \begin{align}
+   \begin{aligned}
    (S_i \cdot C)_0 &= s_{i,0} \cdot 0 + s_{i,1} \cdot 0 + \cdots + s_{i,d-1} \cdot c_0 = s_{i,d-1} \cdot c_0 \\
    (S_i \cdot C)_1 &= s_{i,0} \cdot 1 + s_{i,1} \cdot 0 + \cdots + s_{i,d-1} \cdot c_1 = s_{i,0} \\
    (S_i \cdot C)_2 &= s_{i,1} \\
@@ -380,9 +380,9 @@ detected:
 
 .. math::
 
-   \begin{align}
+   \begin{aligned}
    S_0, S_1 = S_0 \cdot C, S_2 = S_1 \cdot C, \ldots, S_k = S_{k-1} \cdot C
-   \end{align}
+   \end{aligned}
 
 Continue until :math:`S_k = S_0`. The period is :math:`k`.
 
