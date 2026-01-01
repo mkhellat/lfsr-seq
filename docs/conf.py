@@ -263,6 +263,10 @@ latex_elements = {
 \usepackage[T1]{fontenc}
 % Fallback for unknown Unicode characters (texinfo style - replace with placeholder)
 \DeclareUnicodeCharacter{254E}{-}  % Box-drawing character → dash
+\DeclareUnicodeCharacter{2705}{[OK]}  % Checkmark emoji → [OK]
+\DeclareUnicodeCharacter{274C}{[X]}  % Cross mark emoji → [X]
+\DeclareUnicodeCharacter{26A0}{[!]}  % Warning sign → [!]
+% General fallback: use \DeclareUnicodeCharacter for specific characters as needed
 % Define Unicode symbol ≡ (U+2261) - use text mode equivalent
 % The symbol appears in text, so we need a text-mode version
 \DeclareUnicodeCharacter{2261}{$\equiv$}
