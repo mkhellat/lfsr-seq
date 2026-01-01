@@ -290,10 +290,20 @@ latex_elements = {
 \DeclareUnicodeCharacter{2217}{*}
 % Superscript n (ⁿ) - U+207F - use math mode
 \DeclareUnicodeCharacter{207F}{\ensuremath{^n}}
-% Greek letter lambda (λ) - U+03BB - use math mode
-\DeclareUnicodeCharacter{03BB}{$\lambda$}
-% Greek letter rho (ρ) - U+03C1 - use math mode
-\DeclareUnicodeCharacter{03C1}{$\rho$}
+% Greek letters - use math mode
+\DeclareUnicodeCharacter{03B1}{$\alpha$}  % alpha (α)
+\DeclareUnicodeCharacter{03BB}{$\lambda$}  % lambda (λ)
+\DeclareUnicodeCharacter{03C1}{$\rho$}  % rho (ρ)
+\DeclareUnicodeCharacter{03B2}{$\beta$}  % beta (β)
+\DeclareUnicodeCharacter{03B3}{$\gamma$}  % gamma (γ)
+\DeclareUnicodeCharacter{03B4}{$\delta$}  % delta (δ)
+\DeclareUnicodeCharacter{03B5}{$\epsilon$}  % epsilon (ε)
+\DeclareUnicodeCharacter{03B8}{$\theta$}  % theta (θ)
+\DeclareUnicodeCharacter{03BC}{$\mu$}  % mu (μ)
+\DeclareUnicodeCharacter{03C0}{$\pi$}  % pi (π)
+\DeclareUnicodeCharacter{03C3}{$\sigma$}  % sigma (σ)
+\DeclareUnicodeCharacter{03C6}{$\phi$}  % phi (φ)
+\DeclareUnicodeCharacter{03C9}{$\omega$}  % omega (ω)
 
 % Texinfo-style formatting
 % Note: geometry is already loaded by Sphinx, use \geometry{} to modify
