@@ -227,9 +227,25 @@ intersphinx_mapping = {
     "sage": ("https://doc.sagemath.org/html/en/reference/", None),
 }
 
-# LaTeX configuration for PDF output
+# LaTeX configuration for PDF output (texinfo-style)
 # Define SageMath-specific LaTeX commands and Unicode symbols that appear in docstrings
+
+# LaTeX document class and options (texinfo style)
+latex_documents = [
+    ('index', 'lfsr-seq.tex', 'lfsr-seq Documentation',
+     'Mohammadreza Khellat', 'manual'),
+]
+
+# LaTeX settings for texinfo-style output
+latex_logo = None  # No logo for cleaner texinfo style
+latex_show_urls = 'footnote'  # Show URLs as footnotes (texinfo style)
+latex_show_pagerefs = True  # Show page references
+latex_toplevel_sectioning = 'section'  # Use sections as top-level
+
 latex_elements = {
+    # Use article class with two-column layout (texinfo style)
+    'papersize': 'a4paper',
+    'pointsize': '10pt,
     'preamble': r'''
 % Define SageMath-specific LaTeX commands
 \newcommand{\ZZ}{\mathbb{Z}}
@@ -251,7 +267,53 @@ latex_elements = {
 \DeclareUnicodeCharacter{2265}{$\geq$}
 \DeclareUnicodeCharacter{2212}{-}
 \DeclareUnicodeCharacter{2217}{*}
+
+% Texinfo-style formatting
+\usepackage[margin=1in]{geometry}
+\usepackage{multicol}
+\usepackage{fancyhdr}
+\usepackage{titlesec}
+\usepackage{booktabs}
+\usepackage{microtype}
+
+% Two-column layout (texinfo style)
+\setlength{\columnsep}{0.5in}
+\setlength{\columnseprule}{0.4pt}
+
+% Compact spacing (texinfo style)
+\setlength{\parskip}{0.5em}
+\setlength{\parindent}{0pt}
+\setlength{\topskip}{1em}
+
+% Professional typography
+\microtypecontext{spacing=nonfrench}
+\DisableLigatures{encoding = *, family = *}
+
+% Headers and footers (texinfo style)
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[LE]{\leftmark}
+\fancyhead[RO]{\rightmark}
+\fancyfoot[C]{\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+\renewcommand{\footrulewidth}{0pt}
+
+% Compact section formatting
+\titlespacing*{\section}{0pt}{1.5em}{0.8em}
+\titlespacing*{\subsection}{0pt}{1.2em}{0.6em}
+\titlespacing*{\subsubsection}{0pt}{1em}{0.4em}
+
+% Compact list spacing
+\usepackage{enumitem}
+\setlist{nosep, leftmargin=*}
+\setlist[itemize]{topsep=0.2em, itemsep=0.1em}
+\setlist[enumerate]{topsep=0.2em, itemsep=0.1em}
+\setlist[description]{topsep=0.2em, itemsep=0.1em}
 ''',
+    # Use two-column layout
+    'extraclassoptions': 'twocolumn',
+    # Compact document settings
+    'sphinxsetup': 'verbatimwithframe=false, verbatimwrapslines=true, verbatimhintsturnover=false',
 }
 
 # Add project description
