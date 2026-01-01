@@ -326,9 +326,9 @@ latex_elements = {
 % \titlespacing*{\subsubsection}{0pt}{1em}{0.4em}  % Commented out
 
 % Compact list spacing
-% enumitem can conflict with amsmath - load carefully
-% Ensure amsmath is loaded first (Sphinx loads it, but we ensure order)
+% enumitem can conflict with amsmath - simplified configuration
 \usepackage{enumitem}
+% Use minimal settings to avoid conflicts with amsmath
 \setlist{nosep, leftmargin=*}
 \setlist[itemize]{topsep=0.2em, itemsep=0.1em}
 \setlist[enumerate]{topsep=0.2em, itemsep=0.1em}
