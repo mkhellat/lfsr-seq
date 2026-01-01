@@ -247,6 +247,9 @@ latex_elements = {
     'papersize': 'a4paper',
     'pointsize': '10pt',
     'preamble': r'''
+% Ensure amsmath is loaded early to avoid conflicts
+% Sphinx loads amsmath, but we ensure it's available
+\RequirePackage{amsmath}
 % Define SageMath-specific LaTeX commands
 \newcommand{\ZZ}{\mathbb{Z}}
 \newcommand{\QQ}{\mathbb{Q}}
@@ -284,12 +287,13 @@ latex_elements = {
 % Note: geometry is already loaded by Sphinx, use \geometry{} to modify
 \geometry{margin=1in}
 % Note: multicol not needed when using twocolumn class option
+% Load packages in correct order to avoid conflicts with amsmath
 \usepackage{fancyhdr}
-\usepackage{titlesec}
-% Note: booktabs can conflict with amsmath align environments
-% Use it carefully or remove if causing issues
-% \usepackage{booktabs}  % Commented out to avoid \omit conflicts
+% titlesec can conflict with amsmath align environments - removed to fix \omit errors
+% \usepackage{titlesec}  % Commented out - causes \omit errors in align
+% microtype is safe and improves typography
 \usepackage{microtype}
+% Note: booktabs removed - conflicts with amsmath align environments causing \omit errors
 
 % Two-column layout (texinfo style)
 % Note: twocolumn is set via extraclassoptions
@@ -316,11 +320,14 @@ latex_elements = {
 \renewcommand{\footrulewidth}{0pt}
 
 % Compact section formatting
-\titlespacing*{\section}{0pt}{1.5em}{0.8em}
-\titlespacing*{\subsection}{0pt}{1.2em}{0.6em}
-\titlespacing*{\subsubsection}{0pt}{1em}{0.4em}
+% Note: titlesec removed to avoid \omit conflicts, using standard LaTeX spacing
+% \titlespacing*{\section}{0pt}{1.5em}{0.8em}  % Commented out - titlesec removed
+% \titlespacing*{\subsection}{0pt}{1.2em}{0.6em}  % Commented out
+% \titlespacing*{\subsubsection}{0pt}{1em}{0.4em}  % Commented out
 
 % Compact list spacing
+% enumitem can conflict with amsmath - load carefully
+% Ensure amsmath is loaded first (Sphinx loads it, but we ensure order)
 \usepackage{enumitem}
 \setlist{nosep, leftmargin=*}
 \setlist[itemize]{topsep=0.2em, itemsep=0.1em}
