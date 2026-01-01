@@ -269,7 +269,8 @@ latex_elements = {
 \DeclareUnicodeCharacter{2217}{*}
 
 % Texinfo-style formatting
-\usepackage[margin=1in]{geometry}
+% Note: geometry is already loaded by Sphinx, use \geometry{} to modify
+\geometry{margin=1in}
 \usepackage{multicol}
 \usepackage{fancyhdr}
 \usepackage{titlesec}
