@@ -292,6 +292,8 @@ latex_elements = {
 \DeclareUnicodeCharacter{207F}{\ensuremath{^n}}
 % Greek letter lambda (λ) - U+03BB - use math mode
 \DeclareUnicodeCharacter{03BB}{$\lambda$}
+% Greek letter rho (ρ) - U+03C1 - use math mode
+\DeclareUnicodeCharacter{03C1}{$\rho$}
 
 % Texinfo-style formatting
 % Note: geometry is already loaded by Sphinx, use \geometry{} to modify
