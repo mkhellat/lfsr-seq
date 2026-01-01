@@ -286,7 +286,9 @@ latex_elements = {
 % Note: multicol not needed when using twocolumn class option
 \usepackage{fancyhdr}
 \usepackage{titlesec}
-\usepackage{booktabs}
+% Note: booktabs can conflict with amsmath align environments
+% Use it carefully or remove if causing issues
+% \usepackage{booktabs}  % Commented out to avoid \omit conflicts
 \usepackage{microtype}
 
 % Two-column layout (texinfo style)
