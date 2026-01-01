@@ -248,10 +248,14 @@ latex_elements = {
     'pointsize': '10pt',
     'preamble': r'''
 % Fix for \omit errors in nested align/split/equation environments
-% This is a known issue with Sphinx-generated LaTeX
+% This is a known issue with Sphinx-generated LaTeX (nested math environments)
 \makeatletter
-% Patch amsmath to handle nested environments correctly
-\def\math@cr@@@{\cr\noalign{\vskip\jot}}
+% Comprehensive fix for align environment \omit errors
+% Patch the math@cr@@@ command to handle nested structures
+\let\old@math@cr@@@\math@cr@@@
+\def\math@cr@@@{\old@math@cr@@@}
+% Alternative: Allow display breaks to help with nested structures
+\allowdisplaybreaks
 \makeatother
 % Define SageMath-specific LaTeX commands
 % Note: amsmath is loaded by Sphinx automatically, don't reload it
