@@ -304,6 +304,11 @@ latex_elements = {
 \DeclareUnicodeCharacter{03C3}{$\sigma$}  % sigma (σ)
 \DeclareUnicodeCharacter{03C6}{$\phi$}  % phi (φ)
 \DeclareUnicodeCharacter{03C9}{$\omega$}  % omega (ω)
+% Mathematical brackets and operators
+\DeclareUnicodeCharacter{2308}{$\lceil$}  % left ceiling (⌈)
+\DeclareUnicodeCharacter{2309}{$\rceil$}  % right ceiling (⌉)
+\DeclareUnicodeCharacter{230A}{$\lfloor$}  % left floor (⌊)
+\DeclareUnicodeCharacter{230B}{$\rfloor$}  % right floor (⌋)
 
 % Texinfo-style formatting
 % Note: geometry is already loaded by Sphinx, use \geometry{} to modify
