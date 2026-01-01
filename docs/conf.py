@@ -349,7 +349,7 @@ latex_elements = {
     # Temporarily disabled to test if it's the cause
     # 'extraclassoptions': 'twocolumn',  # Commented out - testing if this causes \omit
     # Compact document settings
-    'sphinxsetup': 'verbatimwithframe=false, verbatimwrapslines=true, verbatimhintsturnover=false, mathoutput=MathJax',
+    'sphinxsetup': 'verbatimwithframe=false, verbatimwrapslines=true, verbatimhintsturnover=false',
 }
 
 # Add project description
