@@ -258,6 +258,9 @@ latex_elements = {
 % Support for Unicode characters that appear in docstrings
 \usepackage{textcomp}
 \usepackage{amssymb}
+% Use inputenc and fontenc for better Unicode support
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
 % Define Unicode symbol ≡ (U+2261) - use text mode equivalent
 % The symbol appears in text, so we need a text-mode version
 \DeclareUnicodeCharacter{2261}{$\equiv$}
