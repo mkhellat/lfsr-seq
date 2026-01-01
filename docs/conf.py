@@ -289,7 +289,7 @@ latex_elements = {
 \DeclareUnicodeCharacter{2212}{-}
 \DeclareUnicodeCharacter{2217}{*}
 % Superscript n (ⁿ) - U+207F - use math mode
-\DeclareUnicodeCharacter{207F}{\ensuremath{^n}}
+\DeclareUnicodeCharacter{207F}{$^n$}
 % Greek letters - use math mode
 \DeclareUnicodeCharacter{03B1}{$\alpha$}  % alpha (α)
 \DeclareUnicodeCharacter{03BB}{$\lambda$}  % lambda (λ)
