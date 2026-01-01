@@ -151,7 +151,7 @@ Computing the product:
    (S_i \cdot C)_2 &= s_{i,1} \\
    &\vdots \\
    (S_i \cdot C)_{d-1} &= s_{i,d-2} + s_{i,d-1} \cdot c_{d-1}
-   \end{align}
+   \end{aligned}
 
 However, by the recurrence relation:
 
@@ -603,11 +603,11 @@ The parallel implementation provides two modes:
 
 .. math::
 
-   \begin{align}
+   \begin{aligned}
    \text{Partition}(V, n) &: \text{Divide state space } V \text{ into } n \text{ chunks} \\
    \text{ProcessChunk}(C_i) &: \text{Process chunk } C_i \text{ independently} \\
    \text{Merge}(R_1, \ldots, R_n) &: \text{Combine and deduplicate results}
-   \end{align}
+   \end{aligned}
 
 **State Space Partitioning**:
 
@@ -1090,7 +1090,7 @@ Starting from state :math:`S_0 = (1, 0, 0, 0)`:
 
 .. math::
 
-   \begin{align}
+   \begin{aligned}
    S_0 &= (1, 0, 0, 0) \\
    S_1 &= (0, 1, 0, 0) \\
    S_2 &= (0, 0, 1, 0) \\
@@ -1099,7 +1099,7 @@ Starting from state :math:`S_0 = (1, 0, 0, 0)`:
    S_5 &= (1, 0, 1, 1) \\
    &\vdots \\
    S_{15} &= (1, 0, 0, 0) = S_0
-   \end{align}
+   \end{aligned}
 
 The sequence has period 15, which equals the matrix order.
 
