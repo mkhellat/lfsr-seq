@@ -84,7 +84,7 @@ exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
 
 # -- Options for HTML output -------------------------------------------------
 
-html_theme = "sphinx_rtd_theme"
+html_theme = "furo"
 html_static_path = ["_static"]
 
 # -- Extension configuration -------------------------------------------------
@@ -260,13 +260,19 @@ project_description = (
     "computing periods, and determining characteristic polynomials over finite fields."
 )
 
-# HTML theme options
+# HTML theme options (Furo theme)
 html_theme_options = {
-    "prev_next_buttons_location": "bottom",
-    "style_external_links": False,
-    "vcs_pageview_mode": "",
-    "style_nav_header_background": "#2980B9",
-    # Toc options
+    "light_css_variables": {
+        "color-brand-primary": "#0066CC",
+        "color-brand-content": "#0066CC",
+    },
+    "dark_css_variables": {
+        "color-brand-primary": "#4A9EFF",
+        "color-brand-content": "#4A9EFF",
+    },
+    "sidebar_hide_name": False,
+    "navigation_with_keys": True,
+    # Legacy options (may not apply to Furo)
     "collapse_navigation": True,
     "sticky_navigation": True,
     "navigation_depth": 4,
