@@ -261,6 +261,8 @@ latex_elements = {
 % Use inputenc and fontenc for better Unicode support
 \usepackage[utf8]{inputenc}
 \usepackage[T1]{fontenc}
+% Fallback for unknown Unicode characters (texinfo style - replace with placeholder)
+\DeclareUnicodeCharacter{254E}{-}  % Box-drawing character → dash
 % Define Unicode symbol ≡ (U+2261) - use text mode equivalent
 % The symbol appears in text, so we need a text-mode version
 \DeclareUnicodeCharacter{2261}{$\equiv$}
