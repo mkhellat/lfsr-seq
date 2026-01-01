@@ -245,7 +245,7 @@ latex_toplevel_sectioning = 'section'  # Use sections as top-level
 latex_elements = {
     # Use article class with two-column layout (texinfo style)
     'papersize': 'a4paper',
-    'pointsize': '10pt,
+    'pointsize': '10pt',
     'preamble': r'''
 % Define SageMath-specific LaTeX commands
 \newcommand{\ZZ}{\mathbb{Z}}
