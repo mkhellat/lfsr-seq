@@ -101,14 +101,26 @@ degree of a non-zero annihilator of the function or its complement.
 **Mathematical Foundation**:
 
 The algebraic immunity :math:`\text{AI}(f)` of a Boolean function
-:math:`f` is:
+:math:`f: \{0,1\}^n \to \{0,1\}` is formally defined as:
 
 .. math::
 
-   \\text{AI}(f) = \\min\\{d : \\exists g \\neq 0, \\deg(g) \\leq d, \\\\
-   f \\cdot g = 0 \\text{ or } (1+f) \\cdot g = 0\\}
+   \text{AI}(f) = \min\left\{d : \exists g \neq 0, \deg(g) \leq d, \text{ such that } f \cdot g = 0 \text{ or } (1+f) \cdot g = 0\right\}
 
-where :math:`\deg(g)` is the degree of function :math:`g`.
+where:
+
+- :math:`g: \{0,1\}^n \to \{0,1\}` is a non-zero Boolean function (the annihilator)
+- :math:`\deg(g)` is the degree of :math:`g` in its Algebraic Normal Form (ANF)
+- :math:`f \cdot g = 0` means :math:`g` annihilates :math:`f` (i.e., :math:`g(x) = 0` whenever :math:`f(x) = 1`)
+- :math:`(1+f) \cdot g = 0` means :math:`g` annihilates the complement of :math:`f` (i.e., :math:`g(x) = 0` whenever :math:`f(x) = 0`)
+
+In words, :math:`\text{AI}(f)` is the minimum degree among all non-zero annihilators of either :math:`f` or its complement :math:`1+f`.
+
+**Properties**:
+
+- :math:`1 \leq \text{AI}(f) \leq \lceil n/2 \rceil` for any Boolean function :math:`f` of :math:`n` variables
+- If :math:`\text{AI}(f) = 1`, then :math:`f` has a linear annihilator and is highly vulnerable
+- If :math:`\text{AI}(f) = \lceil n/2 \rceil`, then :math:`f` achieves optimal algebraic immunity
 
 **Security Implications**:
 
