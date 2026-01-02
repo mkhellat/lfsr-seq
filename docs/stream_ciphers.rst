@@ -50,12 +50,12 @@ finalists (2004-2008).
 
 This documentation covers analysis of the following stream ciphers:
 
-- **A5/1**: GSM mobile phone encryption (3 LFSRs, irregular clocking)
-- **A5/2**: Weaker GSM variant (4 LFSRs)
-- **E0**: Bluetooth encryption (4 LFSRs, non-linear combiner)
-- **Trivium**: eSTREAM finalist (3 shift registers, non-linear feedback)
+- **A5/1**: GSM mobile phone encryption (:math:`3` LFSRs, irregular clocking)
+- **A5/2**: Weaker GSM variant (:math:`4` LFSRs)
+- **E0**: Bluetooth encryption (:math:`4` LFSRs, non-linear combiner)
+- **Trivium**: eSTREAM finalist (:math:`3` shift registers, non-linear feedback)
 - **Grain Family**: Grain-128, Grain-128a (LFSR + NFSR)
-- **LILI-128**: Academic design (2 LFSRs, clock control)
+- **LILI-128**: Academic design (:math:`2` LFSRs, clock control)
 
 Key Concepts
 ------------
@@ -237,7 +237,7 @@ attacks include:
 - **Majority Function**: Function that outputs the majority value of its inputs
 - **Clock Control Bit**: Bit from each LFSR used to determine clocking
 - **Frame Number**: The 22-bit IV used in GSM (represents frame number)
-- **Warm-up Phase**: Initial 100 steps before keystream generation (discarded)
+- **Warm-up Phase**: Initial :math:`100` steps before keystream generation (discarded)
 
 **Mathematical Foundation**:
 
@@ -268,7 +268,7 @@ linear analysis.
 1. **Initialization**:
    - Load key bits into LFSRs
    - Load frame number (IV) into LFSRs
-   - Run 100 warm-up steps
+   - Run :math:`100` warm-up steps
 
 2. **Keystream Generation** (for each output bit :math:`i`):
    - Get clock control bits: :math:`c_1 = \text{LFSR}_1[8]`, :math:`c_2 = \text{LFSR}_2[10]`, :math:`c_3 = \text{LFSR}_3[10]`
@@ -568,7 +568,8 @@ feedback):
 
 1. Load :math:`80`-bit key into registers
 2. Load :math:`80`-bit IV into registers
-3. Run :math:`4 \times 288 = 1152` warm-up steps (discard output)
+3. Run :math:`4 \times 288 = 1152` warm-up steps (discard output, ensures
+   proper mixing of key and IV)
 4. Generate keystream
 
 **Security Status**:
