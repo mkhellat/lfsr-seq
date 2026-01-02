@@ -393,6 +393,305 @@ Run NIST statistical tests on binary sequences:
 
 For complete examples, see ``examples/nist_test_example.py``.
 
+Visualization
+-------------
+
+Generate visualizations of LFSR analysis results:
+
+**Period Distribution Plot**:
+
+.. code-block:: bash
+
+   lfsr-seq coefficients.csv 2 --plot-period-distribution --output-period-plot period_dist.png
+
+**State Transition Diagram**:
+
+.. code-block:: bash
+
+   lfsr-seq coefficients.csv 2 --plot-state-transitions --output-state-diagram states.png
+
+**3D State Space Visualization**:
+
+.. code-block:: bash
+
+   lfsr-seq coefficients.csv 2 --plot-3d-state-space --output-3d-plot state_space_3d.html
+
+**Python API**:
+
+.. code-block:: python
+
+   from sage.all import *
+   from lfsr.core import build_state_update_matrix
+   from lfsr.analysis import lfsr_sequence_mapper
+   from lfsr.visualization import (
+       plot_period_distribution,
+       generate_state_transition_diagram,
+       plot_3d_state_space,
+       VisualizationConfig,
+       OutputFormat
+   )
+   
+   # Analyze LFSR
+   coeffs = [1, 0, 0, 1]
+   C, CS = build_state_update_matrix(coeffs, 2)
+   V = VectorSpace(GF(2), 4)
+   seq_dict, period_dict, max_period, _, _, _, _ = lfsr_sequence_mapper(
+       C, V, 2, output_file=None, no_progress=True, period_only=False
+   )
+   
+   # Create period distribution plot
+   config = VisualizationConfig(
+       title="Period Distribution",
+       output_format=OutputFormat.PNG
+   )
+   plot_period_distribution(
+       period_dict,
+       theoretical_max_period=15,
+       is_primitive=False,
+       config=config,
+       output_file="period_dist.png"
+   )
+   
+   # Generate state transition diagram
+   generate_state_transition_diagram(
+       seq_dict,
+       period_dict,
+       config=config,
+       output_file="state_diagram.png"
+   )
+
+For complete examples, see ``examples/visualization_example.py``.
+
+Machine Learning Integration
+----------------------------
+
+Use machine learning for period prediction, pattern detection, and anomaly detection:
+
+**Period Prediction**:
+
+.. code-block:: bash
+
+   lfsr-seq coefficients.csv 2 --predict-period --ml-model-file model.pkl
+
+**Pattern Detection**:
+
+.. code-block:: bash
+
+   lfsr-seq coefficients.csv 2 --detect-patterns --output-patterns patterns.json
+
+**Anomaly Detection**:
+
+.. code-block:: bash
+
+   lfsr-seq coefficients.csv 2 --detect-anomalies --output-anomalies anomalies.json
+
+**Train Model**:
+
+.. code-block:: bash
+
+   lfsr-seq coefficients.csv 2 --train-model --ml-model-file model.pkl --training-samples 100
+
+**Python API**:
+
+.. code-block:: python
+
+   from lfsr.ml.period_prediction import PeriodPredictionModel, create_period_prediction_model
+   from lfsr.ml.pattern_detection import detect_all_patterns
+   from lfsr.ml.anomaly_detection import detect_all_anomalies
+   from lfsr.ml.training import generate_training_data, train_period_prediction_model
+   
+   # Train period prediction model
+   X, y = generate_training_data(num_samples=100, max_degree=8, field_order=2)
+   model = create_period_prediction_model("random_forest")
+   metrics = model.train(X, y)
+   print(f"R² Score: {metrics['r2_score']:.4f}")
+   
+   # Predict period for new polynomial
+   coefficients = [1, 0, 0, 1]
+   predicted = model.predict_period(coefficients, field_order=2)
+   print(f"Predicted period: {predicted:.2f}")
+   
+   # Detect patterns in sequence
+   sequence = [1, 0, 1, 0, 1, 0, 1, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 1, 1]
+   patterns = detect_all_patterns(sequence)
+   print(f"Detected {len(patterns)} pattern types")
+   
+   # Detect anomalies
+   anomalies = detect_all_anomalies(sequence)
+   print(f"Found {len(anomalies)} anomalies")
+
+For complete examples, see ``examples/ml_integration_example.py``.
+
+Stream Cipher Analysis
+----------------------
+
+Analyze real-world stream ciphers:
+
+**Analyze A5/1 Cipher**:
+
+.. code-block:: bash
+
+   lfsr-seq coefficients.csv 2 --cipher a5_1 --analyze-cipher
+
+**Generate Keystream**:
+
+.. code-block:: bash
+
+   lfsr-seq coefficients.csv 2 --cipher e0 --generate-keystream --keystream-length 1000 --key-file key.bin --iv-file iv.bin
+
+**Compare Ciphers**:
+
+.. code-block:: bash
+
+   lfsr-seq coefficients.csv 2 --compare-ciphers a5_1 e0 trivium --output-comparison comparison.json
+
+**Python API**:
+
+.. code-block:: python
+
+   from lfsr.ciphers import A5_1, E0, Trivium
+   from lfsr.ciphers.comparison import compare_ciphers, generate_comparison_report
+   
+   # Analyze A5/1 cipher
+   cipher = A5_1()
+   structure = cipher.analyze_structure()
+   print(f"Number of LFSRs: {len(structure.lfsr_configs)}")
+   print(f"Total state size: {structure.state_size} bits")
+   
+   # Generate keystream
+   key = [1, 0, 1] * 21 + [1]  # 64-bit key
+   iv = [0] * 22  # 22-bit IV
+   keystream = cipher.generate_keystream(key, iv, 1000)
+   print(f"Generated {len(keystream)} bits")
+   
+   # Compare multiple ciphers
+   ciphers = [A5_1(), E0(), Trivium()]
+   comparison = compare_ciphers(ciphers)
+   print(f"Comparison report: {comparison}")
+
+For complete examples, see ``examples/stream_cipher_example.py``.
+
+Advanced LFSR Structures
+------------------------
+
+Analyze advanced LFSR structures (NFSRs, filtered LFSRs, clock-controlled LFSRs, etc.):
+
+**Analyze Advanced Structure**:
+
+.. code-block:: bash
+
+   lfsr-seq coefficients.csv 2 --advanced-structure filtered --analyze-advanced-structure
+
+**Generate Advanced Sequence**:
+
+.. code-block:: bash
+
+   lfsr-seq coefficients.csv 2 --advanced-structure clock-controlled --generate-advanced-sequence --advanced-sequence-length 1000
+
+**Python API**:
+
+.. code-block:: python
+
+   from lfsr.attacks import LFSRConfig
+   from lfsr.advanced import (
+       NFSR,
+       FilteredLFSR,
+       ClockControlledLFSR,
+       create_simple_filtered_lfsr,
+       create_stop_and_go_lfsr
+   )
+   
+   # Create filtered LFSR
+   base_lfsr = LFSRConfig(coefficients=[1, 0, 0, 1], field_order=2, degree=4)
+   
+   def filtering_function(state):
+       return state[0] & state[1]  # Non-linear filtering
+   
+   filtered = create_simple_filtered_lfsr(base_lfsr, filtering_function)
+   analysis = filtered.analyze()
+   print(f"Structure type: {analysis.structure_type}")
+   
+   # Generate sequence
+   initial_state = [1, 0, 0, 0]
+   sequence = filtered.generate_sequence(initial_state, 100)
+   print(f"Generated {len(sequence)} sequence elements")
+   
+   # Create clock-controlled LFSR
+   clock_controlled = create_stop_and_go_lfsr(base_lfsr)
+   sequence_cc = clock_controlled.generate_sequence(initial_state, 100)
+   print(f"Clock-controlled sequence: {len(sequence_cc)} elements")
+
+For complete examples, see ``examples/advanced_lfsr_example.py``.
+
+Theoretical Analysis
+--------------------
+
+Perform theoretical analysis, export to LaTeX, generate papers, and benchmark methods:
+
+**Export to LaTeX**:
+
+.. code-block:: bash
+
+   lfsr-seq coefficients.csv 2 --export-latex --latex-output analysis.tex
+
+**Generate Complete Paper**:
+
+.. code-block:: bash
+
+   lfsr-seq coefficients.csv 2 --generate-paper --paper-output paper.tex
+
+**Compare with Known Results**:
+
+.. code-block:: bash
+
+   lfsr-seq coefficients.csv 2 --compare-known --database-output comparison.json
+
+**Benchmark Methods**:
+
+.. code-block:: bash
+
+   lfsr-seq coefficients.csv 2 --benchmark --benchmark-output benchmark.json
+
+**Python API**:
+
+.. code-block:: python
+
+   from sage.all import *
+   from lfsr.theoretical import analyze_irreducible_properties
+   from lfsr.export_latex import export_to_latex_file, polynomial_to_latex
+   from lfsr.paper_generator import generate_complete_paper
+   from lfsr.benchmarking import compare_methods
+   
+   # Analyze irreducible polynomial
+   F = GF(2)
+   R = PolynomialRing(F, "t")
+   p = R("t^4 + t^3 + t + 1")
+   
+   analysis = analyze_irreducible_properties(p, 2)
+   print(f"Is irreducible: {analysis.is_irreducible}")
+   print(f"Polynomial order: {analysis.polynomial_order}")
+   
+   # Export to LaTeX
+   latex_str = polynomial_to_latex(p)
+   print(f"LaTeX: ${latex_str}$")
+   
+   # Generate complete paper
+   analysis_results = {
+       'field_order': 2,
+       'lfsr_degree': 4,
+       'polynomial': {'polynomial': p, 'order': analysis.polynomial_order},
+       'is_primitive': False
+   }
+   paper = generate_complete_paper(analysis_results, "paper.tex")
+   print("Paper generated successfully")
+   
+   # Benchmark different methods
+   coefficients = [1, 0, 0, 1]
+   benchmark_results = compare_methods(coefficients, 2)
+   print(f"Benchmark results: {benchmark_results}")
+
+For complete examples, see ``examples/theoretical_analysis_example.py``.
+
 
 Parallel Processing API
 ------------------------
