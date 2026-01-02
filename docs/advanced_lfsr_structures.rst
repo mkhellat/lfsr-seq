@@ -149,6 +149,7 @@ designs and some deployed systems.
 **Mathematical Foundation**:
 
 For a filtered LFSR:
+
 - **LFSR State Update**: Linear (XOR of tap bits)
 - **Output**: :math:`y_i = f(S_i)` where :math:`f` is the non-linear filter function
 
@@ -212,6 +213,7 @@ maintaining the efficiency of LFSR state updates.
 **Mathematical Foundation**:
 
 For a clock-controlled LFSR:
+
 - **LFSR State Update**: Linear (XOR of tap bits) - when it advances
 - **Clock Control**: :math:`\text{clock} = c(S_{\text{control}})` where :math:`c`
   is the control function and :math:`S_{\text{control}}` is the control state
@@ -271,6 +273,7 @@ is the number of output bits per step.
 **Mathematical Foundation**:
 
 For a multi-output LFSR:
+
 - **LFSR State Update**: Linear (XOR of tap bits)
 - **Output**: :math:`(y_0, y_1, \ldots, y_{k-1}) = f(S_i)` where :math:`f` produces
   :math:`k` bits
@@ -406,7 +409,9 @@ Advanced LFSR structure analysis can be performed from the command line:
    lfsr-seq --advanced-structure nfsr --generate-sequence --length 1000
 
 **CLI Options**:
-- ``--advanced-structure TYPE``: Select structure type (nfsr, filtered, clock_controlled, multi_output, irregular)
+
+- ``--advanced-structure TYPE``: Select structure type (nfsr,
+  filtered, clock_controlled, multi_output, irregular)
 - ``--analyze-structure``: Analyze structure properties
 - ``--generate-sequence``: Generate sequence from initial state
 - ``--sequence-length N``: Length of sequence to generate
