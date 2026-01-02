@@ -74,12 +74,6 @@ Optional Arguments:
                               
    --no-period-stats          Disable period distribution statistics display.
 
-   --show-period-stats        Display detailed period distribution statistics (enabled by default).
-                              Shows mean, median, variance, standard deviation, period frequency
-                              histogram, and comparison with theoretical bounds.
-                              
-   --no-period-stats          Disable period distribution statistics display.
-
    --parallel                 Enable parallel state enumeration (auto-enabled for
                               large state spaces > 10,000 states with 2+ CPU cores).
                               Uses multiple CPU cores to process states in parallel
@@ -638,6 +632,48 @@ Correlation attacks can be performed from the command line:
    lfsr-seq dummy.csv 2 --correlation-attack --lfsr-configs config.json \
        --keystream-file keystream.txt
 
+   # Use fast correlation attack (Meier-Staffelbach)
+   lfsr-seq dummy.csv 2 --correlation-attack --lfsr-configs config.json \
+       --fast-correlation-attack --max-candidates 2000
+
+   # Perform distinguishing attack
+   lfsr-seq dummy.csv 2 --correlation-attack --lfsr-configs config.json \
+       --distinguishing-attack --distinguishing-method statistical
+
+**Correlation Attack Options**:
+
+   --correlation-attack        Perform correlation attack analysis. Requires
+                              --lfsr-configs file specifying multiple LFSRs
+                              and combining function.
+
+   --lfsr-configs CONFIG_FILE  JSON file containing combination generator
+                              configuration (LFSRs and combining function).
+                              Required for --correlation-attack.
+
+   --keystream-file FILE       File containing keystream bits (one per line,
+                              or space-separated). If not provided, keystream
+                              is generated from combination generator.
+
+   --target-lfsr INDEX         Index of LFSR to attack (0-based). Default: 0
+                              (first LFSR).
+
+   --significance-level ALPHA  Statistical significance level for correlation
+                              test (default: 0.05).
+
+   --fast-correlation-attack   Use fast correlation attack (Meier-Staffelbach)
+                              instead of basic attack. More efficient for large
+                              state spaces.
+
+   --max-candidates N          Maximum number of candidate states to test in
+                              fast correlation attack (default: 1000).
+
+   --distinguishing-attack     Perform distinguishing attack to determine if
+                              keystream is distinguishable from random.
+
+   --distinguishing-method METHOD
+                              Method for distinguishing attack: 'correlation'
+                              or 'statistical' (default: correlation).
+
 **Configuration File Format**:
 
 The ``--lfsr-configs`` file should be JSON with this structure:
@@ -710,6 +746,26 @@ The ``--sequence-file`` should contain binary bits (0s and 1s) in one of
 these formats:
 - One bit per line
 - Space-separated bits on one or multiple lines
+
+**NIST Test Suite Options**:
+
+   --nist-test                 Run NIST SP 800-22 statistical test suite on
+                              sequence. Requires sequence file or generates
+                              from LFSR.
+
+   --sequence-file FILE        File containing binary sequence (one bit per
+                              line, or space-separated). Required for
+                              --nist-test if not generating from LFSR.
+
+   --nist-significance-level ALPHA
+                              Statistical significance level for NIST tests
+                              (default: 0.01).
+
+   --nist-block-size SIZE      Block size for block-based NIST tests
+                              (default: 128).
+
+   --nist-output-format FORMAT  Output format for NIST test results: text,
+                              json, csv, xml, or html (default: text).
 
 **Export Formats**:
 
@@ -958,4 +1014,289 @@ Analyze LFSR over GF(4) = GF(2²):
 .. code-block:: bash
 
    lfsr-seq coefficients.csv 4
+
+Algebraic Attack Options
+-------------------------
+
+**CLI Usage**:
+
+Algebraic attacks can be performed from the command line:
+
+.. code-block:: bash
+
+   # Perform Gröbner basis attack
+   lfsr-seq coefficients.csv 2 --algebraic-attack --algebraic-method groebner_basis
+
+   # Perform cube attack with custom max cube size
+   lfsr-seq coefficients.csv 2 --algebraic-attack --algebraic-method cube_attack \
+       --max-cube-size 8
+
+   # Compute algebraic immunity
+   lfsr-seq coefficients.csv 2 --algebraic-attack --algebraic-method algebraic_immunity
+
+   # Gröbner basis attack with custom max equations
+   lfsr-seq coefficients.csv 2 --algebraic-attack --algebraic-method groebner_basis \
+       --max-equations 2000
+
+**Algebraic Attack Options**:
+
+   --algebraic-attack          Perform algebraic attack analysis. Requires
+                              LFSR configuration and keystream.
+
+   --algebraic-method METHOD    Method for algebraic attack: 'groebner_basis',
+                              'cube_attack', or 'algebraic_immunity'
+                              (default: groebner_basis).
+
+   --max-cube-size N            Maximum cube size for cube attack
+                              (default: 10).
+
+   --max-equations N            Maximum number of equations for Gröbner basis
+                              attack (default: 1000).
+
+Time-Memory Trade-Off (TMTO) Attack Options
+-------------------------------------------
+
+**CLI Usage**:
+
+TMTO attacks can be performed from the command line:
+
+.. code-block:: bash
+
+   # Perform Hellman TMTO attack
+   lfsr-seq coefficients.csv 2 --tmto-attack --tmto-method hellman
+
+   # Perform Rainbow table attack
+   lfsr-seq coefficients.csv 2 --tmto-attack --tmto-method rainbow
+
+   # Custom chain count and length
+   lfsr-seq coefficients.csv 2 --tmto-attack --chain-count 2000 \
+       --chain-length 150
+
+   # Use precomputed table
+   lfsr-seq coefficients.csv 2 --tmto-attack --tmto-table-file table.json
+
+**TMTO Attack Options**:
+
+   --tmto-attack               Perform time-memory trade-off attack.
+                              Precomputes tables for faster state recovery.
+
+   --tmto-method METHOD        TMTO method: 'hellman' or 'rainbow'
+                              (default: hellman).
+
+   --chain-count N             Number of chains in TMTO table
+                              (default: 1000).
+
+   --chain-length N             Length of each chain in TMTO table
+                              (default: 100).
+
+   --tmto-table-file FILE       File containing precomputed TMTO table
+                              (JSON format). If not provided, table is
+                              generated.
+
+Stream Cipher Analysis Options
+-------------------------------
+
+**CLI Usage**:
+
+Stream cipher analysis can be performed from the command line:
+
+.. code-block:: bash
+
+   # Analyze A5/1 cipher structure
+   lfsr-seq dummy.csv 2 --cipher a5_1 --analyze-cipher
+
+   # Generate keystream from A5/1
+   lfsr-seq dummy.csv 2 --cipher a5_1 --generate-keystream \
+       --keystream-length 2000
+
+   # Use key and IV from files
+   lfsr-seq dummy.csv 2 --cipher a5_1 --generate-keystream \
+       --key-file key.txt --iv-file iv.txt
+
+   # Compare multiple ciphers
+   lfsr-seq dummy.csv 2 --cipher a5_1 --compare-ciphers
+
+**Stream Cipher Options**:
+
+   --cipher NAME                Select stream cipher to analyze: a5_1, a5_2,
+                              e0, trivium, grain128, grain128a, or lili128.
+
+   --analyze-cipher             Analyze cipher structure (LFSRs, clocking,
+                              combining function).
+
+   --generate-keystream         Generate keystream from key and IV.
+
+   --keystream-length N         Length of keystream to generate in bits
+                              (default: 1000).
+
+   --key-file FILE              File containing key bits (binary or text
+                              format).
+
+   --iv-file FILE                File containing IV bits (binary or text
+                              format).
+
+   --compare-ciphers            Compare multiple ciphers side-by-side.
+
+Advanced LFSR Structures Options
+---------------------------------
+
+**CLI Usage**:
+
+Advanced LFSR structure analysis can be performed from the command line:
+
+.. code-block:: bash
+
+   # Analyze filtered LFSR
+   lfsr-seq coefficients.csv 2 --advanced-structure filtered \
+       --analyze-advanced-structure
+
+   # Generate sequence from clock-controlled LFSR
+   lfsr-seq coefficients.csv 2 --advanced-structure clock_controlled \
+       --generate-advanced-sequence --advanced-sequence-length 2000
+
+**Advanced Structure Options**:
+
+   --advanced-structure TYPE    Select advanced structure type: nfsr,
+                              filtered, clock_controlled, multi_output, or
+                              irregular.
+
+   --analyze-advanced-structure
+                              Analyze advanced structure properties.
+
+   --generate-advanced-sequence
+                              Generate sequence from advanced structure.
+
+   --advanced-sequence-length N
+                              Length of sequence to generate (default: 1000).
+
+Theoretical Analysis Options
+-----------------------------
+
+**CLI Usage**:
+
+Theoretical analysis features can be used from the command line:
+
+.. code-block:: bash
+
+   # Export results to LaTeX
+   lfsr-seq coefficients.csv 2 --export-latex results.tex
+
+   # Generate complete research paper
+   lfsr-seq coefficients.csv 2 --generate-paper paper.tex
+
+   # Compare with known results
+   lfsr-seq coefficients.csv 2 --compare-known
+
+   # Run performance benchmarks
+   lfsr-seq coefficients.csv 2 --benchmark
+
+   # Generate reproducibility report
+   lfsr-seq coefficients.csv 2 --reproducibility-report report.json
+
+**Theoretical Analysis Options**:
+
+   --export-latex FILE          Export analysis results to LaTeX format
+                              (specify output file).
+
+   --generate-paper FILE         Generate complete research paper from
+                              analysis results (specify output file).
+
+   --compare-known               Compare computed results with known results
+                              in database.
+
+   --benchmark                   Run performance benchmarks for analysis
+                              methods.
+
+   --reproducibility-report FILE
+                              Generate reproducibility report (specify output
+                              file).
+
+Visualization Options
+---------------------
+
+**CLI Usage**:
+
+Visualizations can be generated from the command line:
+
+.. code-block:: bash
+
+   # Generate period distribution plot
+   lfsr-seq coefficients.csv 2 --plot-period-distribution plot.png
+
+   # Generate state transition diagram
+   lfsr-seq coefficients.csv 2 --plot-state-transitions diagram.svg
+
+   # Generate period statistics plot
+   lfsr-seq coefficients.csv 2 --plot-period-statistics stats.pdf
+
+   # Generate 3D state space visualization
+   lfsr-seq coefficients.csv 2 --plot-3d-state-space space.html
+
+   # Visualize attack results
+   lfsr-seq coefficients.csv 2 --visualize-attack attack.png
+
+   # Interactive HTML visualization
+   lfsr-seq coefficients.csv 2 --plot-period-distribution plot.html \
+       --viz-format html --viz-interactive
+
+**Visualization Options**:
+
+   --plot-period-distribution FILE
+                              Generate period distribution plot (specify output
+                              file).
+
+   --plot-state-transitions FILE
+                              Generate state transition diagram (specify output
+                              file).
+
+   --plot-period-statistics FILE
+                              Generate statistical plots for period
+                              distribution (specify output file).
+
+   --plot-3d-state-space FILE  Generate 3D state space visualization
+                              (specify output file).
+
+   --visualize-attack FILE      Visualize attack results (specify output file).
+
+   --viz-format FORMAT          Output format for visualizations: png, svg,
+                              pdf, or html (default: png).
+
+   --viz-interactive             Generate interactive visualizations (HTML
+                              format).
+
+Machine Learning Options
+------------------------
+
+**CLI Usage**:
+
+ML-based analysis can be performed from the command line:
+
+.. code-block:: bash
+
+   # Predict period using ML model
+   lfsr-seq coefficients.csv 2 --predict-period --ml-model-file model.pkl
+
+   # Detect patterns in sequences
+   lfsr-seq coefficients.csv 2 --detect-patterns
+
+   # Detect anomalies
+   lfsr-seq coefficients.csv 2 --detect-anomalies
+
+   # Train ML model
+   lfsr-seq coefficients.csv 2 --train-model model.pkl
+
+**Machine Learning Options**:
+
+   --predict-period             Predict period using ML model (requires
+                              trained model).
+
+   --detect-patterns            Detect patterns in generated sequences.
+
+   --detect-anomalies           Detect anomalies in sequences and
+                              distributions.
+
+   --train-model FILE           Train ML model and save to file (specify
+                              output file).
+
+   --ml-model-file FILE         Path to trained ML model file (for prediction).
 
