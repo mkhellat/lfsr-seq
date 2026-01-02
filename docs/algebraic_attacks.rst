@@ -52,47 +52,56 @@ degree of a non-zero annihilator of the function or its complement.
 
 **Key Terminology**:
 
-- **Algebraic Immunity**: The minimum degree of a non-zero annihilator of a
-  Boolean function or its complement. Denoted :math:`\text{AI}(f)`. Higher algebraic immunity
-  indicates better resistance to algebraic attacks. The maximum possible
-  algebraic immunity for a function of :math:`n` variables is :math:`\lceil n/2 \rceil`.
+- **Algebraic Immunity**: The minimum degree of a non-zero annihilator
+  of a Boolean function or its complement. Denoted
+  :math:`\text{AI}(f)`. Higher algebraic immunity indicates better
+  resistance to algebraic attacks. The maximum possible algebraic
+  immunity for a function of :math:`n` variables is :math:`\lceil n/2 \rceil`.
 
-- **Annihilator**: A non-zero Boolean function g such that :math:`f \cdot g = 0` (:math:`g`
-  annihilates :math:`f`) or :math:`(1+f) \cdot g = 0` (:math:`g` annihilates the complement
-  of :math:`f`). Finding low-degree annihilators is the basis of algebraic attacks. If a
-  function has a low-degree annihilator, it is vulnerable to algebraic attacks.
+- **Annihilator**: A non-zero Boolean function :math:`g` such that
+  :math:`f \cdot g = 0` ( :math:`g` annihilates :math:`f`) or
+  :math:`(1+f) \cdot g = 0` (:math:`g` annihilates the complement
+  of :math:`f`). Finding low-degree annihilators is the basis of
+  algebraic attacks. If a function has a low-degree annihilator, it is
+  vulnerableto algebraic attacks.
 
-- **Boolean Function**: A function :math:`f: \{0,1\}^n \to \{0,1\}` that maps :math:`n` binary
-  inputs to a single binary output. In cryptography, filtering functions and
-  combining functions are Boolean functions. Every Boolean function can be
-  uniquely represented in Algebraic Normal Form (ANF).
+- **Boolean Function**: A function :math:`f: \{0,1\}^n \to \{0,1\}`
+  that maps :math:`n` binary inputs to a single binary output. In
+  cryptography, filtering functions and combining functions are
+  Boolean functions. Every Boolean function can be uniquely
+  represented in Algebraic Normal Form (ANF).
 
-- **Filtering Function**: A Boolean function applied to LFSR state bits to
-  produce the output. The algebraic immunity of the filtering function
-  determines the resistance of the LFSR to algebraic attacks. Functions with
-  low algebraic immunity allow attackers to construct low-degree equations.
+- **Filtering Function**: A Boolean function applied to LFSR state
+  bits to produce the output. The algebraic immunity of the filtering
+  function determines the resistance of the LFSR to algebraic
+  attacks. Functions with low algebraic immunity allow attackers to
+  construct low-degree equations.
 
-- **Algebraic Normal Form (ANF)**: A representation of Boolean functions as
-  polynomials over :math:`\text{GF}(2)`. Every Boolean function
-  :math:`f(x_1, \ldots, x_n)` can be uniquely written as:
+- **Algebraic Normal Form (ANF)**: A representation of Boolean
+  functions as polynomials over :math:`\text{GF}(2)`. Every Boolean
+  function :math:`f(x_1, \ldots, x_n)` can be uniquely written as:
   
   .. math::
   
-     f(x_1, \ldots, x_n) = \bigoplus_{I \subseteq \{1,\ldots,n\}\} a_I \prod_{i \in I} x_i
+     f(x_1, \ldots, x_n) = \bigoplus_{I \subseteq \{1,\ldots,n\}} a_I \prod_{i \in I} x_i
   
-  where :math:`\oplus` denotes XOR and :math:`a_I` are coefficients in :math:`\{0,1\}`.
+  where :math:`\oplus` denotes XOR and :math:`a_I`'s are coefficients in
+  :math:`\{0,1\}`.
 
-- **Degree of a Function**: The highest degree of any monomial in the ANF
-  representation. For example, :math:`f(x,y,z) = x \cdot y + z` has degree 2. The degree
-  determines the complexity of algebraic attacks.
+- **Degree of a Function**: The highest degree of any monomial in the
+  ANF representation. For example, :math:`f(x,y,z) = x \cdot y + z`
+  has degree 2. The degree determines the complexity of algebraic
+  attacks.
 
-- **Optimal Algebraic Immunity**: A function achieves optimal algebraic
-  immunity if :math:`\text{AI}(f) = \lceil n/2 \rceil`, where :math:`n` is the number of variables. Functions with
-  optimal algebraic immunity are most resistant to algebraic attacks.
+- **Optimal Algebraic Immunity**: A function achieves optimal
+  algebraic immunity if :math:`\text{AI}(f) = \lceil n/2 \rceil`,
+  where :math:`n` is the number of variables. Functions with optimal
+  algebraic immunity are most resistant to algebraic attacks.
 
 **Mathematical Foundation**:
 
-The algebraic immunity :math:`\text{AI}(f)` of a Boolean function :math:`f` is:
+The algebraic immunity :math:`\text{AI}(f)` of a Boolean function
+:math:`f` is:
 
 .. math::
 
@@ -103,8 +112,8 @@ where :math:`\deg(g)` is the degree of function :math:`g`.
 
 **Security Implications**:
 
-- Functions with low algebraic immunity (:math:`\text{AI} < \lceil n/2 \rceil`) are vulnerable to
-  algebraic attacks
+- Functions with low algebraic immunity (:math:`\text{AI} < \lceil n/2 \rceil`)
+  are vulnerable to algebraic attacks
 - Maximum algebraic immunity for :math:`n` variables is :math:`\lceil n/2 \rceil`
 - Functions achieving maximum algebraic immunity are called "optimal"
 - Algebraic immunity is a key security metric for stream cipher design
