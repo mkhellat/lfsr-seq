@@ -135,7 +135,11 @@ and :math:`N` is the state space size.
   represent different parameter choices that achieve the same trade-off.
 
 - **Coverage**: The fraction of the state space covered by the table.
-  Coverage :math:`= \frac{\text{number of unique states in table}}{\text{total state space size}}`.
+
+  .. math::
+
+     \text{coverage} = \frac{\text{number of unique states in table}}{\text{total state space size}}.
+  
   Higher coverage increases success probability but requires more memory.
   Coverage is affected by chain collisions, which reduce the number of unique
   states covered.
@@ -466,6 +470,7 @@ long chains (as :math:`t \to \infty`, the factor approaches 1).
 2. **Lookup Phase**:
    
    - Given target state :math:`S`, try all reduction functions in reverse order:
+     
      - Check :math:`R_t(S)` against chain endpoints
      - Check :math:`R_{t-1}(f(S))` against chain endpoints, where :math:`f(S)`
        is the state after one update
@@ -574,7 +579,7 @@ that :math:`m \cdot t` (memory requirement) is fixed and coverage is maximized.
   memory for different parameter choices. The curve shows how increasing
   memory reduces attack time (and vice versa). Points on the curve represent
   different parameter choices that achieve the same trade-off. The curve
-   follows :math:`T \cdot M^2 = N^2`.
+  follows :math:`T \cdot M^2 = N^2`.
 
 - **Coverage Analysis**: Determining what fraction of the state space is
   covered by a table with given parameters. Coverage analysis helps choose
