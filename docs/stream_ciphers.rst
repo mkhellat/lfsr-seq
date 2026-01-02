@@ -112,27 +112,56 @@ LFSR-Based Stream Ciphers
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Many stream ciphers use LFSRs as building blocks because:
-- LFSRs are fast in hardware
-- LFSRs have good statistical properties
-- LFSR theory is well-understood
+- **Hardware Efficiency**: LFSRs are fast in hardware (simple shift and XOR
+  operations)
+- **Statistical Properties**: LFSRs have good statistical properties when using
+  primitive polynomials (maximal period, good distribution)
+- **Well-Understood Theory**: LFSR theory is well-understood, making analysis
+  and design more tractable
+- **Period Guarantees**: Primitive polynomials guarantee maximum period
+  :math:`q^d - 1` for degree :math:`d` LFSR over :math:`\mathbb{F}_q`
 
 **Common Design Patterns**:
 
-1. **Multiple LFSRs**: Combine several LFSRs for increased complexity
-2. **Irregular Clocking**: LFSRs don't always advance (clock control)
-3. **Non-Linear Combining**: Use non-linear functions instead of simple XOR
-4. **Filter Functions**: Apply non-linear functions to LFSR state
+1. **Multiple LFSRs**: Combine several LFSRs for increased complexity and larger
+   state space
+2. **Irregular Clocking**: LFSRs don't always advance (clock control introduces
+   non-linearity)
+3. **Non-Linear Combining**: Use non-linear functions instead of simple XOR to
+   prevent linear analysis
+4. **Filter Functions**: Apply non-linear functions to LFSR state to create
+   non-linear output
 5. **Non-Linear Feedback**: Use non-linear feedback instead of linear
+   (generalizes LFSR to NFSR)
+
+**Why LFSRs Alone Are Not Sufficient**:
+
+A single LFSR with linear combining is vulnerable to:
+- **Berlekamp-Massey Algorithm**: Can recover LFSR from :math:`2d` keystream bits
+- **Linear Complexity**: Linear complexity is at most :math:`d` (the LFSR degree)
+- **Linear Analysis**: Linear relationships can be exploited
+
+Therefore, stream ciphers add non-linearity through:
+- Irregular clocking (A5/1, LILI-128)
+- Non-linear combining (E0 with FSM, Trivium with AND operations)
+- Filter functions (Grain)
+- Non-linear feedback (Trivium, Grain NFSR)
 
 **Key Terminology**:
 
 - **LFSR-Based Cipher**: Stream cipher using LFSRs as core components
-- **Multiple LFSRs**: Using several LFSRs in parallel for increased security
-- **Irregular Clocking**: LFSRs advance conditionally (not every step)
-- **Clock Control**: Mechanism determining when LFSRs advance
+- **Multiple LFSRs**: Using several LFSRs in parallel for increased security and
+  larger state space
+- **Irregular Clocking**: LFSRs advance conditionally (not every step), creating
+  non-linearity
+- **Clock Control**: Mechanism determining when LFSRs advance (can be based on
+  other LFSR outputs or external signals)
 - **Non-Linear Combining**: Using non-linear functions to combine LFSR outputs
-- **Filter Function**: Non-linear function applied to LFSR state
-- **Non-Linear Feedback**: Feedback function is not linear (generalizes LFSR)
+  (prevents linear analysis)
+- **Filter Function**: Non-linear function applied to LFSR state to generate
+  output (creates non-linear keystream)
+- **Non-Linear Feedback**: Feedback function is not linear (generalizes LFSR to
+  NFSR - Non-Linear Feedback Shift Register)
 
 A5/1 Cipher
 -----------
@@ -335,7 +364,7 @@ Glossary
    Process of converting plaintext to ciphertext using keystream.
 
 **Frame Number**
-   The 22-bit IV used in GSM (represents frame number).
+   The :math:`22`-bit IV used in GSM (represents frame number).
 
 **Initialization Vector (IV)**
    Non-secret value ensuring different keystreams for same key.
@@ -362,7 +391,7 @@ Glossary
    Initial steps where output is discarded (removes initialization artifacts).
 
 **XOR (Exclusive OR)**
-   Binary operation where 0⊕0=0, 0⊕1=1, 1⊕0=1, 1⊕1=0.
+   Binary operation where :math:`0 \oplus 0 = 0`, :math:`0 \oplus 1 = 1`, :math:`1 \oplus 0 = 1`, :math:`1 \oplus 1 = 0`.
 
 A5/2 Cipher
 -----------
@@ -370,7 +399,9 @@ A5/2 Cipher
 **Overview**:
 
 A5/2 is a deliberately weakened variant of A5/1 designed for export restrictions.
-It uses four LFSRs with more complex clocking than A5/1.
+It uses four LFSRs with more complex clocking than A5/1. A5/2 was never widely
+deployed and is completely broken, serving as a cautionary example of the dangers
+of deliberately weakened cryptography.
 
 **Historical Context**:
 
@@ -378,27 +409,44 @@ It uses four LFSRs with more complex clocking than A5/1.
 - **Purpose**: GSM encryption for export-restricted countries
 - **Status**: Completely broken, never widely deployed
 - **Security**: Deliberately weakened for export compliance
+- **Cryptanalysis**: Barkan, Biham, Keller (2003) - real-time key recovery
 
 **Cipher Structure**:
 
-A5/2 uses four LFSRs:
+A5/2 uses four LFSRs with irregular clocking:
 - **LFSR1**: :math:`19` bits
 - **LFSR2**: :math:`22` bits
 - **LFSR3**: :math:`23` bits
-- **LFSR4**: :math:`17` bits (additional LFSR)
+- **LFSR4**: :math:`17` bits (additional LFSR for clock control)
+
+**Clock Control**:
+
+A5/2 uses a more complex clocking mechanism than A5/1, involving the fourth LFSR
+in the clock control logic. However, this additional complexity did not improve
+security due to deliberate weakening.
+
+**Key and IV**:
+
+- **Key Size**: :math:`64` bits (same as A5/1)
+- **IV Size**: :math:`22` bits (frame number in GSM)
+- **Total State**: :math:`81` bits (:math:`19 + 22 + 23 + 17`)
 
 **Security Status**:
 
 A5/2 is completely insecure:
-- **Complete Break**: Barkan, Biham, Keller (2003) - real-time key recovery
-- **Deliberate Weakening**: Intentionally reduced security
-- **Never Deployed**: Replaced by stronger variants
+- **Complete Break**: Barkan, Biham, Keller (2003) - real-time key recovery from
+  ciphertext only
+- **Deliberate Weakening**: Intentionally reduced security for export compliance
+- **Never Deployed**: Replaced by stronger variants before widespread deployment
+- **Lesson**: Demonstrates the security risks of deliberately weakened cryptography
 
 **Key Terminology**:
 
 - **A5/2**: Weaker variant of A5/1 for export restrictions
 - **Export Restrictions**: Legal restrictions on exporting strong cryptography
-- **Deliberate Weakening**: Intentionally reduced security for compliance
+  (historically, many countries restricted export of strong cryptographic systems)
+- **Deliberate Weakening**: Intentionally reduced security for compliance with
+  export regulations
 
 E0 Cipher
 ---------
@@ -406,53 +454,76 @@ E0 Cipher
 **Overview**:
 
 E0 is a stream cipher used in Bluetooth encryption. It uses four LFSRs with a
-finite state machine (FSM) combiner for non-linear combining.
+finite state machine (FSM) combiner for non-linear combining. E0 was designed
+for the Bluetooth specification and remains in use, though newer Bluetooth
+versions use stronger encryption algorithms.
 
 **Historical Context**:
 
-- **Designed**: For Bluetooth specification
-- **Purpose**: Bluetooth encryption
+- **Designed**: For Bluetooth specification (Bluetooth 1.0, 1999)
+- **Purpose**: Bluetooth encryption for wireless communication
 - **Status**: Still in use (though newer versions use stronger encryption)
 - **Standard**: Bluetooth specification
+- **Cryptanalysis**: Multiple attacks have been published, but E0 remains
+  deployed in legacy Bluetooth devices
 
 **Cipher Structure**:
 
 E0 uses four LFSRs with FSM combiner:
-- **LFSR1**: 25 bits
-- **LFSR2**: 31 bits
-- **LFSR3**: 33 bits
-- **LFSR4**: 39 bits
-- **FSM**: Finite state machine with 4 states (2 bits)
+- **LFSR1**: :math:`25` bits
+- **LFSR2**: :math:`31` bits
+- **LFSR3**: :math:`33` bits
+- **LFSR4**: :math:`39` bits
+- **FSM**: Finite state machine with :math:`4` states (:math:`2` bits of memory)
 
 **Clock Control**:
 
-All LFSRs clock every step (no irregular clocking).
+All LFSRs clock every step (no irregular clocking). This is simpler than A5/1's
+irregular clocking, but the FSM combiner provides non-linearity.
 
 **Output**:
 
 The keystream is generated by the FSM combiner, which provides non-linear
-combining of the four LFSR outputs.
+combining of the four LFSR outputs. The FSM state evolves based on the LFSR
+outputs, creating a non-linear mixing function.
 
 **Key and IV**:
 
-- **Key Size**: 128 bits
-- **IV Size**: 64 bits (8 bytes)
-- **Total State**: 128 bits (25 + 31 + 33 + 39)
+- **Key Size**: :math:`128` bits
+- **IV Size**: :math:`64` bits (:math:`8` bytes)
+- **Total State**: :math:`128` bits (:math:`25 + 31 + 33 + 39`)
+
+**Initialization**:
+
+1. Load :math:`128`-bit key into LFSRs
+2. Load :math:`64`-bit IV into LFSRs
+3. Run warm-up phase (discard initial output)
+4. Generate keystream
 
 **Security Status**:
 
 E0 has known weaknesses:
-- Correlation attacks
-- Algebraic attacks
-- Time-memory trade-off attacks
-- However, it remains in use in Bluetooth
+- **Correlation Attacks**: Exploit correlations between keystream and LFSR
+  sequences
+- **Algebraic Attacks**: Solve systems of equations to recover state
+- **Time-Memory Trade-Off Attacks**: Precomputed tables for faster key recovery
+- **However**: E0 remains in use in Bluetooth, demonstrating that known
+  weaknesses do not always lead to immediate replacement in deployed systems
+
+**Mathematical Foundation**:
+
+The FSM combiner provides non-linear mixing. The FSM state :math:`s_t` at step
+:math:`t` depends on the previous state :math:`s_{t-1}` and the LFSR outputs,
+creating a non-linear function that is more complex than simple XOR.
 
 **Key Terminology**:
 
 - **E0**: Stream cipher used in Bluetooth encryption
-- **Bluetooth**: Wireless communication standard
+- **Bluetooth**: Wireless communication standard for short-range communication
 - **Finite State Machine (FSM)**: Memory element providing non-linear combining
-- **Non-Linear Combiner**: More complex than simple XOR
+  (the FSM has :math:`4` states, requiring :math:`2` bits of memory)
+- **Non-Linear Combiner**: More complex than simple XOR, using FSM to mix LFSR
+  outputs
 
 Trivium Cipher
 --------------
@@ -460,44 +531,69 @@ Trivium Cipher
 **Overview**:
 
 Trivium is an eSTREAM finalist in the hardware category. It uses three shift
-registers with non-linear feedback, optimized for hardware efficiency.
+registers with non-linear feedback, optimized for hardware efficiency. Trivium
+was designed to be simple, secure, and efficient in hardware implementations.
 
 **Historical Context**:
 
 - **Designed**: 2005 (Christophe De Cannière, Bart Preneel)
 - **Purpose**: eSTREAM finalist (hardware category)
-- **Status**: Considered secure, used in research
+- **Status**: Considered secure, used in research and some applications
 - **Design Goal**: Simple, efficient hardware implementation
+- **eSTREAM Project**: European stream cipher project (2004-2008) that evaluated
+  stream ciphers for different application categories
 
 **Cipher Structure**:
 
-Trivium uses three shift registers (not pure LFSRs):
-- **Register A**: 93 bits
-- **Register B**: 84 bits
-- **Register C**: 111 bits
-- **Total State**: 288 bits
-- **Feedback**: Non-linear (AND operations)
+Trivium uses three shift registers (not pure LFSRs, as they have non-linear
+feedback):
+- **Register A**: :math:`93` bits
+- **Register B**: :math:`84` bits
+- **Register C**: :math:`111` bits
+- **Total State**: :math:`288` bits
+- **Feedback**: Non-linear (AND operations create non-linearity)
 
 **Key and IV**:
 
-- **Key Size**: 80 bits
-- **IV Size**: 80 bits
-- **Total State**: 288 bits
+- **Key Size**: :math:`80` bits
+- **IV Size**: :math:`80` bits
+- **Total State**: :math:`288` bits
+
+**Initialization**:
+
+1. Load :math:`80`-bit key into registers
+2. Load :math:`80`-bit IV into registers
+3. Run :math:`4 \times 288 = 1152` warm-up steps (discard output)
+4. Generate keystream
 
 **Security Status**:
 
 Trivium is considered secure:
-- No practical attacks found
-- Designed for 80-bit security
-- Extensively analyzed
+- **No Practical Attacks**: No practical attacks found despite extensive
+  analysis
+- **Designed Security**: Designed for :math:`80`-bit security level
+- **Extensively Analyzed**: Subject to extensive cryptanalysis as eSTREAM
+  finalist
+- **Research Use**: Used in research and some applications requiring hardware
+  efficiency
+
+**Mathematical Foundation**:
+
+Trivium's non-linear feedback uses AND operations, creating non-linearity that
+prevents linear analysis. The three registers interact through their feedback
+functions, creating a complex non-linear system.
 
 **Key Terminology**:
 
 - **Trivium**: eSTREAM finalist stream cipher
-- **eSTREAM**: European stream cipher project (2004-2008)
-- **Shift Register**: Generalization of LFSR (allows non-linear feedback)
-- **Non-Linear Feedback**: Feedback function is not linear
-- **Hardware Efficiency**: Optimized for hardware implementation
+- **eSTREAM**: European stream cipher project (2004-2008) that evaluated stream
+  ciphers for software and hardware applications
+- **Shift Register**: Generalization of LFSR (allows non-linear feedback, not
+  just linear)
+- **Non-Linear Feedback**: Feedback function is not linear (uses AND operations
+  instead of XOR)
+- **Hardware Efficiency**: Optimized for hardware implementation (simple
+  operations, minimal gates)
 
 Grain Family
 ------------
@@ -505,42 +601,65 @@ Grain Family
 **Overview**:
 
 The Grain family includes Grain-128 and Grain-128a, both eSTREAM finalists in
-the hardware category. Grain uses one LFSR and one NFSR with a filter function.
+the hardware category. Grain uses one LFSR and one NFSR (Non-Linear Feedback
+Shift Register) with a filter function, creating a hybrid design that combines
+linear and non-linear components.
 
 **Historical Context**:
 
 - **Designed**: 2006 (Martin Hell, Thomas Johansson, Willi Meier)
 - **Purpose**: eSTREAM finalist (hardware category)
 - **Status**: Considered secure, used in research
-- **Variants**: Grain-128, Grain-128a (authenticated encryption)
+- **Variants**: Grain-128, Grain-128a (authenticated encryption variant)
+- **Design Philosophy**: Hybrid LFSR/NFSR design for hardware efficiency
 
 **Cipher Structure**:
 
-Grain uses:
-- **LFSR**: 128 bits (linear feedback)
-- **NFSR**: 128 bits (non-linear feedback)
-- **Filter Function**: Non-linear function combining outputs
-- **Total State**: 256 bits
+Grain uses a hybrid design:
+- **LFSR**: :math:`128` bits (linear feedback shift register)
+- **NFSR**: :math:`128` bits (non-linear feedback shift register)
+- **Filter Function**: Non-linear function combining LFSR and NFSR outputs
+- **Total State**: :math:`256` bits
 
 **Key and IV**:
 
-- **Key Size**: 128 bits
-- **IV Size**: 96 bits
-- **Total State**: 256 bits
+- **Key Size**: :math:`128` bits
+- **IV Size**: :math:`96` bits
+- **Total State**: :math:`256` bits
+
+**Initialization**:
+
+1. Load :math:`128`-bit key into LFSR and NFSR
+2. Load :math:`96`-bit IV into LFSR and NFSR
+3. Run warm-up phase (discard initial output)
+4. Generate keystream
 
 **Security Status**:
 
 Grain is considered secure:
-- No practical attacks found
-- Designed for 128-bit security
-- Extensively analyzed
+- **No Practical Attacks**: No practical attacks found despite extensive
+  analysis
+- **Designed Security**: Designed for :math:`128`-bit security level
+- **Extensively Analyzed**: Subject to extensive cryptanalysis as eSTREAM
+  finalist
+- **Research Use**: Used in research and constrained environments
+
+**Mathematical Foundation**:
+
+The hybrid LFSR/NFSR design provides both linear and non-linear components. The
+LFSR provides good statistical properties, while the NFSR provides non-linearity.
+The filter function combines both outputs, creating a non-linear keystream.
 
 **Key Terminology**:
 
 - **Grain**: Family of eSTREAM finalist stream ciphers
-- **NFSR**: Non-Linear Feedback Shift Register
-- **Filter Function**: Non-linear function combining LFSR and NFSR outputs
-- **Authenticated Encryption**: Grain-128a provides authentication
+- **NFSR**: Non-Linear Feedback Shift Register (generalization of LFSR with
+  non-linear feedback)
+- **Filter Function**: Non-linear function combining LFSR and NFSR outputs to
+  generate keystream
+- **Authenticated Encryption**: Grain-128a provides authentication in addition
+  to encryption
+- **Hybrid Design**: Combining linear (LFSR) and non-linear (NFSR) components
 
 LILI-128 Cipher
 ---------------
@@ -548,41 +667,69 @@ LILI-128 Cipher
 **Overview**:
 
 LILI-128 is an academic stream cipher design demonstrating clock-controlled LFSR
-design. It uses two LFSRs where one controls the clocking of the other.
+design. It uses two LFSRs where one controls the clocking of the other, creating
+irregular clocking that introduces non-linearity. LILI-128 is primarily used for
+research and education, demonstrating the clock-controlled LFSR design pattern.
 
 **Historical Context**:
 
-- **Designed**: Academic design
+- **Designed**: Academic design (demonstrates clock-controlled LFSR pattern)
 - **Purpose**: Demonstrates clock-controlled LFSR design pattern
 - **Status**: Used primarily for research and education
-- **Design Goal**: Educational demonstration
+- **Design Goal**: Educational demonstration of clock control mechanisms
+- **Not for Production**: Not intended for production use, serves as educational
+  example
 
 **Cipher Structure**:
 
-LILI-128 uses two LFSRs:
-- **LFSRc**: 39 bits (clock control LFSR)
-- **LFSRd**: 89 bits (data LFSR, clock-controlled)
-- **Clock Control**: LFSRc output determines how many times LFSRd advances
+LILI-128 uses two LFSRs with clock control:
+- **LFSRc**: :math:`39` bits (clock control LFSR)
+- **LFSRd**: :math:`89` bits (data LFSR, clock-controlled)
+- **Clock Control**: :math:`\text{LFSR}_c` output determines how many times
+  :math:`\text{LFSR}_d` advances at each step
 
 **Key and IV**:
 
-- **Key Size**: 128 bits
-- **IV Size**: 64 bits (typically)
-- **Total State**: 128 bits (39 + 89)
+- **Key Size**: :math:`128` bits
+- **IV Size**: :math:`64` bits (typically)
+- **Total State**: :math:`128` bits (:math:`39 + 89`)
+
+**Initialization**:
+
+1. Load :math:`128`-bit key into both LFSRs
+2. Load :math:`64`-bit IV into both LFSRs
+3. Run warm-up phase (discard initial output)
+4. Generate keystream
 
 **Security Status**:
 
 LILI-128 has known vulnerabilities:
-- Correlation attacks
-- Clock control analysis
-- Demonstrates design pattern (not intended for production)
+- **Correlation Attacks**: Exploit correlations between keystream and LFSR
+  sequences
+- **Clock Control Analysis**: Clock control mechanism can be analyzed and
+  exploited
+- **Educational Purpose**: Demonstrates design pattern but not intended for
+  production use
+- **Research Value**: Useful for understanding clock-controlled LFSR designs and
+  their vulnerabilities
+
+**Mathematical Foundation**:
+
+The clock control mechanism means that :math:`\text{LFSR}_d` advances a variable
+number of times at each step, determined by the output of :math:`\text{LFSR}_c`.
+This irregular clocking introduces non-linearity, but the clock control function
+itself can be analyzed and exploited.
 
 **Key Terminology**:
 
-- **LILI-128**: Academic stream cipher design
-- **Clock-Controlled LFSR**: One LFSR controls when another advances
-- **Irregular Clocking**: Clocking pattern is not regular
-- **Clock Control Function**: Function determining clocking behavior
+- **LILI-128**: Academic stream cipher design demonstrating clock-controlled
+  LFSR pattern
+- **Clock-Controlled LFSR**: One LFSR controls when (or how many times) another
+  LFSR advances
+- **Irregular Clocking**: Clocking pattern is not regular (data LFSR advances
+  variable number of times)
+- **Clock Control Function**: Function determining clocking behavior (output of
+  clock control LFSR determines data LFSR clocking)
 
 Cipher Comparison
 -----------------
