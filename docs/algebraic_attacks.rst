@@ -706,7 +706,8 @@ Glossary
    A unique representation of Boolean functions as polynomials over :math:`\text{GF}(2)`.
 
 **Annihilator**
-   A non-zero Boolean function g such that :math:`f \cdot g = 0` or :math:`(1+f) \cdot g = 0`.
+   A non-zero Boolean function :math:`g` such that :math:`f \cdot g = 0` or :math:`(1+f) \cdot g = 0`.
+   Finding low-degree annihilators is the basis of algebraic attacks.
 
 **Boolean Function**
    A function :math:`f: \{0,1\}^n \to \{0,1\}` that maps :math:`n` binary inputs to a single
