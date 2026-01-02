@@ -2305,54 +2305,65 @@ def lfsr_sequence_mapper_parallel_dynamic(
                 pass  # No producer needed in hybrid mode
             elif use_work_stealing:
                 # Phase 3.1: Distribute batches round-robin to worker queues
-                # CRITICAL: Use blocking put() with timeout to prevent unbounded queue growth
+                # CRITICAL FIX: Use blocking put() with periodic stop flag checks
                 # If queue is full, producer will block until space is available
-                # But check stop flag periodically to allow emergency shutdown
+                # Check stop flag periodically to allow emergency shutdown
                 for batch in batch_generator():
-                    # Check for emergency stop
+                    # Check for emergency stop BEFORE attempting to queue
                     if producer_stop_requested.is_set():
                         debug_log("Producer: Emergency stop requested")
                         break
                     
                     worker_id = batches_created % num_workers
-                    # Blocking put() with timeout - allows checking stop flag
-                    # Use reasonable timeout (10s) to allow emergency shutdown
-                    try:
-                        worker_queues[worker_id].put(batch, block=True, timeout=10.0)
-                        batches_created += 1
-                    except queue_module.Full:
-                        # Queue full and timeout - this shouldn't happen with blocking put
-                        # But handle it gracefully
-                        debug_log(f"Producer: Queue {worker_id} full, retrying...")
-                        # Retry once
+                    # CRITICAL: Block indefinitely until space is available
+                    # But check stop flag every 1 second to allow emergency shutdown
+                    batch_queued = False
+                    while not batch_queued and not producer_stop_requested.is_set():
                         try:
-                            worker_queues[worker_id].put(batch, block=True, timeout=10.0)
+                            # Try with short timeout to allow stop flag checking
+                            worker_queues[worker_id].put(batch, block=True, timeout=1.0)
                             batches_created += 1
+                            batch_queued = True
                         except queue_module.Full:
-                            producer_error[0] = RuntimeError(f"Queue {worker_id} persistently full - possible memory issue")
-                            break
+                            # Queue still full, check stop flag and retry
+                            if producer_stop_requested.is_set():
+                                debug_log("Producer: Emergency stop requested during queue wait")
+                                break
+                            # Continue loop to retry
+                    
+                    if not batch_queued:
+                        # Stop flag was set, exit
+                        break
             else:
                 # Original: Single shared queue
-                # CRITICAL: Use blocking put() with timeout to prevent unbounded queue growth
+                # CRITICAL FIX: Use blocking put() with periodic stop flag checks
+                # If queue is full, producer will block until space is available
+                # Check stop flag periodically to allow emergency shutdown
                 for batch in batch_generator():
-                    # Check for emergency stop
+                    # Check for emergency stop BEFORE attempting to queue
                     if producer_stop_requested.is_set():
                         debug_log("Producer: Emergency stop requested")
                         break
                     
-                    # Blocking put() with timeout - allows checking stop flag
-                    try:
-                        task_queue.put(batch, block=True, timeout=10.0)
-                        batches_created += 1
-                    except queue_module.Full:
-                        # Queue full and timeout - handle gracefully
-                        debug_log("Producer: Shared queue full, retrying...")
+                    # CRITICAL: Block indefinitely until space is available
+                    # But check stop flag every 1 second to allow emergency shutdown
+                    batch_queued = False
+                    while not batch_queued and not producer_stop_requested.is_set():
                         try:
-                            task_queue.put(batch, block=True, timeout=10.0)
+                            # Try with short timeout to allow stop flag checking
+                            task_queue.put(batch, block=True, timeout=1.0)
                             batches_created += 1
+                            batch_queued = True
                         except queue_module.Full:
-                            producer_error[0] = RuntimeError("Shared queue persistently full - possible memory issue")
-                            break
+                            # Queue still full, check stop flag and retry
+                            if producer_stop_requested.is_set():
+                                debug_log("Producer: Emergency stop requested during queue wait")
+                                break
+                            # Continue loop to retry
+                    
+                    if not batch_queued:
+                        # Stop flag was set, exit
+                        break
         except Exception as e:
             producer_error[0] = e
         finally:
