@@ -4,7 +4,8 @@ Algebraic Attacks
 This section provides a comprehensive introduction to algebraic attacks, a
 fundamental cryptanalytic technique for analyzing LFSR-based systems. The
 documentation is designed to be accessible to beginners while providing
-sufficient depth for researchers and developers.
+sufficient depth for researchers and developers. We begin with intuitive
+explanations and gradually build to rigorous mathematical formulations.
 
 Introduction
 ------------
@@ -14,29 +15,78 @@ Introduction
 An **algebraic attack** is a cryptanalytic technique that exploits algebraic
 relationships in cryptographic systems to recover secret information. Unlike
 correlation attacks that exploit statistical properties, algebraic attacks
-solve systems of polynomial equations to recover keys or states.
+solve systems of polynomial equations to recover keys or states. The fundamental
+idea is to model the cryptographic system as a system of polynomial equations
+over a finite field (typically :math:`\text{GF}(2)` for binary systems) and then
+solve this system to recover the secret key or initial state.
+
+**Historical Context and Motivation**
+
+Algebraic attacks emerged as a powerful cryptanalytic tool in the early 2000s,
+notably through the work of Courtois and Meier (2003) on stream ciphers. These
+attacks revealed that many cryptographic systems, previously thought secure
+against statistical attacks, were vulnerable when viewed from an algebraic
+perspective. The attacks exploit the fact that cryptographic operations can be
+expressed as polynomial equations, and solving these equations can reveal
+secret information.
 
 **Why are Algebraic Attacks Important?**
 
 1. **Complementary to Correlation Attacks**: Can attack systems resistant to
-   correlation attacks by exploiting algebraic structure directly
+   correlation attacks by exploiting algebraic structure directly. While
+   correlation attacks rely on statistical biases, algebraic attacks work
+   even when no statistical bias exists.
 
 2. **Theoretical Foundation**: Provides security bounds and theoretical analysis
-   of cryptographic systems
+   of cryptographic systems. The concept of algebraic immunity gives a precise
+   measure of resistance to algebraic attacks.
 
 3. **Research Tool**: Enables analysis of algebraic properties and security
-   evaluation
+   evaluation. Understanding algebraic immunity helps in designing secure
+   cryptographic primitives.
 
-4. **Real-World Applications**: Used in cryptanalysis of stream ciphers and
-   block ciphers
+4. **Real-World Applications**: Used in cryptanalysis of stream ciphers (e.g.,
+   LILI-128, Toyocrypt) and block ciphers. These attacks have led to the
+   cryptanalysis of several proposed cryptographic systems.
+
+5. **Design Guidance**: Understanding algebraic attacks helps designers create
+   systems with high algebraic immunity, making them resistant to such attacks.
 
 **When are Algebraic Attacks Applicable?**
 
 Algebraic attacks are applicable when:
-- The cryptographic system can be expressed as a system of polynomial equations
-- The system has low algebraic immunity
-- Sufficient keystream or plaintext-ciphertext pairs are available
-- The system has exploitable algebraic structure
+
+- **Polynomial Representation**: The cryptographic system can be expressed as a
+  system of polynomial equations over a finite field. For LFSR-based systems,
+  this means the state transitions and output functions can be written as
+  polynomials.
+
+- **Low Algebraic Immunity**: The system uses Boolean functions (filtering or
+  combining functions) with low algebraic immunity. Functions with
+  :math:`\text{AI}(f) < \lceil n/2 \rceil` are particularly vulnerable.
+
+- **Sufficient Data**: Sufficient keystream or plaintext-ciphertext pairs are
+  available to construct enough equations. The number of equations needed depends
+  on the system's complexity and the attack method used.
+
+- **Exploitable Structure**: The system has exploitable algebraic structure,
+  such as low-degree output functions or sparse polynomial representations.
+
+**Relationship to Other Attacks**
+
+Algebraic attacks complement other cryptanalytic techniques:
+
+- **Correlation Attacks**: Exploit statistical biases; algebraic attacks work
+  even without statistical bias by exploiting algebraic structure.
+
+- **Linear Attacks**: A special case of algebraic attacks where all equations
+  are linear (degree 1).
+
+- **Differential Attacks**: Exploit differences in outputs; algebraic attacks
+  work with absolute values and relationships.
+
+Understanding algebraic attacks provides a complete picture of the security
+landscape for LFSR-based systems.
 
 Key Concepts
 ------------
