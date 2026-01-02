@@ -1,10 +1,11 @@
 Advanced LFSR Structures
 =========================
 
-This section provides a comprehensive guide to advanced LFSR structures, extending
-beyond basic linear feedback shift registers. The documentation is designed to be
-accessible to beginners while providing sufficient depth for researchers and
-developers.
+This section provides a comprehensive introduction to advanced LFSR structures,
+extending beyond basic linear feedback shift registers. The documentation is
+designed to be accessible to beginners while providing sufficient depth for
+researchers and developers. We begin with intuitive explanations and gradually
+build to rigorous mathematical formulations.
 
 **CRITICAL TERMINOLOGY CLARIFICATION**:
 
@@ -30,14 +31,44 @@ Introduction
 Advanced LFSR structures extend beyond basic linear feedback shift registers to
 include non-linear filtering, clock control, multiple outputs, and irregular
 clocking patterns. These structures are used in real-world cryptographic
-applications to increase security and complexity.
+applications to increase security and complexity while maintaining the efficiency
+benefits of LFSRs.
+
+**Historical Context and Motivation**
+
+Basic LFSRs have a fundamental weakness: their linearity makes them vulnerable to
+the Berlekamp-Massey algorithm, which can recover the LFSR from just :math:`2d`
+keystream bits (where :math:`d` is the degree). To address this, cryptographers
+developed advanced structures that introduce non-linearity while preserving LFSR
+efficiency.
+
+Filtered LFSRs emerged in the 1980s as a way to add non-linearity through output
+filtering. Clock-controlled LFSRs (like those in A5/1) use irregular clocking to
+introduce non-linearity. NFSRs (Non-Linear Feedback Shift Registers) generalize
+LFSRs by allowing non-linear feedback, as seen in Grain and Trivium.
 
 **Why Use Advanced Structures?**
 
 1. **Security**: Non-linearity breaks linearity weaknesses of basic LFSRs
+   - Prevents Berlekamp-Massey algorithm from recovering the structure
+   - Increases resistance to linear and algebraic attacks
+   - Provides better security properties (algebraic immunity, correlation immunity)
+
 2. **Efficiency**: Multi-output LFSRs increase output rate
+   - Generate multiple bits per clock step
+   - Maintain hardware efficiency of LFSRs
+   - Useful for high-speed applications
+
 3. **Irregularity**: Clock control introduces unpredictability
+   - Irregular clocking patterns prevent simple analysis
+   - Introduces non-linearity without changing feedback structure
+   - Used in real-world ciphers (A5/1, LILI-128)
+
 4. **Real-World Applications**: Many cryptographic systems use these structures
+   - A5/1 (GSM): Clock-controlled LFSRs
+   - Grain: LFSR + NFSR hybrid
+   - Trivium: Non-linear feedback shift registers
+   - LILI-128: Clock-controlled LFSRs
 
 **Structure Types Covered**:
 
