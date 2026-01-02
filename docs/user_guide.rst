@@ -46,50 +46,147 @@ category to jump to its detailed documentation:
 
 **Quick Reference - All Options by Category**:
 
-*Basic Options*:
-   -h, --help, --version, -o/--output, -v/--verbose, -q/--quiet,
-   --no-progress, --format, --period-only, --algorithm,
-   ---check-primitive, -show-period-stats, --no-period-stats,
-   ---parallel, --no-parallel, -num-workers,
-   ---parallel-mode, --batch-size
+This quick reference provides a searchable overview of all CLI options,
+organized by category. For detailed descriptions and examples, see the
+corresponding sections below.
 
-*Correlation Attack Options*:
-   --correlation-attack, --lfsr-configs, --keystream-file,
-   ---target-lfsr, -significance-level, --fast-correlation-attack,
-   ---max-candidates, -distinguishing-attack, --distinguishing-method
+**Most Common Options** (for quick lookup):
 
-*Algebraic Attack Options*:
-   --algebraic-attack, --algebraic-method,
-    --max-cube-size, --max-equations
+.. list-table:: Essential Options
+   :header-rows: 1
+   :widths: 30 70
 
-*TMTO Attack Options*:
-   --tmto-attack, --tmto-method, --chain-count, --chain-length,
-   --tmto-table-file
+   * - Option
+     - Purpose
+   * - ``-h, --help``
+     - Show help message
+   * - ``-o, --output FILE``
+     - Specify output file
+   * - ``--format {text|json|csv|xml}``
+     - Choose output format
+   * - ``--period-only``
+     - Compute periods only (faster, less memory)
+   * - ``--parallel``
+     - Enable parallel processing
+   * - ``--algorithm {floyd|brent|enumeration|auto}``
+     - Choose cycle detection algorithm
+   * - ``-v, --verbose``
+     - Enable verbose output
+   * - ``-q, --quiet``
+     - Suppress non-essential output
 
-*Stream Cipher Analysis Options*:
-   --cipher, --analyze-cipher, --generate-keystream,
-   ---keystream-length, -key-file, --iv-file, --compare-ciphers
+**Options by Category**:
 
-*Advanced LFSR Structures Options*:
-   --advanced-structure, --analyze-advanced-structure,
-   --generate-advanced-sequence, --advanced-sequence-length
+*Basic Options* (Core functionality):
+   - ``-h, --help`` - Show help message and exit
+   - ``--version`` - Show version and exit
+   - ``-o, --output FILE`` - Specify output file (default: input_file.out)
+   - ``-v, --verbose`` - Enable verbose output
+   - ``-q, --quiet`` - Enable quiet mode (suppress non-essential output)
+   - ``--no-progress`` - Disable progress bar display
+   - ``--format {text|json|csv|xml}`` - Output format (default: text)
+   - ``--period-only`` - Compute periods only, without storing sequences
+   - ``--algorithm {floyd|brent|enumeration|auto}`` - Cycle detection algorithm
+   - ``--check-primitive`` - Explicitly check if polynomial is primitive
+   - ``--show-period-stats`` - Display period distribution statistics (default: enabled)
+   - ``--no-period-stats`` - Disable period distribution statistics
+   - ``--parallel`` - Enable parallel state enumeration
+   - ``--no-parallel`` - Disable parallel processing (force sequential)
+   - ``--num-workers N`` - Set number of parallel workers
+   - ``--parallel-mode {static|dynamic}`` - Choose parallel processing mode
+   - ``--batch-size N`` - Batch size for dynamic parallel mode
 
-*Theoretical Analysis Options*:
-   --export-latex, --generate-paper, --compare-known, --benchmark,
-   --reproducibility-report
+*Correlation Attack Options* (See :ref:`correlation-attack-options`):
+   - ``--correlation-attack`` - Perform correlation attack analysis
+   - ``--lfsr-configs FILE`` - JSON file with combination generator config
+   - ``--keystream-file FILE`` - File containing keystream bits
+   - ``--target-lfsr INDEX`` - Index of LFSR to attack (default: 0)
+   - ``--significance-level ALPHA`` - Statistical significance level (default: 0.05)
+   - ``--fast-correlation-attack`` - Use fast correlation attack (Meier-Staffelbach)
+   - ``--max-candidates N`` - Max candidate states for fast attack (default: 1000)
+   - ``--distinguishing-attack`` - Perform distinguishing attack
+   - ``--distinguishing-method {correlation|statistical}`` - Distinguishing method
 
-*Visualization Options*:
-   --plot-period-distribution, --plot-state-transitions,
-   --plot-period-statistics, --plot-3d-state-space,
-   ---visualize-attack, -viz-format, --viz-interactive
+*Algebraic Attack Options* (See :ref:`algebraic-attack-options`):
+   - ``--algebraic-attack`` - Perform algebraic attack analysis
+   - ``--algebraic-method {groebner_basis|cube_attack|algebraic_immunity}`` - Attack method
+   - ``--max-cube-size N`` - Maximum cube size for cube attack (default: 10)
+   - ``--max-equations N`` - Maximum equations for Gröbner basis (default: 1000)
 
-*Machine Learning Options*:
-   --predict-period, --detect-patterns, --detect-anomalies,
-    --train-model, --ml-model-file
+*TMTO Attack Options* (See :ref:`tmto-attack-options`):
+   - ``--tmto-attack`` - Perform time-memory trade-off attack
+   - ``--tmto-method {hellman|rainbow}`` - TMTO method (default: hellman)
+   - ``--chain-count N`` - Number of chains in TMTO table (default: 1000)
+   - ``--chain-length N`` - Length of each chain (default: 100)
+   - ``--tmto-table-file FILE`` - Precomputed TMTO table file
 
-*NIST Test Suite Options*:
-   --nist-test, --sequence-file, --nist-significance-level,
-   --nist-block-size, --nist-output-format
+*Stream Cipher Analysis Options* (See :ref:`stream-cipher-options`):
+   - ``--cipher {a5_1|a5_2|e0|trivium|grain128|grain128a|lili128}`` - Select cipher
+   - ``--analyze-cipher`` - Analyze cipher structure
+   - ``--generate-keystream`` - Generate keystream from key and IV
+   - ``--keystream-length N`` - Length of keystream in bits (default: 1000)
+   - ``--key-file FILE`` - File containing key bits
+   - ``--iv-file FILE`` - File containing IV bits
+   - ``--compare-ciphers`` - Compare multiple ciphers side-by-side
+
+*Advanced LFSR Structures Options* (See :ref:`advanced-structure-options`):
+   - ``--advanced-structure {nfsr|filtered|clock_controlled|multi_output|irregular}`` - Structure type
+   - ``--analyze-advanced-structure`` - Analyze advanced structure properties
+   - ``--generate-advanced-sequence`` - Generate sequence from advanced structure
+   - ``--advanced-sequence-length N`` - Length of sequence to generate (default: 1000)
+
+*Theoretical Analysis Options* (See :ref:`theoretical-analysis-options`):
+   - ``--export-latex FILE`` - Export results to LaTeX format
+   - ``--generate-paper FILE`` - Generate complete research paper
+   - ``--compare-known`` - Compare with known results in database
+   - ``--benchmark`` - Run performance benchmarks
+   - ``--reproducibility-report FILE`` - Generate reproducibility report
+
+*Visualization Options* (See :ref:`visualization-options`):
+   - ``--plot-period-distribution FILE`` - Generate period distribution plot
+   - ``--plot-state-transitions FILE`` - Generate state transition diagram
+   - ``--plot-period-statistics FILE`` - Generate period statistics plots
+   - ``--plot-3d-state-space FILE`` - Generate 3D state space visualization
+   - ``--visualize-attack FILE`` - Visualize attack results
+   - ``--viz-format {png|svg|pdf|html}`` - Output format for visualizations (default: png)
+   - ``--viz-interactive`` - Generate interactive visualizations (HTML)
+
+*Machine Learning Options* (See :ref:`machine-learning-options`):
+   - ``--predict-period`` - Predict period using ML model
+   - ``--detect-patterns`` - Detect patterns in generated sequences
+   - ``--detect-anomalies`` - Detect anomalies in sequences and distributions
+   - ``--train-model FILE`` - Train ML model and save to file
+   - ``--ml-model-file FILE`` - Path to trained ML model file
+
+*NIST Test Suite Options* (See :ref:`nist-test-options`):
+   - ``--nist-test`` - Run NIST SP 800-22 statistical test suite
+   - ``--sequence-file FILE`` - File containing binary sequence
+   - ``--nist-significance-level ALPHA`` - Significance level (default: 0.01)
+   - ``--nist-block-size SIZE`` - Block size for block-based tests (default: 128)
+   - ``--nist-output-format {text|json|csv|xml|html}`` - Output format (default: text)
+
+**Quick Examples by Task**:
+
+*Basic Analysis*:
+   ``lfsr-seq coefficients.csv 2``
+
+*Period-Only Analysis (Faster)*:
+   ``lfsr-seq coefficients.csv 2 --period-only``
+
+*Parallel Processing*:
+   ``lfsr-seq coefficients.csv 2 --parallel --parallel-mode dynamic``
+
+*JSON Output*:
+   ``lfsr-seq coefficients.csv 2 --format json --output results.json``
+
+*Correlation Attack*:
+   ``lfsr-seq dummy.csv 2 --correlation-attack --lfsr-configs config.json``
+
+*NIST Testing*:
+   ``lfsr-seq dummy.csv 2 --nist-test --sequence-file sequence.txt``
+
+*Visualization*:
+   ``lfsr-seq coefficients.csv 2 --plot-period-distribution plot.png``
 
 Basic Options
 ~~~~~~~~~~~~~
