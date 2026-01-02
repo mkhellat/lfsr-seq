@@ -344,6 +344,11 @@ Here's a simple example demonstrating A5/1 analysis using the Python API:
    # Comprehensive analysis
    result = cipher.analyze(key=key, iv=iv, keystream_length=1000)
    print(f"Keystream balance: {result.keystream_properties['balance']:.4f}")
+   
+   # Analyze security properties
+   if result.security_assessment:
+       print(f"Security level: {result.security_assessment['level']}")
+       print(f"Known vulnerabilities: {result.security_assessment['vulnerabilities']}")
 
 Glossary
 --------
@@ -757,22 +762,62 @@ The tool provides a comparison framework for analyzing multiple ciphers side-by-
 Further Reading
 ---------------
 
-- Barkan, E., Biham, E., & Keller, N. (2003). "Instant Ciphertext-Only Cryptanalysis
-  of GSM Encrypted Communication"
+**A5/1 and A5/2**:
 
-- Biryukov, A., Shamir, A., & Wagner, D. (2000). "Real Time Cryptanalysis of A5/1
-  on a PC"
+- **Barkan, E., Biham, E., & Keller, N.** (2003). "Instant Ciphertext-Only
+  Cryptanalysis of GSM Encrypted Communication". Advances in Cryptology - CRYPTO
+  2003. This paper presents a complete break of A5/2 and improved attacks on A5/1.
 
-- De Cannière, C., & Preneel, B. (2006). "Trivium: A Stream Cipher Construction
-  Inspired by Block Cipher Design Principles"
+- **Biryukov, A., Shamir, A., & Wagner, D.** (2000). "Real Time Cryptanalysis of
+  A5/1 on a PC". Fast Software Encryption 2000. Demonstrates practical attacks on
+  A5/1 using time-memory trade-offs.
 
-- Hell, M., Johansson, T., & Meier, W. (2006). "Grain: A Stream Cipher for
-  Constrained Environments"
+- **Golic, J. D.** (1997). "Cryptanalysis of Alleged A5 Stream Cipher". Advances
+  in Cryptology - EUROCRYPT 1997. Early cryptanalysis of A5/1.
 
-- Golic, J. D. (1997). "Cryptanalysis of Alleged A5 Stream Cipher"
+**E0 (Bluetooth)**:
 
-- Menezes, A. J., et al. (1996). "Handbook of Applied Cryptography"
+- **Lu, Y., Meier, W., & Vaudenay, S.** (2005). "The Conditional Correlation
+  Attack: A Practical Attack on Bluetooth Encryption". Advances in Cryptology -
+  CRYPTO 2005. Correlation attack on E0.
 
-- GSM Association. "GSM Security Algorithms"
+- **Courtois, N. T.** (2002). "Higher Order Correlation Attacks, XL Algorithm and
+  Cryptanalysis of Toyocrypt". Information Security and Cryptology - ICISC 2002.
+  Algebraic attacks applicable to E0.
 
-- eSTREAM Project. "The eSTREAM Portfolio"
+**Trivium**:
+
+- **De Cannière, C., & Preneel, B.** (2006). "Trivium: A Stream Cipher
+  Construction Inspired by Block Cipher Design Principles". Selected Areas in
+  Cryptography 2006. Original design paper for Trivium.
+
+- **Raddum, H.** (2007). "Cryptanalytic Results on Trivium". eSTREAM Project
+  Report. Cryptanalytic results on Trivium.
+
+**Grain**:
+
+- **Hell, M., Johansson, T., & Meier, W.** (2006). "Grain: A Stream Cipher for
+  Constrained Environments". eSTREAM Project Report. Original design paper for
+  Grain.
+
+- **Berbain, C., Gilbert, H., & Maximov, A.** (2006). "Cryptanalysis of Grain".
+  Fast Software Encryption 2006. Early cryptanalysis of Grain.
+
+**General Stream Cipher Theory**:
+
+- **Menezes, A. J., van Oorschot, P. C., & Vanstone, S. A.** (1996). "Handbook
+  of Applied Cryptography". CRC Press. Chapter 6 covers stream ciphers and LFSRs.
+
+- **Rueppel, R. A.** (1986). "Analysis and Design of Stream Ciphers". Springer.
+  Comprehensive treatment of stream cipher design and analysis.
+
+**Standards and Specifications**:
+
+- **GSM Association.** "GSM Security Algorithms". Official specification for A5/1
+  and A5/2.
+
+- **Bluetooth SIG.** "Bluetooth Core Specification". Official specification
+  including E0 cipher.
+
+- **eSTREAM Project.** "The eSTREAM Portfolio". Final report on the eSTREAM
+  project, including Trivium and Grain.
