@@ -24,11 +24,79 @@ This will:
 Command-Line Options
 --------------------
 
+This section provides a comprehensive reference for all command-line options
+available in the ``lfsr-seq`` tool. Options are organized by category for
+easy navigation.
+
+**Options Catalog**:
+
+The tool provides the following categories of options. Click on any category
+to jump to its detailed documentation:
+
+1. **Basic Options** (see below) - Core functionality for LFSR analysis
+2. **Correlation Attack Options** - See :ref:`correlation-attack-options`
+3. **Algebraic Attack Options** - See :ref:`algebraic-attack-options`
+4. **Time-Memory Trade-Off (TMTO) Attack Options** - See :ref:`tmto-attack-options`
+5. **Stream Cipher Analysis Options** - See :ref:`stream-cipher-options`
+6. **Advanced LFSR Structures Options** - See :ref:`advanced-structure-options`
+7. **Theoretical Analysis Options** - See :ref:`theoretical-analysis-options`
+8. **Visualization Options** - See :ref:`visualization-options`
+9. **Machine Learning Options** - See :ref:`machine-learning-options`
+10. **NIST SP 800-22 Test Suite Options** - See :ref:`nist-test-options`
+
+**Quick Reference - All Options by Category**:
+
+*Basic Options*:
+   -h, --help, --version, -o/--output, -v/--verbose, -q/--quiet,
+   --no-progress, --format, --period-only, --algorithm, --check-primitive,
+   --show-period-stats, --no-period-stats, --parallel, --no-parallel,
+   --num-workers, --parallel-mode, --batch-size
+
+*Correlation Attack Options*:
+   --correlation-attack, --lfsr-configs, --keystream-file, --target-lfsr,
+   --significance-level, --fast-correlation-attack, --max-candidates,
+   --distinguishing-attack, --distinguishing-method
+
+*Algebraic Attack Options*:
+   --algebraic-attack, --algebraic-method, --max-cube-size, --max-equations
+
+*TMTO Attack Options*:
+   --tmto-attack, --tmto-method, --chain-count, --chain-length,
+   --tmto-table-file
+
+*Stream Cipher Analysis Options*:
+   --cipher, --analyze-cipher, --generate-keystream, --keystream-length,
+   --key-file, --iv-file, --compare-ciphers
+
+*Advanced LFSR Structures Options*:
+   --advanced-structure, --analyze-advanced-structure,
+   --generate-advanced-sequence, --advanced-sequence-length
+
+*Theoretical Analysis Options*:
+   --export-latex, --generate-paper, --compare-known, --benchmark,
+   --reproducibility-report
+
+*Visualization Options*:
+   --plot-period-distribution, --plot-state-transitions,
+   --plot-period-statistics, --plot-3d-state-space, --visualize-attack,
+   --viz-format, --viz-interactive
+
+*Machine Learning Options*:
+   --predict-period, --detect-patterns, --detect-anomalies, --train-model,
+   --ml-model-file
+
+*NIST Test Suite Options*:
+   --nist-test, --sequence-file, --nist-significance-level,
+   --nist-block-size, --nist-output-format
+
+Basic Options
+~~~~~~~~~~~~~
+
 Positional Arguments:
    - `input_file`:            CSV file containing LFSR coefficient vectors
    - `gf_order`:              Galois field order (prime or prime power)
 
-Optional Arguments:
+Basic Optional Arguments:
    -h, --help                 Show help message and exit
    --version                  Show version and exit
    -o, --output FILE          Specify output file (default: input_file.out)
@@ -38,7 +106,7 @@ Optional Arguments:
 
    --format {text|json|csv|xml}
                               Output format (default: text)
-			      
+
    --period-only              Compute periods only, without storing sequences.
                               Floyd's algorithm uses true O(1) space in this mode.
                               Both algorithms achieve O(1) space, but enumeration is faster.
@@ -567,8 +635,10 @@ Use the performance profiling script to measure speedup:
 
 See ``scripts/PARALLEL_PERFORMANCE_REPORT.md`` for detailed performance analysis.
 
-Correlation Attacks
--------------------
+.. _correlation-attack-options:
+
+Correlation Attack Options
+---------------------------
 
 The tool includes a Correlation Attack Framework for analyzing combination
 generators and stream ciphers. Correlation attacks exploit statistical
@@ -705,8 +775,10 @@ Supported combining function types: ``majority``, ``xor``, ``and``, ``or``, ``cu
 - ``examples/correlation_attack_example.py`` for working examples
 - ``examples/combination_generator_config.json`` for configuration example
 
-NIST SP 800-22 Statistical Test Suite
----------------------------------------
+.. _nist-test-options:
+
+NIST SP 800-22 Statistical Test Suite Options
+----------------------------------------------
 
 The tool includes the NIST SP 800-22 Statistical Test Suite for evaluating
 the randomness of binary sequences. This is an industry-standard test suite
@@ -815,150 +887,6 @@ The NIST test suite supports multiple export formats for results:
 - :doc:`api/nist` for complete API documentation
 - ``examples/nist_test_example.py`` for working examples
 
-NIST SP 800-22 Statistical Test Suite
---------------------------------------
-
-The tool includes the NIST SP 800-22 Statistical Test Suite for evaluating
-the randomness of binary sequences. This is an industry-standard collection
-of 15 statistical tests.
-
-**What is NIST SP 800-22?**
-
-NIST SP 800-22 is a statistical test suite developed by the National Institute
-of Standards and Technology (NIST) for testing the randomness of binary sequences.
-It is widely used in cryptography to evaluate random number generators and
-stream cipher outputs.
-
-**Basic Usage**:
-
-NIST tests can be performed programmatically using the Python API:
-
-.. code-block:: python
-
-   from lfsr.nist import run_nist_test_suite
-   
-   # Load or generate a binary sequence
-   sequence = [1, 0, 1, 0] * 250  # 1000 bits
-   
-   # Run the test suite
-   result = run_nist_test_suite(sequence)
-   print(f"Tests passed: {result.tests_passed}/{result.total_tests}")
-
-**CLI Usage**:
-
-NIST tests can be performed from the command line:
-
-.. code-block:: bash
-
-   # Run NIST test suite on sequence file
-   lfsr-seq dummy.csv 2 --nist-test --sequence-file sequence.txt
-
-   # With custom significance level
-   lfsr-seq dummy.csv 2 --nist-test --sequence-file sequence.txt \
-       --nist-significance-level 0.05
-
-   # With custom block size
-   lfsr-seq dummy.csv 2 --nist-test --sequence-file sequence.txt \
-       --nist-block-size 256
-
-**Sequence File Format**:
-
-The ``--sequence-file`` should contain binary bits (0s and 1s) in one of these formats:
-- One bit per line
-- Space-separated bits on one or multiple lines
-
-**Key Concepts**:
-
-- **P-value**: Probability that a random sequence would produce this result
-- **Significance Level**: Threshold for rejecting randomness (default: 0.01)
-- **Test Suite**: Collection of 15 tests examining different aspects of randomness
-- **Overall Assessment**: PASSED if most tests pass, FAILED otherwise
-
-**Interpretation**:
-
-- **PASSED**: Sequence appears random (good for cryptography)
-- **FAILED**: Sequence appears non-random (may indicate issues)
-- A single test failure does not necessarily mean the sequence is non-random
-- Consider the overall pattern of results
-
-**See Also**:
-
-- :doc:`nist_sp800_22` for comprehensive introduction and theory
-- :doc:`api/nist` for complete API documentation
-- ``examples/nist_test_example.py`` for working examples
-
-NIST SP 800-22 Test Suite
--------------------------
-
-The tool includes the NIST SP 800-22 Statistical Test Suite for evaluating
-the randomness of binary sequences. This is an industry-standard test suite
-used in cryptographic evaluation.
-
-**What is NIST SP 800-22?**
-
-NIST SP 800-22 is a collection of 15 statistical tests developed by the
-National Institute of Standards and Technology (NIST) for testing randomness.
-It is widely used to evaluate random number generators, pseudorandom number
-generators, and stream cipher outputs.
-
-**Basic Usage**:
-
-NIST tests can be performed programmatically using the Python API:
-
-.. code-block:: python
-
-   from lfsr.nist import run_nist_test_suite, frequency_test
-   
-   # Generate or load a binary sequence
-   sequence = [1, 0, 1, 0] * 250  # 1000 bits
-   
-   # Run a single test
-   result = frequency_test(sequence)
-   print(f"P-value: {result.p_value:.6f}, Passed: {result.passed}")
-   
-   # Run the complete test suite
-   suite_result = run_nist_test_suite(sequence)
-   print(f"Tests passed: {suite_result.tests_passed}/{suite_result.total_tests}")
-
-**CLI Usage**:
-
-NIST tests can be performed from the command line:
-
-.. code-block:: bash
-
-   # Run NIST tests on sequence from file
-   lfsr-seq dummy.csv 2 --nist-test --sequence-file sequence.txt
-
-   # Run NIST tests on sequence generated from LFSR
-   lfsr-seq coefficients.csv 2 --nist-test
-
-   # Custom significance level and block size
-   lfsr-seq coefficients.csv 2 --nist-test \
-       --nist-significance-level 0.05 --nist-block-size 256
-
-**Key Concepts**:
-
-- **P-value**: Probability that a random sequence would produce this result
-- **Significance Level**: Threshold for rejecting randomness (default: 0.01)
-- **Test Suite**: Collection of 15 tests evaluating different aspects of randomness
-- **Overall Assessment**: PASSED if most tests pass, FAILED otherwise
-
-**Interpretation**:
-
-- p-value ≥ 0.01: Test passes (sequence appears random)
-- p-value < 0.01: Test fails (sequence appears non-random)
-- A single test failure does not necessarily mean the sequence is non-random
-- For cryptographic applications, sequences should pass all or nearly all tests
-
-**See Also**:
-
-- :doc:`nist_sp800_22` for comprehensive introduction and theory
-- :doc:`api/nist` for complete API documentation
-- ``examples/nist_test_example.py`` for working examples
-- `NIST SP 800-22 <https://csrc.nist.gov/publications/detail/sp/800-22/rev-1a/final>`_ for official specification
-
-For more technical details on parallel state enumeration, see the
-:doc:`mathematical_background` section.
 
 .. code-block:: bash
 
@@ -1015,6 +943,8 @@ Analyze LFSR over GF(4) = GF(2²):
 
    lfsr-seq coefficients.csv 4
 
+.. _algebraic-attack-options:
+
 Algebraic Attack Options
 -------------------------
 
@@ -1052,6 +982,8 @@ Algebraic attacks can be performed from the command line:
 
    --max-equations N            Maximum number of equations for Gröbner basis
                               attack (default: 1000).
+
+.. _tmto-attack-options:
 
 Time-Memory Trade-Off (TMTO) Attack Options
 -------------------------------------------
@@ -1092,6 +1024,8 @@ TMTO attacks can be performed from the command line:
    --tmto-table-file FILE       File containing precomputed TMTO table
                               (JSON format). If not provided, table is
                               generated.
+
+.. _stream-cipher-options:
 
 Stream Cipher Analysis Options
 -------------------------------
@@ -1137,6 +1071,8 @@ Stream cipher analysis can be performed from the command line:
 
    --compare-ciphers            Compare multiple ciphers side-by-side.
 
+.. _advanced-structure-options:
+
 Advanced LFSR Structures Options
 ---------------------------------
 
@@ -1168,6 +1104,8 @@ Advanced LFSR structure analysis can be performed from the command line:
 
    --advanced-sequence-length N
                               Length of sequence to generate (default: 1000).
+
+.. _theoretical-analysis-options:
 
 Theoretical Analysis Options
 -----------------------------
@@ -1210,6 +1148,8 @@ Theoretical analysis features can be used from the command line:
    --reproducibility-report FILE
                               Generate reproducibility report (specify output
                               file).
+
+.. _visualization-options:
 
 Visualization Options
 ---------------------
@@ -1263,6 +1203,8 @@ Visualizations can be generated from the command line:
 
    --viz-interactive             Generate interactive visualizations (HTML
                               format).
+
+.. _machine-learning-options:
 
 Machine Learning Options
 ------------------------
