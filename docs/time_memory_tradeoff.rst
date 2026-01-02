@@ -76,7 +76,7 @@ TMTO attacks are applicable when:
   is acceptable given the number of targets to be attacked.
 
 - **Memory is Available**: Sufficient memory is available for table storage.
-  The memory requirement depends on the number of chains and chain length.
+  The memory requirement depends on the number of chains :math:`m` and chain length :math:`t`.
 
 **Relationship to Other Attacks**
 
@@ -135,7 +135,7 @@ trade-off is governed by the fundamental relationship :math:`TM^2 = N^2`, where
   represent different parameter choices that achieve the same trade-off.
 
 - **Coverage**: The fraction of the state space covered by the table.
-  Coverage = (number of unique states in table) / (total state space size).
+  Coverage :math:`= \frac{\text{number of unique states in table}}{\text{total state space size}}`.
   Higher coverage increases success probability but requires more memory.
   Coverage is affected by chain collisions, which reduce the number of unique
   states covered.
@@ -168,27 +168,27 @@ time by a factor of 10, we need 100 times more memory.
 The relationship :math:`TM^2 = N^2` can be understood as follows:
 
 1. A table with :math:`M` chains of length :math:`T` covers approximately
-   :math:`MT` states (with some overlap due to collisions).
+   :math:`M \cdot T` states (with some overlap due to collisions).
 
-2. To cover the entire state space :math:`N`, we need :math:`MT \geq N`.
+2. To cover the entire state space :math:`N`, we need :math:`M \cdot T \geq N`.
 
-3. The optimal trade-off occurs when :math:`MT = N` and :math:`T = M` (equal
+3. The optimal trade-off occurs when :math:`M \cdot T = N` and :math:`T = M` (equal
    time and memory), giving :math:`T^2 = N` or :math:`M^2 = N`.
 
-4. More generally, for any trade-off point, we have :math:`TM^2 = N^2` or
-   equivalently :math:`T^2M = N^2`.
+4. More generally, for any trade-off point, we have :math:`T \cdot M^2 = N^2` or
+   equivalently :math:`T^2 \cdot M = N^2`.
 
 **Properties**:
 
 - **Symmetric Trade-Off**: The relationship is symmetric in time and memory.
-  Doubling memory reduces time by a factor of 4, and vice versa.
+  Doubling memory :math:`M` reduces time :math:`T` by a factor of 4, and vice versa.
 
 - **Optimal Point**: The optimal trade-off occurs when :math:`T = M = N^{1/2}`,
-  requiring both time and memory proportional to the square root of the state
-  space size.
+  requiring both time :math:`T` and memory :math:`M` proportional to the square root of the state
+  space size :math:`N`.
 
-- **Practical Considerations**: In practice, memory may be more constrained
-  than time, leading to choices where :math:`M < T` (more time, less memory)
+- **Practical Considerations**: In practice, memory :math:`M` may be more constrained
+  than time :math:`T`, leading to choices where :math:`M < T` (more time, less memory)
   or vice versa.
 
 Hellman Tables
@@ -214,7 +214,8 @@ collisions than rainbow tables.
   reduction function. Each chain has length :math:`t` and represents :math:`t`
   consecutive state transitions. A chain is:
   :math:`S_0 \rightarrow f(S_0) \rightarrow R(f(S_0)) \rightarrow f(R(f(S_0))) \rightarrow \ldots`
-  where :math:`f` is the state update function and :math:`R` is the reduction
+  where :math:`f: \mathbb{F}_q^d \rightarrow \mathbb{F}_q^d` is the state update function and
+  :math:`R: \mathbb{F}_q^d \rightarrow \mathbb{F}_q^d` is the reduction
   function. Chains are the fundamental building blocks of Hellman tables.
 
 - **Distinguished Point**: A state with a special property (e.g., leading
@@ -222,7 +223,9 @@ collisions than rainbow tables.
   make chain endpoints easy to identify and store, reducing storage
   requirements. Only chains ending at distinguished points are stored. The
   probability that a random state is distinguished is :math:`2^{-k}`, where
-  :math:`k` is the number of distinguished bits.
+  :math:`k` is the number of distinguished bits. For a state space of size
+  :math:`N`, the expected number of attempts to find a distinguished point is
+  approximately :math:`2^k`.
 
 - **Reduction Function**: A function :math:`R: \mathbb{F}_q^d \rightarrow \mathbb{F}_q^d`
   that maps states to starting points (keys). The reduction function creates
@@ -231,23 +234,24 @@ collisions than rainbow tables.
   reduction function should be deterministic and efficiently computable.
 
 - **Table Lookup**: The process of searching precomputed tables to find a
-  target state. Lookup involves: (1) applying reduction function to target,
-  (2) checking if result is a chain endpoint, (3) if found, reconstructing
-  chain to find target. Lookup is much faster than computing states on-demand,
-  typically requiring :math:`O(t)` operations where :math:`t` is the chain
-  length.
+  target state :math:`S`. Lookup involves: (1) applying reduction function
+  :math:`R(S)` to target, (2) checking if result is a chain endpoint, (3) if
+  found, reconstructing chain to find target. Lookup is much faster than
+  computing states on-demand, typically requiring :math:`O(t)` operations where
+  :math:`t` is the chain length.
 
-- **False Alarm**: When a chain appears to contain the target state but
-  doesn't. This occurs due to collisions in the reduction function (different
-  states map to the same starting point). False alarms must be verified by
-  reconstructing the chain. The false alarm rate depends on the collision rate
-  of the reduction function.
+- **False Alarm**: When a chain appears to contain the target state :math:`S` but
+  doesn't. This occurs due to collisions in the reduction function :math:`R`
+  (different states map to the same starting point). False alarms must be
+  verified by reconstructing the chain. The false alarm rate depends on the
+  collision rate of the reduction function :math:`R`.
 
 - **Chain Collision**: When two different chains merge (have the same
   endpoint). Collisions reduce table efficiency because they cover fewer
   unique states. Hellman tables can have significant collisions, especially
-  when using the same reduction function for all chains. The collision rate
-  increases with the number of chains and chain length.
+  when using the same reduction function :math:`R` for all chains. The
+  collision rate increases with the number of chains :math:`m` and chain length
+  :math:`t`.
 
 **Mathematical Foundation**:
 
@@ -268,8 +272,8 @@ states covered is approximately:
    E[\text{unique states}] = N \left(1 - e^{-mt/N}\right)
 
 This follows from the birthday paradox: the probability that a random state is
-not covered by any chain is :math:`e^{-mt/N}`, so the expected coverage is
-:math:`1 - e^{-mt/N}`.
+not covered by any chain is :math:`e^{-m \cdot t/N}`, so the expected coverage is
+:math:`1 - e^{-m \cdot t/N}`.
 
 **Algorithm**:
 
@@ -295,10 +299,12 @@ not covered by any chain is :math:`e^{-mt/N}`, so the expected coverage is
 **Complexity Analysis**:
 
 - **Precomputation Time**: :math:`O(m \cdot t)` state transitions. Each chain
-  requires :math:`t` state updates, and we generate :math:`m` chains.
+  requires :math:`t` state updates, and we generate :math:`m` chains. Total
+  operations: :math:`m \cdot t`.
 
 - **Precomputation Memory**: :math:`O(m)` storage for :math:`m` (start, end)
-  pairs. Each pair requires :math:`2d` field elements.
+  pairs. Each pair requires :math:`2d` field elements, where :math:`d` is the
+  LFSR degree.
 
 - **Lookup Time**: :math:`O(t)` in the best case (immediate match), :math:`O(t^2)`
   in the worst case (checking all positions in all chains). Average case is
@@ -309,7 +315,7 @@ not covered by any chain is :math:`e^{-mt/N}`, so the expected coverage is
 **Advantages**:
 
 - Faster state recovery after precomputation (typically :math:`O(t)` vs
-  :math:`O(N)` for brute-force)
+  :math:`O(N)` for brute-force, where :math:`t` is chain length and :math:`N` is state space size)
 - Can attack multiple targets using same table (amortizes precomputation cost)
 - Demonstrates practical attack scenarios
 - Simple to implement and understand
@@ -327,7 +333,7 @@ not covered by any chain is :math:`e^{-mt/N}`, so the expected coverage is
 **Example**:
 
 Consider an LFSR over :math:`\mathbb{F}_2` with degree :math:`d = 4`, giving
-state space size :math:`N = 2^4 = 16`. We create a Hellman table with
+state space size :math:`N = q^d = 2^4 = 16`. We create a Hellman table with
 :math:`m = 4` chains of length :math:`t = 3`.
 
 **Precomputation**:
@@ -337,7 +343,7 @@ state space size :math:`N = 2^4 = 16`. We create a Hellman table with
    :math:`S_0^{(4)} = (0,0,1,0)`
 
 2. For each starting state, compute chain until distinguished point (leading
-   bit is 0) or length :math:`t`:
+   bit is 0) or length :math:`t = 3`:
 
    - Chain 1: :math:`(1,0,0,0) \rightarrow (0,0,0,1) \rightarrow (0,0,1,0) \rightarrow (0,1,0,0)`
      (endpoint: :math:`(0,1,0,0)`, distinguished)
@@ -355,9 +361,10 @@ state space size :math:`N = 2^4 = 16`. We create a Hellman table with
 
 Given target state :math:`S = (0,0,1,1)`:
 
-1. Apply reduction: :math:`R(S) = (0,0,1,1)` (example reduction function)
+1. Apply reduction: :math:`R(S) = (0,0,1,1)` (example reduction function :math:`R`)
 2. Check if :math:`(0,0,1,1)` is an endpoint: No
-3. Apply :math:`f` then :math:`R`: :math:`f(S) = (0,1,1,0)`, :math:`R(f(S)) = (0,1,1,0)`
+3. Apply state update function :math:`f` then reduction :math:`R`:
+   :math:`f(S) = (0,1,1,0)`, :math:`R(f(S)) = (0,1,1,0)`
 4. Check if :math:`(0,1,1,0)` is an endpoint: Yes (Chain 2)
 5. Reconstruct Chain 2 from start: :math:`(0,1,0,0) \rightarrow (1,0,0,1) \rightarrow (0,0,1,1)`
 6. Found target :math:`(0,0,1,1)` at step 2, so initial state is :math:`(0,1,0,0)`
@@ -384,16 +391,18 @@ tables for the same memory usage. The name "rainbow" comes from using different
 - **Rainbow Chain**: A chain where each step uses a different reduction
   function :math:`R_1, R_2, \ldots, R_t`. The chain is:
   :math:`S_0 \rightarrow f(S_0) \rightarrow R_1(f(S_0)) \rightarrow f(R_1(f(S_0))) \rightarrow R_2(f(R_1(f(S_0)))) \rightarrow \ldots`
-  Each step uses a different "color" (reduction function). This structure
-  reduces collisions because two chains can only merge if they collide at the
-  same step with the same reduction function.
+  Each step uses a different "color" (reduction function :math:`R_i` for step
+  :math:`i`). This structure reduces collisions because two chains can only
+  merge if they collide at the same step :math:`i` with the same reduction
+  function :math:`R_i`.
 
 - **Reduction Function Family**: A set of :math:`t` different reduction
   functions :math:`\{R_1, R_2, \ldots, R_t\}`, one for each step in the chain.
-  Each function maps states to starting points, but they differ to reduce
-  collisions. The family ensures that collisions are less likely than in
-  Hellman tables. Typically, reduction functions are created by incorporating
-  the step number into a hash function.
+  Each function :math:`R_i: \mathbb{F}_q^d \rightarrow \mathbb{F}_q^d` maps states to starting
+  points, but they differ to reduce collisions. The family ensures that
+  collisions are less likely than in Hellman tables. Typically, reduction
+  functions are created by incorporating the step number :math:`i` into a hash
+  function.
 
 - **Collision Resistance**: Rainbow tables have fewer collisions than Hellman
   tables because different reduction functions are used at each step. For two
@@ -404,14 +413,15 @@ tables for the same memory usage. The name "rainbow" comes from using different
 
 - **Table Lookup**: Similar to Hellman tables, but must try all reduction
   functions in reverse order. For target state :math:`S`, we check
-  :math:`R_t(S)`, :math:`R_{t-1}(f(S))`, :math:`R_{t-2}(f^2(S))`, etc. This
-  ensures we check all possible positions in chains. The lookup process is
-  more complex than Hellman tables but still efficient.
+  :math:`R_t(S)`, :math:`R_{t-1}(f(S))`, :math:`R_{t-2}(f^2(S))`, etc., where
+  :math:`f^k(S)` denotes applying the state update function :math:`f` :math:`k`
+  times. This ensures we check all possible positions in chains. The lookup
+  process is more complex than Hellman tables but still efficient.
 
 **Mathematical Foundation**:
 
-Rainbow tables use :math:`t` different reduction functions. A chain of length
-:math:`t` is:
+Rainbow tables use :math:`t` different reduction functions :math:`R_1, R_2, \ldots, R_t`.
+A chain of length :math:`t` is:
 
 .. math::
 
@@ -424,9 +434,9 @@ same reduction function at all steps.
 **Collision Analysis**:
 
 In a Hellman table, two chains can merge if they collide at any step, since the
-same reduction function is used throughout. In a rainbow table, two chains can
-only merge if they collide at the same step :math:`i` with the same reduction
-function :math:`R_i`. This makes collisions significantly less likely.
+same reduction function :math:`R` is used throughout. In a rainbow table, two
+chains can only merge if they collide at the same step :math:`i` with the same
+reduction function :math:`R_i`. This makes collisions significantly less likely.
 
 The expected number of collisions in a rainbow table with :math:`m` chains of
 length :math:`t` is approximately:
@@ -435,18 +445,20 @@ length :math:`t` is approximately:
 
    E[\text{collisions}] \approx \frac{m^2}{2N} \cdot \frac{t}{t+1}
 
-compared to approximately :math:`m^2/(2N)` for Hellman tables. The factor
+compared to approximately :math:`m^2/(2N)` for Hellman tables, where :math:`m`
+is the number of chains and :math:`N` is the state space size. The factor
 :math:`t/(t+1)` shows that rainbow tables have fewer collisions, especially for
-long chains.
+long chains (as :math:`t \to \infty`, the factor approaches 1).
 
 **Algorithm**:
 
 1. **Precomputation Phase**:
    
    - Generate :math:`m` random starting states :math:`S_0^{(1)}, \ldots, S_0^{(m)}`
-   - Create reduction function family :math:`\{R_1, R_2, \ldots, R_t\}`
-   - For each starting state, compute a rainbow chain:
-     :math:`S_0 \rightarrow f(S_0) \rightarrow R_1(f(S_0)) \rightarrow f(R_1(f(S_0))) \rightarrow R_2(f(R_1(f(S_0)))) \rightarrow \ldots`
+   - Create reduction function family :math:`\{R_1, R_2, \ldots, R_t\}` where
+     each :math:`R_i: \mathbb{F}_q^d \rightarrow \mathbb{F}_q^d`
+   - For each starting state :math:`S_0`, compute a rainbow chain:
+     :math:`S_0 \rightarrow f(S_0) \rightarrow R_1(f(S_0)) \rightarrow f(R_1(f(S_0))) \rightarrow R_2(f(R_1(f(S_0)))) \rightarrow \ldots \rightarrow S_t`
    - Store only :math:`(S_0, S_t)` pairs where :math:`S_t` is a distinguished point
    - Repeat until :math:`m` chains with distinguished endpoints are created
 
@@ -454,24 +466,29 @@ long chains.
    
    - Given target state :math:`S`, try all reduction functions in reverse order:
      - Check :math:`R_t(S)` against chain endpoints
-     - Check :math:`R_{t-1}(f(S))` against chain endpoints
-     - Check :math:`R_{t-2}(f^2(S))` against chain endpoints
-     - Continue until :math:`R_1(f^{t-1}(S))` is checked
+     - Check :math:`R_{t-1}(f(S))` against chain endpoints, where :math:`f(S)`
+       is the state after one update
+     - Check :math:`R_{t-2}(f^2(S))` against chain endpoints, where
+       :math:`f^2(S) = f(f(S))` is the state after two updates
+     - Continue until :math:`R_1(f^{t-1}(S))` is checked, where
+       :math:`f^{t-1}(S)` is the state after :math:`t-1` updates
    - If a match is found, reconstruct chain from start to find :math:`S`
-   - The lookup requires at most :math:`t` checks (one per reduction function)
+   - The lookup requires at most :math:`t` checks (one per reduction function
+     :math:`R_i` for :math:`i = t, t-1, \ldots, 1`)
 
 **Complexity Analysis**:
 
 - **Precomputation Time**: :math:`O(m \cdot t)` state transitions, same as
-  Hellman tables. However, rainbow tables may require fewer chains due to
-  reduced collisions.
+  Hellman tables. However, rainbow tables may require fewer chains :math:`m` due
+  to reduced collisions for the same coverage.
 
 - **Precomputation Memory**: :math:`O(m)` storage for :math:`m` (start, end)
-  pairs, same as Hellman tables.
+  pairs, same as Hellman tables. Each pair requires :math:`2d` field elements,
+  where :math:`d` is the LFSR degree.
 
 - **Lookup Time**: :math:`O(t)` in all cases (must check all :math:`t`
-  reduction functions). This is more predictable than Hellman tables, which
-  have variable lookup time.
+  reduction functions :math:`R_1, \ldots, R_t`). This is more predictable than
+  Hellman tables, which have variable lookup time.
 
 - **Lookup Memory**: :math:`O(1)` additional memory beyond the precomputed table.
 
@@ -499,9 +516,10 @@ long chains.
 
 **Example**:
 
-Using the same LFSR as before (:math:`d = 4`, :math:`N = 16`), we create a
-rainbow table with :math:`m = 4` chains of length :math:`t = 3`, using
-reduction functions :math:`R_1, R_2, R_3`.
+Using the same LFSR as before (degree :math:`d = 4`, state space size
+:math:`N = q^d = 2^4 = 16`), we create a rainbow table with :math:`m = 4`
+chains of length :math:`t = 3`, using reduction functions
+:math:`R_1, R_2, R_3`.
 
 **Precomputation**:
 
@@ -509,7 +527,8 @@ reduction functions :math:`R_1, R_2, R_3`.
    :math:`S_0^{(2)} = (0,1,0,0)`, :math:`S_0^{(3)} = (1,1,0,0)`,
    :math:`S_0^{(4)} = (0,0,1,0)`
 
-2. For each starting state, compute rainbow chain:
+2. For each starting state, compute rainbow chain using reduction functions
+   :math:`R_1, R_2, R_3`:
 
    - Chain 1: :math:`(1,0,0,0) \rightarrow f \rightarrow R_1 \rightarrow f \rightarrow R_2 \rightarrow f \rightarrow R_3 \rightarrow (0,1,0,0)`
    - Chain 2: :math:`(0,1,0,0) \rightarrow f \rightarrow R_1 \rightarrow f \rightarrow R_2 \rightarrow f \rightarrow R_3 \rightarrow (0,1,1,0)`
@@ -523,11 +542,12 @@ reduction functions :math:`R_1, R_2, R_3`.
 
 Given target state :math:`S = (0,0,1,1)`:
 
-1. Check :math:`R_3(S) = (0,0,1,1)` against endpoints: No match
-2. Check :math:`R_2(f(S)) = R_2(0,1,1,0) = (0,1,1,0)` against endpoints: Match (Chain 2)
-3. Reconstruct Chain 2 from start using :math:`R_1, R_2, R_3`:
+1. Check :math:`R_3(S) = R_3(0,0,1,1) = (0,0,1,1)` against endpoints: No match
+2. Check :math:`R_2(f(S)) = R_2(f(0,0,1,1)) = R_2(0,1,1,0) = (0,1,1,0)` against
+   endpoints: Match (Chain 2)
+3. Reconstruct Chain 2 from start using reduction functions :math:`R_1, R_2, R_3`:
    :math:`(0,1,0,0) \rightarrow f \rightarrow R_1 \rightarrow f \rightarrow (0,0,1,1)`
-4. Found target at step 2, so initial state is :math:`(0,1,0,0)`
+4. Found target :math:`(0,0,1,1)` at step 2, so initial state is :math:`(0,1,0,0)`
 
 Trade-Off Parameter Optimization
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -537,15 +557,17 @@ Trade-Off Parameter Optimization
 **Parameter optimization** finds the best values for :math:`m` (chain count)
 and :math:`t` (chain length) to maximize success probability given memory
 constraints. The optimization problem is to choose :math:`m` and :math:`t` such
-that :math:`m \cdot t` (memory) is fixed and coverage is maximized.
+that :math:`m \cdot t` (memory requirement) is fixed and coverage is maximized.
 
 **Key Terminology**:
 
 - **Optimal Parameters**: Parameter values that minimize the time×memory
-  product for a given success probability. These parameters provide the best
-  trade-off between time and memory. Optimal parameters depend on the state
-  space size and available memory. For the fundamental trade-off
-  :math:`TM^2 = N^2`, optimal parameters satisfy :math:`T = M = N^{1/2}`.
+  product :math:`T \cdot M` for a given success probability. These parameters
+  provide the best trade-off between time :math:`T` and memory :math:`M`.
+  Optimal parameters depend on the state space size :math:`N` and available
+  memory. For the fundamental trade-off :math:`T \cdot M^2 = N^2`, optimal
+  parameters satisfy :math:`T = M = N^{1/2}`, where :math:`N = q^d` for an LFSR
+  of degree :math:`d` over :math:`\mathbb{F}_q`.
 
 - **Trade-Off Curve**: A graph showing the relationship between time and
   memory for different parameter choices. The curve shows how increasing
@@ -556,7 +578,8 @@ that :math:`m \cdot t` (memory) is fixed and coverage is maximized.
 - **Coverage Analysis**: Determining what fraction of the state space is
   covered by a table with given parameters. Coverage analysis helps choose
   parameters that provide desired success probability. The coverage depends on
-  :math:`m`, :math:`t`, and the collision rate.
+  chain count :math:`m`, chain length :math:`t`, state space size :math:`N`, and
+  the collision rate.
 
 - **Success Probability Estimation**: Estimating the probability that a
   random state can be recovered from a table. This depends on coverage,
@@ -571,14 +594,14 @@ that :math:`m \cdot t` (memory) is fixed and coverage is maximized.
 2. **Try Different Parameter Combinations**: For each :math:`m` and :math:`t`
    such that :math:`m \cdot t \leq M_{\max}`:
    
-   - Estimate coverage: :math:`\text{coverage} \approx 1 - e^{-mt/N}`
+   - Estimate coverage: :math:`\text{coverage} \approx 1 - e^{-m \cdot t/N}`
    - Estimate success probability: :math:`p \approx \text{coverage}` (for low
      collision rates)
-   - Compute time: :math:`T = mt` (for lookup)
+   - Compute time: :math:`T = m \cdot t` (for lookup)
 
 3. **Select Optimal Parameters**: Choose :math:`m` and :math:`t` that:
    - Maximize success probability :math:`p \geq p_{\text{target}}`
-   - Minimize time :math:`T` (or time×memory product :math:`TM`)
+   - Minimize time :math:`T` (or time×memory product :math:`T \cdot M`)
    - Satisfy memory constraint :math:`m \cdot t \leq M_{\max}`
 
 4. **Verify Parameters**: Test parameters on sample data to verify success
@@ -586,14 +609,15 @@ that :math:`m \cdot t` (memory) is fixed and coverage is maximized.
 
 **Theoretical Bounds**:
 
-For the fundamental trade-off :math:`TM^2 = N^2`:
+For the fundamental trade-off :math:`T \cdot M^2 = N^2`:
 
 - **Minimum Memory**: :math:`M_{\min} = N^{1/2}` (when :math:`T = N^{1/2}`)
 - **Minimum Time**: :math:`T_{\min} = N^{1/2}` (when :math:`M = N^{1/2}`)
 - **Optimal Point**: :math:`T = M = N^{1/2}` (equal time and memory)
 
 For practical constraints, if memory is limited to :math:`M < N^{1/2}`, then
-time must be :math:`T > N^2/M` to maintain the trade-off.
+time must be :math:`T > N^2/M` to maintain the trade-off, where :math:`N` is the
+state space size.
 
 **Practical Considerations**:
 
@@ -601,16 +625,19 @@ time must be :math:`T > N^2/M` to maintain the trade-off.
   time, leading to choices where :math:`M < T`. This means accepting longer
   lookup times to reduce memory requirements.
 
-- **Precomputation Time**: Precomputation time is :math:`O(m \cdot t)`, which
-  must be acceptable given the number of targets to be attacked.
+- **Precomputation Time**: Precomputation time is :math:`O(m \cdot t)`, where
+  :math:`m` is the number of chains and :math:`t` is the chain length. This must
+  be acceptable given the number of targets to be attacked.
 
 - **Collision Rate**: Higher collision rates reduce coverage, so parameters
   should be chosen to minimize collisions. Rainbow tables typically have lower
   collision rates than Hellman tables.
 
 - **Distinguished Point Probability**: The probability of finding a
-  distinguished point affects precomputation time. Lower probability (more
-  distinguished bits) requires more attempts but may reduce storage.
+  distinguished point is :math:`2^{-k}`, where :math:`k` is the number of
+  distinguished bits. This affects precomputation time. Lower probability (more
+  distinguished bits, larger :math:`k`) requires more attempts but may reduce
+  storage.
 
 API Reference
 -------------
@@ -710,9 +737,9 @@ Glossary
    table efficiency by covering fewer unique states.
 
 **Coverage**
-   The fraction of state space covered by the table. Coverage = (number of
-   unique states in table) / (total state space size). Higher coverage
-   increases success probability.
+   The fraction of state space covered by the table. Coverage
+   :math:`= \frac{\text{number of unique states in table}}{\text{total state space size}}`.
+   Higher coverage increases success probability.
 
 **Distinguished Point**
    A state with a special property (e.g., leading bits are zero) used to mark
@@ -732,9 +759,9 @@ Glossary
    faster than computing states on-demand.
 
 **Optimal Parameters**
-   Parameter values that minimize the time×memory product for a given success
-   probability. Optimal parameters satisfy :math:`T = M = N^{1/2}` for the
-   fundamental trade-off.
+   Parameter values that minimize the time×memory product :math:`T \cdot M` for
+   a given success probability. Optimal parameters satisfy :math:`T = M = N^{1/2}`
+   for the fundamental trade-off :math:`T \cdot M^2 = N^2`.
 
 **Precomputation**
    The initial phase where tables are generated. This is done once and can be
@@ -769,8 +796,8 @@ Glossary
 
 **Time-Memory Trade-Off (TMTO)**
    A cryptanalytic technique that precomputes tables to enable faster attacks.
-   The trade-off is governed by :math:`TM^2 = N^2`, where :math:`T` is time,
-   :math:`M` is memory, and :math:`N` is state space size.
+   The trade-off is governed by :math:`T \cdot M^2 = N^2`, where :math:`T` is
+   time, :math:`M` is memory, and :math:`N` is state space size.
 
 **Trade-Off Curve**
    A graph showing the relationship between time and memory for different
