@@ -50,8 +50,8 @@ making TMTO attacks more practical for real-world applications.
    This models realistic attack scenarios where attackers invest upfront effort.
 
 4. **Theoretical Foundation**: Demonstrates the fundamental trade-off between
-   time and memory in cryptanalysis. The relationship :math:`TM^2 = N^2` is a
-   fundamental result in cryptanalysis.
+   time :math:`T` and memory :math:`M` in cryptanalysis. The relationship
+   :math:`T \cdot M^2 = N^2` is a fundamental result in cryptanalysis.
 
 5. **Design Guidance**: Understanding TMTO attacks helps designers choose
    appropriate state space sizes and understand the security implications of
@@ -107,9 +107,9 @@ Time-Memory Trade-Off
 A **time-memory trade-off** is a fundamental principle in cryptanalysis that
 allows trading memory (storage) for computation time. By precomputing and
 storing information, we can reduce the time needed for online attacks. The
-trade-off is governed by the fundamental relationship :math:`TM^2 = N^2`, where
-:math:`T` is the online attack time, :math:`M` is the memory (table size), and
-:math:`N` is the state space size.
+trade-off is governed by the fundamental relationship :math:`T \cdot M^2 = N^2`,
+where :math:`T` is the online attack time, :math:`M` is the memory (table size),
+and :math:`N` is the state space size.
 
 **Key Terminology**:
 
@@ -152,7 +152,7 @@ The fundamental trade-off relationship is:
 
 .. math::
 
-   TM^2 = N^2
+   T \cdot M^2 = N^2
 
 where:
 - :math:`T` is the time for online attack (number of operations)
@@ -165,7 +165,7 @@ time by a factor of 10, we need 100 times more memory.
 
 **Derivation**:
 
-The relationship :math:`TM^2 = N^2` can be understood as follows:
+The relationship :math:`T \cdot M^2 = N^2` can be understood as follows:
 
 1. A table with :math:`M` chains of length :math:`T` covers approximately
    :math:`M \cdot T` states (with some overlap due to collisions).
@@ -176,7 +176,8 @@ The relationship :math:`TM^2 = N^2` can be understood as follows:
    time and memory), giving :math:`T^2 = N` or :math:`M^2 = N`.
 
 4. More generally, for any trade-off point, we have :math:`T \cdot M^2 = N^2` or
-   equivalently :math:`T^2 \cdot M = N^2`.
+   equivalently :math:`T^2 \cdot M = N^2`, where :math:`N = q^d` for an LFSR of
+   degree :math:`d` over :math:`\mathbb{F}_q`.
 
 **Properties**:
 
@@ -269,7 +270,7 @@ states covered is approximately:
 
 .. math::
 
-   E[\text{unique states}] = N \left(1 - e^{-mt/N}\right)
+   E[\text{unique states}] = N \left(1 - e^{-m \cdot t/N}\right)
 
 This follows from the birthday paradox: the probability that a random state is
 not covered by any chain is :math:`e^{-m \cdot t/N}`, so the expected coverage is
@@ -573,7 +574,7 @@ that :math:`m \cdot t` (memory requirement) is fixed and coverage is maximized.
   memory for different parameter choices. The curve shows how increasing
   memory reduces attack time (and vice versa). Points on the curve represent
   different parameter choices that achieve the same trade-off. The curve
-  follows :math:`TM^2 = N^2`.
+   follows :math:`T \cdot M^2 = N^2`.
 
 - **Coverage Analysis**: Determining what fraction of the state space is
   covered by a table with given parameters. Coverage analysis helps choose
@@ -800,9 +801,9 @@ Glossary
    time, :math:`M` is memory, and :math:`N` is state space size.
 
 **Trade-Off Curve**
-   A graph showing the relationship between time and memory for different
-   parameter choices. The curve follows :math:`TM^2 = N^2` and demonstrates how
-   increasing memory reduces attack time.
+   A graph showing the relationship between time :math:`T` and memory :math:`M`
+   for different parameter choices. The curve follows :math:`T \cdot M^2 = N^2`
+   and demonstrates how increasing memory :math:`M` reduces attack time :math:`T`.
 
 Further Reading
 ---------------
