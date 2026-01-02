@@ -79,6 +79,7 @@ Use the library programmatically:
 
 .. code-block:: python
 
+   from sage.all import *
    from lfsr.cli import main
    from lfsr.synthesis import berlekamp_massey, linear_complexity
    from lfsr.statistics import statistical_summary
@@ -107,12 +108,16 @@ Use the library programmatically:
    # Build state update matrix
    coeffs = [1, 1, 0, 1]
    C, CS = build_state_update_matrix(coeffs, 2)
-   order = compute_matrix_order(C, CS)
+   d = len(coeffs)
+   state_vector_space_size = 2 ** d
+   M = MatrixSpace(GF(2), d, d)
+   I = M.identity_matrix()
+   order = compute_matrix_order(C, I, state_vector_space_size)
    print(f"Matrix order (period): {order}")
 
    # Characteristic polynomial
-   char_poly = characteristic_polynomial(coeffs, 2)
-   poly_order = polynomial_order(char_poly, 2)
+   char_poly = characteristic_polynomial(CS, 2)
+   poly_order = polynomial_order(char_poly, d, 2)
    print(f"Polynomial order: {poly_order}")
 
    # Field validation
@@ -326,7 +331,11 @@ Time-Memory Trade-Off Attacks
    lfsr = LFSRConfig(coefficients=[1, 0, 0, 1], field_order=2, degree=4)
    target_state = [1, 0, 1, 1]
    
-   result = tmto_attack(lfsr, target_state, method="hellman")
+   result = tmto_attack(
+       lfsr_config=lfsr,
+       target_state=target_state,
+       method="hellman"
+   )
    if result.attack_successful:
        print(f"Recovered state: {result.recovered_state}")
        print(f"Coverage: {result.coverage:.2%}")
@@ -358,7 +367,7 @@ Time-Memory Trade-Off Attacks
    print(f"Optimal chain count: {params['chain_count']}")
    print(f"Optimal chain length: {params['chain_length']}")
 
-For complete examples, see ``examples/tmto_attack_example.py`` (to be created).
+For complete examples, see ``examples/tmto_attack_example.py``.
 
 NIST SP 800-22 Test Suite
 --------------------------
@@ -384,51 +393,6 @@ Run NIST statistical tests on binary sequences:
 
 For complete examples, see ``examples/nist_test_example.py``.
 
-NIST SP 800-22 Statistical Tests
------------------------------------
-
-Run NIST statistical tests on binary sequences:
-
-.. code-block:: python
-
-   from lfsr.nist import run_nist_test_suite, frequency_test
-   
-   # Generate or load a binary sequence
-   sequence = [1, 0, 1, 0, 1, 1, 0, 0, 1, 0] * 100  # 1000 bits
-   
-   # Run a single test
-   result = frequency_test(sequence)
-   print(f"P-value: {result.p_value:.6f}, Passed: {result.passed}")
-   
-   # Run the complete test suite
-   suite_result = run_nist_test_suite(sequence)
-   print(f"Tests passed: {suite_result.tests_passed}/{suite_result.total_tests}")
-   print(f"Overall: {suite_result.overall_assessment}")
-
-For complete examples, see ``examples/nist_test_example.py``.
-
-NIST SP 800-22 Test Suite
--------------------------
-
-Run NIST statistical tests on binary sequences:
-
-.. code-block:: python
-
-   from lfsr.nist import run_nist_test_suite, frequency_test
-   
-   # Generate or load a binary sequence
-   sequence = [1, 0, 1, 0, 1, 1, 0, 0, 1, 0] * 100  # 1000 bits
-   
-   # Run a single test
-   result = frequency_test(sequence)
-   print(f"P-value: {result.p_value:.6f}, Passed: {result.passed}")
-   
-   # Run the complete test suite
-   suite_result = run_nist_test_suite(sequence)
-   print(f"Tests passed: {suite_result.tests_passed}/{suite_result.total_tests}")
-   print(f"Overall: {suite_result.overall_assessment}")
-
-For complete examples, see ``examples/nist_test_example.py``.
 
 Parallel Processing API
 ------------------------
@@ -449,7 +413,7 @@ Use parallel processing programmatically:
    # Parallel processing with 2 workers
    seq_dict, period_dict, max_period, periods_sum = lfsr_sequence_mapper_parallel(
        C, V, 2, output_file=None, no_progress=True,
-       period_only=True, num_workers=2
+       algorithm="floyd", period_only=True, num_workers=2
    )
 
    print(f"Found {len(seq_dict)} sequences")
@@ -459,10 +423,12 @@ Use parallel processing programmatically:
    # Compare with sequential
    from lfsr.analysis import lfsr_sequence_mapper
    seq_dict_seq, period_dict_seq, max_period_seq, periods_sum_seq = lfsr_sequence_mapper(
-       C, V, 2, output_file=None, no_progress=True, period_only=True
+       C, V, 2, output_file=None, no_progress=True,
+       period_only=True
    )
 
    # Verify correctness
    assert max_period == max_period_seq
    assert periods_sum == 16  # State space size for 4-bit LFSR
+   assert periods_sum_seq == 16
 
