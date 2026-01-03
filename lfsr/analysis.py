@@ -804,7 +804,7 @@ def _merge_parallel_results(
     """
     # Import SageMath functions (can't use import * in function)
     try:
-        from sage.all import VectorSpace, GF, vector
+        from lfsr.sage_imports import VectorSpace, GF, vector
     except ImportError:
         # Fallback if sage.all not available
         import sys
@@ -1096,7 +1096,7 @@ def _process_state_chunk(
     
     try:
         # Try to import SageMath (works in fork mode, may need setup in spawn mode)
-        from sage.all import VectorSpace, GF, vector
+        from lfsr.sage_imports import VectorSpace, GF, vector
         debug_log('SageMath import successful')
         
         # Test that SageMath works by creating a simple object
@@ -1126,7 +1126,7 @@ def _process_state_chunk(
                 for path in sage_paths:
                     if path and path not in sys.path and os.path.isdir(path):
                         sys.path.insert(0, path)
-                from sage.all import VectorSpace, GF, vector
+                from lfsr.sage_imports import VectorSpace, GF, vector
                 debug_log('SageMath import successful via path setup')
             else:
                 raise ImportError("SageMath not found")
@@ -1830,7 +1830,7 @@ def _process_task_batch_dynamic(
         debug_log('Starting dynamic worker function...')
     
     try:
-        from sage.all import VectorSpace, GF, vector
+        from lfsr.sage_imports import VectorSpace, GF, vector
         debug_log('SageMath import successful')
     except ImportError as e:
         debug_log(f'SageMath import failed: {e}')
