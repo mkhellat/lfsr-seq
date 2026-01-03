@@ -166,11 +166,13 @@ similar feature vectors.
 **Common Features for Polynomials**:
 
 1. **Basic Properties**:
+   
    - Degree :math:`d`: The degree of the polynomial
    - Field order :math:`q`: The order of the finite field
    - Theoretical maximum period :math:`q^d - 1`
 
 2. **Coefficient Features**:
+   
    - Number of non-zero coefficients :math:`k`: Count of non-zero coefficients
    - Sparsity :math:`1 - k/d`: Proportion of zero coefficients
    - Coefficient sum :math:`\sum_{i=0}^{d-1} c_i`: Sum of all coefficients
@@ -178,6 +180,7 @@ similar feature vectors.
      coefficients
 
 3. **Pattern Features**:
+   
    - Is trinomial: Binary indicator if polynomial has exactly :math:`3` non-zero
      terms
    - Is pentanomial: Binary indicator if polynomial has exactly :math:`5`
@@ -185,6 +188,7 @@ similar feature vectors.
    - Coefficient distribution: Histogram or moments of coefficient values
 
 4. **Structural Features**:
+   
    - Leading coefficient: Value of the highest-degree coefficient
    - Constant term: Value of :math:`c_0`
    - Coefficient positions: Indices of non-zero coefficients
@@ -194,17 +198,20 @@ similar feature vectors.
 1. **Length**: Sequence length :math:`n`
 
 2. **Frequency Distribution**:
+   
    - Frequency of each element in :math:`\mathbb{F}_q`
    - Maximum and minimum frequencies
    - Frequency variance
 
 3. **Statistical Features**:
+   
    - Mean, variance, and higher moments
    - Entropy: Measure of randomness
    - Balance: For binary sequences, :math:`|f_1 - f_0|/n` where :math:`f_1`
      and :math:`f_0` are frequencies of :math:`1` and :math:`0`
 
 4. **Pattern Features**:
+   
    - Number of runs: Consecutive identical elements
    - Average run length
    - Autocorrelation: Correlation of sequence with shifted versions
@@ -259,6 +266,7 @@ Period prediction is a **supervised learning** problem:
 
 1. **Training Data**: A set of :math:`n` examples :math:`\{(x_i, y_i)\}_{i=1}^n`
    where:
+   
    - :math:`x_i = \phi(P_i(t))` is a feature vector for polynomial :math:`P_i(t)`
    - :math:`y_i = \lambda(P_i(t))` is the true period
 
@@ -343,19 +351,25 @@ that satisfy certain properties:
 
 1. **Repeating Subsequences**: Find subsequences :math:`s[i:i+k]` that appear
    multiple times:
+   
    .. math::
+      
       \exists j \neq i: s[i:i+k] = s[j:j+k]
 
 2. **Autocorrelation**: Measure correlation between sequence and shifted
    versions:
+   
    .. math::
+      
       R(k) = \frac{1}{n}\sum_{i=0}^{n-k-1} s[i] \cdot s[i+k]
 
    High autocorrelation at lag :math:`k` indicates periodicity with period
    :math:`k`.
 
 3. **Frequency Analysis**: Analyze the distribution of elements:
+   
    .. math::
+      
       f(a) = \frac{1}{n}\sum_{i=0}^{n-1} \mathbf{1}[s[i] = a]
 
    where :math:`\mathbf{1}[\cdot]` is the indicator function.
@@ -416,7 +430,9 @@ under a learned or assumed distribution:
 
 1. **Statistical Outliers**: Points that lie far from the mean in terms of
    standard deviations:
+   
    .. math::
+      
       |x - \mu| > k \cdot \sigma
 
    where :math:`\mu` is the mean, :math:`\sigma` is the standard deviation,
@@ -424,14 +440,18 @@ under a learned or assumed distribution:
 
 2. **Density-Based Methods**: Points in low-density regions are considered
    anomalies. For a learned density function :math:`p(x)`, anomalies satisfy:
+   
    .. math::
+      
       p(x) < \theta
 
    for some threshold :math:`\theta`.
 
 3. **Distance-Based Methods**: Points far from their nearest neighbors are
    anomalies. For a point :math:`x`, if:
+   
    .. math::
+      
       \min_{y \in \mathcal{D}} d(x, y) > \delta
 
    where :math:`\mathcal{D}` is the dataset and :math:`d` is a distance
@@ -440,6 +460,7 @@ under a learned or assumed distribution:
 **Methods for LFSR Anomaly Detection**:
 
 1. **Statistical Methods**:
+   
    - Z-score: Standardize features and flag points with :math:`|z| > 3`
    - Interquartile Range (IQR): Flag points outside
      :math:`[Q1 - 1.5 \cdot IQR, Q3 + 1.5 \cdot IQR]`
@@ -520,11 +541,13 @@ generated. This involves:
 **Evaluation Metrics**:
 
 1. **Regression Metrics** (for period prediction):
+   
    - Mean Squared Error (MSE)
    - Mean Absolute Error (MAE)
    - R² Score
 
 2. **Classification Metrics** (for pattern/anomaly detection):
+   
    - Precision, Recall, F1-Score
    - Confusion Matrix
    - ROC-AUC (for binary classification)
