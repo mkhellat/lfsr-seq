@@ -80,9 +80,9 @@ class HellmanTable:
     
     **Mathematical Foundation**:
     
-    A Hellman table consists of m chains, each of length t. The table covers
-      approximately :math:`m \times t` states (with some overlap).
-      The time-memory trade-offf is:
+    A Hellman table consists of m chains, each of length t. The table
+    covers approximately :math:`m \times t` states (with some overlap).
+    The time-memory trade-off is:
     
     .. math::
     
