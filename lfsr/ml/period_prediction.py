@@ -65,7 +65,8 @@ class PeriodPredictionModel(BaseMLModel):
         Initialize period prediction model.
         
         Args:
-            model_type: Type of model ("random_forest" or "gradient_boosting")
+            model_type: Type of model ("random_forest" or
+              "gradient_boosting")
             config: Optional model configuration
         """
         if config is None:

@@ -62,7 +62,8 @@ def main(
     parallel_mode: str = "static",
     batch_size: Optional[int] = None,
 ) -> None:
-    """Main function to process LFSR coefficient vectors and perform analysis.
+    """Main function to process LFSR coefficient vectors and perform
+    analysis.
 
     This function orchestrates the complete LFSR analysis workflow:
 
@@ -76,9 +77,11 @@ def main(
 
     Args:
         input_file_name: Path to CSV file containing coefficient vectors.
-            Each row should contain coefficients for one LFSR configuration.
+            Each row should contain coefficients for one LFSR
+              configuration.
         gf_order_str: String representation of the Galois field order.
-            Must be a prime or prime power (e.g., "2", "3", "4", "5", "7", "8", etc.).
+            Must be a prime or prime power (e.g., "2", "3", "4", "5",
+              "7", "8", etc.).
         output_file: Optional file object for output. If None, output goes
             to stdout only. If provided, output is written to both stdout
             and the file.
