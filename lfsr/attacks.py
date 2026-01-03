@@ -78,9 +78,9 @@ from collections import Counter
 from dataclasses import dataclass, field
 from typing import Callable, Dict, List, Optional, Tuple, Any
 
-from sage.all import *
+from lfsr.sage_imports import *
 
-# Import norm after sage.all to avoid conflicts
+# Import norm after sage imports to avoid conflicts
 try:
     from scipy.stats import norm as scipy_norm
     norm = scipy_norm
