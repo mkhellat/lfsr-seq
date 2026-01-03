@@ -51,9 +51,9 @@ class PeriodPredictionModel(BaseMLModel):
       a category.
       Period prediction is a regression problem.
     
-    - **Random Forest**: An ensemble ML method that combines multiple decision
-      trees to make predictions. It's interpretable and works well for
-      structured data like polynomial features.
+    - **Random Forest**: An ensemble ML method that combines multiple
+      decision trees to make predictions. It's interpretable and works
+      well for structured data like polynomial features.
     
     - **Gradient Boosting**: An ensemble ML method that builds models
       sequentially, each correcting the errors of the previous ones. Often
