@@ -93,14 +93,16 @@ class HellmanTable:
     
     **Algorithm**:
 
-    Precomputation Phase: Generate m random starting states. For each starting
-    state, compute a chain of length t. Store only (start_state, end_state)
-    pairs where end_state is distinguished. Repeat until m chains with
-    distinguished endpoints are created.
+    Precomputation Phase: Generate m random starting states. For
+    each starting state, compute a chain of length t. Store only
+    (start_state, end_state) pairs where end_state is
+    distinguished. Repeat until m chains with distinguished
+    endpoints are created.
 
-    Lookup Phase: Given target state S, apply reduction function: R(S). Check
-    if R(S) is a chain endpoint in table. If found, reconstruct chain from
-    start to find S. If not found, apply f then R repeatedly (up to t times).
+    Lookup Phase: Given target state S, apply reduction function:
+    R(S). Check if R(S) is a chain endpoint in table. If found,
+    reconstruct chain from start to find S. If not found, apply f
+    then R repeatedly (up to t times).
 
     **Advantages**:
 
@@ -148,7 +150,8 @@ class HellmanTable:
         """
         Check if state is a distinguished point.
         
-        A distinguished point has leading distinguished_bits bits equal to 0.
+        A distinguished point has leading distinguished_bits bits
+        equal to 0.
         """
         if not state:
             return False
@@ -290,10 +293,11 @@ class RainbowTable:
     """
     Rainbow table for time-memory trade-off attacks.
     
-    A **rainbow table** is an improved version of Hellman tables that uses
-    different reduction functions at each step, reducing collisions. Introduced
-    by Philippe Oechslin (2003), rainbow tables are more efficient than
-    Hellman tables for the same memory usage.
+    A **rainbow table** is an improved version of Hellman tables
+    that uses different reduction functions at each step, reducing
+    collisions. Introduced by Philippe Oechslin (2003), rainbow
+    tables are more efficient than Hellman tables for the same
+    memory usage.
     
     **Key Terminology**:
     
@@ -638,8 +642,8 @@ def optimize_tmto_parameters(
     """
     Optimize TMTO parameters for given constraints.
     
-    Finds optimal chain_count and chain_length to maximize success probability
-    given memory constraints.
+    Finds optimal chain_count and chain_length to maximize success
+    probability given memory constraints.
     
     **Key Terminology**:
     
