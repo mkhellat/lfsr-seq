@@ -22,7 +22,8 @@ def get_cipher_instance(cipher_name: str):
     Get cipher instance from name.
     
     Args:
-        cipher_name: Cipher name (a5_1, a5_2, e0, trivium, grain128, grain128a, lili128)
+        cipher_name: Cipher name (a5_1, a5_2, e0, trivium, grain128,
+          grain128a, lili128)
     
     Returns:
         StreamCipher instance

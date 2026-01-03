@@ -4,9 +4,10 @@
 """
 CLI functions for advanced LFSR structure analysis.
 
-This module provides command-line interface functions for analyzing advanced
-LFSR structures, including NFSRs, filtered LFSRs, clock-controlled LFSRs,
-multi-output LFSRs, and irregular clocking patterns.
+This module provides command-line interface functions for analyzing
+advanced LFSR structures, including NFSRs, filtered LFSRs,
+clock-controlled LFSRs, multi-output LFSRs, and irregular clocking
+patterns.
 """
 
 import sys

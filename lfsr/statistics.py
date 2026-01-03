@@ -4,8 +4,9 @@
 """
 Statistical analysis tools for LFSR sequences.
 
-This module provides statistical tests and analysis functions for evaluating
-the quality and randomness properties of LFSR-generated sequences.
+This module provides statistical tests and analysis functions for
+evaluating the quality and randomness properties of LFSR-generated
+sequences.
 """
 
 import math

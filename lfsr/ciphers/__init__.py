@@ -1,8 +1,9 @@
 """
 Stream Cipher Analysis Module
 
-This module provides analysis capabilities for real-world stream ciphers that use
-LFSRs, including A5/1, A5/2, E0, Trivium, Grain family, and LILI-128.
+This module provides analysis capabilities for real-world stream
+ciphers that use LFSRs, including A5/1, A5/2, E0, Trivium, Grain
+family, and LILI-128.
 
 The module is organized as follows:
 - base.py: Base classes and common interfaces
