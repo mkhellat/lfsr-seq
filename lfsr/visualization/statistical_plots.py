@@ -36,9 +36,9 @@ def plot_period_statistics(
     - **Histogram**: A graphical representation of data distribution using
       bars. Each bar represents a range of values and shows frequency.
     
-    - **Box Plot**: A standardized way of displaying data distribution based
-      on five-number summary: minimum, first quartile, median, third quartile,
-      and maximum. Also shows outliers.
+    - **Box Plot**: A standardized way of displaying data distribution
+      based on five-number summary: minimum, first quartile, median,
+      third quartile, and maximum. Also shows outliers.
     
     - **Violin Plot**: A combination of box plot and kernel density plot,
       showing the distribution shape and summary statistics.
@@ -156,8 +156,8 @@ def plot_sequence_analysis(
     """
     Create plots for sequence analysis (autocorrelation, frequency, etc.).
     
-    This function generates visualizations for sequence properties including
-    autocorrelation, frequency distribution, and runs analysis.
+    This function generates visualizations for sequence properties
+    including autocorrelation, frequency distribution, and runs analysis.
     
     Args:
         sequence: Binary sequence to analyze
