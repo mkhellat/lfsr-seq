@@ -1428,8 +1428,8 @@ def lfsr_sequence_mapper_parallel(
     back to sequential processing on timeout.
     
     Args:
-        state_update_matrix: The LFSR state update matrix (not used directly, 
-                            coefficients extracted for workers)
+        state_update_matrix: The LFSR state update matrix (not used
+          directly, coefficients extracted for workers)
         state_vector_space: Vector space of all possible states
         gf_order: The field order
         output_file: Optional file object for output
@@ -1452,8 +1452,8 @@ def lfsr_sequence_mapper_parallel(
     them in parallel, then merges the results.
     
     Args:
-        state_update_matrix: The LFSR state update matrix (not used directly, 
-                            coefficients extracted for workers)
+        state_update_matrix: The LFSR state update matrix (not used
+          directly, coefficients extracted for workers)
         state_vector_space: Vector space of all possible states
         gf_order: The field order
         output_file: Optional file object for output
@@ -2112,9 +2112,10 @@ def lfsr_sequence_mapper_parallel_dynamic(
     """
     Dynamic parallel version of lfsr_sequence_mapper using shared task queue.
     
-    This implementation uses Option 1 (Shared Task Queue) from the dynamic threading
-    feasibility analysis. Workers pull batches of states from a shared queue dynamically,
-    enabling better load balancing compared to static chunk assignment.
+    This implementation uses Option 1 (Shared Task Queue) from the
+    dynamic threading feasibility analysis. Workers pull batches of
+    states from a shared queue dynamically, enabling better load
+    balancing compared to static chunk assignment.
     
     Args:
         state_update_matrix: The LFSR state update matrix
