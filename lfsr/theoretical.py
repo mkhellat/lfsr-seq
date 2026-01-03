@@ -13,7 +13,7 @@ from typing import Any, Dict, List, Optional, Tuple, Union
 from dataclasses import dataclass, field
 import math
 
-from sage.all import *
+from lfsr.sage_imports import *
 
 
 @dataclass

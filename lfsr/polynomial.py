@@ -11,7 +11,7 @@ and their orders over finite fields.
 import textwrap
 from typing import Any, Optional, TextIO, Union
 
-from sage.all import *
+from lfsr.sage_imports import *
 
 from lfsr.constants import FACTOR_DISPLAY_WIDTH, POLYNOMIAL_DISPLAY_WIDTH
 import math
