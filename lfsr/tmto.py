@@ -81,12 +81,10 @@ class HellmanTable:
     **Mathematical Foundation**:
     
     A Hellman table consists of m chains, each of length t. The table
-    covers approximately :math:`m \times t` states (with some overlap).
+    covers approximately m * t states (with some overlap).
     The time-memory trade-off is:
     
-    .. math::
-    
-       TM^2 = N^2
+    TM^2 = N^2
     
     where T is the time for online attack, M is the memory (table size),
     and N is the state space size (q^d for LFSR of degree d over GF(q)).
@@ -308,8 +306,8 @@ class RainbowTable:
     
     - **Rainbow Chain**: A chain where each step uses a different
       reduction function R_1, R_2, ..., R_t. The chain is:
-      :math:`S_0 \to f(S_0) \to R_1(f(S_0)) \to f(R_1(f(S_0))) \to
-      R_2(f(R_1(f(S_0)))) \to \ldots`
+      S_0 -> f(S_0) -> R_1(f(S_0)) -> f(R_1(f(S_0))) ->
+      R_2(f(R_1(f(S_0)))) -> ...
     
     - **Reduction Function Family**: A set of t different reduction
       functions {R_1, R_2, ..., R_t}, one for each step in the chain.
@@ -323,17 +321,14 @@ class RainbowTable:
     
     - **Table Lookup**: Similar to Hellman tables, but must try all
       reduction functions in reverse order. For target state S, we
-      check :math:`R_t(S)`, :math:`R_{t-1}(f(S))`,
-      :math:`R_{t-2}(f^2(S))`, etc.
+      check R_t(S), R_{t-1}(f(S)), R_{t-2}(f^2(S)), etc.
     
     **Mathematical Foundation**:
     
     Rainbow tables use t different reduction functions. A chain of
     length t is:
     
-    .. math::
-    
-       S_0 \to f(S_0) \to R_1(f(S_0)) \to f(R_1(f(S_0))) \to \ldots
+    S_0 -> f(S_0) -> R_1(f(S_0)) -> f(R_1(f(S_0))) -> ...
     
     This reduces collisions because merging chains requires
     collisions at the same step with the same reduction function,
@@ -653,7 +648,7 @@ def optimize_tmto_parameters(
       versa).
     
     - **Optimal Parameters**: Parameter values that minimize the
-      :math:`T \times M` product for a given success probability.
+      T * M product for a given success probability.
       These parameters provide the best trade-off between time and
       memory.
     
@@ -666,8 +661,7 @@ def optimize_tmto_parameters(
       collision rate.
     
     Args:
-        state_space_size: Size of the state space (:math:`q^d` for
-          LFSR)
+        state_space_size: Size of the state space (q^d for LFSR)
         available_memory: Available memory (number of states that
           can be stored)
         target_success_probability: Target success probability
@@ -679,7 +673,7 @@ def optimize_tmto_parameters(
         - chain_length: Optimal chain length
         - estimated_coverage: Estimated coverage
         - estimated_success_prob: Estimated success probability
-        - time_memory_product: :math:`T \times M` product
+        - time_memory_product: T * M product
     """
     # Simplified optimization
     # Full implementation would use more sophisticated algorithms
