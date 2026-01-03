@@ -325,12 +325,13 @@ def compute_correlation_coefficient(
     """
     Compute correlation coefficient between two binary sequences.
     
-    The correlation coefficient measures the linear relationship between two
-    sequences. For binary sequences, it's computed as:
+    The correlation coefficient measures the linear relationship
+    between two sequences. For binary sequences, it's computed as:
     
-    |rho| = 2·Pr[X = Y] - 1
+    :math:`|\rho| = 2 \cdot \Pr[X = Y] - 1`
     
-    where Pr[X = Y] is the probability that corresponding bits match.
+    where :math:`\Pr[X = Y]` is the probability that corresponding
+    bits match.
     
     A correlation coefficient of:
     - +1: Perfect positive correlation (sequences identical)
@@ -367,7 +368,7 @@ def compute_correlation_coefficient(
     matches = sum(1 for a, b in zip(sequence1, sequence2) if a == b)
     match_ratio = matches / n
     
-    # Correlation coefficient: |rho| = 2·Pr[match] - 1
+    # Correlation coefficient: |rho| = 2 * Pr[match] - 1
     correlation = 2.0 * match_ratio - 1.0
     
     # Statistical significance test (two-tailed binomial test)
@@ -431,16 +432,18 @@ def estimate_attack_success_probability(
     
     - The correlation coefficient strength (|rho|)
     - The amount of keystream available (n)
-    - The statistical significance level (α)
+    - The statistical significance level (:math:`\alpha`)
     
-    For a given correlation coefficient |rho| and keystream length n, the detection
-    probability increases with n and |rho|. Using normal approximation:
+    For a given correlation coefficient |rho| and keystream length
+    n, the detection probability increases with n and |rho|. Using
+    normal approximation:
     
     .. math::
     
        P_{\\text{detect}} = 1 - \\Phi\\left(\\frac{z_{\\alpha/2} - |\\rho|\\sqrt{n}}{\\sqrt{1-\\rho^2}}\\right)
     
-    where :math:`z_{\\alpha/2}` is the critical value for significance level α.
+    where :math:`z_{\\alpha/2}` is the critical value for
+    significance level :math:`\alpha`.
     
     **Recovery Probability**:
     
@@ -810,24 +813,28 @@ def compute_algebraic_immunity(
     """
     Compute the algebraic immunity of a Boolean function.
     
-    The **algebraic immunity** AI(f) of a Boolean function f is the minimum
-    degree of a non-zero annihilator of f or its complement (1+f). An
-    **annihilator** is a non-zero function g such that f·g = 0 or (1+f)·g = 0.
+    The **algebraic immunity** AI(f) of a Boolean function f is the
+    minimum degree of a non-zero annihilator of f or its complement
+    (1+f). An **annihilator** is a non-zero function g such that
+    :math:`f \cdot g = 0` or :math:`(1+f) \cdot g = 0`.
     
     **Key Terminology**:
     
     - **Algebraic Immunity**: A security measure for Boolean functions. Higher
       algebraic immunity makes functions more resistant to algebraic attacks.
-      The maximum possible algebraic immunity for a function of n variables is
-      ⌈n/2⌉.
+      The maximum possible algebraic immunity for a function of n
+      variables is :math:`\lceil n/2 \rceil`.
     
-    - **Annihilator**: A non-zero Boolean function g such that f·g = 0 (g
-      annihilates f) or (1+f)·g = 0 (g annihilates the complement of f).
-      Finding low-degree annihilators is the basis of algebraic attacks.
+    - **Annihilator**: A non-zero Boolean function g such that
+      :math:`f \cdot g = 0` (g annihilates f) or
+      :math:`(1+f) \cdot g = 0` (g annihilates the complement of f).
+      Finding low-degree annihilators is the basis of algebraic
+      attacks.
     
-    - **Boolean Function**: A function f: {0,1}^n → {0,1} that maps n binary
-      inputs to a single binary output. In cryptography, filtering functions
-      and combining functions are Boolean functions.
+    - **Boolean Function**: A function :math:`f: \{0,1\}^n \to \{0,1\}`
+      that maps n binary inputs to a single binary output. In
+      cryptography, filtering functions and combining functions are
+      Boolean functions.
     
     - **Filtering Function**: A Boolean function applied to LFSR state bits to
       produce the output. The algebraic immunity of the filtering function
@@ -838,8 +845,9 @@ def compute_algebraic_immunity(
       represented as a polynomial where variables are combined with XOR and
       AND operations.
     
-    - **Degree of a Function**: The highest degree of any monomial in the ANF
-      representation. For example, f(x,y,z) = x·y + z has degree 2.
+    - **Degree of a Function**: The highest degree of any monomial
+      in the ANF representation. For example,
+      :math:`f(x,y,z) = x \cdot y + z` has degree 2.
     
     **Mathematical Foundation**:
     
@@ -854,15 +862,19 @@ def compute_algebraic_immunity(
     
     **Security Implications**:
     
-    - Functions with low algebraic immunity are vulnerable to algebraic attacks
-    - Maximum algebraic immunity for n variables is ⌈n/2⌉
-    - Functions achieving maximum algebraic immunity are called "optimal"
-    - Algebraic immunity is a key security metric for stream cipher design
+    - Functions with low algebraic immunity are vulnerable to
+      algebraic attacks
+    - Maximum algebraic immunity for n variables is
+      :math:`\lceil n/2 \rceil`
+    - Functions achieving maximum algebraic immunity are called
+      "optimal"
+    - Algebraic immunity is a key security metric for stream cipher
+      design
     
     **Algorithm**:
     
     1. Generate truth table for the function
-    2. For each degree d from 1 to ⌈n/2⌉:
+    2. For each degree d from 1 to :math:`\lceil n/2 \rceil`:
        - Search for annihilators of degree d
        - Check both f and (1+f)
     3. Return the minimum degree found
@@ -877,7 +889,8 @@ def compute_algebraic_immunity(
         - algebraic_immunity: The algebraic immunity value
         - annihilators_found: List of annihilators found
         - optimal: Whether function achieves maximum algebraic immunity
-        - max_possible: Maximum possible algebraic immunity (⌈n/2⌉)
+        - max_possible: Maximum possible algebraic immunity
+          (:math:`\lceil n/2 \rceil`)
     
     Example:
         >>> def majority(a, b, c):
@@ -1166,9 +1179,10 @@ def cube_attack(
     - **Cube Tester**: An algorithm to find useful cubes. A cube is useful if
       its superpoly has low degree and depends on key variables.
     
-    - **Maxterm**: A term in the Algebraic Normal Form (ANF) that can be used
-      to construct a cube. If a term x_{i_1}·...·x_{i_k} appears in the ANF,
-      then {x_{i_1}, ..., x_{i_k}} is a potential cube.
+    - **Maxterm**: A term in the Algebraic Normal Form (ANF) that
+      can be used to construct a cube. If a term
+      :math:`x_{i_1} \cdot \ldots \cdot x_{i_k}` appears in the ANF,
+      then :math:`\{x_{i_1}, \ldots, x_{i_k}\}` is a potential cube.
     
     - **Degree of Superpoly**: The degree of the polynomial obtained by
       summing over a cube. Lower degree superpolies are easier to exploit.
