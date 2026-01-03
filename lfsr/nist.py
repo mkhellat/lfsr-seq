@@ -1709,7 +1709,8 @@ def random_excursions_test(sequence: List[int]) -> NISTTestResult:
     from the expected number of visits to various states in the
     random walk.
     
-    **What it measures**: Distribution of visits to states in a random walk.
+    **What it measures**: Distribution of visits to states in a
+    random walk.
     
     **How it works**:
     1. Convert sequence to -1, +1 (0 -> -1, 1 -> +1)
@@ -1721,7 +1722,8 @@ def random_excursions_test(sequence: List[int]) -> NISTTestResult:
     
     **Interpretation**:
     - Random sequences should have expected distribution of state visits
-    - If p-value < 0.01, the sequence shows non-random state visit distribution
+    - If p-value < 0.01, the sequence shows non-random state visit
+      distribution
     - This test detects sequences with bias in random walk behavior
     
     **Minimum sequence length**: 1000 bits (recommended: 10000+ bits)
