@@ -477,13 +477,14 @@ def estimate_attack_success_probability(
     - The correlation is significant (|rho| > threshold)
     
     Args:
-        correlation_coefficient: Measured correlation coefficient (-1 to +1)
+        correlation_coefficient: Measured correlation coefficient
+          (-1 to +1)
         keystream_length: Number of keystream bits available
         lfsr_degree: Degree of the target LFSR
         field_order: Field order (default: 2 for binary)
         significance_level: Statistical significance level (default: 0.05)
-        target_success_probability: Target success probability for estimation
-            (default: 0.95)
+        target_success_probability: Target success probability for
+          estimation (default: 0.95)
     
     Returns:
         Dictionary with:
@@ -606,7 +607,8 @@ def siegenthaler_correlation_attack(
     
     Args:
         combination_generator: The combination generator being attacked
-        keystream: Observed keystream bits (output of combination generator)
+        keystream: Observed keystream bits (output of combination
+          generator)
         target_lfsr_index: Index of LFSR to attack (0-based)
         significance_level: Statistical significance level (default: 0.05)
         max_sequence_length: Maximum length of LFSR sequence to generate
@@ -634,7 +636,8 @@ def siegenthaler_correlation_attack(
         >>> result = siegenthaler_correlation_attack(gen, keystream, target_lfsr_index=0)
         >>> 
         >>> if result.attack_successful:
-        ...     print(f"Attack succeeded! Correlation: {result.correlation_coefficient:.4f}")
+        ...     print(f"Attack succeeded! Correlation: "
+        ...           f"{result.correlation_coefficient:.4f}")
     """
     if target_lfsr_index < 0 or target_lfsr_index >= len(combination_generator.lfsrs):
         raise ValueError(f"Invalid LFSR index: {target_lfsr_index}")
