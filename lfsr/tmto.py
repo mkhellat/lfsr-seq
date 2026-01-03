@@ -68,13 +68,15 @@ class HellmanTable:
     function to target, checking if result is a chain endpoint, and
     if found, reconstructing chain to find target.
 
-    **False Alarm** occurs when a chain appears to contain the target state but
-    doesn't. This occurs due to collisions in the reduction function. False
-    alarms must be verified by reconstructing the chain.
+    **False Alarm** occurs when a chain appears to contain the
+    target state but doesn't. This occurs due to collisions in the
+    reduction function. False alarms must be verified by
+    reconstructing the chain.
 
-    **Coverage** is the fraction of the state space covered by the table.
-    Coverage = (number of unique states in table) / (total state space size).
-    Higher coverage increases success probability but requires more memory.
+    **Coverage** is the fraction of the state space covered by the
+    table. Coverage = (number of unique states in table) / (total
+    state space size). Higher coverage increases success
+    probability but requires more memory.
     
     **Mathematical Foundation**:
     
@@ -102,13 +104,15 @@ class HellmanTable:
 
     **Advantages**:
 
-    Faster state recovery after precomputation. Can attack multiple targets
-    using same table. Demonstrates practical attack scenarios.
+    Faster state recovery after precomputation. Can attack multiple
+    targets using same table. Demonstrates practical attack
+    scenarios.
 
     **Limitations**:
 
-    Requires significant memory for large state spaces. Precomputation can be
-    time-consuming. False alarms require verification. Coverage may be incomplete.
+    Requires significant memory for large state spaces.
+    Precomputation can be time-consuming. False alarms require
+    verification. Coverage may be incomplete.
     
     Attributes:
         chain_count: Number of chains in the table
@@ -130,7 +134,8 @@ class HellmanTable:
         Args:
             chain_count: Number of chains to generate
             chain_length: Length of each chain
-            distinguished_bits: Number of leading zero bits for distinguished points
+            distinguished_bits: Number of leading zero bits for
+              distinguished points
         """
         self.chain_count = chain_count
         self.chain_length = chain_length
@@ -361,7 +366,8 @@ class RainbowTable:
         Args:
             chain_count: Number of chains to generate
             chain_length: Length of each chain
-            distinguished_bits: Number of leading zero bits for distinguished points
+            distinguished_bits: Number of leading zero bits for
+              distinguished points
         """
         self.chain_count = chain_count
         self.chain_length = chain_length
@@ -529,20 +535,23 @@ def tmto_attack(
     """
     Perform time-memory trade-off attack on LFSR.
     
-    This function performs a TMTO attack using either Hellman tables or
-    Rainbow tables to recover the initial state from an observed state.
+    This function performs a TMTO attack using either Hellman
+    tables or Rainbow tables to recover the initial state from an
+    observed state.
     
     **Key Terminology**:
     
-    - **Time-Memory Trade-Off (TMTO)**: A cryptanalytic technique that
-      precomputes tables to enable faster attacks. The trade-off is between
-      precomputation time/memory and online attack time.
+    - **Time-Memory Trade-Off (TMTO)**: A cryptanalytic technique
+      that precomputes tables to enable faster attacks. The trade-off
+      is between precomputation time/memory and online attack time.
     
-    - **Precomputation**: The initial phase where tables are generated. This
-      is done once and can be reused for multiple attacks.
+    - **Precomputation**: The initial phase where tables are
+      generated. This is done once and can be reused for multiple
+      attacks.
     
-    - **Online Attack**: The phase where the precomputed table is used to
-      recover states. This is much faster than computing states on-demand.
+    - **Online Attack**: The phase where the precomputed table is
+      used to recover states. This is much faster than computing
+      states on-demand.
     
     Args:
         lfsr_config: LFSR configuration

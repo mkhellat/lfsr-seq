@@ -863,7 +863,8 @@ def non_overlapping_template_matching_test(
     
     Args:
         sequence: Binary sequence (list of 0s and 1s)
-        template: Template pattern to search for (default: 9-bit pattern ending in 1)
+        template: Template pattern to search for (default: 9-bit
+          pattern ending in 1)
         block_size: Size of each block (default: 8)
     
     Returns:
@@ -959,8 +960,9 @@ def overlapping_template_matching_test(
     """
     Test 8: Overlapping Template Matching Test.
     
-    **Purpose**: Similar to Test 7, but searches for overlapping occurrences of
-    a template pattern. Detects pattern clustering that would indicate non-randomness.
+    **Purpose**: Similar to Test 7, but searches for overlapping
+    occurrences of a template pattern. Detects pattern clustering
+    that would indicate non-randomness.
     
     **What it measures**: Frequency of overlapping m-bit patterns in blocks.
     
@@ -972,12 +974,14 @@ def overlapping_template_matching_test(
         using chi-square test
     
     **Interpretation**:
-    - Random sequences should have template occurrences distributed according to theory
+    - Random sequences should have template occurrences
+      distributed according to theory
     - If p-value < 0.01, the sequence shows pattern clustering
     - This test detects sequences with clustered patterns
     
     **Parameters**:
-    - template: The m-bit pattern to search for (default: [1, 1, 1, 1, 1, 1, 1, 1, 1])
+    - template: The m-bit pattern to search for (default:
+      [1, 1, 1, 1, 1, 1, 1, 1, 1])
     - block_size (M): Size of each block (default: 1032)
     
     **Minimum sequence length**: :math:`M \times 8` (recommended:
@@ -1087,11 +1091,12 @@ def maurers_universal_test(sequence: List[int], block_size: int = 6, init_blocks
     """
     Test 9: Maurer's "Universal Statistical" Test.
     
-    **Purpose**: Tests whether the sequence can be significantly compressed without
-    loss of information. A random sequence should not be compressible.
+    **Purpose**: Tests whether the sequence can be significantly
+    compressed without loss of information. A random sequence
+    should not be compressible.
     
-    **What it measures**: Compressibility of the sequence (ability to predict future
-    bits from past bits).
+    **What it measures**: Compressibility of the sequence (ability
+    to predict future bits from past bits).
     
     **How it works**:
     1. Divide the sequence into blocks of L bits
@@ -1237,10 +1242,12 @@ def linear_complexity_test(sequence: List[int], block_size: int = 500) -> NISTTe
     """
     Test 10: Linear Complexity Test.
     
-    **Purpose**: Tests whether the sequence is complex enough to be considered random.
-    Sequences with low linear complexity are predictable and non-random.
+    **Purpose**: Tests whether the sequence is complex enough to be
+    considered random. Sequences with low linear complexity are
+    predictable and non-random.
     
-    **What it measures**: Linear complexity of blocks using the Berlekamp-Massey algorithm.
+    **What it measures**: Linear complexity of blocks using the
+    Berlekamp-Massey algorithm.
     
     **How it works**:
     1. Divide the sequence into N blocks of M bits each
@@ -1248,7 +1255,8 @@ def linear_complexity_test(sequence: List[int], block_size: int = 500) -> NISTTe
     3. Compute deviations from expected complexity:
        :math:`T_i = (-1)^M \cdot (LC_i - \mu)`
     4. Count how many T_i fall into each category
-    5. Compare observed frequencies with expected frequencies using chi-square test
+     5. Compare observed frequencies with expected frequencies
+        using chi-square test
     
     **Interpretation**:
     - Random sequences should have high linear complexity
@@ -1358,8 +1366,9 @@ def serial_test(sequence: List[int], block_size: int = 2) -> NISTTestResult:
     """
     Test 11: Serial Test.
     
-    **Purpose**: Tests whether the number of occurrences of 2^m m-bit overlapping
-    patterns is approximately the same as would be expected for a random sequence.
+    **Purpose**: Tests whether the number of occurrences of
+    :math:`2^m` m-bit overlapping patterns is approximately the same
+    as would be expected for a random sequence.
     
     **What it measures**: Frequency distribution of m-bit overlapping patterns.
     
@@ -1486,7 +1495,8 @@ def approximate_entropy_test(sequence: List[int], block_size: int = 2) -> NISTTe
     Test 12: Approximate Entropy Test.
     
     **Purpose**: Tests the frequency of all possible overlapping m-bit patterns.
-    Compares the frequency of overlapping blocks of two consecutive lengths (m and m+1)
+    Compares the frequency of overlapping blocks of two consecutive
+    lengths (m and m+1)
     against the expected result for a random sequence.
     
     **What it measures**: Entropy (randomness) of overlapping patterns.
@@ -1609,8 +1619,10 @@ def cumulative_sums_test(sequence: List[int], mode: str = "forward") -> NISTTest
     4. Compute p-value using normal distribution approximation
     
     **Interpretation**:
-    - Random sequences should have cumulative sums that stay close to zero
-    - If p-value < 0.01, the sequence shows significant bias in cumulative sums
+    - Random sequences should have cumulative sums that stay
+      close to zero
+    - If p-value < 0.01, the sequence shows significant bias in
+      cumulative sums
     - This test detects sequences with long runs or trends
     
     **Parameters**:
