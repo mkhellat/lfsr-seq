@@ -256,17 +256,13 @@ def compute_period_via_factorization(
     
     If the characteristic polynomial factors as:
     
-    .. math::
+    P(t) = product_{i=1}^{k} f_i(t)^{e_i}
     
-       P(t) = \\prod_{i=1}^{k} f_i(t)^{e_i}
+    where f_i(t) are irreducible factors, then the period is:
     
-    where :math:`f_i(t)` are irreducible factors, then the period is:
+    period = lcm(ord(f_1(t)), ..., ord(f_k(t)))
     
-    .. math::
-    
-       \\text{period} = \\text{lcm}(\\text{ord}(f_1(t)), \\ldots, \\text{ord}(f_k(t)))
-    
-    where :math:`\\text{ord}(f_i(t))` is the order of the irreducible factor.
+    where ord(f_i(t)) is the order of the irreducible factor.
     
     **Key Terminology**:
     
