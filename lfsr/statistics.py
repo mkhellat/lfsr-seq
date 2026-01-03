@@ -14,7 +14,7 @@ import math
 from collections import Counter
 from typing import Dict, List, Optional, Tuple, Union
 
-from sage.all import *
+from lfsr.sage_imports import *
 
 
 def frequency_test(sequence: List[int], gf_order: int) -> Dict[str, float]:

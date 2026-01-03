@@ -10,7 +10,7 @@ including the Berlekamp-Massey algorithm and linear complexity calculation.
 
 from typing import Any, List, Optional, Tuple
 
-from sage.all import *
+from lfsr.sage_imports import *
 
 
 def berlekamp_massey(sequence: List[int], gf_order: int) -> Tuple[Any, int]:

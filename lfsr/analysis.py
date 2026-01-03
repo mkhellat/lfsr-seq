@@ -15,7 +15,7 @@ import textwrap
 import threading
 from typing import Any, Dict, List, Optional, Set, TextIO, Tuple
 
-from sage.all import *
+from lfsr.sage_imports import *
 
 from lfsr.constants import PROGRESS_BAR_WIDTH, TABLE_ROW_WIDTH
 
