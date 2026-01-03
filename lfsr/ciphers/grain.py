@@ -4,15 +4,17 @@
 """
 Grain Family Stream Cipher Analysis
 
-This module provides analysis capabilities for the Grain family of stream ciphers,
-including Grain-128 and Grain-128a. Grain uses one LFSR and one NFSR (Non-Linear
-Feedback Shift Register) with a filter function.
+This module provides analysis capabilities for the Grain family of
+stream ciphers, including Grain-128 and Grain-128a. Grain uses one
+LFSR and one NFSR (Non-Linear Feedback Shift Register) with a filter
+function.
 
 **Historical Context**:
 
-Grain was designed by Martin Hell, Thomas Johansson, and Willi Meier as part of
-the eSTREAM project. Grain-128 and Grain-128a were selected as eSTREAM finalists
-in the hardware category. Grain-128a provides authenticated encryption.
+Grain was designed by Martin Hell, Thomas Johansson, and Willi Meier
+as part of the eSTREAM project. Grain-128 and Grain-128a were
+selected as eSTREAM finalists in the hardware category. Grain-128a
+provides authenticated encryption.
 
 **Security Status**:
 
