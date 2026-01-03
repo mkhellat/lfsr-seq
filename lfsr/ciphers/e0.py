@@ -4,9 +4,9 @@
 """
 E0 Stream Cipher Analysis
 
-This module provides analysis capabilities for the E0 stream cipher, which is
-used in Bluetooth encryption. E0 uses four LFSRs with a non-linear finite state
-machine (FSM) combiner.
+This module provides analysis capabilities for the E0 stream cipher,
+which is used in Bluetooth encryption. E0 uses four LFSRs with a
+non-linear finite state machine (FSM) combiner.
 
 **Historical Context**:
 

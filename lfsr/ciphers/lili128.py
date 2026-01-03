@@ -4,9 +4,10 @@
 """
 LILI-128 Stream Cipher Analysis
 
-This module provides analysis capabilities for the LILI-128 stream cipher, which
-is an academic design demonstrating clock-controlled LFSR design. LILI-128 uses
-two LFSRs where one controls the clocking of the other.
+This module provides analysis capabilities for the LILI-128 stream
+cipher, which is an academic design demonstrating clock-controlled
+LFSR design. LILI-128 uses two LFSRs where one controls the clocking
+of the other.
 
 **Historical Context**:
 

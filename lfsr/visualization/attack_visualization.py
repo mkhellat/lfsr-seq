@@ -4,8 +4,8 @@
 """
 Attack visualization functions.
 
-This module provides functions to visualize cryptanalytic attacks, including
-correlation attacks, algebraic attacks, and attack progress.
+This module provides functions to visualize cryptanalytic attacks,
+including correlation attacks, algebraic attacks, and attack progress.
 """
 
 from typing import Any, Dict, List, Optional, Tuple
