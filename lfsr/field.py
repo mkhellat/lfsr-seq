@@ -4,8 +4,8 @@
 """
 Finite field operations and validation for LFSR analysis.
 
-This module provides functions for validating and working with finite fields
-(Galois fields) used in LFSR analysis.
+This module provides functions for validating and working with
+finite fields (Galois fields) used in LFSR analysis.
 """
 
 import sys
