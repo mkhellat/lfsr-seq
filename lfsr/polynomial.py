@@ -87,7 +87,7 @@ def is_primitive_polynomial(
         True if the polynomial is primitive, False otherwise
 
     Example:
-        >>> from sage.all import *
+        >>> from lfsr.sage_imports import *
         >>> F = GF(2)
         >>> R = PolynomialRing(F, "t")
         >>> p = R("t^4 + t + 1")

@@ -112,7 +112,7 @@ def analyze_irreducible_properties(
         IrreduciblePolynomialAnalysis with comprehensive results
     
     Example:
-        >>> from sage.all import *
+        >>> from lfsr.sage_imports import *
         >>> F = GF(2)
         >>> R = PolynomialRing(F, "t")
         >>> p = R("t^4 + t^3 + t + 1")
