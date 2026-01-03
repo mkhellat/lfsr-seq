@@ -95,15 +95,11 @@ def analyze_irreducible_properties(
     
     For a polynomial P(t) over GF(q) that factors as:
     
-    .. math::
-    
-       P(t) = \\prod_{i=1}^{k} f_i(t)^{e_i}
+    P(t) = product_{i=1}^{k} f_i(t)^{e_i}
     
     where f_i(t) are irreducible factors, the order of P(t) is:
     
-    .. math::
-    
-       \\text{ord}(P(t)) = \\text{lcm}(\\text{ord}(f_1(t)), \\ldots, \\text{ord}(f_k(t)))
+    ord(P(t)) = lcm(ord(f_1(t)), ..., ord(f_k(t)))
     
     This relationship is fundamental to understanding LFSR period structure.
     
