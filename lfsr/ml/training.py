@@ -12,7 +12,7 @@ from typing import Any, Dict, List, Optional, Tuple
 import random
 from pathlib import Path
 
-from sage.all import *
+from lfsr.sage_imports import *
 
 from lfsr.ml.base import extract_polynomial_features
 from lfsr.ml.period_prediction import PeriodPredictionModel

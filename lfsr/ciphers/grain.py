@@ -34,7 +34,7 @@ Grain is considered secure:
 
 from typing import List, Optional
 
-from sage.all import *
+from lfsr.sage_imports import *
 
 from lfsr.attacks import LFSRConfig
 from lfsr.ciphers.base import (

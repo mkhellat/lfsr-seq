@@ -11,7 +11,7 @@ and sequences for use in machine learning models.
 from typing import Any, Dict, List, Optional
 import math
 
-from sage.all import *
+from lfsr.sage_imports import *
 
 
 def extract_polynomial_features(
