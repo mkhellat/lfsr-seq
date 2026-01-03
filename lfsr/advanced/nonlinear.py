@@ -58,7 +58,7 @@ S_i AND S_j.
 
 from typing import List, Optional, Callable
 
-from sage.all import *
+from lfsr.sage_imports import *
 
 from lfsr.attacks import LFSRConfig
 from lfsr.advanced.base import (
