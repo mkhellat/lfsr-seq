@@ -84,7 +84,7 @@ from collections import Counter
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional, Tuple, Any
 
-from sage.all import *
+from lfsr.sage_imports import *
 
 # Import statistical distributions after sage.all to avoid conflicts
 try:

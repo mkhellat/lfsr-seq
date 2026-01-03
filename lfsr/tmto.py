@@ -15,7 +15,7 @@ import random
 from dataclasses import dataclass, field
 from typing import Any, Callable, Dict, List, Optional, Tuple
 
-from sage.all import *
+from lfsr.sage_imports import *
 
 from lfsr.attacks import LFSRConfig
 from lfsr.core import build_state_update_matrix
