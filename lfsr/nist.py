@@ -2,46 +2,54 @@
 # -*- coding: utf-8 -*-
 
 """
-NIST SP 800-22 Statistical Test Suite for Random and Pseudorandom Number Generators.
+NIST SP 800-22 Statistical Test Suite for Random and Pseudorandom
+Number Generators.
 
-This module implements the NIST SP 800-22 test suite, which is an industry-standard
-collection of 15 statistical tests for evaluating the randomness of binary sequences.
-These tests are widely used in cryptography to assess the quality of random number
-generators, pseudorandom number generators, and stream cipher outputs.
+This module implements the NIST SP 800-22 test suite, which is an
+industry-standard collection of 15 statistical tests for evaluating
+the randomness of binary sequences. These tests are widely used in
+cryptography to assess the quality of random number generators,
+pseudorandom number generators, and stream cipher outputs.
 
 Key Concepts:
 -------------
 
-**NIST SP 800-22**: A special publication by the National Institute of Standards and
-Technology (NIST) that defines 15 statistical tests for randomness. It is the
-de facto standard for evaluating cryptographic random number generators.
+**NIST SP 800-22**: A special publication by the National Institute
+of Standards and Technology (NIST) that defines 15 statistical tests
+for randomness. It is the de facto standard for evaluating
+cryptographic random number generators.
 
-**Statistical Test**: A mathematical procedure that evaluates whether a sequence
-exhibits properties expected of a random sequence. Each test focuses on a specific
-aspect of randomness (e.g., balance, patterns, complexity).
+**Statistical Test**: A mathematical procedure that evaluates
+whether a sequence exhibits properties expected of a random sequence.
+Each test focuses on a specific aspect of randomness (e.g., balance,
+patterns, complexity).
 
-**P-value**: The probability that a perfect random number generator would produce a
-sequence less random than the sequence being tested. A small p-value (< 0.01) indicates
-strong evidence of non-randomness, while a large p-value (>= 0.01) suggests the sequence
-appears random.
+**P-value**: The probability that a perfect random number generator
+would produce a sequence less random than the sequence being tested.
+A small p-value (< 0.01) indicates strong evidence of non-randomness,
+while a large p-value (>= 0.01) suggests the sequence appears random.
 
-**Significance Level (α)**: The threshold for rejecting the null hypothesis (that the
-sequence is random). Common values are 0.01 (1%) or 0.05 (5%). If p-value < α, the test
-fails (sequence appears non-random).
+**Significance Level** (:math:`\alpha`): The threshold for rejecting
+the null hypothesis (that the sequence is random). Common values are
+0.01 (1%) or 0.05 (5%). If p-value < :math:`\alpha`, the test fails
+(sequence appears non-random).
 
-**Null Hypothesis**: The hypothesis that the sequence is random. Statistical tests are
-designed to detect deviations from randomness. We assume randomness and look for evidence
-against it.
+**Null Hypothesis**: The hypothesis that the sequence is random.
+Statistical tests are designed to detect deviations from randomness.
+We assume randomness and look for evidence against it.
 
-**Type I Error (False Positive)**: Rejecting a random sequence as non-random. This occurs
-when p-value < α even though the sequence is actually random.
+**Type I Error (False Positive)**: Rejecting a random sequence as
+non-random. This occurs when p-value < :math:`\alpha` even though the
+sequence is actually random.
 
-**Type II Error (False Negative)**: Accepting a non-random sequence as random. This occurs
-when p-value >= α even though the sequence is actually non-random.
+**Type II Error (False Negative)**: Accepting a non-random sequence
+as random. This occurs when p-value >= :math:`\alpha` even though the
+sequence is actually non-random.
 
-**Test Suite**: A collection of multiple tests applied to the same sequence. A sequence
-should pass most (or all) tests to be considered random. A single test failure does not
-necessarily mean the sequence is non-random.
+**Test Suite**: A collection of multiple tests applied to the same
+sequence. A sequence should pass most (or all) tests to be considered
+random. A single test failure does not necessarily mean the sequence
+is non-random.
 
 Example:
 --------
@@ -210,7 +218,7 @@ def frequency_test(sequence: List[int]) -> NISTTestResult:
     s_obs = (n1 - n0) / math.sqrt(n)
     
     # Compute p-value using normal distribution (two-tailed test)
-    # P-value = 2 * (1 - Φ(|S_obs|))
+    # P-value = 2 * (1 - Phi(|S_obs|))
     p_value = 2.0 * norm.sf(abs(s_obs))
     p_value = max(0.0, min(1.0, p_value))  # Clamp to [0, 1]
     
@@ -243,8 +251,10 @@ def block_frequency_test(sequence: List[int], block_size: int = 128) -> NISTTest
     
     **How it works**:
     1. Divide the sequence into N blocks of M bits each
-    2. For each block, compute the proportion of ones: π_i = (number of ones) / M
-    3. Compute chi-square statistic: χ² = 4M * Σ(π_i - 0.5)²
+    2. For each block, compute the proportion of ones:
+       :math:`\pi_i = \text{number of ones} / M`
+    3. Compute chi-square statistic:
+       :math:`\chi^2 = 4M \sum_i (\pi_i - 0.5)^2`
     4. Compute p-value using chi-square distribution with N degrees of freedom
     
     **Interpretation**:
@@ -291,7 +301,7 @@ def block_frequency_test(sequence: List[int], block_size: int = 128) -> NISTTest
         proportions.append(pi)
     
     # Compute chi-square statistic
-    # χ² = 4M * Σ(π_i - 0.5)²
+    # chi^2 = 4M * sum((pi_i - 0.5)^2)
     chi_square = 4.0 * M * sum((pi - 0.5) ** 2 for pi in proportions)
     
     # Compute p-value using chi-square distribution with N degrees of freedom
@@ -567,7 +577,8 @@ def binary_matrix_rank_test(sequence: List[int], matrix_rows: int = 32, matrix_c
     **What it measures**: Linear independence of binary matrices formed from the sequence.
     
     **How it works**:
-    1. Divide the sequence into N matrices of size M×Q
+    1. Divide the sequence into N matrices of size
+       :math:`M \times Q`
     2. For each matrix, compute its rank (over GF(2))
     3. Count how many matrices have full rank (M), rank (M-1), or lower rank
     4. Compare observed frequencies with expected frequencies using chi-square test
@@ -826,7 +837,8 @@ def non_overlapping_template_matching_test(
     - template: The m-bit pattern to search for (default: [0, 0, 0, 0, 0, 0, 0, 0, 1])
     - block_size (M): Size of each block (default: 8)
     
-    **Minimum sequence length**: M × 10 (recommended: M × 100)
+    **Minimum sequence length**: :math:`M \times 10` (recommended:
+    :math:`M \times 100`)
     
     Args:
         sequence: Binary sequence (list of 0s and 1s)
@@ -946,7 +958,8 @@ def overlapping_template_matching_test(
     - template: The m-bit pattern to search for (default: [1, 1, 1, 1, 1, 1, 1, 1, 1])
     - block_size (M): Size of each block (default: 1032)
     
-    **Minimum sequence length**: M × 8 (recommended: M × 100)
+    **Minimum sequence length**: :math:`M \times 8` (recommended:
+    :math:`M \times 100`)
     
     Args:
         sequence: Binary sequence (list of 0s and 1s)
@@ -1074,7 +1087,8 @@ def maurers_universal_test(sequence: List[int], block_size: int = 6, init_blocks
     - block_size (L): Size of each block (default: 6)
     - init_blocks (Q): Number of initialization blocks (default: 10)
     
-    **Minimum sequence length**: L × (Q + K) where K >= 1000 (recommended: L × 2000)
+    **Minimum sequence length**: :math:`L \times (Q + K)` where
+    :math:`K \geq 1000` (recommended: :math:`L \times 2000`)
     
     Args:
         sequence: Binary sequence (list of 0s and 1s)
@@ -1209,7 +1223,8 @@ def linear_complexity_test(sequence: List[int], block_size: int = 500) -> NISTTe
     **How it works**:
     1. Divide the sequence into N blocks of M bits each
     2. For each block, compute the linear complexity using Berlekamp-Massey
-    3. Compute deviations from expected complexity: T_i = (-1)^M * (LC_i - μ)
+    3. Compute deviations from expected complexity:
+       :math:`T_i = (-1)^M \cdot (LC_i - \mu)`
     4. Count how many T_i fall into each category
     5. Compare observed frequencies with expected frequencies using chi-square test
     
@@ -1221,7 +1236,8 @@ def linear_complexity_test(sequence: List[int], block_size: int = 500) -> NISTTe
     **Parameters**:
     - block_size (M): Size of each block (default: 500)
     
-    **Minimum sequence length**: M × 200 (recommended: M × 1000)
+    **Minimum sequence length**: :math:`M \times 200` (recommended:
+    :math:`M \times 1000`)
     
     Args:
         sequence: Binary sequence (list of 0s and 1s)
@@ -1258,10 +1274,11 @@ def linear_complexity_test(sequence: List[int], block_size: int = 500) -> NISTTe
         lc = linear_complexity(block, 2)
         linear_complexities.append(lc)
     
-    # Expected linear complexity: μ = M/2 + (9 + (-1)^(M+1)) / 36 - (M/3 + 2/9) / 2^M
+    # Expected linear complexity: mu = M/2 + (9 + (-1)^(M+1)) / 36
+    # - (M/3 + 2/9) / 2^M
     mu = M / 2.0 + (9.0 + ((-1) ** (M + 1))) / 36.0 - (M / 3.0 + 2.0 / 9.0) / (2 ** M)
     
-    # Compute deviations: T_i = (-1)^M * (LC_i - μ)
+    # Compute deviations: T_i = (-1)^M * (LC_i - mu)
     deviations = [((-1) ** M) * (lc - mu) for lc in linear_complexities]
     
     # Categorize deviations
@@ -1339,7 +1356,8 @@ def serial_test(sequence: List[int], block_size: int = 2) -> NISTTestResult:
     **Parameters**:
     - block_size (m): Pattern length (default: 2)
     
-    **Minimum sequence length**: 2^m × 100 (recommended: 2^m × 1000)
+    **Minimum sequence length**: :math:`2^m \times 100` (recommended:
+    :math:`2^m \times 1000`)
     
     Args:
         sequence: Binary sequence (list of 0s and 1s)
@@ -1466,7 +1484,8 @@ def approximate_entropy_test(sequence: List[int], block_size: int = 2) -> NISTTe
     **Parameters**:
     - block_size (m): Pattern length (default: 2)
     
-    **Minimum sequence length**: 2^m × 10 (recommended: 2^m × 100)
+    **Minimum sequence length**: :math:`2^m \times 10` (recommended:
+    :math:`2^m \times 100`)
     
     Args:
         sequence: Binary sequence (list of 0s and 1s)
