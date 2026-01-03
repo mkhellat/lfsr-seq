@@ -29,9 +29,9 @@ would produce a sequence less random than the sequence being tested.
 A small p-value (< 0.01) indicates strong evidence of non-randomness,
 while a large p-value (>= 0.01) suggests the sequence appears random.
 
-**Significance Level** (:math:`\alpha`): The threshold for rejecting
+**Significance Level** (alpha): The threshold for rejecting
 the null hypothesis (that the sequence is random). Common values are
-0.01 (1%) or 0.05 (5%). If p-value < :math:`\alpha`, the test fails
+0.01 (1%) or 0.05 (5%). If p-value < alpha, the test fails
 (sequence appears non-random).
 
 **Null Hypothesis**: The hypothesis that the sequence is random.
@@ -39,11 +39,11 @@ Statistical tests are designed to detect deviations from randomness.
 We assume randomness and look for evidence against it.
 
 **Type I Error (False Positive)**: Rejecting a random sequence as
-non-random. This occurs when p-value < :math:`\alpha` even though the
+non-random. This occurs when p-value < alpha even though the
 sequence is actually random.
 
 **Type II Error (False Negative)**: Accepting a non-random sequence
-as random. This occurs when p-value >= :math:`\alpha` even though the
+as random. This occurs when p-value >= alpha even though the
 sequence is actually non-random.
 
 **Test Suite**: A collection of multiple tests applied to the same
@@ -255,9 +255,9 @@ def block_frequency_test(sequence: List[int], block_size: int = 128) -> NISTTest
     **How it works**:
     1. Divide the sequence into N blocks of M bits each
     2. For each block, compute the proportion of ones:
-       :math:`\pi_i = \text{number of ones} / M`
+       pi_i = (number of ones) / M
     3. Compute chi-square statistic:
-       :math:`\chi^2 = 4M \sum_i (\pi_i - 0.5)^2`
+       chi^2 = 4M * sum_i (pi_i - 0.5)^2
     4. Compute p-value using chi-square distribution with N
        degrees of freedom
     
@@ -268,8 +268,7 @@ def block_frequency_test(sequence: List[int], block_size: int = 128) -> NISTTest
     
     **Parameters**:
     - block_size (M): Size of each block (default: 128 bits)
-    - Minimum sequence length: :math:`M \times 10` (recommended:
-      :math:`M \times 100`)
+    - Minimum sequence length: M * 10 (recommended: M * 100)
     
     Args:
         sequence: Binary sequence (list of 0s and 1s)
@@ -591,8 +590,7 @@ def binary_matrix_rank_test(sequence: List[int], matrix_rows: int = 32, matrix_c
     formed from the sequence.
     
     **How it works**:
-    1. Divide the sequence into N matrices of size
-       :math:`M \times Q`
+    1. Divide the sequence into N matrices of size M * Q
     2. For each matrix, compute its rank (over GF(2))
      3. Count how many matrices have full rank (M), rank (M-1), or
         lower rank
@@ -861,8 +859,7 @@ def non_overlapping_template_matching_test(
       [0, 0, 0, 0, 0, 0, 0, 0, 1])
     - block_size (M): Size of each block (default: 8)
     
-    **Minimum sequence length**: :math:`M \times 10` (recommended:
-    :math:`M \times 100`)
+    **Minimum sequence length**: M * 10 (recommended: M * 100)
     
     Args:
         sequence: Binary sequence (list of 0s and 1s)
@@ -988,8 +985,7 @@ def overlapping_template_matching_test(
       [1, 1, 1, 1, 1, 1, 1, 1, 1])
     - block_size (M): Size of each block (default: 1032)
     
-    **Minimum sequence length**: :math:`M \times 8` (recommended:
-    :math:`M \times 100`)
+    **Minimum sequence length**: M * 8 (recommended: M * 100)
     
     Args:
         sequence: Binary sequence (list of 0s and 1s)
@@ -1119,8 +1115,8 @@ def maurers_universal_test(sequence: List[int], block_size: int = 6, init_blocks
     - block_size (L): Size of each block (default: 6)
     - init_blocks (Q): Number of initialization blocks (default: 10)
     
-    **Minimum sequence length**: :math:`L \times (Q + K)` where
-    :math:`K \geq 1000` (recommended: :math:`L \times 2000`)
+    **Minimum sequence length**: L * (Q + K) where K >= 1000
+      (recommended: L * 2000)
     
     Args:
         sequence: Binary sequence (list of 0s and 1s)
@@ -1258,7 +1254,7 @@ def linear_complexity_test(sequence: List[int], block_size: int = 500) -> NISTTe
     1. Divide the sequence into N blocks of M bits each
     2. For each block, compute the linear complexity using Berlekamp-Massey
     3. Compute deviations from expected complexity:
-       :math:`T_i = (-1)^M \cdot (LC_i - \mu)`
+       T_i = (-1)^M * (LC_i - mu)
     4. Count how many T_i fall into each category
      5. Compare observed frequencies with expected frequencies
         using chi-square test
@@ -1271,8 +1267,7 @@ def linear_complexity_test(sequence: List[int], block_size: int = 500) -> NISTTe
     **Parameters**:
     - block_size (M): Size of each block (default: 500)
     
-    **Minimum sequence length**: :math:`M \times 200` (recommended:
-    :math:`M \times 1000`)
+    **Minimum sequence length**: M * 200 (recommended: M * 1000)
     
     Args:
         sequence: Binary sequence (list of 0s and 1s)
@@ -1372,7 +1367,7 @@ def serial_test(sequence: List[int], block_size: int = 2) -> NISTTestResult:
     Test 11: Serial Test.
     
     **Purpose**: Tests whether the number of occurrences of
-    :math:`2^m` m-bit overlapping patterns is approximately the same
+    2^m m-bit overlapping patterns is approximately the same
     as would be expected for a random sequence.
     
     **What it measures**: Frequency distribution of m-bit overlapping
@@ -1394,8 +1389,7 @@ def serial_test(sequence: List[int], block_size: int = 2) -> NISTTestResult:
     **Parameters**:
     - block_size (m): Pattern length (default: 2)
     
-    **Minimum sequence length**: :math:`2^m \times 100` (recommended:
-    :math:`2^m \times 1000`)
+    **Minimum sequence length**: 2^m * 100 (recommended: 2^m * 1000)
     
     Args:
         sequence: Binary sequence (list of 0s and 1s)
@@ -1524,8 +1518,7 @@ def approximate_entropy_test(sequence: List[int], block_size: int = 2) -> NISTTe
     **Parameters**:
     - block_size (m): Pattern length (default: 2)
     
-    **Minimum sequence length**: :math:`2^m \times 10` (recommended:
-    :math:`2^m \times 100`)
+    **Minimum sequence length**: 2^m * 10 (recommended: 2^m * 100)
     
     Args:
         sequence: Binary sequence (list of 0s and 1s)
