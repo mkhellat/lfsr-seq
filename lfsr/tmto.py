@@ -77,7 +77,8 @@ class HellmanTable:
     **Mathematical Foundation**:
     
     A Hellman table consists of m chains, each of length t. The table covers
-    approximately m·t states (with some overlap). The time-memory trade-off is:
+      approximately :math:`m \times t` states (with some overlap).
+      The time-memory trade-offf is:
     
     .. math::
     
@@ -323,8 +324,9 @@ class RainbowTable:
     
        S_0 \to f(S_0) \to R_1(f(S_0)) \to f(R_1(f(S_0))) \to \ldots
     
-    This reduces collisions because merging chains requires collisions at the
-    same step with the same reduction function, which is less likely.
+    This reduces collisions because merging chains requires
+    collisions at the same step with the same reduction function,
+    which is less likely.
     
     **Advantages over Hellman Tables**:
     
@@ -630,26 +632,31 @@ def optimize_tmto_parameters(
     
     **Key Terminology**:
     
-    - **Trade-Off Curve**: A graph showing the relationship between time and
-      memory for different parameter choices. The curve shows how increasing
-      memory reduces attack time (and vice versa).
+    - **Trade-Off Curve**: A graph showing the relationship between
+      time and memory for different parameter choices. The curve
+      shows how increasing memory reduces attack time (and vice
+      versa).
     
     - **Optimal Parameters**: Parameter values that minimize the
       :math:`T \times M` product for a given success probability.
       These parameters provide the best trade-off between time and
       memory.
     
-    - **Coverage**: The fraction of state space covered by the table.
-      Coverage = (table_size) / (state_space_size). Higher coverage increases
-      success probability.
+    - **Coverage**: The fraction of state space covered by the
+      table. Coverage = (table_size) / (state_space_size). Higher
+      coverage increases success probability.
     
-    - **Success Probability**: The probability that a random state can be
-      recovered from the table. This depends on coverage and collision rate.
+    - **Success Probability**: The probability that a random state
+      can be recovered from the table. This depends on coverage and
+      collision rate.
     
     Args:
-        state_space_size: Size of the state space (q^d for LFSR)
-        available_memory: Available memory (number of states that can be stored)
-        target_success_probability: Target success probability (default: 0.5)
+        state_space_size: Size of the state space (:math:`q^d` for
+          LFSR)
+        available_memory: Available memory (number of states that
+          can be stored)
+        target_success_probability: Target success probability
+          (default: 0.5)
     
     Returns:
         Dictionary with optimized parameters:
