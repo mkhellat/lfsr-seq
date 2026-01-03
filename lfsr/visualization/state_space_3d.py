@@ -47,7 +47,8 @@ def plot_3d_state_space(
       properties (e.g., period, cycle membership).
     
     Args:
-        state_sequences: Dictionary mapping sequence number to list of states
+        state_sequences: Dictionary mapping sequence number to list of
+          states
         period_dict: Dictionary mapping sequence number to period
         max_states: Maximum number of states to visualize
         config: Optional visualization configuration
@@ -123,7 +124,8 @@ def _plot_3d_interactive(
             colorbar=dict(title="Period")
         ),
         text=[f"Period: {p}" for p in periods],
-        hovertemplate='State: (%{x}, %{y}, %{z})<br>Period: %{text}<extra></extra>'
+        hovertemplate='State: (%{x}, %{y}, %{z})<br>Period: %{text}
+          <extra></extra>'
     ))
     
     fig.update_layout(
@@ -205,7 +207,8 @@ def plot_state_space_projection(
     **Key Terminology**:
     
     - **Dimensionality Reduction**: Techniques for reducing the number of
-      dimensions in data while preserving important structure. Common methods
+      dimensions in data while preserving important structure. Common
+      methods
       include PCA (Principal Component Analysis) and t-SNE (t-distributed
       Stochastic Neighbor Embedding).
     
@@ -217,7 +220,8 @@ def plot_state_space_projection(
       (e.g., 3D to 2D) for visualization.
     
     Args:
-        state_sequences: Dictionary mapping sequence number to list of states
+        state_sequences: Dictionary mapping sequence number to list of
+          states
         period_dict: Dictionary mapping sequence number to period
         projection_method: Method to use ("pca" or "tsne")
         max_states: Maximum number of states to include
