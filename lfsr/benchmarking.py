@@ -12,7 +12,7 @@ import time
 from typing import Any, Dict, List, Optional, Tuple
 from dataclasses import dataclass, field
 
-from sage.all import *
+from lfsr.sage_imports import *
 
 
 @dataclass

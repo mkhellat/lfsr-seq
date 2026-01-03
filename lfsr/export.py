@@ -13,7 +13,7 @@ import json
 from datetime import datetime
 from typing import Any, Dict, List, Optional, TextIO
 
-from sage.all import *
+from lfsr.sage_imports import *
 
 
 def export_to_json(

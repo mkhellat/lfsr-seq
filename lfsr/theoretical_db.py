@@ -13,7 +13,7 @@ import os
 from typing import Any, Dict, List, Optional, Tuple
 from pathlib import Path
 
-from sage.all import *
+from lfsr.sage_imports import *
 
 
 class KnownResultDatabase:
