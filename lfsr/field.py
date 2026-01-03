@@ -56,8 +56,10 @@ def validate_gf_order(gf_order_str: str) -> int:
             if power == gf_order:
                 return gf_order
 
-    print("ERROR: GF_order must be a prime or prime power, got: %d" % gf_order)
-    print("       Supported: primes and small prime powers (p^n where p is prime)")
+    print("ERROR: GF_order must be a prime or prime power, got: %d"
+          % gf_order)
+    print("       Supported: primes and small prime powers (p^n where p"
+          " is prime)")
     sys.exit(1)
 
 
