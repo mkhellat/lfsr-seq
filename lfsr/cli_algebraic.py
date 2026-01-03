@@ -42,7 +42,8 @@ def perform_algebraic_attack_cli(
         field_order: Field order (default: 2)
         keystream_file: Optional file containing keystream
         keystream: Optional keystream list
-        method: Attack method ("groebner_basis", "cube_attack", "algebraic_immunity")
+        method: Attack method ("groebner_basis", "cube_attack",
+          "algebraic_immunity")
         max_cube_size: Maximum cube size for cube attack
         max_equations: Maximum equations for Gröbner basis attack
         filtering_function: Optional filtering function

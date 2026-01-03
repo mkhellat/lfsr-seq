@@ -34,7 +34,8 @@ def build_state_update_matrix(
 
     Returns:
         Tuple of (C, CS) where:
-        - C: State update matrix over GF(gf_order), used for state transitions
+        - C: State update matrix over GF(gf_order), used for state
+          transitions
         - CS: Symbolic state update matrix over SR (SageMath symbolic
           ring), used for characteristic polynomial computation
 
@@ -88,8 +89,9 @@ def compute_matrix_order(
             If provided, the order is written to the file.
 
     Returns:
-        The order of the matrix (smallest n such that C^n = I), or None if
-        the order is not found within the search space [1, state_vector_space_size-1].
+        The order of the matrix (smallest n such that C^n = I), or None
+        if the order is not found within the search space [1,
+        state_vector_space_size-1].
 
     Note:
         The order is always at most state_vector_space_size - 1 by the

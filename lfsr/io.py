@@ -161,8 +161,9 @@ def read_csv_coefficients(filename: str) -> List[List[str]]:
         filename: Path to the CSV file
 
     Returns:
-        List of coefficient vectors, where each vector is a list of strings.
-        Each row in the CSV becomes one coefficient vector.
+        List of coefficient vectors, where each vector is a list of
+          strings. Each row in the CSV becomes one coefficient
+          vector.
 
     Note:
         This function does not validate:

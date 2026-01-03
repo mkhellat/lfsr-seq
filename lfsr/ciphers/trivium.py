@@ -10,10 +10,11 @@ Trivium uses three shift registers with non-linear feedback.
 
 **Historical Context**:
 
-Trivium was designed by Christophe De Cannière and Bart Preneel as part of the
-eSTREAM project (2004-2008). It was selected as a finalist in the hardware
-category for its simplicity and efficiency. Trivium is designed for hardware
-implementation with minimal gate count.
+Trivium was designed by Christophe De Cannière and Bart Preneel as
+part of the eSTREAM project (2004-2008). It was selected as a
+finalist in the hardware category for its simplicity and efficiency.
+Trivium is designed for hardware implementation with minimal gate
+count.
 
 **Security Status**:
 
