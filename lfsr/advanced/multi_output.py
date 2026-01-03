@@ -15,8 +15,8 @@ This module provides analysis capabilities for multi-output LFSRs.
   output bits per step. The feedback remains linear - only the output rate
   is increased.
 
-This module implements multi-output LFSRs, which ARE LFSRs (linear feedback)
-with multiple output bits per step.
+This module implements multi-output LFSRs, which ARE LFSRs (linear
+feedback) with multiple output bits per step.
 
 **Historical Context**:
 
