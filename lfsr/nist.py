@@ -73,8 +73,9 @@ Example:
 References:
 -----------
 
-- NIST Special Publication 800-22 Revision 1a: "A Statistical Test Suite for Random
-  and Pseudorandom Number Generators for Cryptographic Applications"
+- NIST Special Publication 800-22 Revision 1a: "A Statistical
+  Test Suite for Random and Pseudorandom Number Generators for
+  Cryptographic Applications"
 - Available at: https://csrc.nist.gov/publications/detail/sp/800-22/rev-1a/final
 """
 
@@ -134,7 +135,8 @@ class NISTTestResult:
         p_value: P-value from the test (0.0 to 1.0)
         passed: True if p_value >= significance_level (test passed)
         statistic: Test statistic value (test-specific)
-        details: Dictionary with test-specific details and intermediate values
+        details: Dictionary with test-specific details and
+          intermediate values
     """
     test_name: str
     p_value: float
@@ -172,8 +174,9 @@ def frequency_test(sequence: List[int]) -> NISTTestResult:
     """
     Test 1: Frequency (Monobit) Test.
     
-    **Purpose**: Tests whether the number of zeros and ones in a sequence are
-    approximately equal, as expected for a random sequence.
+    **Purpose**: Tests whether the number of zeros and ones in a
+    sequence are approximately equal, as expected for a random
+    sequence.
     
     **What it measures**: The balance of 0s and 1s in the entire sequence.
     
@@ -244,8 +247,8 @@ def block_frequency_test(sequence: List[int], block_size: int = 128) -> NISTTest
     """
     Test 2: Frequency Test within a Block.
     
-    **Purpose**: Tests whether the frequency of ones in M-bit blocks is approximately
-    M/2, as expected for a random sequence.
+    **Purpose**: Tests whether the frequency of ones in M-bit blocks
+    is approximately M/2, as expected for a random sequence.
     
     **What it measures**: Local balance within blocks of the sequence.
     
@@ -255,7 +258,8 @@ def block_frequency_test(sequence: List[int], block_size: int = 128) -> NISTTest
        :math:`\pi_i = \text{number of ones} / M`
     3. Compute chi-square statistic:
        :math:`\chi^2 = 4M \sum_i (\pi_i - 0.5)^2`
-    4. Compute p-value using chi-square distribution with N degrees of freedom
+    4. Compute p-value using chi-square distribution with N
+       degrees of freedom
     
     **Interpretation**:
     - Random sequences should have balanced blocks
@@ -264,7 +268,8 @@ def block_frequency_test(sequence: List[int], block_size: int = 128) -> NISTTest
     
     **Parameters**:
     - block_size (M): Size of each block (default: 128 bits)
-    - Minimum sequence length: M * 10 (recommended: M * 100)
+    - Minimum sequence length: :math:`M \times 10` (recommended:
+      :math:`M \times 100`)
     
     Args:
         sequence: Binary sequence (list of 0s and 1s)
@@ -329,10 +334,11 @@ def runs_test(sequence: List[int]) -> NISTTestResult:
     """
     Test 3: Runs Test.
     
-    **Purpose**: Tests whether the number of runs (consecutive identical bits) is
-    as expected for a random sequence.
+    **Purpose**: Tests whether the number of runs (consecutive
+    identical bits) is as expected for a random sequence.
     
-    **What it measures**: Oscillation between 0s and 1s in the sequence.
+    **What it measures**: Oscillation between 0s and 1s in the
+    sequence.
     
     **How it works**:
     1. Count the total number of runs (transitions between 0 and 1)
@@ -442,13 +448,18 @@ def longest_run_of_ones_test(sequence: List[int], block_size: int = 8) -> NISTTe
     **How it works**:
     1. Divide the sequence into N blocks of M bits each
     2. For each block, find the longest run of consecutive ones
-    3. Count how many blocks fall into each category (based on longest run length)
-    4. Compare observed frequencies with expected frequencies using chi-square test
+     3. Count how many blocks fall into each category (based on
+        longest run length)
+     4. Compare observed frequencies with expected frequencies
+        using chi-square test
     
     **Interpretation**:
-    - Random sequences should have longest runs distributed according to theory
-    - If p-value < 0.01, the sequence has abnormal longest-run patterns
-    - This test detects sequences with unusually long or short runs of ones
+    - Random sequences should have longest runs distributed
+      according to theory
+    - If p-value < 0.01, the sequence has abnormal longest-run
+      patterns
+    - This test detects sequences with unusually long or short runs
+      of ones
     
     **Parameters**:
     
@@ -572,20 +583,25 @@ def binary_matrix_rank_test(sequence: List[int], matrix_rows: int = 32, matrix_c
     """
     Test 5: Binary Matrix Rank Test.
     
-    **Purpose**: Tests for linear dependence among fixed length substrings of the sequence.
+    **Purpose**: Tests for linear dependence among fixed length
+    substrings of the sequence.
     
-    **What it measures**: Linear independence of binary matrices formed from the sequence.
+    **What it measures**: Linear independence of binary matrices
+    formed from the sequence.
     
     **How it works**:
     1. Divide the sequence into N matrices of size
        :math:`M \times Q`
     2. For each matrix, compute its rank (over GF(2))
     3. Count how many matrices have full rank (M), rank (M-1), or lower rank
-    4. Compare observed frequencies with expected frequencies using chi-square test
+     4. Compare observed frequencies with expected frequencies
+        using chi-square test
     
     **Interpretation**:
-    - Random sequences should produce matrices with expected rank distribution
-    - If p-value < 0.01, the sequence shows linear dependence patterns
+    - Random sequences should produce matrices with expected rank
+      distribution
+    - If p-value < 0.01, the sequence shows linear dependence
+      patterns
     - This test detects sequences with linear structure
     
     **Parameters**:
@@ -701,16 +717,18 @@ def discrete_fourier_transform_test(sequence: List[int]) -> NISTTestResult:
     """
     Test 6: Discrete Fourier Transform (Spectral) Test.
     
-    **Purpose**: Detects periodic features in the sequence that would indicate
-    a deviation from the assumption of randomness.
+    **Purpose**: Detects periodic features in the sequence that
+    would indicate a deviation from the assumption of randomness.
     
-    **What it measures**: Periodic patterns using Fourier analysis (frequency domain).
+    **What it measures**: Periodic patterns using Fourier analysis
+    (frequency domain).
     
     **How it works**:
     1. Convert sequence to values -1 and +1 (0 -> -1, 1 -> +1)
     2. Compute Discrete Fourier Transform (DFT) of the sequence
     3. Compute the modulus of each DFT coefficient
-    4. Count how many coefficients are below a threshold (expected: 95% for random)
+     4. Count how many coefficients are below a threshold
+        (expected: 95% for random)
     5. Compute p-value using normal distribution
     
     **Interpretation**:
@@ -818,9 +836,11 @@ def non_overlapping_template_matching_test(
     Test 7: Non-overlapping Template Matching Test.
     
     **Purpose**: Tests for occurrences of specific m-bit patterns (templates) in
-    the sequence. Detects over-represented patterns that would indicate non-randomness.
+    the sequence. Detects over-represented patterns that would
+    indicate non-randomness.
     
-    **What it measures**: Frequency of specific m-bit patterns in non-overlapping blocks.
+    **What it measures**: Frequency of specific m-bit patterns in
+    non-overlapping blocks.
     
     **How it works**:
     1. Divide the sequence into non-overlapping blocks of M bits
@@ -834,7 +854,8 @@ def non_overlapping_template_matching_test(
     - This test detects sequences with specific repeating patterns
     
     **Parameters**:
-    - template: The m-bit pattern to search for (default: [0, 0, 0, 0, 0, 0, 0, 0, 1])
+    - template: The m-bit pattern to search for (default:
+      [0, 0, 0, 0, 0, 0, 0, 0, 1])
     - block_size (M): Size of each block (default: 8)
     
     **Minimum sequence length**: :math:`M \times 10` (recommended:
@@ -947,7 +968,8 @@ def overlapping_template_matching_test(
     1. Divide the sequence into N blocks of M bits each
     2. For each block, count overlapping occurrences of the template
     3. Count how many blocks have k occurrences (k = 0, 1, 2, ...)
-    4. Compare observed frequencies with expected frequencies using chi-square test
+     4. Compare observed frequencies with expected frequencies
+        using chi-square test
     
     **Interpretation**:
     - Random sequences should have template occurrences distributed according to theory
