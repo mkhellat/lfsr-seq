@@ -253,8 +253,9 @@ def _find_period(
     Args:
         start_state: The initial state vector to start the cycle from
         state_update_matrix: The LFSR state update matrix
-        algorithm: Algorithm to use: "floyd", "brent", "enumeration", or "auto" (default: "auto")
-                   "auto" uses enumeration by default (4x faster than Floyd in period-only mode)
+        algorithm: Algorithm to use: "floyd", "brent", "enumeration",
+          or "auto" (default: "auto"). "auto" uses enumeration by
+          default (4x faster than Floyd in period-only mode)
 
     Returns:
         The period (length of the cycle)
@@ -519,8 +520,9 @@ def _find_sequence_cycle(
         visited_set: Set of already processed states (modified in place)
                      Stores tuples (hashable) instead of vectors (mutable)
                      Not used when period_only=True
-        algorithm: Algorithm to use: "floyd", "brent", "enumeration", or "auto" (default: "auto")
-                   "auto" uses enumeration for full mode, Floyd for period-only mode
+        algorithm: Algorithm to use: "floyd", "brent", "enumeration",
+          or "auto" (default: "auto"). "auto" uses enumeration for
+          full mode, Floyd for period-only mode
         period_only: If True, return only the period without storing sequence (default: False)
 
     Returns:
@@ -1416,13 +1418,14 @@ def lfsr_sequence_mapper_parallel(
     """
     Parallel version of lfsr_sequence_mapper using multiprocessing.
     
-    Partitions the state space across multiple worker processes and processes
-    them in parallel, then merges the results.
+    Partitions the state space across multiple worker processes and
+    processes them in parallel, then merges the results.
     
-    NOTE: Currently, parallel processing works reliably only in period-only mode
-    (period_only=True). In full sequence mode, workers may hang due to SageMath
-    matrix multiplication issues in multiprocessing context. The function
-    automatically falls back to sequential processing on timeout.
+    NOTE: Currently, parallel processing works reliably only in
+    period-only mode (period_only=True). In full sequence mode,
+    workers may hang due to SageMath matrix multiplication issues
+    in multiprocessing context. The function automatically falls
+    back to sequential processing on timeout.
     
     Args:
         state_update_matrix: The LFSR state update matrix (not used directly, 
@@ -1431,9 +1434,11 @@ def lfsr_sequence_mapper_parallel(
         gf_order: The field order
         output_file: Optional file object for output
         no_progress: If True, disable progress bar display
-        algorithm: Algorithm to use: "floyd", "brent", "enumeration", or "auto"
-        period_only: If True, compute periods only without storing sequences.
-                    RECOMMENDED for parallel processing to avoid hangs.
+        algorithm: Algorithm to use: "floyd", "brent", "enumeration",
+          or "auto"
+        period_only: If True, compute periods only without storing
+          sequences. RECOMMENDED for parallel processing to avoid
+          hangs.
         num_workers: Number of parallel workers (default: CPU count)
     
     Returns:
@@ -1754,17 +1759,20 @@ def _process_task_batch_dynamic(
     """
     Worker function for dynamic threading: pulls batches from queue and processes them.
     
-    This worker continuously pulls task batches from a shared queue until a sentinel
-    value (None) is received, indicating no more work. This enables dynamic load
-    balancing as workers pull work as they become available.
+    This worker continuously pulls task batches from a shared queue
+    until a sentinel value (None) is received, indicating no more
+    work. This enables dynamic load balancing as workers pull work
+    as they become available.
     
-    **Batch Aggregation**: To reduce IPC overhead, this worker pulls multiple batches
-    at once using get_nowait() (non-blocking) with fallback to blocking get().
-    The number of batches pulled per operation is determined by batch_aggregation_count.
+    **Batch Aggregation**: To reduce IPC overhead, this worker pulls
+    multiple batches at once using get_nowait() (non-blocking) with
+    fallback to blocking get(). The number of batches pulled per
+    operation is determined by batch_aggregation_count.
     
     Args:
         worker_data: Tuple containing:
-            - task_queue: Manager().Queue() containing batches of (state_tuple, state_idx) pairs
+            - task_queue: Manager().Queue() containing batches of
+              (state_tuple, state_idx) pairs
             - coeffs_vector: LFSR coefficients
             - gf_order: Field order
             - lfsr_degree: LFSR degree
@@ -1773,7 +1781,8 @@ def _process_task_batch_dynamic(
             - worker_id: Worker identifier
             - shared_cycles: Shared cycle registry (Manager().dict())
             - cycle_lock: Lock for atomic cycle claiming (Manager().Lock())
-            - batch_aggregation_count: Number of batches to pull at once (2-8, adaptive)
+            - batch_aggregation_count: Number of batches to pull at
+              once (2-8, adaptive)
     
     Returns:
         Dictionary with same format as _process_state_chunk:
@@ -2116,9 +2125,9 @@ def lfsr_sequence_mapper_parallel_dynamic(
         algorithm: Algorithm to use: "floyd", "brent", "enumeration", or "auto"
         period_only: If True, compute periods only without storing sequences
         num_workers: Number of parallel workers (default: CPU count)
-        batch_size: Number of states per batch in queue (default: auto-selected
-            based on state space size: 500-1000 for small, 200-500 for medium,
-            100-200 for large problems)
+        batch_size: Number of states per batch in queue (default:
+          auto-selected based on state space size: 500-1000 for
+          small, 200-500 for medium, 100-200 for large problems)
     
     **IPC Optimization (Phase 2.2)**:
     
