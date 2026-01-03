@@ -46,8 +46,9 @@ class PeriodPredictionModel(BaseMLModel):
       learns from labeled examples (input-output pairs). For period prediction,
       examples are (polynomial features, actual period) pairs.
     
-    - **Regression**: A type of machine learning task where the goal is to
-      predict a continuous numerical value (like period) rather than a category.
+    - **Regression**: A type of machine learning task where the goal is
+      to predict a continuous numerical value (like period) rather than
+      a category.
       Period prediction is a regression problem.
     
     - **Random Forest**: An ensemble ML method that combines multiple decision
