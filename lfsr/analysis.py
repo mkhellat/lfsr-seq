@@ -1062,7 +1062,8 @@ def _process_state_chunk(
             
     Returns:
         Dictionary with:
-            - 'sequences': List of dicts, each with 'states', 'period', 'start_state'
+            - 'sequences': List of dicts, each with 'states',
+              'period', 'start_state'
             - 'max_period': Maximum period found
             - 'processed_count': Number of states processed
             - 'errors': List of error messages
@@ -1448,8 +1449,8 @@ def lfsr_sequence_mapper_parallel(
     """
     Parallel version of lfsr_sequence_mapper using multiprocessing.
     
-    Partitions the state space across multiple worker processes and processes
-    them in parallel, then merges the results.
+    Partitions the state space across multiple worker processes and
+    processes them in parallel, then merges the results.
     
     Args:
         state_update_matrix: The LFSR state update matrix (not used
@@ -1786,7 +1787,8 @@ def _process_task_batch_dynamic(
     
     Returns:
         Dictionary with same format as _process_state_chunk:
-            - 'sequences': List of dicts, each with 'states', 'period', 'start_state'
+            - 'sequences': List of dicts, each with 'states',
+              'period', 'start_state'
             - 'max_period': Maximum period found
             - 'processed_count': Number of states processed
             - 'errors': List of error messages
