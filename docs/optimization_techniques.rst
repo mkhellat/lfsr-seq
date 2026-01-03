@@ -171,12 +171,14 @@ multiple of :math:`\text{ord}(f_i(t))`.
 
 **Complexity Analysis**:
 
-1. **Enumeration Method**: 
+1. **Enumeration Method**:
+   
    - Complexity: :math:`O(q^d)` (exponential in degree)
    - Must visit all :math:`q^d` states in the worst case
    - Practical limit: degree :math:`\leq 20` for :math:`q = 2`
 
 2. **Factorization Method**:
+   
    - Polynomial factorization: :math:`O(d^3)` using Berlekamp's algorithm or
      :math:`O(d^2)` using Cantor-Zassenhaus (probabilistic)
    - Order computation: :math:`O(d^3)` per factor
@@ -270,25 +272,32 @@ configurations to fixed-size keys. This ensures:
 **Cache Operations**:
 
 1. **Lookup**: Check if key :math:`k` exists in cache :math:`C`
+   
    - Complexity: :math:`O(1)` (hash table lookup)
    - Returns cached value :math:`v = C[k]` if found, :math:`\text{None}` otherwise
 
 2. **Storage**: Store value :math:`v` for key :math:`k` in cache :math:`C`
+   
    - Complexity: :math:`O(1)` (hash table insertion)
    - Sets :math:`C[k] = v`
 
 3. **Invalidation**: Remove key :math:`k` from cache :math:`C`
+   
    - Complexity: :math:`O(1)` (hash table deletion)
    - Removes :math:`C[k]`
 
 **Cache Performance Metrics**:
 
 1. **Hit Rate**: Proportion of lookups that find cached results
+   
    .. math::
+      
       \text{hit\_rate} = \frac{\text{hits}}{\text{hits} + \text{misses}}
 
 2. **Speedup**: Ratio of computation time to cache lookup time
+   
    .. math::
+      
       \text{speedup} = \frac{T_{\text{compute}}}{T_{\text{lookup}}}
 
    For cached results, :math:`T_{\text{lookup}} \approx 0`, so speedup is
@@ -297,15 +306,18 @@ configurations to fixed-size keys. This ensures:
 **Cache Strategies**:
 
 1. **In-Memory Cache**: Fast dictionary-based storage in RAM
+   
    - Advantages: Very fast (:math:`O(1)` lookup), no I/O overhead
    - Disadvantages: Lost when program exits, limited by available RAM
 
 2. **Persistent Cache**: File-based storage on disk
+   
    - Advantages: Survives program restarts, can store large amounts of data
    - Disadvantages: Slower than in-memory (I/O overhead), requires
      serialization/deserialization
 
 3. **Two-Level Cache**: Combination of in-memory and persistent caches
+   
    - Advantages: Fast for recent results (in-memory), persistent for
      long-term storage
    - Disadvantages: More complex implementation, requires cache coherence
@@ -351,7 +363,7 @@ Shortcut detection can be formalized as identifying when a problem instance
 optimized algorithm:
 
 .. math::
-
+   
    I \in \mathcal{S} \Rightarrow \text{use optimized algorithm } A_{\mathcal{S}}
 
 where :math:`A_{\mathcal{S}}` has better complexity than the general algorithm
@@ -365,13 +377,16 @@ where :math:`A_{\mathcal{S}}` has better complexity than the general algorithm
    **primitive** if it is irreducible and :math:`\text{ord}(P(t)) = q^d - 1`.
 
    **Shortcut**: If :math:`P(t)` is primitive, the period is immediately known:
+   
    .. math::
+      
       \lambda = q^d - 1
 
    **Complexity**: :math:`O(1)` - no computation needed, just return the known
    value
 
    **Detection**: Test if polynomial is irreducible and order equals :math:`q^d - 1`
+   
    - Irreducibility test: :math:`O(d^3)` using Rabin's test
    - Order computation: :math:`O(d^3)` 
    - Total detection cost: :math:`O(d^3)`, but period computation is :math:`O(1)`
@@ -438,12 +453,17 @@ is the time complexity of algorithm :math:`A` on instance :math:`I`.
 
 **Complexity Comparison**:
 
-| Method | Complexity | Best For |
-|--------|------------|----------|
-| Enumeration | :math:`O(q^d)` | Small degrees (:math:`d \leq 10`) |
-| Factorization | :math:`O(d^3)` | Large degrees (:math:`d > 15`) |
-| Primitive Shortcut | :math:`O(1)` | Primitive polynomials |
-| Irreducible Shortcut | :math:`O(d^3)` | Irreducible polynomials |
++----------------------+----------------+-----------------------------------+
+| Method               | Complexity     | Best For                          |
++======================+================+===================================+
+| Enumeration          | :math:`O(q^d)` | Small degrees (:math:`d \leq 10`) |
++----------------------+----------------+-----------------------------------+
+| Factorization        | :math:`O(d^3)` | Large degrees (:math:`d > 15`)    |
++----------------------+----------------+-----------------------------------+
+| Primitive Shortcut   | :math:`O(1)`   | Primitive polynomials             |
++----------------------+----------------+-----------------------------------+
+| Irreducible Shortcut | :math:`O(d^3)` | Irreducible polynomials           |
++----------------------+----------------+-----------------------------------+
 
 **Expected Speedups**:
 
@@ -462,19 +482,23 @@ Complexity Analysis
 The complexity of different methods can be compared using big-O notation:
 
 1. **Enumeration**: :math:`O(q^d)`
+   
    - Must visit all :math:`q^d` states in worst case
    - Exponential in degree
 
 2. **Factorization**: :math:`O(d^3)`
+   
    - Polynomial factorization: :math:`O(d^3)` (Berlekamp) or :math:`O(d^2)`
      (Cantor-Zassenhaus, probabilistic)
    - Order computation: :math:`O(d^3)` per factor
    - Polynomial in degree
 
 3. **Primitive Shortcut**: :math:`O(1)`
+   
    - Constant time, just return :math:`q^d - 1`
 
 4. **Caching Lookup**: :math:`O(1)`
+   
    - Hash table lookup, constant time
 
 **Practical Considerations**:
