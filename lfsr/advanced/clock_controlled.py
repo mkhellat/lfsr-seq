@@ -44,14 +44,12 @@ difficult. Examples include the shrinking generator and self-shrinking generator
 
 For a clock-controlled LFSR, the clocking is determined by a control function:
 
-.. math::
+clock = c(S_control)
 
-   \\text{clock} = c(S_{\\text{control}})
+where c is the clock control function and S_control is the control state
+(or control LFSR output).
 
-where :math:`c` is the clock control function and :math:`S_{\\text{control}}`
-is the control state (or control LFSR output).
-
-The main LFSR advances only when :math:`\\text{clock} = 1`.
+The main LFSR advances only when clock = 1.
 """
 
 from typing import List, Optional, Callable

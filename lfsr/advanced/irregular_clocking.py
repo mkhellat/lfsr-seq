@@ -44,11 +44,9 @@ security properties and efficiency trade-offs.
 For irregular clocking, the number of steps advanced is determined by a
 control function:
 
-.. math::
+steps = f(c)
 
-   \\text{steps} = f(c)
-
-where :math:`c` is the control value and :math:`f` is the clocking function.
+where c is the control value and f is the clocking function.
 """
 
 from typing import List, Optional, Callable

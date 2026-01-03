@@ -46,18 +46,14 @@ OR, and other non-linear operations in the feedback function.
 
 For an LFSR, the feedback is linear:
 
-.. math::
-
-   f(S) = c_0 S_0 \\oplus c_1 S_1 \\oplus \\ldots \\oplus c_{d-1} S_{d-1}
+f(S) = c_0 * S_0 XOR c_1 * S_1 XOR ... XOR c_{d-1} * S_{d-1}
 
 For an NFSR, the feedback includes non-linear terms:
 
-.. math::
-
-   f(S) = \\text{linear terms} + \\text{non-linear terms}
+f(S) = linear terms + non-linear terms
 
 where non-linear terms can include products (AND operations) like
-:math:`S_i \\land S_j`.
+S_i AND S_j.
 """
 
 from typing import List, Optional, Callable

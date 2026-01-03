@@ -44,14 +44,12 @@ include the filtering generator used in many stream ciphers.
 
 For a filtered LFSR, the output is:
 
-.. math::
+y_i = f(S_i)
 
-   y_i = f(S_i)
+where S_i is the LFSR state at step i and f is the filter function.
 
-where :math:`S_i` is the LFSR state at step i and :math:`f` is the filter function.
-
-The filter function :math:`f: \\mathbb{F}_q^d \\rightarrow \\mathbb{F}_q` maps
-the d-bit state to a single output bit.
+The filter function f: F_q^d -> F_q maps the d-bit state to a single
+output bit, where F_q denotes the finite field of order q.
 """
 
 from typing import List, Optional, Callable
