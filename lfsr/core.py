@@ -85,8 +85,8 @@ def compute_matrix_order(
         identity_matrix: The identity matrix I of the same dimension
         state_vector_space_size: Size of the state vector space
           (gf_order^d). This is the maximum possible order.
-        output_file: Optional file object for formatted output.
-            If provided, the order is written to the file.
+        output_file: Optional file object for formatted output. If
+          provided, the order is written to the file.
 
     Returns:
         The order of the matrix (smallest n such that C^n = I), or None
