@@ -40,13 +40,13 @@ class PeriodPredictor:
       from polynomial structure without computing the full period. This can
       be much faster than enumeration for large LFSRs.
     
-    - **Regression Model**: A machine learning model that predicts continuous
-      values (like period) from input features. Common types include linear
-      regression, random forests, and neural networks.
+    - **Regression Model**: A machine learning model that predicts
+      continuous values (like period) from input features. Common types
+      include linear regression, random forests, and neural networks.
     
     - **Feature Engineering**: The process of selecting and transforming
-      input data (polynomial coefficients) into features that help the model
-      make accurate predictions.
+      input data (polynomial coefficients) into features that help the
+      model make accurate predictions.
     
     - **Model Training**: The process of teaching a machine learning model
       to make predictions by showing it examples of polynomial features and

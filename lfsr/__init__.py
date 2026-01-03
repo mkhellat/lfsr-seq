@@ -1,13 +1,15 @@
 """
 lfsr - Linear Feedback Shift Register Analysis Package
 
-This package provides tools for analyzing Linear Feedback Shift Register sequences,
-computing periods, and determining characteristic polynomials over finite fields.
+This package provides tools for analyzing Linear Feedback Shift
+Register sequences, computing periods, and determining characteristic
+polynomials over finite fields.
 
 Main Components:
 - core: LFSR core mathematics and state update operations
 - analysis: Sequence analysis and period calculation
-- polynomial: Polynomial operations and characteristic polynomial calculation
+- polynomial: Polynomial operations and characteristic polynomial
+  calculation
 - field: Finite field operations and validation
 - io: Input/output handling
 - formatter: Output formatting utilities

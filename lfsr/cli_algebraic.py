@@ -4,9 +4,9 @@
 """
 CLI functions for algebraic attacks.
 
-This module provides command-line interface functions for performing algebraic
-attacks on LFSRs, including Gröbner basis attacks, cube attacks, and algebraic
-immunity computation.
+This module provides command-line interface functions for performing
+algebraic attacks on LFSRs, including Gröbner basis attacks, cube
+attacks, and algebraic immunity computation.
 """
 
 import sys

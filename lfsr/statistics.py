@@ -288,7 +288,8 @@ def compute_period_distribution(
         - 'median_period': Median period
         - 'variance': Variance of periods
         - 'std_deviation': Standard deviation of periods
-        - 'period_frequency': Dictionary mapping period values to their frequencies
+        - 'period_frequency': Dictionary mapping period values to their
+          frequencies
         - 'theoretical_bounds': Dictionary with theoretical expectations
         - 'comparison': Comparison with theoretical bounds
     """

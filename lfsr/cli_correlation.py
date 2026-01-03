@@ -4,8 +4,8 @@
 """
 CLI functions for correlation attack functionality.
 
-This module provides command-line interface functions for correlation attacks,
-separated from the main CLI to keep the codebase organized.
+This module provides command-line interface functions for correlation
+attacks, separated from the main CLI to keep the codebase organized.
 """
 
 import json
@@ -211,7 +211,8 @@ def perform_correlation_attack_cli(
         target_lfsr_index: Index of LFSR to attack
         significance_level: Statistical significance level
         analyze_all_lfsrs: If True, attack all LFSRs
-        analyze_function: If True, also analyze combining function properties
+        analyze_function: If True, also analyze combining function
+          properties
     """
     if output_file is None:
         output_file = sys.stdout

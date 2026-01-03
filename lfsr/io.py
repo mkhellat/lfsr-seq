@@ -28,7 +28,8 @@ def sanitize_file_path(filepath: str) -> Path:
         Path object with resolved absolute path
 
     Raises:
-        SystemExit: If path contains suspicious patterns or cannot be resolved
+        SystemExit: If path contains suspicious patterns or cannot be
+          resolved
     """
     try:
         path = Path(filepath).resolve()
@@ -50,7 +51,8 @@ def sanitize_file_path(filepath: str) -> Path:
 
 def validate_csv_file(filename: str) -> None:
     """
-    Validate that CSV file exists, is readable, and meets security requirements.
+    Validate that CSV file exists, is readable, and meets security
+    requirements.
 
     This function performs comprehensive validation including:
     - File existence and readability

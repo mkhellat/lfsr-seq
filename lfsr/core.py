@@ -35,8 +35,8 @@ def build_state_update_matrix(
     Returns:
         Tuple of (C, CS) where:
         - C: State update matrix over GF(gf_order), used for state transitions
-        - CS: Symbolic state update matrix over SR (SageMath symbolic ring),
-            used for characteristic polynomial computation
+        - CS: Symbolic state update matrix over SR (SageMath symbolic
+          ring), used for characteristic polynomial computation
 
     Example:
         >>> coeffs = [1, 1, 0, 1]
@@ -82,8 +82,8 @@ def compute_matrix_order(
     Args:
         state_update_matrix: The state update matrix C over GF(gf_order)
         identity_matrix: The identity matrix I of the same dimension
-        state_vector_space_size: Size of the state vector space (gf_order^d).
-            This is the maximum possible order.
+        state_vector_space_size: Size of the state vector space
+          (gf_order^d). This is the maximum possible order.
         output_file: Optional file object for formatted output.
             If provided, the order is written to the file.
 

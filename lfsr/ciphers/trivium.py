@@ -4,9 +4,9 @@
 """
 Trivium Stream Cipher Analysis
 
-This module provides analysis capabilities for the Trivium stream cipher, which
-was an eSTREAM finalist in the hardware category. Trivium uses three shift
-registers with non-linear feedback.
+This module provides analysis capabilities for the Trivium stream
+cipher, which was an eSTREAM finalist in the hardware category.
+Trivium uses three shift registers with non-linear feedback.
 
 **Historical Context**:
 
