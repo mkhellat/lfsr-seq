@@ -29,7 +29,8 @@ def berlekamp_massey(sequence: List[int], gf_order: int) -> Tuple[Any, int]:
     Returns:
         Tuple of (polynomial, linear_complexity) where:
         - polynomial: Characteristic polynomial as a SageMath polynomial
-        - linear_complexity: The linear complexity (degree of the polynomial)
+        - linear_complexity: The linear complexity (degree of the
+          polynomial)
 
     Example:
         >>> seq = [1, 0, 1, 1, 0, 1, 0, 0, 1]

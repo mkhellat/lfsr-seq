@@ -30,7 +30,8 @@ def dump(text: str, mode: str, output_file: Optional[TextIO] = None) -> None:
     Args:
         text: Text to output
         mode: Output mode ('mode=file', 'mode=console', or 'mode=all')
-        output_file: Optional file object to write to (required for file modes)
+        output_file: Optional file object to write to (required for
+          file modes)
     """
     if mode == "mode=file":
         if output_file is None:
