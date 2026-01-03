@@ -289,33 +289,39 @@ class RainbowTable:
     
     **Key Terminology**:
     
-    - **Rainbow Table**: A precomputed table using different reduction
-      functions at each step (like colors in a rainbow). This reduces collisions
-      compared to Hellman tables, which use the same reduction function.
+    - **Rainbow Table**: A precomputed table using different
+      reduction functions at each step (like colors in a rainbow).
+      This reduces collisions compared to Hellman tables, which use
+      the same reduction function.
     
-    - **Rainbow Chain**: A chain where each step uses a different reduction
-      function R_1, R_2, ..., R_t. The chain is: S_0 → f(S_0) → R_1(f(S_0))
-      → f(R_1(f(S_0))) → R_2(f(R_1(f(S_0)))) → ...
+    - **Rainbow Chain**: A chain where each step uses a different
+      reduction function R_1, R_2, ..., R_t. The chain is:
+      :math:`S_0 \to f(S_0) \to R_1(f(S_0)) \to f(R_1(f(S_0))) \to
+      R_2(f(R_1(f(S_0)))) \to \ldots`
     
-    - **Reduction Function Family**: A set of t different reduction functions
-      {R_1, R_2, ..., R_t}, one for each step in the chain. Each function
-      maps states to starting points, but they differ to reduce collisions.
+    - **Reduction Function Family**: A set of t different reduction
+      functions {R_1, R_2, ..., R_t}, one for each step in the chain.
+      Each function maps states to starting points, but they differ
+      to reduce collisions.
     
-    - **Collision Resistance**: Rainbow tables have fewer collisions than
-      Hellman tables because different reduction functions are used at each
-      step. This means fewer false alarms and more efficient tables.
+    - **Collision Resistance**: Rainbow tables have fewer collisions
+      than Hellman tables because different reduction functions are
+      used at each step. This means fewer false alarms and more
+      efficient tables.
     
-    - **Table Lookup**: Similar to Hellman tables, but must try all reduction
-      functions in reverse order. For target state S, we check R_t(S), R_{t-1}(f(S)),
-      R_{t-2}(f^2(S)), etc.
+    - **Table Lookup**: Similar to Hellman tables, but must try all
+      reduction functions in reverse order. For target state S, we
+      check :math:`R_t(S)`, :math:`R_{t-1}(f(S))`,
+      :math:`R_{t-2}(f^2(S))`, etc.
     
     **Mathematical Foundation**:
     
-    Rainbow tables use t different reduction functions. A chain of length t is:
+    Rainbow tables use t different reduction functions. A chain of
+    length t is:
     
     .. math::
     
-       S_0 \\rightarrow f(S_0) \\rightarrow R_1(f(S_0)) \\rightarrow f(R_1(f(S_0))) \\rightarrow \\ldots
+       S_0 \to f(S_0) \to R_1(f(S_0)) \to f(R_1(f(S_0))) \to \ldots
     
     This reduces collisions because merging chains requires collisions at the
     same step with the same reduction function, which is less likely.
@@ -628,9 +634,10 @@ def optimize_tmto_parameters(
       memory for different parameter choices. The curve shows how increasing
       memory reduces attack time (and vice versa).
     
-    - **Optimal Parameters**: Parameter values that minimize the time×memory
-      product for a given success probability. These parameters provide the
-      best trade-off between time and memory.
+    - **Optimal Parameters**: Parameter values that minimize the
+      :math:`T \times M` product for a given success probability.
+      These parameters provide the best trade-off between time and
+      memory.
     
     - **Coverage**: The fraction of state space covered by the table.
       Coverage = (table_size) / (state_space_size). Higher coverage increases
@@ -650,7 +657,7 @@ def optimize_tmto_parameters(
         - chain_length: Optimal chain length
         - estimated_coverage: Estimated coverage
         - estimated_success_prob: Estimated success probability
-        - time_memory_product: T×M product
+        - time_memory_product: :math:`T \times M` product
     """
     # Simplified optimization
     # Full implementation would use more sophisticated algorithms
