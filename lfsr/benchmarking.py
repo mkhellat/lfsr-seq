@@ -192,7 +192,7 @@ def run_benchmark_suite(
         benchmark_type = test_case.get('type', 'polynomial_order')
         
         if benchmark_type == 'polynomial_order':
-            from sage.all import PolynomialRing, GF
+            from lfsr.sage_imports import PolynomialRing, GF
             F = GF(test_case['field_order'])
             R = PolynomialRing(F, "t")
             poly = R(test_case['polynomial'])

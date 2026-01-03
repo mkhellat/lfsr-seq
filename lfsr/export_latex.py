@@ -12,7 +12,7 @@ from typing import Any, Dict, List, Optional, TextIO, Tuple, Union
 from datetime import datetime
 import json
 
-from sage.all import *
+from lfsr.sage_imports import *
 
 
 def polynomial_to_latex(polynomial: Any, variable: str = "t") -> str:
@@ -38,7 +38,7 @@ def polynomial_to_latex(polynomial: Any, variable: str = "t") -> str:
         LaTeX string representation of the polynomial
     
     Example:
-        >>> from sage.all import *
+        >>> from lfsr.sage_imports import *
         >>> F = GF(2)
         >>> R = PolynomialRing(F, "t")
         >>> p = R("t^4 + t^3 + t + 1")
