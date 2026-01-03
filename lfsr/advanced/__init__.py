@@ -1,9 +1,10 @@
 """
 Advanced LFSR Structures Module
 
-This module provides analysis capabilities for advanced LFSR structures beyond
-basic linear feedback shift registers, including non-linear feedback, filtered
-LFSRs, clock-controlled LFSRs, multi-output LFSRs, and irregular clocking patterns.
+This module provides analysis capabilities for advanced LFSR structures
+beyond basic linear feedback shift registers, including non-linear
+feedback, filtered LFSRs, clock-controlled LFSRs, multi-output LFSRs,
+and irregular clocking patterns.
 
 The module is organized as follows:
 - base.py: Base classes and common interfaces
