@@ -4,7 +4,8 @@
 """
 Command-line interface for LFSR analysis tool.
 
-This module provides the main entry point and CLI logic for the lfsr-seq tool.
+This module provides the main entry point and CLI logic for the
+lfsr-seq tool.
 """
 
 import argparse
