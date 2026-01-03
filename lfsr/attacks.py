@@ -42,7 +42,7 @@ Example:
     ...     compute_correlation_coefficient
     ... )
     >>> from lfsr.core import build_state_update_matrix
-    >>> from sage.all import *
+    >>> from lfsr.sage_imports import *
     >>>
     >>> # Create a combination generator with 3 LFSRs
     >>> lfsr1 = {'coefficients': [1, 0, 0, 1], 'field_order': 2, 'degree': 4}
@@ -1401,7 +1401,7 @@ def fast_correlation_attack(
     # For efficiency, we'll test a subset of possible states
     # In a full implementation, this would use smarter candidate selection
     from lfsr.core import build_state_update_matrix
-    from sage.all import GF, vector
+    from lfsr.sage_imports import GF, vector
     
     F = GF(field_order)
     C, CS = build_state_update_matrix(target_lfsr.coefficients, field_order)
@@ -1449,7 +1449,7 @@ def fast_correlation_attack(
     
     for candidate_state in candidates:
         # Generate sequence from this candidate
-        from sage.all import vector as sage_vector
+        from lfsr.sage_imports import vector as sage_vector
         state_vec = sage_vector(F, candidate_state)
         sequence = []
         current_state = state_vec
@@ -1485,7 +1485,7 @@ def fast_correlation_attack(
                 test_state[i] = 1 - test_state[i] if field_order == 2 else (test_state[i] + 1) % field_order
                 
                 # Generate sequence and test
-                from sage.all import vector as sage_vector
+                from lfsr.sage_imports import vector as sage_vector
                 state_vec = sage_vector(F, test_state)
                 sequence = []
                 current_state = state_vec
