@@ -794,7 +794,8 @@ class AlgebraicAttackResult:
     Results from an algebraic attack.
     
     Attributes:
-        attack_successful: Whether the attack successfully recovered information
+        attack_successful: Whether the attack successfully recovered
+          information
         recovered_state: Recovered initial state (if successful)
         algebraic_immunity: Algebraic immunity of the system
         equations_solved: Number of equations solved
@@ -817,7 +818,8 @@ class CubeAttackResult:
     Results from a cube attack.
     
     Attributes:
-        attack_successful: Whether the attack successfully recovered information
+        attack_successful: Whether the attack successfully recovered
+          information
         cubes_found: Number of useful cubes found
         superpolies_computed: Number of superpolies computed
         recovered_bits: Number of key bits recovered
@@ -847,8 +849,9 @@ def compute_algebraic_immunity(
     
     **Key Terminology**:
     
-    - **Algebraic Immunity**: A security measure for Boolean functions. Higher
-      algebraic immunity makes functions more resistant to algebraic attacks.
+    - **Algebraic Immunity**: A security measure for Boolean
+      functions. Higher algebraic immunity makes functions more
+      resistant to algebraic attacks.
       The maximum possible algebraic immunity for a function of n
       variables is :math:`\lceil n/2 \rceil`.
     
@@ -1189,9 +1192,10 @@ def cube_attack(
     """
     Perform cube attack on an LFSR.
     
-    A **cube attack** is an algebraic attack that exploits low-degree relations
-    in the output function. It finds "cubes" (sets of variables) such that
-    summing over the cube yields a low-degree polynomial (the "superpoly").
+    A **cube attack** is an algebraic attack that exploits
+    low-degree relations in the output function. It finds "cubes"
+    (sets of variables) such that summing over the cube yields a
+    low-degree polynomial (the "superpoly").
     
     **Key Terminology**:
     
@@ -1561,8 +1565,9 @@ def distinguishing_attack(
        keystream and individual LFSR sequences. If correlations
        exist, the keystream is distinguishable from random.
     
-    2. **Statistical**: Tests statistical properties of the keystream against
-       expected properties of the combination generator.
+    2. **Statistical**: Tests statistical properties of the
+       keystream against expected properties of the combination
+       generator.
     
     **Applications**:
     - Detect if a generator is being used
