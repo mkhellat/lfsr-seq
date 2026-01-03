@@ -27,7 +27,8 @@ class TMTOAttackResult:
     Results from a time-memory trade-off attack.
     
     Attributes:
-        attack_successful: Whether the attack successfully recovered the state
+        attack_successful: Whether the attack successfully
+          recovered the state
         recovered_state: Recovered initial state (if successful)
         method_used: Method used ("hellman" or "rainbow")
         table_size: Size of the precomputed table
@@ -54,17 +55,18 @@ class HellmanTable:
     transitions, allowing fast state recovery. Named after Martin Hellman
     (1980), it was the first time-memory trade-off technique.
 
-    Key concepts: A Hellman Table stores chains of state transitions, where
-    each chain starts with a random state and ends with a distinguished point.
-    A Chain is a sequence of states connected by the state update function.
-    A Distinguished Point is a state with a special property used to mark chain
-    endpoints. A Reduction Function maps states to starting points and creates
-    chains through the state update function.
+    Key concepts: A Hellman Table stores chains of state
+    transitions, where each chain starts with a random state and
+    ends with a distinguished point. A Chain is a sequence of
+    states connected by the state update function. A Distinguished
+    Point is a state with a special property used to mark chain
+    endpoints. A Reduction Function maps states to starting points
+    and creates chains through the state update function.
 
-    **Table Lookup** is the process of searching precomputed tables to find a
-    target state. Lookup involves applying reduction function to target,
-    checking if result is a chain endpoint, and if found, reconstructing chain
-    to find target.
+    **Table Lookup** is the process of searching precomputed tables
+    to find a target state. Lookup involves applying reduction
+    function to target, checking if result is a chain endpoint, and
+    if found, reconstructing chain to find target.
 
     **False Alarm** occurs when a chain appears to contain the target state but
     doesn't. This occurs due to collisions in the reduction function. False
