@@ -10,10 +10,28 @@ import logging
 
 # CRITICAL: Suppress SageMath deprecation warnings BEFORE any imports
 # These warnings cause Sphinx to hang during autodoc processing
+# Suppress all DeprecationWarnings globally
 warnings.filterwarnings("ignore", category=DeprecationWarning)
 warnings.filterwarnings("ignore", message=".*is superseded.*")
 warnings.filterwarnings("ignore", message=".*Importing.*from here is deprecated.*")
 warnings.filterwarnings("ignore", message=".*combinat.species.*")
+# Additional SageMath-specific deprecation patterns
+warnings.filterwarnings("ignore", message=".*GroupExpElement.*")
+warnings.filterwarnings("ignore", message=".*GroupExp_Class.*")
+warnings.filterwarnings("ignore", message=".*GroupSemidirectProductElement.*")
+warnings.filterwarnings("ignore", message=".*Profiler.*")
+warnings.filterwarnings("ignore", message=".*banner.*")
+warnings.filterwarnings("ignore", message=".*benchmark.*")
+warnings.filterwarnings("ignore", message=".*installed_packages.*")
+warnings.filterwarnings("ignore", message=".*is_package_installed.*")
+warnings.filterwarnings("ignore", message=".*logstr.*")
+warnings.filterwarnings("ignore", message=".*package_versions.*")
+warnings.filterwarnings("ignore", message=".*set_edit_template.*")
+warnings.filterwarnings("ignore", message=".*trace.*")
+warnings.filterwarnings("ignore", message=".*verbose.*")
+# Set Python warnings to error mode to catch any that slip through, then ignore
+import warnings as py_warnings
+py_warnings.simplefilter("ignore", DeprecationWarning)
 
 # Set up logging filter EARLY to suppress duplicate warnings
 # This must be done before Sphinx initializes its logging system

@@ -10,7 +10,7 @@ computing matrix orders.
 
 from typing import Any, List, Optional, TextIO, Tuple
 
-from sage.all import *
+from lfsr.sage_imports import *
 
 
 def build_state_update_matrix(
