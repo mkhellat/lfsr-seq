@@ -440,10 +440,11 @@ def longest_run_of_ones_test(sequence: List[int], block_size: int = 8) -> NISTTe
     """
     Test 4: Tests for Longest-Run-of-Ones in a Block.
     
-    **Purpose**: Tests whether the longest run of ones within M-bit blocks is
-    consistent with that expected for a random sequence.
+    **Purpose**: Tests whether the longest run of ones within M-bit
+    blocks is consistent with that expected for a random sequence.
     
-    **What it measures**: Maximum consecutive ones in blocks of the sequence.
+    **What it measures**: Maximum consecutive ones in blocks of the
+    sequence.
     
     **How it works**:
     1. Divide the sequence into N blocks of M bits each
@@ -593,7 +594,8 @@ def binary_matrix_rank_test(sequence: List[int], matrix_rows: int = 32, matrix_c
     1. Divide the sequence into N matrices of size
        :math:`M \times Q`
     2. For each matrix, compute its rank (over GF(2))
-    3. Count how many matrices have full rank (M), rank (M-1), or lower rank
+     3. Count how many matrices have full rank (M), rank (M-1), or
+        lower rank
      4. Compare observed frequencies with expected frequencies
         using chi-square test
     
@@ -835,9 +837,9 @@ def non_overlapping_template_matching_test(
     """
     Test 7: Non-overlapping Template Matching Test.
     
-    **Purpose**: Tests for occurrences of specific m-bit patterns (templates) in
-    the sequence. Detects over-represented patterns that would
-    indicate non-randomness.
+    **Purpose**: Tests for occurrences of specific m-bit patterns
+    (templates) in the sequence. Detects over-represented patterns
+    that would indicate non-randomness.
     
     **What it measures**: Frequency of specific m-bit patterns in
     non-overlapping blocks.
