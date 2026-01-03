@@ -41,12 +41,10 @@ keystream faster than single-output LFSRs.
 
 For a multi-output LFSR, the output is:
 
-.. math::
+(y_0, y_1, ..., y_{k-1}) = f(S_i)
 
-   (y_0, y_1, \\ldots, y_{k-1}) = f(S_i)
-
-where :math:`S_i` is the LFSR state at step i and :math:`f` is the output
-function producing k bits.
+where S_i is the LFSR state at step i and f is the output function
+producing k bits.
 """
 
 from typing import List, Optional, Callable
