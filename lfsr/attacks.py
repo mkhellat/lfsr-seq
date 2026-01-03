@@ -346,10 +346,9 @@ def compute_correlation_coefficient(
     The correlation coefficient measures the linear relationship
     between two sequences. For binary sequences, it's computed as:
     
-    :math:`|\rho| = 2 \cdot \Pr[X = Y] - 1`
+    |rho| = 2 * Pr[X = Y] - 1
     
-    where :math:`\Pr[X = Y]` is the probability that corresponding
-    bits match.
+    where Pr[X = Y] is the probability that corresponding bits match.
     
     A correlation coefficient of:
     - +1: Perfect positive correlation (sequences identical)
@@ -450,24 +449,23 @@ def estimate_attack_success_probability(
     
     - The correlation coefficient strength (|rho|)
     - The amount of keystream available (n)
-    - The statistical significance level (:math:`\alpha`)
+    - The statistical significance level (alpha)
     
     For a given correlation coefficient |rho| and keystream length
     n, the detection probability increases with n and |rho|. Using
     normal approximation:
     
-    .. math::
+    P_detect = 1 - Phi((z_{alpha/2} - |rho| * sqrt(n)) / sqrt(1 - rho^2))
     
-       P_{\\text{detect}} = 1 - \\Phi\\left(\\frac{z_{\\alpha/2} - |\\rho|\\sqrt{n}}{\\sqrt{1-\\rho^2}}\\right)
-    
-    where :math:`z_{\\alpha/2}` is the critical value for
-    significance level :math:`\alpha`.
+    where z_{alpha/2} is the critical value for significance level
+    alpha, and Phi is the cumulative distribution function of the
+    standard normal distribution.
     
     **Recovery Probability**:
     
     The probability of recovering the state depends on:
     
-    - The state space size (:math:`q^d`)
+    - The state space size (q^d, where q is field order and d is degree)
     - Whether the correlation is strong enough to distinguish the
       correct state
     
@@ -845,7 +843,8 @@ def compute_algebraic_immunity(
     The **algebraic immunity** AI(f) of a Boolean function f is the
     minimum degree of a non-zero annihilator of f or its complement
     (1+f). An **annihilator** is a non-zero function g such that
-    :math:`f \cdot g = 0` or :math:`(1+f) \cdot g = 0`.
+    f * g = 0 or (1+f) * g = 0, where * denotes the AND operation
+    over GF(2).
     
     **Key Terminology**:
     
@@ -853,16 +852,16 @@ def compute_algebraic_immunity(
       functions. Higher algebraic immunity makes functions more
       resistant to algebraic attacks.
       The maximum possible algebraic immunity for a function of n
-      variables is :math:`\lceil n/2 \rceil`.
+      variables is ceiling(n/2), where ceiling denotes the ceiling
+      function (rounding up to the nearest integer).
     
     - **Annihilator**: A non-zero Boolean function g such that
-      :math:`f \cdot g = 0` (g annihilates f) or
-      :math:`(1+f) \cdot g = 0` (g annihilates the complement of f).
-      Finding low-degree annihilators is the basis of algebraic
-      attacks.
+      f * g = 0 (g annihilates f) or (1+f) * g = 0 (g annihilates
+      the complement of f). Finding low-degree annihilators is the
+      basis of algebraic attacks.
     
-    - **Boolean Function**: A function :math:`f: \{0,1\}^n \to \{0,1\}`
-      that maps n binary inputs to a single binary output. In
+    - **Boolean Function**: A function f that maps n binary inputs
+      from {0,1}^n to a single binary output in {0,1}. In
       cryptography, filtering functions and combining functions are
       Boolean functions.
     
@@ -877,26 +876,21 @@ def compute_algebraic_immunity(
       are combined with XOR and AND operations.
     
     - **Degree of a Function**: The highest degree of any monomial
-      in the ANF representation. For example,
-      :math:`f(x,y,z) = x \cdot y + z` has degree 2.
+      in the ANF representation. For example, f(x,y,z) = x * y + z
+      has degree 2.
     
     **Mathematical Foundation**:
     
-    The algebraic immunity AI(f) is defined as:
-    
-    .. math::
-    
-       \\text{AI}(f) = \\min\\{d : \\exists g \\neq 0, \\deg(g) \\leq d, \\\\
-       f \\cdot g = 0 \\text{ or } (1+f) \\cdot g = 0\\}
-    
-    where deg(g) is the degree of function g.
+    The algebraic immunity AI(f) is defined as the minimum degree d
+    such that there exists a non-zero function g with degree at most
+    d, where either f * g = 0 or (1+f) * g = 0. Here, deg(g)
+    denotes the degree of function g.
     
     **Security Implications**:
     
     - Functions with low algebraic immunity are vulnerable to
       algebraic attacks
-    - Maximum algebraic immunity for n variables is
-      :math:`\lceil n/2 \rceil`
+    - Maximum algebraic immunity for n variables is ceiling(n/2)
     - Functions achieving maximum algebraic immunity are called
       "optimal"
     - Algebraic immunity is a key security metric for stream cipher
@@ -905,7 +899,7 @@ def compute_algebraic_immunity(
     **Algorithm**:
     
     1. Generate truth table for the function
-    2. For each degree d from 1 to :math:`\lceil n/2 \rceil`:
+    2. For each degree d from 1 to ceiling(n/2):
        - Search for annihilators of degree d
        - Check both f and (1+f)
     3. Return the minimum degree found
@@ -922,7 +916,7 @@ def compute_algebraic_immunity(
         - annihilators_found: List of annihilators found
         - optimal: Whether function achieves maximum algebraic immunity
         - max_possible: Maximum possible algebraic immunity
-          (:math:`\lceil n/2 \rceil`)
+          (ceiling(n/2))
     
     Example:
         >>> def majority(a, b, c):
@@ -1055,11 +1049,9 @@ def groebner_basis_attack(
     
     Given a system of polynomial equations:
     
-    .. math::
-    
-       f_1(x_1, \\ldots, x_n) = 0 \\\\
-       \\vdots \\\\
-       f_m(x_1, \\ldots, x_n) = 0
+    f_1(x_1, ..., x_n) = 0
+    ...
+    f_m(x_1, ..., x_n) = 0
     
     A Gröbner basis G for the ideal generated by {f_1, ..., f_m}
     allows us to solve this system systematically. The Gröbner basis
@@ -1219,8 +1211,8 @@ def cube_attack(
     
     - **Maxterm**: A term in the Algebraic Normal Form (ANF) that
       can be used to construct a cube. If a term
-      :math:`x_{i_1} \cdot \ldots \cdot x_{i_k}` appears in the ANF,
-      then :math:`\{x_{i_1}, \ldots, x_{i_k}\}` is a potential cube.
+      x_{i_1} * ... * x_{i_k} appears in the ANF,
+      then {x_{i_1}, ..., x_{i_k}} is a potential cube.
     
     - **Degree of Superpoly**: The degree of the polynomial obtained
       by summing over a cube. Lower degree superpolies are easier
@@ -1230,9 +1222,7 @@ def cube_attack(
     
     Given an output function p(x_1, ..., x_n), we can write it as:
     
-    .. math::
-    
-       p(x_1, \\ldots, x_n) = x_{i_1} \\cdots x_{i_k} \\cdot p_S(I) + q(x_1, \\ldots, x_n)
+    p(x_1, ..., x_n) = x_{i_1} * ... * x_{i_k} * p_S(I) + q(x_1, ..., x_n)
     
     where:
     - {x_{i_1}, ..., x_{i_k}} is the cube
@@ -1242,9 +1232,7 @@ def cube_attack(
     
     Summing p over the cube gives:
     
-    .. math::
-    
-       \\sum_{x_{i_1}, \\ldots, x_{i_k} \\in \\{0,1\\}} p(x_1, \\ldots, x_n) = p_S(I)
+    sum_{x_{i_1}, ..., x_{i_k} in {0,1}} p(x_1, ..., x_n) = p_S(I)
     
     **Algorithm**:
     
