@@ -1862,7 +1862,8 @@ def random_excursions_variant_test(sequence: List[int]) -> NISTTestResult:
     variant of Test 14 that focuses on the total number of visits
     rather than the distribution of visits per cycle.
     
-    **What it measures**: Total number of visits to each state in a random walk.
+    **What it measures**: Total number of visits to each state in
+    a random walk.
     
     **How it works**:
     1. Convert sequence to -1, +1 (0 -> -1, 1 -> +1)
