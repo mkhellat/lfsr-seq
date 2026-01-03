@@ -1,314 +1,551 @@
 Theoretical Analysis
 ====================
 
-This section provides comprehensive documentation for theoretical analysis
-features, including irreducible polynomial analysis, LaTeX export, research
-paper generation, known result database, benchmarking, and reproducibility.
-
-**Key Terminology**:
-
-- **Theoretical Analysis**: Analysis that compares computed results with
-  theoretical predictions and known results, ensuring correctness and
-  providing research insights.
-
-- **Irreducible Polynomial**: A polynomial that cannot be factored into
-  polynomials of lower degree over the given field.
-
-- **LaTeX Export**: Converting analysis results into LaTeX format for
-  inclusion in research papers.
-
-- **Reproducibility**: The ability to reproduce research results using
-  the same methods, data, and parameters.
+This section provides a comprehensive theoretical treatment of polynomial
+analysis for LFSRs, including irreducible polynomials, factorization theory,
+polynomial order computation, and primitive polynomials. The documentation is
+designed to be accessible to beginners while providing sufficient depth for
+researchers and developers. We begin with intuitive explanations and gradually
+build to rigorous mathematical formulations.
 
 Introduction
 ------------
 
-The theoretical analysis features provide research-oriented capabilities
-for LFSR analysis, enabling:
+**What is Theoretical Analysis?**
 
-1. **Enhanced Analysis**: Comprehensive irreducible polynomial analysis
-   with factorization and order computation
+**Theoretical analysis** in the context of LFSRs refers to the mathematical
+study of polynomial properties and their relationship to LFSR behavior. This
+includes analyzing irreducibility, factorization, polynomial orders, and
+primitive polynomials. Theoretical analysis provides the mathematical foundation
+for understanding LFSR sequences, periods, and cryptographic properties.
 
-2. **Publication Support**: LaTeX export and research paper generation
-   for documenting findings
+**Historical Context and Motivation**
 
-3. **Verification**: Comparison with known results database for correctness
-   verification
+The theoretical analysis of polynomials over finite fields has a rich history
+dating back to the work of Galois in the 19th century. For LFSRs, the
+connection between polynomial properties and sequence behavior was established
+in the mid-20th century through the work of Golomb (1967) and others. The
+fundamental insight is that the characteristic polynomial of an LFSR completely
+determines its sequence properties, including period, linear complexity, and
+statistical characteristics.
 
-4. **Performance Analysis**: Benchmarking framework for comparing methods
+The theory of irreducible polynomials over finite fields was developed by
+mathematicians such as Artin, Schreier, and Steinitz. For cryptographic
+applications, primitive polynomials (a special class of irreducible
+polynomials) are particularly important, as they generate sequences with
+maximum period.
 
-5. **Reproducibility**: Complete environment and configuration tracking
-   for scientific reproducibility
+**Why is Theoretical Analysis Important?**
 
-Irreducible Polynomial Analysis
---------------------------------
+1. **Understanding Sequence Properties**: Polynomial properties determine LFSR
+   sequence behavior. Irreducibility, factorization, and order computation
+   provide insights into period, linear complexity, and statistical
+   properties.
 
-**What is Irreducible Polynomial Analysis?**
+2. **Cryptographic Design**: Primitive polynomials are essential for
+   cryptographic applications requiring maximum period sequences. Theoretical
+   analysis helps identify suitable polynomials for cryptographic use.
 
-Irreducible polynomial analysis provides comprehensive analysis of polynomial
-properties, including irreducibility, factorization, factor orders, and
-primitive factor detection.
+3. **Verification and Validation**: Comparing computed results with
+   theoretical predictions enables verification of implementation correctness
+   and identification of errors.
 
-**Key Features**:
+4. **Research Foundation**: Theoretical analysis provides the mathematical
+   foundation for research in stream ciphers, error-correcting codes, and
+   pseudorandom number generation.
 
-- **Irreducibility Testing**: Determine if polynomial is irreducible
-- **Factorization**: Factor polynomial into irreducible components
-- **Factor Orders**: Compute order of each irreducible factor
-- **Order Relationships**: Verify LCM of factor orders equals polynomial order
-- **Primitive Detection**: Identify primitive factors
+5. **Algorithm Development**: Understanding polynomial theory enables the
+   development of efficient algorithms for period computation, factorization,
+   and primitive polynomial generation.
+
+**Key Theoretical Concepts**:
+
+- **Irreducible Polynomials**: Polynomials that cannot be factored into
+  polynomials of lower degree. These are fundamental building blocks in
+  polynomial factorization.
+
+- **Polynomial Order**: The smallest positive integer :math:`n` such that the
+  polynomial divides :math:`t^n - 1`. The order determines the maximum period
+  of sequences generated by the polynomial.
+
+- **Primitive Polynomials**: Irreducible polynomials whose order equals
+  :math:`q^d - 1`, where :math:`q` is the field order and :math:`d` is the
+  degree. These generate sequences with maximum period.
+
+- **Factorization**: Decomposing polynomials into irreducible factors. The
+  order of a polynomial is the least common multiple of the orders of its
+  irreducible factors.
+
+Notation and Terminology
+--------------------------
+
+This section uses the following notation, consistent with the rest of the
+documentation:
+
+**Polynomials**:
+
+* :math:`P(t)` denotes a polynomial in variable :math:`t` over a finite field
+  :math:`\mathbb{F}_q`
+* :math:`f(t)` or :math:`f_i(t)` denote irreducible factors
+* :math:`d` denotes the degree of a polynomial
+* :math:`q` denotes the order of the finite field :math:`\mathbb{F}_q`
+
+**Polynomial Operations**:
+
+* :math:`f(t) \mid g(t)` means :math:`f(t)` divides :math:`g(t)`
+* :math:`\gcd(f(t), g(t))` denotes the greatest common divisor
+* :math:`\text{lcm}(a_1, \ldots, a_k)` denotes the least common multiple
+
+**Polynomial Properties**:
+
+* :math:`\text{ord}(P(t))` denotes the order of polynomial :math:`P(t)`
+* :math:`\deg(P(t))` denotes the degree of polynomial :math:`P(t)`
+* :math:`P(t)` is **irreducible** if it cannot be factored into polynomials
+  of lower degree
+* :math:`P(t)` is **primitive** if it is irreducible and
+  :math:`\text{ord}(P(t)) = q^d - 1`
+
+**Factorization**:
+
+* :math:`P(t) = \prod_{i=1}^{k} f_i(t)^{e_i}` denotes the factorization of
+  :math:`P(t)` into irreducible factors :math:`f_i(t)` with multiplicities
+  :math:`e_i`
+
+Irreducible Polynomials
+------------------------
+
+**What is an Irreducible Polynomial?**
+
+A polynomial :math:`P(t)` over a finite field :math:`\mathbb{F}_q` is
+**irreducible** if it cannot be factored into polynomials of lower degree over
+:math:`\mathbb{F}_q`. In other words, if :math:`P(t) = f(t) \cdot g(t)`, then
+either :math:`f(t)` or :math:`g(t)` must be a constant (degree 0).
+
+**Key Properties**:
+
+1. **Fundamental Building Blocks**: Irreducible polynomials are the
+   fundamental building blocks in polynomial factorization over finite fields.
+   Every polynomial can be uniquely factored into irreducible polynomials
+   (up to ordering and constant factors).
+
+2. **Uniqueness of Factorization**: Factorization into irreducible factors is
+   unique (up to ordering and constant factors). This is analogous to the
+   unique factorization of integers into primes.
+
+3. **Relationship to LFSR Sequences**: For an LFSR with characteristic
+   polynomial :math:`P(t)`, if :math:`P(t)` is irreducible, then all
+   non-zero initial states generate sequences with the same period, equal to
+   the order of :math:`P(t)`.
 
 **Mathematical Foundation**:
 
-For a polynomial P(t) that factors as:
+A polynomial :math:`P(t) \in \mathbb{F}_q[t]` of degree :math:`d` is
+irreducible if and only if:
+
+1. :math:`P(t)` has no roots in :math:`\mathbb{F}_q` (for :math:`d > 1`)
+2. :math:`P(t)` cannot be written as :math:`P(t) = f(t) \cdot g(t)` where
+   :math:`\deg(f(t)) \geq 1` and :math:`\deg(g(t)) \geq 1`
+
+**Testing Irreducibility**:
+
+There are several algorithms for testing irreducibility:
+
+1. **Trial Division**: Check if :math:`P(t)` has any factors of degree
+   :math:`\leq \lfloor d/2 \rfloor`. This is computationally expensive for
+   large degrees.
+
+2. **Ben-Or's Algorithm**: A probabilistic algorithm based on polynomial
+   composition and GCD computation.
+
+3. **Rabin's Test**: A probabilistic test based on the fact that an
+   irreducible polynomial of degree :math:`d` over :math:`\mathbb{F}_q`
+   divides :math:`t^{q^d} - t` but does not divide :math:`t^{q^k} - t` for
+   any :math:`k < d`.
+
+**Example**:
+
+Consider the polynomial :math:`P(t) = t^4 + t^3 + t + 1` over
+:math:`\mathbb{F}_2`. This polynomial factors as:
 
 .. math::
 
-   P(t) = \\prod_{i=1}^{k} f_i(t)^{e_i}
+   P(t) = (t^2 + t + 1)(t^2 + 1)
 
-where f_i(t) are irreducible factors, the order of P(t) is:
+Since :math:`P(t)` can be factored into polynomials of lower degree, it is
+**reducible**, not irreducible.
+
+In contrast, the polynomial :math:`P(t) = t^4 + t + 1` over :math:`\mathbb{F}_2`
+is irreducible (and in fact primitive, with order :math:`15 = 2^4 - 1`).
+
+Polynomial Factorization
+--------------------------
+
+**What is Polynomial Factorization?**
+
+**Polynomial factorization** is the process of decomposing a polynomial into
+irreducible factors. For a polynomial :math:`P(t)` over :math:`\mathbb{F}_q`,
+factorization finds irreducible polynomials :math:`f_1(t), \ldots, f_k(t)` and
+multiplicities :math:`e_1, \ldots, e_k` such that:
 
 .. math::
 
-   \\text{ord}(P(t)) = \\text{lcm}(\\text{ord}(f_1(t)), \\ldots, \\text{ord}(f_k(t)))
+   P(t) = \prod_{i=1}^{k} f_i(t)^{e_i}
 
-**Python API Usage**:
+**Uniqueness of Factorization**:
 
-.. code-block:: python
+Factorization into irreducible factors is unique up to:
+1. **Ordering**: The order of factors can be permuted
+2. **Constant factors**: Each factor can be multiplied by a non-zero constant
+   (with the corresponding adjustment to other factors)
 
-   from lfsr.theoretical import analyze_irreducible_properties
-   from sage.all import *
-   
-   F = GF(2)
-   R = PolynomialRing(F, "t")
-   p = R("t^4 + t^3 + t + 1")
-   
-   analysis = analyze_irreducible_properties(p, 2)
-   print(f"Is irreducible: {analysis.is_irreducible}")
-   print(f"Number of factors: {len(analysis.factors)}")
-   print(f"Polynomial order: {analysis.polynomial_order}")
+This uniqueness is guaranteed by the fact that :math:`\mathbb{F}_q[t]` is a
+unique factorization domain (UFD).
 
-LaTeX Export
-------------
+**Mathematical Foundation**:
 
-**What is LaTeX Export?**
+For a polynomial :math:`P(t)` of degree :math:`d` over :math:`\mathbb{F}_q`, the
+factorization can be computed using:
 
-LaTeX export converts analysis results into LaTeX format, enabling
-publication-quality output for research papers and reports.
+1. **Square-Free Factorization**: First, remove repeated factors by computing
+   :math:`\gcd(P(t), P'(t))` where :math:`P'(t)` is the formal derivative.
 
-**Key Features**:
+2. **Distinct Degree Factorization**: Factor the square-free polynomial into
+   factors whose irreducible factors all have the same degree.
 
-- **Polynomial Representation**: Convert polynomials to LaTeX format
-- **Table Generation**: Generate professional tables for analysis results
-- **Complete Documents**: Generate standalone LaTeX documents
-- **Table Fragments**: Generate tables for inclusion in existing papers
+3. **Equal Degree Factorization**: For each distinct degree, factor into
+   irreducible polynomials of that degree.
 
-**Python API Usage**:
+**Algorithms for Factorization**:
 
-.. code-block:: python
+1. **Berlekamp's Algorithm**: An efficient deterministic algorithm for
+   factoring polynomials over finite fields, based on linear algebra over
+   :math:`\mathbb{F}_q`.
 
-   from lfsr.export_latex import export_to_latex_file
-   
-   analysis_results = {
-       'polynomial': {...},
-       'period_distribution': {...}
-   }
-   
-   export_to_latex_file(analysis_results, "results.tex")
+2. **Cantor-Zassenhaus Algorithm**: A probabilistic algorithm that is often
+   faster in practice, especially for large fields.
 
-**Command-Line Usage**:
+3. **Kaltofen-Shoup Algorithm**: An efficient algorithm for very large
+   polynomials and fields.
 
-.. code-block:: bash
+**Relationship to LFSR Analysis**:
 
-   lfsr-seq coefficients.csv 2 --export-latex results.tex
+For an LFSR with characteristic polynomial :math:`P(t)`, factorization reveals:
 
-Research Paper Generation
--------------------------
+1. **Period Structure**: The period of sequences generated by :math:`P(t)` is
+   determined by the orders of the irreducible factors.
 
-**What is Research Paper Generation?**
+2. **Sequence Behavior**: Different irreducible factors contribute to
+   different aspects of sequence behavior, including period and linear
+   complexity.
 
-Research paper generation automatically creates complete research paper
-sections from analysis results, including abstract, methodology, results,
-and discussion.
+3. **Primitive Factor Detection**: Factorization enables identification of
+   primitive factors, which are crucial for maximum-period sequences.
 
-**Key Features**:
+**Example**:
 
-- **Automatic Section Generation**: Generate all standard paper sections
-- **LaTeX Integration**: Integrates with LaTeX export for tables
-- **Customizable Content**: Customize title, author, focus, observations
-- **Professional Formatting**: Standard academic paper structure
+Consider the polynomial :math:`P(t) = t^6 + t^5 + t^4 + t^3 + t^2 + t + 1`
+over :math:`\mathbb{F}_2`. This polynomial factors as:
 
-**Python API Usage**:
+.. math::
 
-.. code-block:: python
+   P(t) = (t^3 + t + 1)(t^3 + t^2 + 1)
 
-   from lfsr.paper_generator import generate_complete_paper
-   
-   analysis_results = {...}
-   paper = generate_complete_paper(
-       analysis_results,
-       title="LFSR Analysis Results",
-       author="Researcher Name"
-   )
-   
-   with open("paper.tex", "w") as f:
-       f.write(paper)
+Both factors are irreducible. The order of :math:`P(t)` is the least common
+multiple of the orders of its factors.
 
-**Command-Line Usage**:
+Polynomial Order
+-----------------
 
-.. code-block:: bash
+**What is Polynomial Order?**
 
-   lfsr-seq coefficients.csv 2 --generate-paper paper.tex
+The **order** (also called the **exponent** or **period**) of a polynomial
+:math:`P(t)` over :math:`\mathbb{F}_q` is the smallest positive integer
+:math:`n` such that :math:`P(t)` divides :math:`t^n - 1`. In other words,
+:math:`\text{ord}(P(t)) = n` if and only if:
 
-Known Result Database
----------------------
+1. :math:`P(t) \mid (t^n - 1)`
+2. :math:`P(t) \nmid (t^m - 1)` for any :math:`m < n`
 
-**What is the Known Result Database?**
+**Key Properties**:
 
-The known result database stores and retrieves known theoretical results,
-enabling comparison with computed results for verification.
+1. **Period Determination**: For an LFSR with characteristic polynomial
+   :math:`P(t)`, the order of :math:`P(t)` determines the maximum possible
+   period of sequences generated by the LFSR.
 
-**Key Features**:
+2. **Relationship to Factorization**: If :math:`P(t) = \prod_{i=1}^{k}
+   f_i(t)^{e_i}`, then:
 
-- **Primitive Polynomial Storage**: Store known primitive polynomials
-- **Order Storage**: Store known polynomial orders
-- **Comparison**: Compare computed results with known results
-- **Verification**: Verify correctness of analysis algorithms
+   .. math::
 
-**Python API Usage**:
+      \text{ord}(P(t)) = \text{lcm}(\text{ord}(f_1(t)), \ldots, \text{ord}(f_k(t)))
 
-.. code-block:: python
+   This is a fundamental relationship that enables order computation through
+   factorization.
 
-   from lfsr.theoretical_db import get_database
-   
-   db = get_database()
-   comparison = db.compare_with_known(
-       coefficients=[1, 0, 0, 1],
-       field_order=2,
-       degree=4,
-       computed_order=15,
-       computed_is_primitive=True
-   )
-   
-   print(f"Found in database: {comparison['found_in_database']}")
-   print(f"Matches: {comparison['matches']}")
+3. **Bounds**: For an irreducible polynomial of degree :math:`d` over
+   :math:`\mathbb{F}_q`, the order divides :math:`q^d - 1`. If the order
+   equals :math:`q^d - 1`, the polynomial is **primitive**.
 
-**Command-Line Usage**:
+**Mathematical Foundation**:
 
-.. code-block:: bash
+The order of a polynomial :math:`P(t)` is related to the multiplicative order
+of roots of :math:`P(t)` in extension fields. If :math:`\alpha` is a root of
+:math:`P(t)` in some extension field :math:`\mathbb{F}_{q^d}`, then:
 
-   lfsr-seq coefficients.csv 2 --compare-known
+.. math::
 
-Benchmarking Framework
+   \text{ord}(P(t)) = \text{ord}(\alpha)
+
+where :math:`\text{ord}(\alpha)` is the multiplicative order of :math:`\alpha`
+in the multiplicative group :math:`\mathbb{F}_{q^d}^*`.
+
+**Computation Methods**:
+
+1. **Factorization Method**: Factor :math:`P(t)` into irreducible factors,
+   compute the order of each factor, and take the least common multiple.
+
+2. **Direct Computation**: For small polynomials, directly test divisibility
+   of :math:`t^n - 1` by :math:`P(t)` for increasing values of :math:`n`.
+
+3. **SageMath/Computer Algebra**: Use computer algebra systems that have
+   efficient implementations of order computation algorithms.
+
+**Relationship to LFSR Period**:
+
+For an LFSR with characteristic polynomial :math:`P(t)`:
+
+- If :math:`P(t)` is irreducible, all non-zero initial states generate
+  sequences with period equal to :math:`\text{ord}(P(t))`.
+
+- If :math:`P(t)` is reducible, different initial states may generate
+  sequences with different periods, but all periods divide
+  :math:`\text{ord}(P(t))`.
+
+**Example**:
+
+Consider the polynomial :math:`P(t) = t^4 + t + 1` over :math:`\mathbb{F}_2`.
+This polynomial is irreducible and primitive. Its order is :math:`15 = 2^4 -
+1`, which is the maximum possible order for a degree-:math:`4` polynomial over
+:math:`\mathbb{F}_2`.
+
+For an LFSR with this characteristic polynomial, all non-zero initial states
+generate sequences with period :math:`15`.
+
+Primitive Polynomials
 ----------------------
 
-**What is Benchmarking?**
+**What is a Primitive Polynomial?**
 
-Benchmarking measures and compares the performance of different analysis
-methods, helping identify the most efficient approach.
+A polynomial :math:`P(t)` of degree :math:`d` over :math:`\mathbb{F}_q` is
+**primitive** if:
 
-**Key Features**:
+1. :math:`P(t)` is irreducible
+2. :math:`\text{ord}(P(t)) = q^d - 1`
 
-- **Performance Measurement**: Measure execution time of methods
-- **Accuracy Verification**: Verify correctness of results
-- **Method Comparison**: Compare different methods side-by-side
-- **Benchmark Suites**: Run multiple benchmarks and aggregate results
+In other words, a primitive polynomial is an irreducible polynomial whose order
+equals the maximum possible value.
 
-**Python API Usage**:
+**Key Properties**:
 
-.. code-block:: python
+1. **Maximum Period**: For an LFSR with primitive characteristic polynomial
+   :math:`P(t)`, all non-zero initial states generate sequences with maximum
+   period :math:`q^d - 1`.
 
-   from lfsr.benchmarking import compare_methods
-   
-   results = compare_methods(
-       coefficients=[1, 0, 0, 1],
-       field_order=2,
-       expected_period=15
-   )
-   
-   for method, result in results.items():
-       print(f"{method}: {result.execution_time:.6f} seconds")
+2. **Generator of Extension Field**: If :math:`\alpha` is a root of a
+   primitive polynomial :math:`P(t)` in :math:`\mathbb{F}_{q^d}`, then
+   :math:`\alpha` is a generator (primitive element) of the multiplicative
+   group :math:`\mathbb{F}_{q^d}^*`.
 
-**Command-Line Usage**:
+3. **Cryptographic Importance**: Primitive polynomials are essential for
+   cryptographic applications requiring maximum-period sequences, such as
+   stream ciphers and pseudorandom number generators.
 
-.. code-block:: bash
+4. **Rarity**: For a given degree :math:`d` and field order :math:`q`, only a
+   small fraction of irreducible polynomials are primitive. The number of
+   primitive polynomials of degree :math:`d` over :math:`\mathbb{F}_q` is
+   :math:`\phi(q^d - 1) / d`, where :math:`\phi` is Euler's totient function.
 
-   lfsr-seq coefficients.csv 2 --benchmark
+**Mathematical Foundation**:
 
-Reproducibility Features
-------------------------
+A polynomial :math:`P(t)` of degree :math:`d` over :math:`\mathbb{F}_q` is
+primitive if and only if:
 
-**What is Reproducibility?**
+1. :math:`P(t)` is irreducible
+2. For any root :math:`\alpha` of :math:`P(t)` in :math:`\mathbb{F}_{q^d}`,
+   the multiplicative order of :math:`\alpha` is :math:`q^d - 1`
 
-Reproducibility ensures that research results can be reproduced by others
-using the same methods, data, and parameters.
+This means that :math:`\alpha` generates the entire multiplicative group
+:math:`\mathbb{F}_{q^d}^*`, which has :math:`q^d - 1` elements.
 
-**Key Features**:
+**Testing Primitiveness**:
 
-- **Seed Tracking**: Track random seeds for reproducibility
-- **Environment Capture**: Capture system and software environment
-- **Configuration Export**: Export complete analysis configuration
-- **Reproducibility Reports**: Generate comprehensive reproducibility reports
+To test if an irreducible polynomial :math:`P(t)` of degree :math:`d` over
+:math:`\mathbb{F}_q` is primitive:
 
-**Python API Usage**:
+1. Verify that :math:`P(t)` is irreducible (using methods described earlier)
+2. Compute :math:`\text{ord}(P(t))` and verify that
+   :math:`\text{ord}(P(t)) = q^d - 1`
 
-.. code-block:: python
+Alternatively, if :math:`\alpha` is a root of :math:`P(t)`, verify that
+:math:`\alpha^n \neq 1` for all proper divisors :math:`n` of :math:`q^d - 1`.
 
-   from lfsr.reproducibility import generate_reproducibility_report
-   
-   report = generate_reproducibility_report(
-       analysis_results={...},
-       analysis_config={...},
-       seed=12345
-   )
-   
-   with open("reproducibility.json", "w") as f:
-       f.write(report)
+**Relationship to LFSR Sequences**:
 
-**Command-Line Usage**:
+For an LFSR with primitive characteristic polynomial :math:`P(t)`:
 
-.. code-block:: bash
+- **Maximum Period**: All non-zero initial states generate sequences with
+  period :math:`q^d - 1`, which is the maximum possible period.
 
-   lfsr-seq coefficients.csv 2 --reproducibility-report report.json
+- **Uniform Distribution**: Over a full period, each non-zero state appears
+  exactly once, providing optimal statistical properties.
 
-API Reference
--------------
+- **Cryptographic Strength**: Maximum period sequences from primitive
+  polynomials are used in cryptographic applications due to their long periods
+  and good statistical properties.
 
-See :doc:`api/theoretical` for complete API documentation.
+**Example**:
+
+The polynomial :math:`P(t) = t^4 + t + 1` over :math:`\mathbb{F}_2` is
+primitive. Its order is :math:`15 = 2^4 - 1`, which is the maximum possible
+for a degree-:math:`4` polynomial over :math:`\mathbb{F}_2`.
+
+An LFSR with this characteristic polynomial and any non-zero initial state
+generates a sequence with period :math:`15`. For example, starting from state
+:math:`(1, 0, 0, 0)`, the sequence cycles through all :math:`15` non-zero
+states before repeating.
+
+**Known Primitive Polynomials**:
+
+There are extensive tables of known primitive polynomials, particularly for
+:math:`\mathbb{F}_2`. These are valuable resources for cryptographic design
+and research. Many computer algebra systems and cryptographic libraries include
+databases of primitive polynomials.
+
+Theoretical Relationships
+--------------------------
+
+**Order and Factorization Relationship**
+
+For a polynomial :math:`P(t) = \prod_{i=1}^{k} f_i(t)^{e_i}` factored into
+irreducible factors, the order of :math:`P(t)` is:
+
+.. math::
+
+   \text{ord}(P(t)) = \text{lcm}(\text{ord}(f_1(t)), \ldots, \text{ord}(f_k(t)))
+
+This fundamental relationship enables order computation through factorization.
+The proof relies on the fact that :math:`P(t) \mid (t^n - 1)` if and only if
+each irreducible factor :math:`f_i(t)` divides :math:`t^n - 1`, which occurs
+when :math:`n` is a multiple of :math:`\text{ord}(f_i(t))`.
+
+**Irreducibility and Period Relationship**
+
+For an LFSR with characteristic polynomial :math:`P(t)`:
+
+- If :math:`P(t)` is **irreducible**, all non-zero initial states generate
+  sequences with the same period, equal to :math:`\text{ord}(P(t))`.
+
+- If :math:`P(t)` is **reducible**, different initial states may generate
+  sequences with different periods. However, all periods divide
+  :math:`\text{ord}(P(t))`, and the maximum period is :math:`\text{ord}(P(t))`.
+
+**Primitive Polynomials and Maximum Period**
+
+A polynomial :math:`P(t)` of degree :math:`d` over :math:`\mathbb{F}_q` is
+primitive if and only if an LFSR with characteristic polynomial :math:`P(t)`
+generates sequences with maximum period :math:`q^d - 1` for all non-zero
+initial states.
+
+**Bounds on Polynomial Order**
+
+For an irreducible polynomial :math:`P(t)` of degree :math:`d` over
+:math:`\mathbb{F}_q`:
+
+1. :math:`\text{ord}(P(t))` divides :math:`q^d - 1`
+2. :math:`\text{ord}(P(t)) = q^d - 1` if and only if :math:`P(t)` is primitive
+3. The minimum possible order is at least :math:`d + 1` (for certain special
+   cases)
 
 Glossary
 --------
 
-**Benchmarking**
-   The process of measuring and comparing the performance of different
-   methods or algorithms.
-
-**Configuration Export**
-   Saving all parameters and settings used in an analysis for reproducibility.
-
-**Environment Capture**
-   Recording information about the computing environment for reproducibility.
+**Factorization**
+   The process of decomposing a polynomial into irreducible factors.
 
 **Irreducible Polynomial**
-   A polynomial that cannot be factored into polynomials of lower degree.
+   A polynomial that cannot be factored into polynomials of lower degree over
+   the given field.
 
-**Known Result Database**
-   A collection of previously computed or published theoretical results.
+**Order (of a polynomial)**
+   The smallest positive integer :math:`n` such that the polynomial divides
+   :math:`t^n - 1`. Also called the exponent or period of the polynomial.
 
-**LaTeX**
-   A document preparation system for typesetting mathematical formulas.
+**Primitive Element**
+   An element of a finite field whose multiplicative order equals the order of
+   the multiplicative group. For :math:`\mathbb{F}_{q^d}^*`, a primitive
+   element has order :math:`q^d - 1`.
 
-**Reproducibility**
-   The ability to reproduce research results using the same methods and data.
+**Primitive Polynomial**
+   An irreducible polynomial whose order equals :math:`q^d - 1`, where
+   :math:`q` is the field order and :math:`d` is the degree. Primitive
+   polynomials generate sequences with maximum period.
 
-**Reproducibility Report**
-   A document containing all information needed to reproduce research results.
-
-**Theoretical Analysis**
-   Analysis comparing computed results with theoretical predictions.
+**Unique Factorization Domain (UFD)**
+   A ring in which every non-zero element can be uniquely factored into
+   irreducible elements (up to ordering and units). The polynomial ring
+   :math:`\mathbb{F}_q[t]` is a UFD.
 
 Further Reading
----------------
+----------------
 
-- Menezes, A. J., et al. (1996). "Handbook of Applied Cryptography"
-- Golomb, S. W. (1967). "Shift Register Sequences"
-- Rueppel, R. A. (1986). "Analysis and Design of Stream Ciphers"
+**Polynomial Theory over Finite Fields**:
+
+- **Lidl, R., & Niederreiter, H.** (1997). "Finite Fields" (2nd ed.).
+  Cambridge University Press. Comprehensive treatment of finite fields,
+  including polynomial factorization, irreducibility testing, and primitive
+  polynomials.
+
+- **Mullen, G. L., & Panario, D.** (2013). "Handbook of Finite Fields". CRC
+  Press. Extensive reference covering all aspects of finite fields, including
+  polynomial theory and computational methods.
+
+**LFSR Theory and Applications**:
+
+- **Golomb, S. W.** (1967). "Shift Register Sequences" (3rd ed.). Aegean Park
+  Press. Foundational work on LFSR theory, including polynomial properties and
+  sequence analysis.
+
+- **Rueppel, R. A.** (1986). "Analysis and Design of Stream Ciphers".
+  Springer. Comprehensive treatment of LFSR-based stream ciphers, including
+  theoretical analysis of polynomial properties.
+
+**Computational Methods**:
+
+- **von zur Gathen, J., & Gerhard, J.** (2013). "Modern Computer Algebra"
+  (3rd ed.). Cambridge University Press. Algorithms for polynomial
+  factorization, irreducibility testing, and order computation over finite
+  fields.
+
+- **Shoup, V.** (1996). "Fast Construction of Irreducible Polynomials over
+  Finite Fields". Journal of Symbolic Computation, 22(4), 375-380. Efficient
+  algorithms for constructing irreducible polynomials.
+
+**Primitive Polynomials**:
+
+- **Zierler, N., & Brillhart, J.** (1968). "On Primitive Trinomials (Mod 2)".
+  Information and Control, 13(6), 541-554. Early work on primitive
+  polynomials over :math:`\mathbb{F}_2`.
+
+- **Hansen, T., & Mullen, G. L.** (1992). "Primitive Polynomials over Finite
+  Fields". Mathematics of Computation, 59(200), 639-643. Comprehensive
+  treatment of primitive polynomials.
+
+**Cryptographic Applications**:
+
+- **Menezes, A. J., van Oorschot, P. C., & Vanstone, S. A.** (1996).
+  "Handbook of Applied Cryptography". CRC Press. Chapter 5 covers LFSRs and
+  polynomial theory in cryptographic context.
+
+- **Stinson, D. R., & Paterson, M. B.** (2018). "Cryptography: Theory and
+  Practice" (4th ed.). CRC Press. Modern treatment of cryptographic
+  applications of LFSRs and polynomial theory.
