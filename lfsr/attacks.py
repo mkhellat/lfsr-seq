@@ -89,7 +89,8 @@ except ImportError:
     SCIPY_AVAILABLE = False
     # Fallback: simple normal approximation using class to match scipy interface
     class _NormFallback:
-        """Fallback normal distribution functions when scipy is not available."""
+        """Fallback normal distribution functions when scipy is not
+        available."""
         @staticmethod
         def ppf(p):
             """Simple approximation of normal quantile function."""
@@ -114,10 +115,12 @@ class LFSRConfig:
     Configuration for a single LFSR in a combination generator.
     
     Attributes:
-        coefficients: List of feedback polynomial coefficients [c_0, c_1, ..., c_{d-1}]
+        coefficients: List of feedback polynomial coefficients
+          [c_0, c_1, ..., c_{d-1}]
         field_order: Field order (q) - typically 2 for binary
         degree: Degree of the LFSR (length of state vector)
-        initial_state: Optional initial state vector (defaults to [1, 0, ..., 0])
+        initial_state: Optional initial state vector (defaults to
+          [1, 0, ..., 0])
     
     Example:
         >>> lfsr = LFSRConfig(
@@ -142,7 +145,8 @@ class CombinationGenerator:
     
     Attributes:
         lfsrs: List of LFSR configurations
-        combining_function: Function that takes LFSR outputs and returns keystream bit
+        combining_function: Function that takes LFSR outputs and
+          returns keystream bit
         function_name: Human-readable name of the combining function
     
     Example:
@@ -252,13 +256,20 @@ class CorrelationAttackResult:
     
     Attributes:
         target_lfsr_index: Index of the LFSR that was attacked
-        correlation_coefficient: Measured correlation coefficient (range: -1 to +1)
-        p_value: Statistical significance (probability that correlation is due to chance)
-        attack_successful: Whether the attack succeeded (correlation is significant)
-        success_probability: Estimated probability that the attack will succeed
-        required_keystream_bits: Estimated number of keystream bits needed for attack
-        complexity_estimate: Estimated computational complexity of full attack
-        matches: Number of matching bits between keystream and LFSR sequence
+        correlation_coefficient: Measured correlation coefficient
+          (range: -1 to +1)
+        p_value: Statistical significance (probability that
+          correlation is due to chance)
+        attack_successful: Whether the attack succeeded (correlation
+          is significant)
+        success_probability: Estimated probability that the attack
+          will succeed
+        required_keystream_bits: Estimated number of keystream bits
+          needed for attack
+        complexity_estimate: Estimated computational complexity of
+          full attack
+        matches: Number of matching bits between keystream and LFSR
+          sequence
         total_bits: Total number of bits compared
         match_ratio: Ratio of matches to total bits
     """
@@ -283,7 +294,8 @@ class FastCorrelationAttackResult:
         target_lfsr_index: Index of the LFSR that was attacked
         recovered_state: Recovered initial state (if successful)
         correlation_coefficient: Measured correlation coefficient
-        attack_successful: Whether the attack successfully recovered the state
+        attack_successful: Whether the attack successfully recovered
+          the state
         iterations_performed: Number of iterative decoding iterations
         candidate_states_tested: Number of candidate states evaluated
         best_correlation: Best correlation found among candidates
@@ -307,11 +319,13 @@ class DistinguishingAttackResult:
     Results from a distinguishing attack.
     
     Attributes:
-        distinguishable: Whether the keystream can be distinguished from random
+        distinguishable: Whether the keystream can be distinguished
+          from random
         distinguishing_statistic: Value of the distinguishing statistic
         p_value: Statistical significance
         attack_successful: Whether distinction was successful
-        method_used: Method used for distinguishing (e.g., "correlation", "statistical")
+        method_used: Method used for distinguishing (e.g.,
+          "correlation", "statistical")
         details: Additional details about the attack
     """
     distinguishable: bool
@@ -454,7 +468,8 @@ def estimate_attack_success_probability(
     The probability of recovering the state depends on:
     
     - The state space size (:math:`q^d`)
-    - Whether the correlation is strong enough to distinguish the correct state
+    - Whether the correlation is strong enough to distinguish the
+      correct state
     
     For correlation attacks, recovery is typically feasible if:
     
@@ -475,8 +490,8 @@ def estimate_attack_success_probability(
         - 'detection_probability': Probability of detecting correlation
         - 'recovery_probability': Probability of recovering state
         - 'overall_success_probability': Overall attack success probability
-        - 'required_keystream_bits': Estimated keystream bits needed for target
-          success probability
+        - 'required_keystream_bits': Estimated keystream bits needed
+          for target success probability
         - 'feasible': Whether attack is computationally feasible
     
     Example:
@@ -573,17 +588,21 @@ def siegenthaler_correlation_attack(
     """
     Perform Siegenthaler's basic correlation attack.
     
-    Siegenthaler's correlation attack is the fundamental correlation attack
+    Siegenthaler's correlation attack is the fundamental correlation
+    attack
     technique. It works by:
     
     1. Generating a sequence from the target LFSR
-    2. Computing the correlation coefficient between this sequence and the keystream
+    2. Computing the correlation coefficient between this sequence
+       and the keystream
     3. Testing if the correlation is statistically significant
-    4. If significant, the attack succeeds and can be used to recover the LFSR state
+    4. If significant, the attack succeeds and can be used to recover
+       the LFSR state
     
-    The attack succeeds when there is a significant correlation (positive or negative)
-    between the keystream and the target LFSR sequence. This indicates that the
-    combining function leaks information about the LFSR output.
+    The attack succeeds when there is a significant correlation
+    (positive or negative) between the keystream and the target LFSR
+    sequence. This indicates that the combining function leaks
+    information about the LFSR output.
     
     Args:
         combination_generator: The combination generator being attacked
@@ -697,9 +716,10 @@ def analyze_combining_function(
     """
     Analyze correlation properties of a combining function.
     
-    This function analyzes a combining function to determine its correlation
-    immunity and other security properties. A function is correlation immune
-    of order m if the output is statistically independent of any m inputs.
+    This function analyzes a combining function to determine its
+    correlation immunity and other security properties. A function is
+    correlation immune of order m if the output is statistically
+    independent of any m inputs.
     
     Args:
         function: The combining function (takes num_inputs arguments)
@@ -885,7 +905,8 @@ def compute_algebraic_immunity(
     3. Return the minimum degree found
     
     Args:
-        function: The Boolean function to analyze (takes num_inputs arguments)
+        function: The Boolean function to analyze (takes num_inputs
+          arguments)
         num_inputs: Number of inputs to the function
         field_order: Field order (default: 2 for binary)
     
@@ -1003,24 +1024,26 @@ def groebner_basis_attack(
     
     **Key Terminology**:
     
-    - **Gröbner Basis**: A special generating set for an ideal in a polynomial
-      ring. Gröbner bases allow systematic solution of polynomial systems.
-      Named after Bruno Buchberger who developed the algorithm.
+    - **Gröbner Basis**: A special generating set for an ideal in a
+      polynomial ring. Gröbner bases allow systematic solution of
+      polynomial systems. Named after Bruno Buchberger who developed
+      the algorithm.
     
     - **Ideal**: A subset of a ring that is closed under addition and
-      multiplication by ring elements. In our context, the ideal is generated
-      by the polynomial equations describing the LFSR.
+      multiplication by ring elements. In our context, the ideal is
+      generated by the polynomial equations describing the LFSR.
     
-    - **Polynomial Ring**: A ring formed by polynomials with coefficients in
-      a field. We work in polynomial rings over GF(2) for binary LFSRs.
+    - **Polynomial Ring**: A ring formed by polynomials with
+      coefficients in a field. We work in polynomial rings over
+      GF(2) for binary LFSRs.
     
-    - **Buchberger's Algorithm**: The fundamental algorithm for computing
-      Gröbner bases. It systematically reduces polynomials using S-polynomials
-      until a Gröbner basis is obtained.
+    - **Buchberger's Algorithm**: The fundamental algorithm for
+      computing Gröbner bases. It systematically reduces polynomials
+      using S-polynomials until a Gröbner basis is obtained.
     
-    - **System of Equations**: A collection of polynomial equations that
-      must be satisfied simultaneously. Solving such systems is the goal of
-      Gröbner basis attacks.
+    - **System of Equations**: A collection of polynomial equations
+      that must be satisfied simultaneously. Solving such systems is
+      the goal of Gröbner basis attacks.
     
     **Mathematical Foundation**:
     
@@ -1032,10 +1055,10 @@ def groebner_basis_attack(
        \\vdots \\\\
        f_m(x_1, \\ldots, x_n) = 0
     
-    A Gröbner basis G for the ideal generated by {f_1, ..., f_m} allows us
-    to solve this system systematically. The Gröbner basis has the property
-    that the solutions of the original system are the same as the solutions
-    of the Gröbner basis system.
+    A Gröbner basis G for the ideal generated by {f_1, ..., f_m}
+    allows us to solve this system systematically. The Gröbner basis
+    has the property that the solutions of the original system are
+    the same as the solutions of the Gröbner basis system.
     
     **Algorithm**:
     
@@ -1174,24 +1197,27 @@ def cube_attack(
       cryptographic systems. It is particularly effective against
       systems with low-degree output functions.
     
-    - **Cube**: A set of variables {x_{i_1}, ..., x_{i_k}} that are varied
-      while other variables are fixed. The cube defines a subset of the input
-      space over which we sum the output function.
+    - **Cube**: A set of variables {x_{i_1}, ..., x_{i_k}} that are
+      varied while other variables are fixed. The cube defines a
+      subset of the input space over which we sum the output
+      function.
     
-    - **Superpoly**: The polynomial obtained by summing the output function
-      over a cube. If the superpoly has low degree, it can be used to recover
-      key information.
+    - **Superpoly**: The polynomial obtained by summing the output
+      function over a cube. If the superpoly has low degree, it can
+      be used to recover key information.
     
-    - **Cube Tester**: An algorithm to find useful cubes. A cube is useful if
-      its superpoly has low degree and depends on key variables.
+    - **Cube Tester**: An algorithm to find useful cubes. A cube is
+      useful if its superpoly has low degree and depends on key
+      variables.
     
     - **Maxterm**: A term in the Algebraic Normal Form (ANF) that
       can be used to construct a cube. If a term
       :math:`x_{i_1} \cdot \ldots \cdot x_{i_k}` appears in the ANF,
       then :math:`\{x_{i_1}, \ldots, x_{i_k}\}` is a potential cube.
     
-    - **Degree of Superpoly**: The degree of the polynomial obtained by
-      summing over a cube. Lower degree superpolies are easier to exploit.
+    - **Degree of Superpoly**: The degree of the polynomial obtained
+      by summing over a cube. Lower degree superpolies are easier
+      to exploit.
     
     **Mathematical Foundation**:
     
@@ -1310,10 +1336,11 @@ def fast_correlation_attack(
     """
     Perform Meier-Staffelbach fast correlation attack.
     
-    This attack uses iterative decoding techniques to efficiently recover the
-    initial state of a target LFSR in a combination generator. It treats the
-    correlation attack as a decoding problem, where the keystream is viewed
-    as a noisy version of the LFSR sequence.
+    This attack uses iterative decoding techniques to efficiently
+    recover the initial state of a target LFSR in a combination
+    generator. It treats the correlation attack as a decoding
+    problem, where the keystream is viewed as a noisy version of the
+    LFSR sequence.
     
     **Algorithm**:
     1. Generate candidate initial states for the target LFSR
@@ -1337,10 +1364,14 @@ def fast_correlation_attack(
         combination_generator: The combination generator being attacked
         keystream: Observed keystream bits
         target_lfsr_index: Index of the LFSR to attack
-        max_candidates: Maximum number of candidate states to test (default: 1000)
-        max_iterations: Maximum iterations for iterative decoding (default: 10)
-        correlation_threshold: Minimum correlation to consider (default: 0.1)
-        significance_level: Statistical significance level (default: 0.05)
+        max_candidates: Maximum number of candidate states to test
+          (default: 1000)
+        max_iterations: Maximum iterations for iterative decoding
+          (default: 10)
+        correlation_threshold: Minimum correlation to consider
+          (default: 0.1)
+        significance_level: Statistical significance level
+          (default: 0.05)
     
     Returns:
         FastCorrelationAttackResult with attack results
@@ -1516,15 +1547,16 @@ def distinguishing_attack(
     """
     Perform a distinguishing attack on a combination generator.
     
-    A distinguishing attack determines whether a keystream was generated by
-    a specific combination generator or is truly random. This is a weaker
-    form of attack that doesn't recover the state but can detect vulnerabilities.
+    A distinguishing attack determines whether a keystream was
+    generated by a specific combination generator or is truly random.
+    This is a weaker form of attack that doesn't recover the state
+    but can detect vulnerabilities.
     
     **Methods**:
     
-    1. **Correlation-based**: Tests for correlations between keystream and
-       individual LFSR sequences. If correlations exist, the keystream is
-       distinguishable from random.
+    1. **Correlation-based**: Tests for correlations between
+       keystream and individual LFSR sequences. If correlations
+       exist, the keystream is distinguishable from random.
     
     2. **Statistical**: Tests statistical properties of the keystream against
        expected properties of the combination generator.
@@ -1537,7 +1569,8 @@ def distinguishing_attack(
     Args:
         combination_generator: The combination generator to test against
         keystream: Observed keystream bits
-        method: Distinguishing method ("correlation" or "statistical", default: "correlation")
+        method: Distinguishing method ("correlation" or
+          "statistical", default: "correlation")
         significance_level: Statistical significance level (default: 0.05)
     
     Returns:
