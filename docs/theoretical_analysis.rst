@@ -194,6 +194,7 @@ multiplicities :math:`e_1, \ldots, e_k` such that:
 **Uniqueness of Factorization**:
 
 Factorization into irreducible factors is unique up to:
+
 1. **Ordering**: The order of factors can be permuted
 2. **Constant factors**: Each factor can be multiplied by a non-zero constant
    (with the corresponding adjustment to other factors)
