@@ -31,7 +31,8 @@ def export_to_json(
     Export LFSR analysis results to JSON format.
 
     Args:
-        seq_dict: Dictionary mapping sequence numbers to lists of state vectors
+        seq_dict: Dictionary mapping sequence numbers to lists of state
+          vectors
         period_dict: Dictionary mapping sequence numbers to periods
         max_period: Maximum period found
         periods_sum: Sum of all periods
@@ -92,7 +93,8 @@ def export_to_csv(
     Export LFSR analysis results to CSV format.
 
     Args:
-        seq_dict: Dictionary mapping sequence numbers to lists of state vectors
+        seq_dict: Dictionary mapping sequence numbers to lists of state
+          vectors
         period_dict: Dictionary mapping sequence numbers to periods
         max_period: Maximum period found
         periods_sum: Sum of all periods
@@ -139,7 +141,8 @@ def export_to_xml(
     Export LFSR analysis results to XML format.
 
     Args:
-        seq_dict: Dictionary mapping sequence numbers to lists of state vectors
+        seq_dict: Dictionary mapping sequence numbers to lists of state
+          vectors
         period_dict: Dictionary mapping sequence numbers to periods
         max_period: Maximum period found
         periods_sum: Sum of all periods
