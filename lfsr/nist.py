@@ -848,7 +848,8 @@ def non_overlapping_template_matching_test(
     1. Divide the sequence into non-overlapping blocks of M bits
     2. For each block, check if it matches the template pattern
     3. Count the number of matches
-    4. Compare observed frequency with expected frequency using chi-square test
+     4. Compare observed frequency with expected frequency using
+        chi-square test
     
     **Interpretation**:
     - Random sequences should not have over-represented patterns
@@ -966,7 +967,8 @@ def overlapping_template_matching_test(
     occurrences of a template pattern. Detects pattern clustering
     that would indicate non-randomness.
     
-    **What it measures**: Frequency of overlapping m-bit patterns in blocks.
+    **What it measures**: Frequency of overlapping m-bit patterns in
+    blocks.
     
     **How it works**:
     1. Divide the sequence into N blocks of M bits each
@@ -1103,7 +1105,8 @@ def maurers_universal_test(sequence: List[int], block_size: int = 6, init_blocks
     **How it works**:
     1. Divide the sequence into blocks of L bits
     2. Use first Q blocks to initialize a table of block positions
-    3. For each subsequent block, compute the distance to its last occurrence
+     3. For each subsequent block, compute the distance to its last
+        occurrence
     4. Compute the test statistic from these distances
     5. Compute p-value using normal distribution
     
@@ -1372,7 +1375,8 @@ def serial_test(sequence: List[int], block_size: int = 2) -> NISTTestResult:
     :math:`2^m` m-bit overlapping patterns is approximately the same
     as would be expected for a random sequence.
     
-    **What it measures**: Frequency distribution of m-bit overlapping patterns.
+    **What it measures**: Frequency distribution of m-bit overlapping
+    patterns.
     
     **How it works**:
     1. Count occurrences of all possible m-bit patterns (overlapping)
@@ -1383,7 +1387,8 @@ def serial_test(sequence: List[int], block_size: int = 2) -> NISTTestResult:
     
     **Interpretation**:
     - Random sequences should have uniform pattern distribution
-    - If p-value < 0.01, the sequence shows non-uniform pattern distribution
+    - If p-value < 0.01, the sequence shows non-uniform pattern
+      distribution
     - This test detects sequences with pattern bias
     
     **Parameters**:
@@ -1496,10 +1501,10 @@ def approximate_entropy_test(sequence: List[int], block_size: int = 2) -> NISTTe
     """
     Test 12: Approximate Entropy Test.
     
-    **Purpose**: Tests the frequency of all possible overlapping m-bit patterns.
-    Compares the frequency of overlapping blocks of two consecutive
-    lengths (m and m+1)
-    against the expected result for a random sequence.
+    **Purpose**: Tests the frequency of all possible overlapping
+    m-bit patterns. Compares the frequency of overlapping blocks of
+    two consecutive lengths (m and m+1) against the expected result
+    for a random sequence.
     
     **What it measures**: Entropy (randomness) of overlapping patterns.
     
@@ -1511,7 +1516,8 @@ def approximate_entropy_test(sequence: List[int], block_size: int = 2) -> NISTTe
     5. Compute p-value using chi-square distribution
     
     **Interpretation**:
-    - Random sequences should have high entropy (uniform pattern distribution)
+    - Random sequences should have high entropy (uniform pattern
+      distribution)
     - If p-value < 0.01, the sequence shows low entropy (non-random)
     - This test detects sequences with pattern bias
     
@@ -1608,9 +1614,9 @@ def cumulative_sums_test(sequence: List[int], mode: str = "forward") -> NISTTest
     """
     Test 13: Cumulative Sums (Cusum) Test.
     
-    **Purpose**: Tests whether the cumulative sum of the partial sequences occurring
-    in the tested sequence is too large or too small relative to what would be
-    expected for a random sequence.
+    **Purpose**: Tests whether the cumulative sum of the partial
+    sequences occurring in the tested sequence is too large or too
+    small relative to what would be expected for a random sequence.
     
     **What it measures**: Maximum deviation of cumulative sums from zero.
     
@@ -1698,9 +1704,10 @@ def random_excursions_test(sequence: List[int]) -> NISTTestResult:
     """
     Test 14: Random Excursions Test.
     
-    **Purpose**: Tests the number of cycles having exactly K visits in a cumulative
-    sum random walk. The test detects deviations from the expected number of visits
-    to various states in the random walk.
+    **Purpose**: Tests the number of cycles having exactly K visits
+    in a cumulative sum random walk. The test detects deviations
+    from the expected number of visits to various states in the
+    random walk.
     
     **What it measures**: Distribution of visits to states in a random walk.
     
@@ -1848,9 +1855,10 @@ def random_excursions_variant_test(sequence: List[int]) -> NISTTestResult:
     """
     Test 15: Random Excursions Variant Test.
     
-    **Purpose**: Tests the total number of times that a particular state is visited
-    in a cumulative sum random walk. This is a variant of Test 14 that focuses
-    on the total number of visits rather than the distribution of visits per cycle.
+    **Purpose**: Tests the total number of times that a particular
+    state is visited in a cumulative sum random walk. This is a
+    variant of Test 14 that focuses on the total number of visits
+    rather than the distribution of visits per cycle.
     
     **What it measures**: Total number of visits to each state in a random walk.
     
@@ -1961,13 +1969,13 @@ def run_nist_test_suite(
     """
     Run the complete NIST SP 800-22 test suite on a binary sequence.
     
-    This function runs all 15 NIST statistical tests and provides a comprehensive
-    assessment of the sequence's randomness properties.
+    This function runs all 15 NIST statistical tests and provides a
+    comprehensive assessment of the sequence's randomness properties.
     
     **Test Suite Overview**:
     
-    The NIST SP 800-22 test suite consists of 15 tests, each examining a different
-    aspect of randomness:
+    The NIST SP 800-22 test suite consists of 15 tests, each
+    examining a different aspect of randomness:
     
     1. Frequency (Monobit) Test
     2. Frequency Test within a Block
@@ -1987,23 +1995,30 @@ def run_nist_test_suite(
     
     **Interpretation**:
     
-    - A sequence **passes** the test suite if most tests pass (p-value >= significance_level)
-    - A single test failure does not necessarily mean the sequence is non-random
-    - The suite should be interpreted as a whole, not individual tests
-    - For cryptographic applications, sequences should pass all or nearly all tests
+    - A sequence **passes** the test suite if most tests pass
+      (p-value >= significance_level)
+    - A single test failure does not necessarily mean the sequence
+      is non-random
+    - The suite should be interpreted as a whole, not individual
+      tests
+    - For cryptographic applications, sequences should pass all or
+      nearly all tests
     
     **Minimum Requirements**:
     
     - Minimum sequence length: 1000 bits (for basic tests)
     - Recommended: 1,000,000+ bits for comprehensive evaluation
-    - Some tests require longer sequences (see individual test documentation)
+    - Some tests require longer sequences (see individual test
+      documentation)
     
     Args:
         sequence: Binary sequence (list of 0s and 1s)
         significance_level: Statistical significance level (default: 0.01)
         block_size: Block size for block-based tests (default: 128)
-        matrix_rows: Number of rows for matrix rank test (default: 32)
-        matrix_cols: Number of columns for matrix rank test (default: 32)
+        matrix_rows: Number of rows for matrix rank test
+          (default: 32)
+        matrix_cols: Number of columns for matrix rank test
+          (default: 32)
     
     Returns:
         NISTTestSuiteResult with complete test suite results
