@@ -37,6 +37,12 @@ from sage.rings.all import ZZ, QQ, RR, CC
 from sage.rings.integer import Integer
 from sage.rings.rational import Rational
 
+# Arithmetic functions
+from sage.arith.misc import is_prime, gcd, primes
+from sage.arith.functions import lcm
+from sage.arith.misc import factor
+from sage.functions.other import sqrt
+
 # Re-export everything for compatibility with `from lfsr.sage_imports import *`
 __all__ = [
     'GF',
@@ -52,5 +58,11 @@ __all__ = [
     'CC',
     'Integer',
     'Rational',
+    'is_prime',
+    'gcd',
+    'lcm',
+    'factor',
+    'primes',
+    'sqrt',
 ]
 
