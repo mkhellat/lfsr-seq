@@ -299,21 +299,70 @@ formula uses subtraction. In :math:`\mathbb{F}_2`, since :math:`-1 =
 
 Computing :math:`\det(tI - C)`:
 
+Given the companion matrix structure:
+
+.. math::
+
+   C = \begin{pmatrix}
+   0 & 0 & 0 & \cdots & c_0 \\
+   1 & 0 & 0 & \cdots & c_1 \\
+   0 & 1 & 0 & \cdots & c_2 \\
+   \vdots & \vdots & \ddots & \ddots & \vdots \\
+   0 & 0 & \cdots & 1 & c_{d-1}
+   \end{pmatrix}
+
+We have:
+
 .. math::
 
    tI - C = \begin{pmatrix}
-   t & -1 & 0 & \cdots & 0 \\
-   0 & t & -1 & \cdots & 0 \\
+   t & 0 & 0 & \cdots & -c_0 \\
+   -1 & t & 0 & \cdots & -c_1 \\
+   0 & -1 & t & \cdots & -c_2 \\
    \vdots & \vdots & \ddots & \ddots & \vdots \\
-   0 & 0 & 0 & \cdots & -1 \\
-   -c_0 & -c_1 & -c_2 & \cdots & t - c_{d-1}
+   0 & 0 & \cdots & -1 & t - c_{d-1}
    \end{pmatrix}
 
-Expanding the determinant along the first column and using the
-structure of the matrix, we obtain the desired form.
+Expanding the determinant along the first column (which has zeros
+except for the first two entries) and using the structure of the
+matrix, we obtain the desired form. The expansion yields:
+
+.. math::
+
+   \det(tI - C) = t \cdot \det(M_0) - (-1) \cdot \det(M_1)
+
+where :math:`M_0` and :math:`M_1` are the appropriate submatrices.
+Continuing this recursive expansion along the first column of each
+submatrix, we obtain:
+
+.. math::
+
+   \det(tI - C) = t^d - c_{d-1} t^{d-1} - c_{d-2} t^{d-2} - \cdots - c_1 t - c_0
 
 **Example**: For :math:`C` with coefficients :math:`[1, 1, 0, 0]` over
  :math:`\mathbb{F}_2`:
+
+From the companion matrix:
+
+.. math::
+
+   C = \begin{pmatrix}
+   0 & 0 & 0 & 1 \\
+   1 & 0 & 0 & 1 \\
+   0 & 1 & 0 & 0 \\
+   0 & 0 & 1 & 0
+   \end{pmatrix}
+
+We compute:
+
+.. math::
+
+   tI - C = \begin{pmatrix}
+   t & 0 & 0 & -1 \\
+   -1 & t & 0 & -1 \\
+   0 & -1 & t & 0 \\
+   0 & 0 & -1 & t
+   \end{pmatrix}
 
 Using the general formula :math:`P(t) = t^d - c_{d-1} t^{d-1} -
 \cdots - c_0`:
@@ -364,8 +413,10 @@ infinite.
 Connection to Matrix Order
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-**Theorem**: The order of the characteristic polynomial :math:`P(t)`
- equals the order of the state update matrix :math:`C`.
+**Theorem**: 
+
+The order of the characteristic polynomial :math:`P(t)` 
+equals the order of the state update matrix :math:`C`.
 
 **Proof**:
 
