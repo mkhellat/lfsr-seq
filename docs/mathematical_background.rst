@@ -306,21 +306,7 @@ formula uses subtraction. In :math:`\mathbb{F}_2`, since :math:`-1 =
 
 .. prf:proof::
 
-   Computing :math:`\det(tI - C)`:
-
-   Given the companion matrix structure:
-
-   .. math::
-
-      C = \begin{pmatrix}
-      0 & 0 & 0 & \cdots & c_0 \\
-      1 & 0 & 0 & \cdots & c_1 \\
-      0 & 1 & 0 & \cdots & c_2 \\
-      \vdots & \vdots & \ddots & \ddots & \vdots \\
-      0 & 0 & \cdots & 1 & c_{d-1}
-      \end{pmatrix}
-
-   We have:
+   Let :math:`C` be the companion matrix as defined above. Then:
 
    .. math::
 
@@ -332,21 +318,40 @@ formula uses subtraction. In :math:`\mathbb{F}_2`, since :math:`-1 =
       0 & 0 & \cdots & -1 & t - c_{d-1}
       \end{pmatrix}
 
-   Expanding the determinant along the first column (which has zeros
-   except for the first two entries) and using the structure of the
-   matrix, we obtain the desired form. The expansion yields:
+   We compute :math:`\det(tI - C)` by expanding along the first column.
+   The first column has entries :math:`t` at position :math:`(0,0)`,
+   :math:`-1` at position :math:`(1,0)`, and zeros elsewhere. By the
+   cofactor expansion formula:
 
    .. math::
 
       \det(tI - C) = t \cdot \det(M_0) - (-1) \cdot \det(M_1)
 
-   where :math:`M_0` and :math:`M_1` are the appropriate submatrices.
-   Continuing this recursive expansion along the first column of each
-   submatrix, we obtain:
+   where :math:`M_0` is the :math:`(d-1) \times (d-1)` submatrix obtained
+   by deleting the first row and column, and :math:`M_1` is the
+   :math:`(d-1) \times (d-1)` submatrix obtained by deleting the second
+   row and first column.
+
+   The submatrix :math:`M_0` has the same structure as :math:`tI - C` but
+   of dimension :math:`d-1`. By induction, we obtain:
 
    .. math::
 
-      \det(tI - C) = t^d - c_{d-1} t^{d-1} - c_{d-2} t^{d-2} - \cdots - c_1 t - c_0
+      \det(M_0) = t^{d-1} - c_{d-1} t^{d-2} - c_{d-2} t^{d-3} - \cdots - c_2 t - c_1
+
+   The submatrix :math:`M_1` is lower triangular with :math:`-1` on the
+   diagonal, hence :math:`\det(M_1) = (-1)^{d-1}`.
+
+   Substituting into the expansion:
+
+   .. math::
+
+      \begin{aligned}
+      \det(tI - C) &= t \cdot (t^{d-1} - c_{d-1} t^{d-2} - \cdots - c_2 t - c_1) - (-1) \cdot (-1)^{d-1} \\
+                   &= t^d - c_{d-1} t^{d-1} - c_{d-2} t^{d-2} - \cdots - c_1 t - c_0
+      \end{aligned}
+
+   This establishes the desired result.
 
 .. prf:example:: Characteristic Polynomial Computation
    :label: ex-char-poly-computation
