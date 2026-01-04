@@ -402,14 +402,192 @@ formula uses subtraction. In :math:`\mathbb{F}_2`, since :math:`-1 =
 Cayley-Hamilton Theorem
 ~~~~~~~~~~~~~~~~~~~~~~~
 
-The characteristic polynomial satisfies:
+The characteristic polynomial :math:`P(t) = \det(tI - C)` encodes
+fundamental information about the matrix :math:`C`. Remarkably, this
+polynomial relationship extends beyond the scalar variable :math:`t` to
+the matrix :math:`C` itself. The Cayley-Hamilton theorem establishes
+this profound connection, revealing that matrices satisfy their own
+characteristic equations.
 
-.. math::
+**Theoretical Motivation: A Ring-Theoretic Perspective**
 
-   P(C) = C^d - c_{d-1} C^{d-1} - \cdots - c_1 C - c_0 I = 0
+The Cayley-Hamilton theorem reveals a profound unification through the
+lens of abstract algebra. Consider three mathematical structures:
 
-This is a fundamental result connecting the matrix and its
-characteristic polynomial.
+1. **The polynomial ring** :math:`\mathbb{F}[t]` of polynomials in the
+   indeterminate :math:`t` over the field :math:`\mathbb{F}`
+
+2. **The matrix ring** :math:`M_d(\mathbb{F})` of :math:`d \times d`
+   matrices over :math:`\mathbb{F}`
+
+3. **The field** :math:`\mathbb{F}` itself (viewed as scalars)
+
+The power of abstract algebra lies in recognizing that these seemingly
+different objects can be treated uniformly within the framework of
+**rings**. The Cayley-Hamilton theorem demonstrates that polynomials,
+scalars, and matrices are not fundamentally different—they are different
+representations of the same abstract algebraic structure.
+
+**The Evaluation Homomorphism**
+
+The key insight is the **evaluation map** :math:`\phi: \mathbb{F}[t]
+\rightarrow M_d(\mathbb{F})` defined by :math:`\phi(f(t)) = f(C)`,
+where :math:`f(C)` means substituting the matrix :math:`C` for the
+variable :math:`t`. This map is a **ring homomorphism**, meaning it
+preserves the ring operations:
+
+- :math:`\phi(f + g) = \phi(f) + \phi(g)` (additivity)
+- :math:`\phi(f \cdot g) = \phi(f) \cdot \phi(g)` (multiplicativity)
+- :math:`\phi(1) = I` (preserves identity)
+
+The characteristic polynomial :math:`P(t)` captures the eigenvalues of
+:math:`C` as its roots in :math:`\mathbb{F}`. The Cayley-Hamilton
+theorem asserts that this polynomial relationship extends to the matrix
+ring: :math:`P(C) = 0` in :math:`M_d(\mathbb{F})`. This reveals that
+:math:`P(t)` lies in the **kernel** of the evaluation homomorphism,
+establishing a fundamental connection between the polynomial ring and
+the matrix ring.
+
+**Intuition**
+
+Consider evaluating a polynomial :math:`f(t)` at a matrix :math:`C` by
+substituting :math:`t = C`. The Cayley-Hamilton theorem states that
+when we evaluate the characteristic polynomial :math:`P(t)` at
+:math:`C`, we obtain the zero matrix. This means :math:`C` is a "root"
+of its characteristic polynomial in the matrix sense, analogous to how
+eigenvalues are roots in the scalar sense.
+
+.. prf:theorem:: Cayley-Hamilton Theorem
+   :label: theorem-cayley-hamilton
+
+   Let :math:`C` be a :math:`d \times d` matrix over a field
+   :math:`\mathbb{F}`, and let :math:`P(t) = \det(tI - C) = t^d - c_{d-1}
+   t^{d-1} - \cdots - c_1 t - c_0` be its characteristic polynomial.
+   Then :math:`C` satisfies its own characteristic equation:
+
+   .. math::
+
+      P(C) = C^d - c_{d-1} C^{d-1} - \cdots - c_1 C - c_0 I = 0
+
+   where :math:`0` denotes the :math:`d \times d` zero matrix.
+
+.. prf:proof::
+
+   The proof relies on the adjugate matrix. Let :math:`\text{adj}(tI - C)`
+   denote the adjugate of :math:`tI - C`. By the fundamental identity:
+
+   .. math::
+
+      (tI - C) \cdot \text{adj}(tI - C) = \det(tI - C) \cdot I = P(t) \cdot I
+
+   The adjugate :math:`\text{adj}(tI - C)` is a matrix whose entries are
+   polynomials in :math:`t` of degree at most :math:`d-1`. Therefore, we
+   can write:
+
+   .. math::
+
+      \text{adj}(tI - C) = B_0 + B_1 t + B_2 t^2 + \cdots + B_{d-1} t^{d-1}
+
+   for some :math:`d \times d` matrices :math:`B_0, B_1, \ldots, B_{d-1}`
+   over :math:`\mathbb{F}`.
+
+   Substituting into the identity and comparing coefficients of powers of
+   :math:`t`, we obtain:
+
+   .. math::
+
+      P(t) I = (tI - C)(B_0 + B_1 t + \cdots + B_{d-1} t^{d-1})
+
+   Expanding and equating coefficients yields a system of matrix equations.
+   When we substitute :math:`t = C` into this polynomial identity, the
+   left-hand side becomes :math:`P(C)`, while the right-hand side
+   contains the factor :math:`(CI - C) = 0`, forcing :math:`P(C) = 0`.
+
+   This establishes the theorem.
+
+**Consequences and Applications**
+
+The Cayley-Hamilton theorem has profound implications for matrix
+analysis:
+
+1. **Matrix Powers**: Any power :math:`C^k` with :math:`k \geq d` can be
+   expressed as a linear combination of :math:`I, C, C^2, \ldots,
+   C^{d-1}`. This follows by repeatedly applying the identity
+   :math:`C^d = c_{d-1} C^{d-1} + \cdots + c_1 C + c_0 I`.
+
+2. **Matrix Functions**: For any polynomial :math:`f(t)`, the evaluation
+   :math:`f(C)` can be computed using polynomial division: write
+   :math:`f(t) = q(t) P(t) + r(t)` where :math:`\deg(r) < d`, then
+   :math:`f(C) = r(C)`.
+
+3. **Minimal Polynomial**: The characteristic polynomial provides an
+   upper bound on the degree of the minimal polynomial, which divides
+   :math:`P(t)`.
+
+4. **LFSR Analysis**: For the companion matrix :math:`C`, the theorem
+   establishes that the state space has dimension at most :math:`d` in
+   the sense that all matrix powers lie in the span of
+   :math:`\{I, C, \ldots, C^{d-1}\}`. This is fundamental for computing
+   the order of :math:`C` and understanding sequence periodicity.
+
+5. **Computational Efficiency**: Instead of computing :math:`C^n` directly
+   (which requires :math:`O(d^3 \log n)` operations), we can use the
+   recurrence relation to compute it in :math:`O(d^2 \log n)` operations
+   by expressing :math:`C^n` as a polynomial in :math:`C` of degree
+   less than :math:`d`.
+
+**Unification Through Abstract Algebra**
+
+The ring-theoretic perspective reveals why the Cayley-Hamilton theorem
+is so powerful: it demonstrates that **polynomials, scalars, and
+matrices are different representations of the same abstract structure**.
+
+Consider the following unified treatment:
+
+- **Scalar evaluation**: For an eigenvalue :math:`\lambda \in \mathbb{F}`,
+  we have :math:`P(\lambda) = 0` (by definition of eigenvalue)
+
+- **Polynomial evaluation**: The polynomial :math:`P(t) \in \mathbb{F}[t]`
+  encodes the algebraic relationship
+
+- **Matrix evaluation**: The Cayley-Hamilton theorem states
+  :math:`P(C) = 0` in :math:`M_d(\mathbb{F})`
+
+All three statements express the same fundamental relationship, but in
+different rings. The evaluation homomorphism :math:`\phi: \mathbb{F}[t]
+\rightarrow M_d(\mathbb{F})` provides the bridge, showing that what is
+true for scalars (eigenvalues) extends naturally to matrices through
+the ring structure.
+
+**The Power of Representation Independence**
+
+This abstraction is the essence of linear algebra's power: we can work
+with polynomials, compute with scalars, and reason about matrices, all
+while operating within the same algebraic framework. The Cayley-Hamilton
+theorem is not merely a computational tool—it is a manifestation of
+the deep structural unity that abstract algebra reveals.
+
+The fact that the same polynomial :math:`P(t)` can be evaluated at
+scalars, treated as an abstract algebraic object, or evaluated at
+matrices, demonstrates the **representation independence** that makes
+abstract algebra so powerful. We are not working with three different
+things—we are working with one thing (the polynomial) in three
+different contexts (scalar field, polynomial ring, matrix ring).
+
+**Connection to LFSR Periodicity**
+
+For LFSR analysis, this ring-theoretic perspective provides the
+theoretical foundation for understanding why sequence periods are bounded
+and how they relate to the characteristic polynomial. The recurrence
+relation :math:`C^d = c_{d-1} C^{d-1} + \cdots + c_1 C + c_0 I` directly
+corresponds to the LFSR recurrence relation, establishing the deep
+connection between the algebraic structure of the polynomial ring and
+the dynamical behavior of the state sequence in the matrix ring.
+
+The fact that :math:`P(C) = 0` means that in the quotient ring
+:math:`M_d(\mathbb{F}) / \langle P(C) \rangle`, all powers of :math:`C`
+reduce to linear combinations of :math:`I, C, \ldots, C^{d-1}`, which
+directly explains the periodicity and boundedness of LFSR sequences.
 
 Polynomial Order
 ----------------
