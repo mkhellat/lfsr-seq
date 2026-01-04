@@ -120,14 +120,17 @@ For prime :math:`p`, the field :math:`\mathbb{F}_p` consists of the
 integers :math:`\{0, 1, 2, \ldots, p-1\}` with addition and
 multiplication modulo :math:`p`.
 
-**Example**: :math:`\mathbb{F}_2 = \{0, 1\}` with operations:
+.. prf:example:: Prime Field F_2
+   :label: ex-prime-field-f2
 
-.. math::
+   :math:`\mathbb{F}_2 = \{0, 1\}` with operations:
 
-   \begin{aligned}
-   0 + 0 &= 0, \quad 0 + 1 = 1, \quad 1 + 0 = 1, \quad 1 + 1 = 0 \\
-   0 \cdot 0 &= 0, \quad 0 \cdot 1 = 0, \quad 1 \cdot 0 = 0, \quad 1 \cdot 1 = 1
-   \end{aligned}
+   .. math::
+
+      \begin{aligned}
+      0 + 0 &= 0, \quad 0 + 1 = 1, \quad 1 + 0 = 1, \quad 1 + 1 = 0 \\
+      0 \cdot 0 &= 0, \quad 0 \cdot 1 = 0, \quad 1 \cdot 0 = 0, \quad 1 \cdot 1 = 1
+      \end{aligned}
 
 Extension Fields :math:`\mathbb{F}_{p^n}`
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -143,9 +146,12 @@ as:
 where :math:`f(x)` is an irreducible polynomial of degree :math:`n`
 over :math:`\mathbb{F}_p`.
 
-**Example**: :math:`\mathbb{F}_4 = \mathbb{F}_2[x] / \langle x^2 + x +
-1 \rangle` has elements :math:`\{ 0, 1, \alpha, \alpha + 1 \}` where
-:math:`\alpha^2 + \alpha + 1 = 0`.
+.. prf:example:: Extension Field F_4
+   :label: ex-extension-field-f4
+
+   :math:`\mathbb{F}_4 = \mathbb{F}_2[x] / \langle x^2 + x +
+   1 \rangle` has elements :math:`\{ 0, 1, \alpha, \alpha + 1 \}` where
+   :math:`\alpha^2 + \alpha + 1 = 0`.
 
 Field Properties
 ~~~~~~~~~~~~~~~~
@@ -242,26 +248,29 @@ The matrix :math:`C` correctly implements the shift operation (moving
 elements left) and computes the new rightmost element using the linear
 feedback function.
 
-**Example**: For LFSR with coefficients :math:`[1, 1, 0, 0]` over
- :math:`\mathbb{F}_2` (this gives the primitive polynomial :math:`t^4 + t + 1`):
+.. prf:example:: Companion Matrix Construction
+   :label: ex-companion-matrix
 
-.. math::
+   For LFSR with coefficients :math:`[1, 1, 0, 0]` over
+   :math:`\mathbb{F}_2` (this gives the primitive polynomial :math:`t^4 + t + 1`):
 
-   C = \begin{pmatrix}
-   0 & 0 & 0 & 1 \\
-   1 & 0 & 0 & 1 \\
-   0 & 1 & 0 & 0 \\
-   0 & 0 & 1 & 0
-   \end{pmatrix}
+   .. math::
 
-Given state :math:`S_0 = (s_0, s_1, s_2, s_3) = (1, 0, 0, 0)`:
+      C = \begin{pmatrix}
+      0 & 0 & 0 & 1 \\
+      1 & 0 & 0 & 1 \\
+      0 & 1 & 0 & 0 \\
+      0 & 0 & 1 & 0
+      \end{pmatrix}
 
-.. math::
+   Given state :math:`S_0 = (s_0, s_1, s_2, s_3) = (1, 0, 0, 0)`:
 
-   S_1 = S_0 \cdot C = (1, 0, 0, 0) \cdot C = (0, 0, 0, 1)
+   .. math::
 
-where the last element is computed as :math:`s_4 = 1 \cdot 1 + 0 \cdot
-1 + 0 \cdot 0 + 0 \cdot 0 = 1`.
+      S_1 = S_0 \cdot C = (1, 0, 0, 0) \cdot C = (0, 0, 0, 1)
+
+   where the last element is computed as :math:`s_4 = 1 \cdot 1 + 0 \cdot
+   1 + 0 \cdot 0 + 0 \cdot 0 = 1`.
 
 Characteristic Polynomial
 -------------------------
@@ -339,48 +348,51 @@ formula uses subtraction. In :math:`\mathbb{F}_2`, since :math:`-1 =
 
       \det(tI - C) = t^d - c_{d-1} t^{d-1} - c_{d-2} t^{d-2} - \cdots - c_1 t - c_0
 
-**Example**: For :math:`C` with coefficients :math:`[1, 1, 0, 0]` over
- :math:`\mathbb{F}_2`:
+.. prf:example:: Characteristic Polynomial Computation
+   :label: ex-char-poly-computation
 
-From the companion matrix:
+   For :math:`C` with coefficients :math:`[1, 1, 0, 0]` over
+   :math:`\mathbb{F}_2`:
 
-.. math::
+   From the companion matrix:
 
-   C = \begin{pmatrix}
-   0 & 0 & 0 & 1 \\
-   1 & 0 & 0 & 1 \\
-   0 & 1 & 0 & 0 \\
-   0 & 0 & 1 & 0
-   \end{pmatrix}
+   .. math::
 
-We compute:
+      C = \begin{pmatrix}
+      0 & 0 & 0 & 1 \\
+      1 & 0 & 0 & 1 \\
+      0 & 1 & 0 & 0 \\
+      0 & 0 & 1 & 0
+      \end{pmatrix}
 
-.. math::
+   We compute:
 
-   tI - C = \begin{pmatrix}
-   t & 0 & 0 & -1 \\
-   -1 & t & 0 & -1 \\
-   0 & -1 & t & 0 \\
-   0 & 0 & -1 & t
-   \end{pmatrix}
+   .. math::
 
-Using the general formula :math:`P(t) = t^d - c_{d-1} t^{d-1} -
-\cdots - c_0`:
+      tI - C = \begin{pmatrix}
+      t & 0 & 0 & -1 \\
+      -1 & t & 0 & -1 \\
+      0 & -1 & t & 0 \\
+      0 & 0 & -1 & t
+      \end{pmatrix}
 
-.. math::
+   Using the general formula :math:`P(t) = t^d - c_{d-1} t^{d-1} -
+   \cdots - c_0`:
 
-   P(t) = t^4 - c_3 t^3 - c_2 t^2 - c_1 t - c_0 = t^4 - 0 \cdot t^3 -
-   0 \cdot t^2 - 1 \cdot t - 1
+   .. math::
 
-Since we are in :math:`\mathbb{F}_2` where :math:`-1 = 1`, this
-simplifies to:
+      P(t) = t^4 - c_3 t^3 - c_2 t^2 - c_1 t - c_0 = t^4 - 0 \cdot t^3 -
+      0 \cdot t^2 - 1 \cdot t - 1
 
-.. math::
+   Since we are in :math:`\mathbb{F}_2` where :math:`-1 = 1`, this
+   simplifies to:
 
-   P(t) = t^4 + t + 1
+   .. math::
 
-This polynomial is **primitive** and has order 15, giving maximum
-period.
+      P(t) = t^4 + t + 1
+
+   This polynomial is **primitive** and has order 15, giving maximum
+   period.
 
 Cayley-Hamilton Theorem
 ~~~~~~~~~~~~~~~~~~~~~~~
@@ -439,22 +451,25 @@ Connection to Matrix Order
    Conversely, if :math:`t^n \equiv 1 \pmod{P(t)}`, then :math:`C^n = I`
    by polynomial evaluation.
 
-**Example**: For the primitive polynomial :math:`P(t) = t^4 + t + 1` over
- :math:`\mathbb{F}_2`:
+.. prf:example:: Polynomial Order Computation
+   :label: ex-poly-order
 
-We check :math:`t^n \bmod P(t)` for increasing :math:`n`:
+   For the primitive polynomial :math:`P(t) = t^4 + t + 1` over
+   :math:`\mathbb{F}_2`:
 
-* :math:`t^1 = t \not\equiv 1`
-* :math:`t^2 = t^2 \not\equiv 1`
-* :math:`t^3 = t^3 \not\equiv 1`
-* :math:`t^4 = t + 1 \not\equiv 1` (since :math:`t^4 = P(t) - (t + 1)
-  = (t^4 + t + 1) - (t + 1)`)
-* :math:`t^5 = t \cdot t^4 = t(t + 1) = t^2 + t \not\equiv 1`
-* ... (continuing) ...
-* :math:`t^{15} \equiv 1 \pmod{P(t)}`
+   We check :math:`t^n \bmod P(t)` for increasing :math:`n`:
 
-So the order is 15, which equals :math:`2^4 - 1 = 15`, confirming that
-:math:`P(t)` is primitive.
+   * :math:`t^1 = t \not\equiv 1`
+   * :math:`t^2 = t^2 \not\equiv 1`
+   * :math:`t^3 = t^3 \not\equiv 1`
+   * :math:`t^4 = t + 1 \not\equiv 1` (since :math:`t^4 = P(t) - (t + 1)
+     = (t^4 + t + 1) - (t + 1)`)
+   * :math:`t^5 = t \cdot t^4 = t(t + 1) = t^2 + t \not\equiv 1`
+   * ... (continuing) ...
+   * :math:`t^{15} \equiv 1 \pmod{P(t)}`
+
+   So the order is 15, which equals :math:`2^4 - 1 = 15`, confirming that
+   :math:`P(t)` is primitive.
 
 Period and Sequence Analysis
 -----------------------------
@@ -504,13 +519,16 @@ So the sequence repeats after :math:`n` steps. The period :math:`k`
 must divide :math:`n` (if :math:`k` didn't divide :math:`n`, we could
 find a smaller period, contradicting minimality).
 
-**Example**: For the 4-bit LFSR with primitive polynomial
-  :math:`P(t) = t^4 + t + 1` over :math:`\mathbb{F}_2`:
+.. prf:example:: Period Divisibility
+   :label: ex-period-divisibility
 
-* Matrix order: 15
-* Possible sequence periods: 1, 3, 5, 15 (divisors of 15)
-* State :math:`(0,0,0,0)` has period 1 (all-zero state)
-* All other non-zero states have period 15 (maximum period)
+   For the 4-bit LFSR with primitive polynomial
+   :math:`P(t) = t^4 + t + 1` over :math:`\mathbb{F}_2`:
+
+   * Matrix order: 15
+   * Possible sequence periods: 1, 3, 5, 15 (divisors of 15)
+   * State :math:`(0,0,0,0)` has period 1 (all-zero state)
+   * All other non-zero states have period 15 (maximum period)
 
 Sequence Mapping Algorithm
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -668,19 +686,22 @@ meeting point until the next meeting.
 * **Typical LFSR Analysis**: Most practical use cases
 * **Default Choice**: Recommended for most scenarios
 
-**Example**: For an LFSR with period 15:
+.. prf:example:: Floyd's Cycle Detection
+   :label: ex-floyd-cycle
 
-Phase 1: Tortoise and hare start at :math:`S_0`:
+   For an LFSR with period 15:
 
-* Step 0: :math:`T = S_0`, :math:`H = S_0`
-* Step 1: :math:`T = S_1`, :math:`H = S_2`
-* Step 2: :math:`T = S_2`, :math:`H = S_4`
-* ...
-* They meet at some point in the cycle
+   Phase 1: Tortoise and hare start at :math:`S_0`:
 
-Phase 2: Reset tortoise, move both one step:
+   * Step 0: :math:`T = S_0`, :math:`H = S_0`
+   * Step 1: :math:`T = S_1`, :math:`H = S_2`
+   * Step 2: :math:`T = S_2`, :math:`H = S_4`
+   * ...
+   * They meet at some point in the cycle
 
-* Find the period by counting steps until they meet again
+   Phase 2: Reset tortoise, move both one step:
+
+   * Find the period by counting steps until they meet again
 
 **Implementation Note**:
 
@@ -1076,11 +1097,14 @@ The characteristic polynomial can be factored over :math:`\mathbb{F}_q`:
 where :math:`f_i(t)` are irreducible polynomials and :math:`e_i` are
 their multiplicities.
 
-**Example**: Over :math:`\mathbb{F}_2`:
+.. prf:example:: Polynomial Factorization
+   :label: ex-poly-factorization
 
-.. math::
+   Over :math:`\mathbb{F}_2`:
 
-   t^4 + t^3 + t + 1 = (t+1)(t^3 + t + 1)
+   .. math::
+
+      t^4 + t^3 + t + 1 = (t+1)(t^3 + t + 1)
 
 Factor Orders
 ~~~~~~~~~~~~~
@@ -1111,12 +1135,15 @@ Each factor :math:`f_i(t)` has its own order :math:`n_i` (smallest
    * Therefore, :math:`n = \text{lcm}(n_1, n_2, \ldots, n_r)` (with
      appropriate adjustments)
 
-**Example**: For :math:`P(t) = (t+1)(t^3 + t + 1)`:
+.. prf:example:: Order from Factors
+   :label: ex-order-from-factors
 
-* Order of :math:`t+1`: 1 (since :math:`t \equiv -1 \equiv 1
-  \pmod{t+1}` in :math:`\mathbb{F}_2`)
-* Order of :math:`t^3 + t + 1`: 7
-* Order of :math:`P(t)`: :math:`\text{lcm}(1, 7) = 7`
+   For :math:`P(t) = (t+1)(t^3 + t + 1)`:
+
+   * Order of :math:`t+1`: 1 (since :math:`t \equiv -1 \equiv 1
+     \pmod{t+1}` in :math:`\mathbb{F}_2`)
+   * Order of :math:`t^3 + t + 1`: 7
+   * Order of :math:`P(t)`: :math:`\text{lcm}(1, 7) = 7`
 
 However, if the polynomial is not square-free, the calculation is more
 complex.
@@ -1168,18 +1195,21 @@ The algorithm maintains:
    The Berlekamp-Massey algorithm finds the unique minimal
    LFSR in :math:`O(n^2)` time.
 
-**Example**: Sequence :math:`[1, 0, 1, 1, 0, 1, 0, 0, 1]` over
- :math:`\mathbb{F}_2`:
+.. prf:example:: Berlekamp-Massey Algorithm
+   :label: ex-berlekamp-massey
 
-* Initial: :math:`C(x) = 1`, length :math:`L = 0`
-* Process :math:`s_0 = 1`: No discrepancy, continue
-* Process :math:`s_1 = 0`: Discrepancy, update :math:`C(x) = 1 + x`, :math:`L = 1`
-* Process :math:`s_2 = 1`: Check prediction...
-* Continue until minimal LFSR found
+   Sequence :math:`[1, 0, 1, 1, 0, 1, 0, 0, 1]` over
+   :math:`\mathbb{F}_2`:
 
-The algorithm will find that this sequence can be generated by an LFSR
-of length 4. The exact coefficients depend on the sequence and initial
-state.
+   * Initial: :math:`C(x) = 1`, length :math:`L = 0`
+   * Process :math:`s_0 = 1`: No discrepancy, continue
+   * Process :math:`s_1 = 0`: Discrepancy, update :math:`C(x) = 1 + x`, :math:`L = 1`
+   * Process :math:`s_2 = 1`: Check prediction...
+   * Continue until minimal LFSR found
+
+   The algorithm will find that this sequence can be generated by an LFSR
+   of length 4. The exact coefficients depend on the sequence and initial
+   state.
 
 Linear Complexity
 -----------------
@@ -1254,17 +1284,20 @@ Autocorrelation
 Measures the correlation between a sequence and shifted versions of
 itself.
 
-**Definition**: For lag :math:`k`:
+.. prf:definition:: Autocorrelation Function
+   :label: def-autocorrelation
 
-.. math::
+   For lag :math:`k`:
 
-   R(k) = \frac{1}{n} \sum_{i=0}^{n-k-1} (-1)^{s_i + s_{i+k}}
+   .. math::
 
-For binary sequences, this becomes:
+      R(k) = \frac{1}{n} \sum_{i=0}^{n-k-1} (-1)^{s_i + s_{i+k}}
 
-.. math::
+   For binary sequences, this becomes:
 
-   R(k) = \frac{1}{n} \sum_{i=0}^{n-k-1} (1 - 2(s_i \oplus s_{i+k}))
+   .. math::
+
+      R(k) = \frac{1}{n} \sum_{i=0}^{n-k-1} (1 - 2(s_i \oplus s_{i+k}))
 
 **Properties**:
 
@@ -1378,9 +1411,6 @@ the order is the LCM of the orders of the irreducible factors.
 Theoretical Results and Theorems
 ---------------------------------
 
-Theorem 1: Maximum Period
-~~~~~~~~~~~~~~~~~~~~~~~~~~
-
 .. prf:theorem:: Maximum Period
    :label: theorem-maximum-period
 
@@ -1397,14 +1427,14 @@ Theorem 1: Maximum Period
 **Achievability**: The maximum period is achieved if and only if the
  characteristic polynomial is **primitive**.
 
-Theorem 2: Primitive Polynomials
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. prf:definition:: Primitive Polynomial
+   :label: def-primitive-polynomial
 
-**Definition**: A polynomial :math:`P(t)` of degree :math:`d` over
- :math:`\mathbb{F}_q` is **primitive** if:
+   A polynomial :math:`P(t)` of degree :math:`d` over
+   :math:`\mathbb{F}_q` is **primitive** if:
 
-1. :math:`P(t)` is irreducible
-2. The order of :math:`P(t)` is :math:`q^d - 1`
+   1. :math:`P(t)` is irreducible
+   2. The order of :math:`P(t)` is :math:`q^d - 1`
 
 .. prf:theorem:: Primitive Polynomial Period
    :label: theorem-primitive-period
@@ -1413,8 +1443,11 @@ Theorem 2: Primitive Polynomials
    period :math:`q^d - 1`, and the generated sequence has excellent
    statistical properties.
 
-**Example**: Over :math:`\mathbb{F}_2`, the polynomial :math:`t^4 +
-t + 1` is primitive and has order 15, giving maximum period.
+.. prf:example:: Primitive Polynomial Example
+   :label: ex-primitive-polynomial
+
+   Over :math:`\mathbb{F}_2`, the polynomial :math:`t^4 +
+   t + 1` is primitive and has order 15, giving maximum period.
 
 **Implementation**: The tool automatically detects primitive
  polynomials and displays a ``[PRIMITIVE]`` indicator in the
@@ -1423,9 +1456,6 @@ t + 1` is primitive and has order 15, giving maximum period.
  SageMath's built-in ``is_primitive()`` method when available, or
  falls back to checking irreducibility and verifying that the
  polynomial order equals :math:`q^d - 1`.
-
-Theorem 3: Period Divisibility
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. prf:theorem:: All Periods Divide Matrix Order
    :label: theorem-all-periods-divide
@@ -1442,12 +1472,9 @@ Theorem 3: Period Divisibility
 
    Since :math:`C^n = I`, we have :math:`S_0 = S_0 \cdot C^n`. If
    :math:`k` doesn't divide :math:`n`, we can write :math:`n = qk + r`
-with :math:`0 < r < k`, leading to a contradiction.
+   with :math:`0 < r < k`, leading to a contradiction.
 
 Therefore, :math:`k \mid n`.
-
-Theorem 4: Linear Complexity Lower Bound
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. prf:theorem:: Linear Complexity Lower Bound
    :label: theorem-linear-complexity-lower-bound

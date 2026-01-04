@@ -66,3 +66,201 @@ code {
 .warning {
     border-color: #f39c12;
 }
+
+/* Fix sphinx-proof example and definition colors for better readability */
+/* Target all possible class combinations used by sphinx-proof */
+/* Exclude proof classes to avoid conflicts */
+.admonition.example:not(.proof):not(.prf-proof),
+div.admonition.example:not(.proof):not(.prf-proof),
+.admonition.prf-example:not(.proof):not(.prf-proof),
+div.admonition.prf-example:not(.proof):not(.prf-proof),
+.prf-example:not(.prf-proof),
+div.prf-example:not(.prf-proof) {
+    background-color: #e8f4f8 !important;
+    color: #2c3e50 !important;
+    border-left: 4px solid #3498db !important;
+    padding: 1em !important;
+    margin: 1em 0 !important;
+}
+
+.admonition.example:not(.proof):not(.prf-proof) .admonition-title,
+div.admonition.example:not(.proof):not(.prf-proof) .admonition-title,
+.admonition.prf-example:not(.proof):not(.prf-proof) .admonition-title,
+div.admonition.prf-example:not(.proof):not(.prf-proof) .admonition-title,
+.prf-example:not(.prf-proof) .admonition-title,
+div.prf-example:not(.prf-proof) .admonition-title {
+    color: #2c3e50 !important;
+    background-color: #d5e8f0 !important;
+    font-weight: bold !important;
+}
+
+.admonition.definition,
+div.admonition.definition,
+.admonition.prf-definition,
+div.admonition.prf-definition,
+.prf-definition,
+div.prf-definition,
+[class*="definition"].admonition {
+    background-color: #f0f8f0 !important;
+    color: #2c3e50 !important;
+    border-left: 4px solid #27ae60 !important;
+    padding: 1em !important;
+    margin: 1em 0 !important;
+}
+
+.admonition.definition .admonition-title,
+div.admonition.definition .admonition-title,
+.admonition.prf-definition .admonition-title,
+div.admonition.prf-definition .admonition-title,
+.prf-definition .admonition-title,
+div.prf-definition .admonition-title,
+[class*="definition"].admonition .admonition-title {
+    color: #2c3e50 !important;
+    background-color: #d5f0d5 !important;
+    font-weight: bold !important;
+}
+
+/* Ensure all text inside examples and definitions is readable */
+.admonition.example p,
+.admonition.example li,
+.admonition.prf-example p,
+.admonition.prf-example li,
+.prf-example p,
+.prf-example li,
+[class*="example"].admonition p,
+[class*="example"].admonition li,
+.admonition.definition p,
+.admonition.definition li,
+.admonition.prf-definition p,
+.admonition.prf-definition li,
+.prf-definition p,
+.prf-definition li,
+[class*="definition"].admonition p,
+[class*="definition"].admonition li {
+    color: #2c3e50 !important;
+}
+
+/* Fix math text color in examples and definitions */
+.admonition.example .math,
+.admonition.prf-example .math,
+.prf-example .math,
+[class*="example"].admonition .math,
+.admonition.definition .math,
+.admonition.prf-definition .math,
+.prf-definition .math,
+[class*="definition"].admonition .math {
+    color: #2c3e50 !important;
+}
+
+/* Fix code blocks inside examples and definitions */
+.admonition.example code,
+.admonition.prf-example code,
+.prf-example code,
+[class*="example"].admonition code,
+.admonition.definition code,
+.admonition.prf-definition code,
+.prf-definition code,
+[class*="definition"].admonition code {
+    color: #2c3e50 !important;
+    background-color: rgba(255, 255, 255, 0.7) !important;
+}
+
+/* Style proof boxes to match theorem background color for conceptual connection */
+/* Use more specific selectors to avoid matching examples */
+.admonition.proof:not(.example),
+div.admonition.proof:not(.example),
+.admonition.prf-proof:not(.prf-example),
+div.admonition.prf-proof:not(.prf-example),
+.prf-proof:not(.prf-example),
+div.prf-proof:not(.prf-example) {
+    background-color: #f0f8f0 !important;  /* Same light green as theorems */
+    color: #2c3e50 !important;  /* Dark text */
+    border-left: 4px solid #27ae60 !important;  /* Green border matching theorems */
+    padding: 1em !important;
+    margin: 1em 0 !important;
+}
+
+/* Style proof titles to match theorem styling */
+.admonition.proof:not(.example) .admonition-title,
+div.admonition.proof:not(.example) .admonition-title,
+.admonition.prf-proof:not(.prf-example) .admonition-title,
+div.admonition.prf-proof:not(.prf-example) .admonition-title,
+.prf-proof:not(.prf-example) .admonition-title,
+div.prf-proof:not(.prf-example) .admonition-title {
+    color: #1e8449 !important;  /* Dark green matching theorem titles */
+    background-color: #d5f0d5 !important;  /* Light green background matching theorems */
+    font-weight: bold !important;
+}
+
+/* Ensure proof content is readable */
+.admonition.proof:not(.example) p,
+.admonition.proof:not(.example) li,
+.admonition.prf-proof:not(.prf-example) p,
+.admonition.prf-proof:not(.prf-example) li,
+.prf-proof:not(.prf-example) p,
+.prf-proof:not(.prf-example) li {
+    color: #2c3e50 !important;
+}
+
+/* Fix math text color in proofs */
+.admonition.proof:not(.example) .math,
+.admonition.prf-proof:not(.prf-example) .math,
+.prf-proof:not(.prf-example) .math {
+    color: #2c3e50 !important;
+}
+
+/* Fix code blocks inside proofs */
+.admonition.proof:not(.example) code,
+.admonition.prf-proof:not(.prf-example) code,
+.prf-proof:not(.prf-example) code {
+    color: #2c3e50 !important;
+    background-color: rgba(255, 255, 255, 0.7) !important;
+}
+
+/* Style theorem titles with dark green for contrast and differentiation */
+.admonition.theorem .admonition-title,
+div.admonition.theorem .admonition-title,
+.admonition.prf-theorem .admonition-title,
+div.admonition.prf-theorem .admonition-title,
+.prf-theorem .admonition-title,
+div.prf-theorem .admonition-title,
+[class*="theorem"].admonition .admonition-title {
+    color: #1e8449 !important;  /* Dark green for good contrast */
+    background-color: #d5f0d5 !important;  /* Light green background */
+    font-weight: bold !important;
+}
+
+/* Style theorem boxes */
+.admonition.theorem,
+div.admonition.theorem,
+.admonition.prf-theorem,
+div.admonition.prf-theorem,
+.prf-theorem,
+div.prf-theorem,
+[class*="theorem"].admonition {
+    background-color: #f0f8f0 !important;  /* Light green background */
+    color: #2c3e50 !important;  /* Dark text */
+    border-left: 4px solid #27ae60 !important;  /* Green border */
+    padding: 1em !important;
+    margin: 1em 0 !important;
+}
+
+/* Ensure theorem content is readable */
+.admonition.theorem p,
+.admonition.theorem li,
+.admonition.prf-theorem p,
+.admonition.prf-theorem li,
+.prf-theorem p,
+.prf-theorem li,
+[class*="theorem"].admonition p,
+[class*="theorem"].admonition li {
+    color: #2c3e50 !important;
+}
+
+/* Fix math text color in theorems */
+.admonition.theorem .math,
+.admonition.prf-theorem .math,
+.prf-theorem .math,
+[class*="theorem"].admonition .math {
+    color: #2c3e50 !important;
+}
