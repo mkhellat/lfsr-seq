@@ -40,8 +40,9 @@ Documentation Contents
    installation
    user_guide
    examples
-   parallelization
    mathematical_background
+   nist_sp800_22
+   visualization
    correlation_attacks
    algebraic_attacks
    time_memory_tradeoff
@@ -49,8 +50,7 @@ Documentation Contents
    advanced_lfsr_structures
    theoretical_analysis
    ml_integration
-   visualization
-   nist_sp800_22
+   parallelization
    optimization_techniques
 
 .. toctree::
