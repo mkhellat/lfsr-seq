@@ -64,6 +64,7 @@ extensions = [
     "sphinx.ext.napoleon",
     "sphinx.ext.mathjax",
     "sphinx.ext.intersphinx",
+    "sphinx_proof",
 ]
 
 # Configure autodoc to not process type hints as objects

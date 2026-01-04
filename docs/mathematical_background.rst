@@ -295,49 +295,49 @@ formula uses subtraction. In :math:`\mathbb{F}_2`, since :math:`-1 =
 
    P(t) = t^d + c_{d-1} t^{d-1} + c_{d-2} t^{d-2} + \cdots + c_1 t + c_0
 
-**Proof**:
+.. prf:proof::
 
-Computing :math:`\det(tI - C)`:
+   Computing :math:`\det(tI - C)`:
 
-Given the companion matrix structure:
+   Given the companion matrix structure:
 
-.. math::
+   .. math::
 
-   C = \begin{pmatrix}
-   0 & 0 & 0 & \cdots & c_0 \\
-   1 & 0 & 0 & \cdots & c_1 \\
-   0 & 1 & 0 & \cdots & c_2 \\
-   \vdots & \vdots & \ddots & \ddots & \vdots \\
-   0 & 0 & \cdots & 1 & c_{d-1}
-   \end{pmatrix}
+      C = \begin{pmatrix}
+      0 & 0 & 0 & \cdots & c_0 \\
+      1 & 0 & 0 & \cdots & c_1 \\
+      0 & 1 & 0 & \cdots & c_2 \\
+      \vdots & \vdots & \ddots & \ddots & \vdots \\
+      0 & 0 & \cdots & 1 & c_{d-1}
+      \end{pmatrix}
 
-We have:
+   We have:
 
-.. math::
+   .. math::
 
-   tI - C = \begin{pmatrix}
-   t & 0 & 0 & \cdots & -c_0 \\
-   -1 & t & 0 & \cdots & -c_1 \\
-   0 & -1 & t & \cdots & -c_2 \\
-   \vdots & \vdots & \ddots & \ddots & \vdots \\
-   0 & 0 & \cdots & -1 & t - c_{d-1}
-   \end{pmatrix}
+      tI - C = \begin{pmatrix}
+      t & 0 & 0 & \cdots & -c_0 \\
+      -1 & t & 0 & \cdots & -c_1 \\
+      0 & -1 & t & \cdots & -c_2 \\
+      \vdots & \vdots & \ddots & \ddots & \vdots \\
+      0 & 0 & \cdots & -1 & t - c_{d-1}
+      \end{pmatrix}
 
-Expanding the determinant along the first column (which has zeros
-except for the first two entries) and using the structure of the
-matrix, we obtain the desired form. The expansion yields:
+   Expanding the determinant along the first column (which has zeros
+   except for the first two entries) and using the structure of the
+   matrix, we obtain the desired form. The expansion yields:
 
-.. math::
+   .. math::
 
-   \det(tI - C) = t \cdot \det(M_0) - (-1) \cdot \det(M_1)
+      \det(tI - C) = t \cdot \det(M_0) - (-1) \cdot \det(M_1)
 
-where :math:`M_0` and :math:`M_1` are the appropriate submatrices.
-Continuing this recursive expansion along the first column of each
-submatrix, we obtain:
+   where :math:`M_0` and :math:`M_1` are the appropriate submatrices.
+   Continuing this recursive expansion along the first column of each
+   submatrix, we obtain:
 
-.. math::
+   .. math::
 
-   \det(tI - C) = t^d - c_{d-1} t^{d-1} - c_{d-2} t^{d-2} - \cdots - c_1 t - c_0
+      \det(tI - C) = t^d - c_{d-1} t^{d-1} - c_{d-2} t^{d-2} - \cdots - c_1 t - c_0
 
 **Example**: For :math:`C` with coefficients :math:`[1, 1, 0, 0]` over
  :math:`\mathbb{F}_2`:
@@ -413,30 +413,31 @@ infinite.
 Connection to Matrix Order
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-**Theorem**: 
+.. prf:theorem:: Order Equivalence
+   :label: theorem-order-equivalence
 
-The order of the characteristic polynomial :math:`P(t)` 
-equals the order of the state update matrix :math:`C`.
+   The order of the characteristic polynomial :math:`P(t)` 
+   equals the order of the state update matrix :math:`C`.
 
-**Proof**:
+.. prf:proof::
 
-Let :math:`n` be the order of :math:`C`, so :math:`C^n = I`. By the
-Cayley-Hamilton theorem, :math:`P(C) = 0`, which means:
+   Let :math:`n` be the order of :math:`C`, so :math:`C^n = I`. By the
+   Cayley-Hamilton theorem, :math:`P(C) = 0`, which means:
 
-.. math::
+   .. math::
 
-   C^d = c_{d-1} C^{d-1} + \cdots + c_1 C + c_0 I
+      C^d = c_{d-1} C^{d-1} + \cdots + c_1 C + c_0 I
 
-This recurrence allows us to express any power :math:`C^k` as a linear
-combination of :math:`I, C, C^2, \ldots, C^{d-1}`. Since :math:`C^n =
-I`, we have:
+   This recurrence allows us to express any power :math:`C^k` as a linear
+   combination of :math:`I, C, C^2, \ldots, C^{d-1}`. Since :math:`C^n =
+   I`, we have:
 
-.. math::
+   .. math::
 
-   C^n = I \Rightarrow t^n \equiv 1 \pmod{P(t)}
+      C^n = I \Rightarrow t^n \equiv 1 \pmod{P(t)}
 
-Conversely, if :math:`t^n \equiv 1 \pmod{P(t)}`, then :math:`C^n = I`
-by polynomial evaluation.
+   Conversely, if :math:`t^n \equiv 1 \pmod{P(t)}`, then :math:`C^n = I`
+   by polynomial evaluation.
 
 **Example**: For the primitive polynomial :math:`P(t) = t^4 + t + 1` over
  :math:`\mathbb{F}_2`:
@@ -486,12 +487,14 @@ For a given initial state :math:`S_0`, the sequence :math:`S_0, S_1,
 S_2, \ldots` is periodic. The **period** of this sequence is the
 smallest :math:`k` such that :math:`S_k = S_0`.
 
-**Theorem**: The period of a state sequence divides the order of the
- matrix.
+.. prf:theorem:: Period Divisibility
+   :label: theorem-period-divisibility
 
-**Proof**:
+   The period of a state sequence divides the order of the matrix.
 
-If :math:`C^n = I`, then for any state :math:`S_0`:
+.. prf:proof::
+
+   If :math:`C^n = I`, then for any state :math:`S_0`:
 
 .. math::
 
@@ -1085,23 +1088,28 @@ Factor Orders
 Each factor :math:`f_i(t)` has its own order :math:`n_i` (smallest
 :math:`n` such that :math:`t^n \equiv 1 \pmod{f_i(t)}`).
 
-**Theorem**: The order of :math:`P(t)` is the least common
- multiple (LCM) of the orders of its irreducible factors (with
- appropriate handling of multiplicities).
+.. prf:theorem:: Order from Irreducible Factors
+   :label: theorem-order-from-factors
 
-**Proof Sketch**:
+   The order of :math:`P(t)` is the least common
+   multiple (LCM) of the orders of its irreducible factors (with
+   appropriate handling of multiplicities).
 
-If :math:`P(t) = f_1(t)^{e_1} f_2(t)^{e_2} \cdots f_r(t)^{e_r}`, and
-each :math:`f_i(t)` has order :math:`n_i`, then:
+.. prf:proof::
 
-* :math:`t^{n_i} \equiv 1 \pmod{f_i(t)}`
-* For :math:`t^n \equiv 1 \pmod{P(t)}`, we need :math:`t^n \equiv 1
-  \pmod{f_i(t)^{e_i}}` for all :math:`i`
-* This requires :math:`n` to be a multiple of :math:`n_i` (and
-  possibly :math:`p \cdot n_i` if :math:`e_i > 1` and :math:`p`
-  divides :math:`n_i`)
-* Therefore, :math:`n = \text{lcm}(n_1, n_2, \ldots, n_r)` (with
-  appropriate adjustments)
+   Proof sketch:
+
+   If :math:`P(t) = f_1(t)^{e_1} f_2(t)^{e_2} \cdots f_r(t)^{e_r}`, and
+   each :math:`f_i(t)` has order :math:`n_i`, then:
+
+   * :math:`t^{n_i} \equiv 1 \pmod{f_i(t)}`
+   * For :math:`t^n \equiv 1 \pmod{P(t)}`, we need :math:`t^n \equiv 1
+     \pmod{f_i(t)^{e_i}}` for all :math:`i`
+   * This requires :math:`n` to be a multiple of :math:`n_i` (and
+     possibly :math:`p \cdot n_i` if :math:`e_i > 1` and :math:`p`
+     divides :math:`n_i`)
+   * Therefore, :math:`n = \text{lcm}(n_1, n_2, \ldots, n_r)` (with
+     appropriate adjustments)
 
 **Example**: For :math:`P(t) = (t+1)(t^3 + t + 1)`:
 
@@ -1154,8 +1162,11 @@ The algorithm maintains:
 **Key Insight**: The minimal LFSR length equals the
   **linear complexity** of the sequence.
 
-**Theorem**: The Berlekamp-Massey algorithm finds the unique minimal
- LFSR in :math:`O(n^2)` time.
+.. prf:theorem:: Berlekamp-Massey Correctness
+   :label: theorem-berlekamp-massey
+
+   The Berlekamp-Massey algorithm finds the unique minimal
+   LFSR in :math:`O(n^2)` time.
 
 **Example**: Sequence :math:`[1, 0, 1, 1, 0, 1, 0, 0, 1]` over
  :math:`\mathbb{F}_2`:
@@ -1370,15 +1381,18 @@ Theoretical Results and Theorems
 Theorem 1: Maximum Period
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-**Statement**: For an LFSR of degree :math:`d` over
- :math:`\mathbb{F}_q`, the maximum possible period is :math:`q^d - 1`.
+.. prf:theorem:: Maximum Period
+   :label: theorem-maximum-period
 
-**Proof**: 
+   For an LFSR of degree :math:`d` over
+   :math:`\mathbb{F}_q`, the maximum possible period is :math:`q^d - 1`.
 
-* There are :math:`q^d` possible states
-* The all-zero state :math:`(0, 0, \ldots, 0)` is fixed (period 1)
-* All other states form cycles
-* Maximum cycle length is :math:`q^d - 1`
+.. prf:proof::
+
+   * There are :math:`q^d` possible states
+   * The all-zero state :math:`(0, 0, \ldots, 0)` is fixed (period 1)
+   * All other states form cycles
+   * Maximum cycle length is :math:`q^d - 1`
 
 **Achievability**: The maximum period is achieved if and only if the
  characteristic polynomial is **primitive**.
@@ -1392,9 +1406,12 @@ Theorem 2: Primitive Polynomials
 1. :math:`P(t)` is irreducible
 2. The order of :math:`P(t)` is :math:`q^d - 1`
 
-**Theorem**: If :math:`P(t)` is primitive, then the LFSR has maximum
- period :math:`q^d - 1`, and the generated sequence has excellent
- statistical properties.
+.. prf:theorem:: Primitive Polynomial Period
+   :label: theorem-primitive-period
+
+   If :math:`P(t)` is primitive, then the LFSR has maximum
+   period :math:`q^d - 1`, and the generated sequence has excellent
+   statistical properties.
 
 **Example**: Over :math:`\mathbb{F}_2`, the polynomial :math:`t^4 +
 t + 1` is primitive and has order 15, giving maximum period.
@@ -1410,18 +1427,21 @@ t + 1` is primitive and has order 15, giving maximum period.
 Theorem 3: Period Divisibility
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-**Statement**: All sequence periods divide the matrix order.
+.. prf:theorem:: All Periods Divide Matrix Order
+   :label: theorem-all-periods-divide
 
-**Proof**: 
+   All sequence periods divide the matrix order.
 
-If :math:`C^n = I` and sequence has period :math:`k`, then:
+.. prf:proof::
 
-.. math::
+   If :math:`C^n = I` and sequence has period :math:`k`, then:
 
-   S_k = S_0 \Rightarrow S_0 \cdot C^k = S_0
+   .. math::
 
-Since :math:`C^n = I`, we have :math:`S_0 = S_0 \cdot C^n`. If
-:math:`k` doesn't divide :math:`n`, we can write :math:`n = qk + r`
+      S_k = S_0 \Rightarrow S_0 \cdot C^k = S_0
+
+   Since :math:`C^n = I`, we have :math:`S_0 = S_0 \cdot C^n`. If
+   :math:`k` doesn't divide :math:`n`, we can write :math:`n = qk + r`
 with :math:`0 < r < k`, leading to a contradiction.
 
 Therefore, :math:`k \mid n`.
@@ -1429,8 +1449,11 @@ Therefore, :math:`k \mid n`.
 Theorem 4: Linear Complexity Lower Bound
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-**Statement**: For a sequence of length :math:`n` over
- :math:`\mathbb{F}_q`, the linear complexity :math:`L` satisfies:
+.. prf:theorem:: Linear Complexity Lower Bound
+   :label: theorem-linear-complexity-lower-bound
+
+   For a sequence of length :math:`n` over
+   :math:`\mathbb{F}_q`, the linear complexity :math:`L` satisfies:
 
 .. math::
 
