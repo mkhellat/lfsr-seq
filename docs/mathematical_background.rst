@@ -1515,20 +1515,51 @@ the period :math:`\lambda` of a periodic state sequence.
 
 * **Time Complexity**: :math:`O(\lambda)`
   
-  The worst case occurs when :math:`\lambda = 2^k + 1` for some
-  :math:`k \geq 0`. In this case, the algorithm must progress through
-  powers :math:`1, 2, 4, \ldots, 2^k` before detecting the cycle. The
-  total number of state transitions is:
+  Let :math:`k = \lceil \log_2 \lambda \rceil`, so :math:`2^{k-1} < \lambda
+  \leq 2^k`. The algorithm progresses through powers :math:`p = 1, 2, 4,
+  \ldots, 2^{k-1}` before potentially needing power :math:`2^k` to detect
+  the cycle.
+  
+  The worst case occurs when the algorithm must go through all powers up to
+  :math:`2^k` before detection. The total number of state transitions is:
   
   .. math::
   
-     \sum_{i=0}^{k} 2^i + \lambda = (2^{k+1} - 1) + \lambda
+     \sum_{i=0}^{k-1} 2^i + \lambda = (2^k - 1) + \lambda
   
-  Since :math:`2^k < \lambda \leq 2^{k+1}`, we have :math:`2^{k+1} \leq
-  2\lambda`, so the total is at most :math:`2\lambda - 1 + \lambda =
-  3\lambda - 1`. More precisely, the bound is :math:`\lambda + 2^{\lceil
-  \log_2 \lambda \rceil} \leq 3\lambda`, giving :math:`O(\lambda)`
-  complexity with a constant factor of at most 3.
+  .. code-block:: none
+  
+     Power Phase    Hare Moves    Cumulative    Tortoise Reset
+     ──────────────────────────────────────────────────────────
+     p = 1          2^0 = 1       1             T ← H (at S₁)
+     p = 2          2^1 = 2       1+2 = 3       T ← H (at S₃)
+     p = 4          2^2 = 4       3+4 = 7       T ← H (at S₇)
+     p = 8          2^3 = 8       7+8 = 15      T ← H (at S₁₅)
+     ...            ...           ...           ...
+     p = 2^{k-1}    2^{k-1}       2^k - 1       T ← H
+     ──────────────────────────────────────────────────────────
+     Total:         Σ 2^i = 2^k - 1             (sum of geometric series)
+  
+     Then:          λ more moves                (to detect cycle)
+     ──────────────────────────────────────────────────────────
+     Grand Total:   (2^k - 1) + λ               state transitions
+  
+  
+  Since :math:`2^{k-1} < \lambda \leq 2^k`:
+  
+  .. math::
+  
+     (2^k - 1) + \lambda < 3\lambda - 1
+  
+  More precisely, the standard bound is :math:`\lambda + 2^{\lceil \log_2
+  \lambda \rceil} = \lambda + 2^k`. Since :math:`2^k < 2\lambda`, we have
+  :math:`\lambda + 2^k < \lambda + 2\lambda = 3\lambda`, yielding
+  :math:`O(\lambda)` complexity with a constant factor strictly less than 3.
+  
+  **Example**: For :math:`\lambda = 15`, we have :math:`k = \lceil \log_2 15
+  \rceil = 4`, so :math:`2^3 = 8 < 15 \leq 16 = 2^4`. The bound gives
+  :math:`15 + 16 = 31 < 3 \cdot 15 = 45`, confirming the constant factor
+  is less than 3.
 
 * **Space Complexity**: :math:`O(1)` (period-only mode) or
   :math:`O(\lambda)` (full sequence mode)
