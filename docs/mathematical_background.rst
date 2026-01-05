@@ -919,19 +919,53 @@ smallest :math:`k` such that :math:`S_k = S_0`.
 .. prf:theorem:: Period Divisibility
    :label: theorem-period-divisibility
 
-   The period of a state sequence divides the order of the matrix.
+   Let :math:`C` be the companion matrix of an LFSR with order :math:`n`
+   (i.e., :math:`n` is the smallest positive integer such that
+   :math:`C^n = I`). For any initial state :math:`S_0`, the period
+   :math:`k` of the state sequence :math:`(S_0, S_1, S_2, \ldots)` divides
+   :math:`n`.
 
 .. prf:proof::
 
-   If :math:`C^n = I`, then for any state :math:`S_0`:
+   Since :math:`C^n = I` by definition of the matrix order, we have for
+   any state :math:`S_0`:
 
-.. math::
+   .. math::
 
-   S_n = S_0 \cdot C^n = S_0 \cdot I = S_0
+      S_n = S_0 \cdot C^n = S_0 \cdot I = S_0
 
-So the sequence repeats after :math:`n` steps. The period :math:`k`
-must divide :math:`n` (if :math:`k` didn't divide :math:`n`, we could
-find a smaller period, contradicting minimality).
+   Therefore, the sequence returns to its initial state after :math:`n`
+   steps, establishing that :math:`n` is a period (though not necessarily
+   the minimal one).
+
+   Now, let :math:`k` be the minimal period of the sequence, i.e., the
+   smallest positive integer such that :math:`S_k = S_0`. We claim that
+   :math:`k \mid n`.
+
+   Since :math:`S_k = S_0`, the sequence is periodic with period :math:`k`,
+   meaning :math:`S_{i+k} = S_i` for all :math:`i \geq 0`. In particular,
+   :math:`S_{qk} = S_0` for any non-negative integer :math:`q`.
+
+   Suppose, for contradiction, that :math:`k \nmid n`. By the division
+   algorithm, there exist unique integers :math:`q \geq 0` and :math:`0 < r < k`
+   such that:
+
+   .. math::
+
+      n = qk + r
+
+   Since :math:`C^n = I`, we have :math:`S_n = S_0`. On the other hand, by
+   the periodicity of the sequence:
+
+   .. math::
+
+      S_n = S_{qk + r} = S_r
+
+   where the last equality follows from the fact that :math:`S_{qk} = S_0`
+   and the sequence is periodic. Combining these, we obtain :math:`S_r = S_0`
+   with :math:`0 < r < k`, which contradicts the minimality of :math:`k`.
+
+   Therefore, we must have :math:`k \mid n`.
 
 .. prf:example:: Period Divisibility
    :label: ex-period-divisibility
@@ -959,8 +993,8 @@ The algorithm for finding all sequences:
    d. Record period :math:`k` and sequence
 3. **Categorize**: Group states by their sequence cycles
 
-**Complexity**: :math:`O(q^d)` time and space (visiting each state
- once).
+**Complexity**: 
+   :math:`O(q^d)` time and space (visiting each state once).
 
 Cycle Detection Algorithms
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
