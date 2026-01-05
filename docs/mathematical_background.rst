@@ -1549,48 +1549,46 @@ processing states in parallel.
 
 **Architecture**:
 
-The parallel implementation provides two modes:
+The parallel implementation provides two modes for work distribution:
 
-**Static Partitioning (Fixed Work Distribution)**:
+* **Static Partitioning (Fixed Work Distribution)**:
+  
+  - **State Space Partitioning**: The entire state space is divided into
+    :math:`n` roughly equal chunks, where :math:`n` is the number of worker
+    processes. Each worker gets one fixed chunk.
+  
+  - **Independent Processing**: Each worker process processes its
+    assigned chunk independently, finding cycles and computing periods
+    without communication with other workers.
+  
+  - **Result Merging**: After all workers complete, results are merged
+    with automatic deduplication of sequences that may have been found
+    by multiple workers.
+  
+  - **Best For**: LFSRs with few cycles (2-4 cycles) or when cycles are
+    evenly distributed.
 
-1. **State Space Partitioning**: The entire state space is divided into
-   :math:`n` roughly equal chunks, where :math:`n` is the number of worker
-   processes. Each worker gets one fixed chunk.
+* **Dynamic Load Balancing (Shared Task Queue)**:
+  
+  - **Task Queue Creation**: States are divided into small batches
+    (typically 200 states) and placed in a shared queue accessible by
+    all workers.
+  
+  - **Dynamic Work Distribution**: Workers continuously pull batches
+    from the queue. When a worker finishes a batch, it immediately pulls
+    the next available batch. Faster workers naturally take on more work,
+    providing automatic load balancing and reducing imbalance by 2-4x for
+    multi-cycle LFSRs.
+  
+  - **Result Merging**: After all workers complete, results are merged
+    with automatic deduplication (same as static mode).
+  
+  - **Best For**: LFSRs with many cycles (8+ cycles), providing
+    significantly better load balancing.
 
-2. **Independent Processing**: Each worker process processes its
-   assigned chunk independently, finding cycles and computing periods
-   without communication with other workers.
+**Algorithm Description**:
 
-3. **Result Merging**: After all workers complete, results are merged
-   with automatic deduplication of sequences that may have been found
-   by multiple workers.
-
-**Dynamic Load Balancing (Shared Task Queue)**:
-
-1. **Task Queue Creation**: States are divided into small batches
-   (typically 200 states) and placed in a shared queue accessible by
-   all workers.
-
-2. **Dynamic Work Distribution**: Workers continuously pull batches
-   from the queue:
-   
-   - When a worker finishes a batch, it immediately pulls the next
-     available batch
-   - Faster workers naturally take on more work
-   - This provides automatic load balancing, reducing imbalance by
-     2-4x for multi-cycle LFSRs
-
-3. **Result Merging**: After all workers complete, results are merged
-   with automatic deduplication (same as static mode).
-
-**When to Use Each Mode**:
-
-- **Static Mode**: Best for LFSRs with few cycles (2-4 cycles) or when
-  cycles are evenly distributed
-- **Dynamic Mode**: Best for LFSRs with many cycles (8+ cycles),
-  providing significantly better load balancing
-
-**Algorithm**:
+The parallel algorithm operates in three main phases:
 
 .. math::
 
@@ -1613,186 +1611,193 @@ The partitioning function divides the state space into chunks:
 Each state is converted to a tuple (for pickling/serialization) since
 SageMath vectors are not directly pickleable for inter-process communication.
 
-**Worker Processing**:
+**Implementation Details**:
 
-Each worker process:
+* **Worker Processing**:
+  
+  Each worker process performs the following steps:
+  
+  1. Reconstructs SageMath objects from serialized data (tuples)
+  2. Rebuilds the state update matrix from coefficients extracted from
+     the **last column** of the companion matrix (not the last row). The
+     companion matrix structure stores coefficients :math:`c_0, c_1,
+     \ldots, c_{d-1}` in column :math:`d-1` at positions :math:`(i,
+     d-1)` for :math:`i = 0, \ldots, d-1`. Extraction must use:
+     :math:`c_i = C[i, d-1]` for :math:`i = 0, \ldots, d-1`. This is
+     critical for correct matrix reconstruction in worker processes.
+  3. Processes each state in its chunk:
+     
+     - Reconstructs state vector from tuple
+     - **Period Computation**: Uses Floyd's algorithm
+       (``_find_period_floyd``) to compute the period. Enumeration-based
+       methods are avoided due to matrix multiplication loops that hang
+       in multiprocessing context.
+     - **Sequence Computation for Deduplication**: For periods
+       :math:`\leq 100`, computes the full sequence using direct
+       enumeration to enable proper deduplication. For larger periods,
+       uses simplified deduplication based on
+       :math:`(\text{start\_state}, \text{period})`.
+     - Marks states in cycle as visited (local to worker)
+     - Stores sequence information with ``period_only`` flag
+  4. Returns results: sequences, periods, max period, errors
 
-1. Reconstructs SageMath objects from serialized data (tuples)
-2. Rebuilds the state update matrix from coefficients extracted from
-   the **last column** of the companion matrix (not the last row). The
-   companion matrix structure stores coefficients :math:`c_0, c_1,
-   \ldots, c_{d-1}` in column :math:`d-1` at positions :math:`(i,
-   d-1)` for :math:`i = 0, \ldots, d-1`.
-3. Processes each state in its chunk:
+* **Algorithm Selection**:
+  
+  Floyd's algorithm is **required** for parallel processing because
+  enumeration-based methods (which use matrix multiplication in tight
+  loops) hang after approximately 12 iterations in multiprocessing
+  context. This is a known SageMath/multiprocessing interaction issue.
+  Only Floyd's algorithm is used in parallel workers, regardless of the
+  ``--algorithm`` flag. Enumeration and Brent's algorithms are not used
+  due to the matrix multiplication hang issue.
 
-   - Reconstructs state vector from tuple
-   - **Period Computation**: Uses Floyd's algorithm
-     (``_find_period_floyd``) to compute the period. Enumeration-based
-     methods are avoided due to matrix multiplication loops that hang
-     in multiprocessing context.
-   - **Sequence Computation for Deduplication**: For periods
-     :math:`\leq 100`, computes the full sequence using direct
-     enumeration to enable proper deduplication. For larger periods,
-     uses simplified deduplication based on
-     :math:`(\text{start\_state}, \text{period})`.
-   - Marks states in cycle as visited (local to worker)
-   - Stores sequence information with ``period_only`` flag
-4. Returns results: sequences, periods, max period, errors
+* **Period-Only Mode Requirement**:
+  
+  Parallel processing **requires** period-only mode (``--period-only``
+  flag). Full sequence mode hangs due to the enumeration loop issue. The
+  tool automatically forces period-only mode when parallel processing is
+  enabled, displaying a warning to the user.
 
-**Critical Implementation Details**:
+* **Result Merging and Deduplication**:
 
-* **Algorithm Selection**: Floyd's algorithm is **required** for
-  parallel processing because enumeration-based methods (which use
-  matrix multiplication in tight loops) hang after approximately 12
-  iterations in multiprocessing context. This is a known
-  SageMath/multiprocessing interaction issue.
-
-* **Period-Only Mode**: Parallel processing **requires** period-only
-  mode (``--period-only`` flag). Full sequence mode hangs due to the
-  enumeration loop issue. The tool automatically forces period-only
-  mode when parallel processing is enabled, displaying a warning to
-  the user.
-
-* **Matrix Coefficient Extraction**: The companion matrix stores
-  coefficients in the **last column** (column :math:`d-1`), not the
-  last row. Extraction must use: :math:`c_i = C[i, d-1]` for :math:`i
-  = 0, \ldots, d-1`. This is critical for correct matrix
-  reconstruction in worker processes.
-
-**Result Merging and Deduplication**:
-
-Since multiple workers may process states from the same cycle, results
-must be deduplicated:
-
-- **For small periods** (:math:`\leq 100`): Workers compute the full
-  sequence (even in period-only mode) for deduplication purposes. The
-  merge function uses the sorted tuple of all state tuples in the
-  cycle as the deduplication key.  This ensures accurate deduplication
-  since cycles are identical regardless of starting point.
-
-- **For large periods** (:math:`> 100`): To avoid hangs from matrix
-  multiplication loops, workers use simplified deduplication based on
-  :math:`(\text{start\_state}, \text{period})`.  This may result in
-  some false duplicates not being caught, but is an acceptable
-  trade-off to avoid hangs.
-
-- **Period-Only Flag**: The merge function respects the
-  ``period_only`` flag in sequence information. Even though full
-  sequences may be computed for deduplication, they are not stored in
-  the final output when ``period_only=True``.
-
-The merge function:
-
-1. Collects all sequences from all workers
-2. Creates canonical representations of cycles:
-   - Small periods: Sorted tuple of all state tuples
-   - Large periods: :math:`(\text{start\_state}, \text{period})` tuple
-3. Deduplicates based on cycle identity
-4. Reconstructs SageMath objects (only if ``period_only=False``)
-5. Assigns sequential sequence numbers
-6. Verifies correctness: :math:`\sum \text{periods} = q^d`
-
-**Performance Characteristics**:
-
-* **Theoretical Speedup**: Up to :math:`n`-fold on :math:`n` cores (linear
-  scaling for independent work)
-* **Practical Speedup**: 4-8× on typical multi-core systems (due to overhead)
-* **Overhead**: Process creation, IPC, result merging
-* **Best Case**: Large state spaces (> 10,000 states) with many CPU cores
+  Since multiple workers may process states from the same cycle, results
+  must be deduplicated:
+  
+  - **For small periods** (:math:`\leq 100`): Workers compute the full
+    sequence (even in period-only mode) for deduplication purposes. The
+    merge function uses the sorted tuple of all state tuples in the
+    cycle as the deduplication key. This ensures accurate deduplication
+    since cycles are identical regardless of starting point.
+  
+  - **For large periods** (:math:`> 100`): To avoid hangs from matrix
+    multiplication loops, workers use simplified deduplication based on
+    :math:`(\text{start\_state}, \text{period})`. This may result in
+    some false duplicates not being caught, but is an acceptable
+    trade-off to avoid hangs.
+  
+  - **Period-Only Flag**: The merge function respects the
+    ``period_only`` flag in sequence information. Even though full
+    sequences may be computed for deduplication, they are not stored in
+    the final output when ``period_only=True``.
+  
+  The merge function:
+  
+  1. Collects all sequences from all workers
+  2. Creates canonical representations of cycles:
+     - Small periods: Sorted tuple of all state tuples
+     - Large periods: :math:`(\text{start\_state}, \text{period})` tuple
+  3. Deduplicates based on cycle identity
+  4. Reconstructs SageMath objects (only if ``period_only=False``)
+  5. Assigns sequential sequence numbers
+  6. Verifies correctness: :math:`\sum \text{periods} = q^d`
 
 **Complexity Analysis**:
 
-* **Time**: :math:`O(q^d / n)` per worker (theoretical),
+* **Time Complexity**: :math:`O(q^d / n)` per worker (theoretical),
   :math:`O(q^d)` total (amortized)
-* **Space**: :math:`O(q^d)` total (same as sequential, distributed
-  across workers)
-* **Communication**: Minimal (only at start and end, no inter-worker
-  communication)
+  
+  Each worker processes approximately :math:`q^d / n` states
+  independently. The total work remains :math:`O(q^d)`, but is
+  distributed across :math:`n` workers.
 
-**Automatic Selection**:
+* **Space Complexity**: :math:`O(q^d)` total (same as sequential,
+  distributed across workers)
+  
+  Each worker maintains its own copy of SageMath objects, but total
+  memory usage is similar to sequential processing since the state space
+  is partitioned rather than duplicated.
 
-The tool automatically enables parallel processing when:
+* **Communication Overhead**: Minimal (only at start and end, no
+  inter-worker communication)
+  
+  Workers operate independently with no communication during processing.
+  Communication occurs only during initial partitioning and final result
+  merging.
 
-.. math::
+**Performance Characteristics**:
 
-   |V| > 10,000 \text{ and } n_{\text{cores}} \geq 2
+* **Theoretical Speedup**: Up to :math:`n`-fold on :math:`n` cores
+  (linear scaling for independent work)
+* **Practical Speedup**: 4-8× on typical multi-core systems (due to
+  overhead from process creation, IPC, and result merging)
+* **Best Case**: Large state spaces (> 10,000 states) with many CPU cores
+* **Optimization Results**: After optimization (lazy partitioning),
+  parallel processing achieves excellent speedup for medium-sized LFSRs:
+  
+  - **7-bit LFSR (128 states)**: 6.37× - 9.89× speedup
+  - **Best configuration**: 1-2 workers for medium LFSRs
+  - **Efficiency**: 159% - 989% (overhead reduction from optimization)
 
-This threshold balances the overhead of multiprocessing against the
-benefits of parallelization.
+**Configuration**:
 
-**Graceful Degradation**:
+* **Automatic Selection**:
+  
+  The tool automatically enables parallel processing when:
+  
+  .. math::
+  
+     |V| > 10,000 \text{ and } n_{\text{cores}} \geq 2
+  
+  This threshold balances the overhead of multiprocessing against the
+  benefits of parallelization.
 
-If parallel processing fails or times out, the tool automatically
-falls back to sequential processing. This ensures:
-
-1. **Reliability**: Tool always completes successfully
-2. **Correctness**: Results are identical regardless of processing method
-3. **User Experience**: No manual intervention required
+* **Graceful Degradation**:
+  
+  If parallel processing fails or times out, the tool automatically
+  falls back to sequential processing. This ensures:
+  
+  - **Reliability**: Tool always completes successfully
+  - **Correctness**: Results are identical regardless of processing method
+  - **User Experience**: No manual intervention required
 
 **Known Limitations**:
 
 * **Full Sequence Mode Hang**: Full sequence mode (without
   ``--period-only``) causes workers to hang during matrix
-  multiplication loops in enumeration-based methods.  This is a
-  fundamental SageMath/multiprocessing interaction
-  issue. **Workaround**: Parallel processing automatically forces
-  period-only mode, displaying a warning.  Use ``--no-parallel`` for
-  full sequence mode.
+  multiplication loops in enumeration-based methods. This is a
+  fundamental SageMath/multiprocessing interaction issue. **Workaround**:
+  Parallel processing automatically forces period-only mode, displaying a
+  warning. Use ``--no-parallel`` for full sequence mode.
 
-* **Algorithm Restriction**: Only Floyd's algorithm is used in
-  parallel workers, regardless of the ``--algorithm``
-  flag. Enumeration and Brent's algorithms are not used due to the
-  matrix multiplication hang issue.
+* **Algorithm Restriction**: Only Floyd's algorithm is used in parallel
+  workers, regardless of the ``--algorithm`` flag. Enumeration and
+  Brent's algorithms are not used due to the matrix multiplication hang
+  issue.
 
 * **Deduplication for Large Periods**: For periods :math:`> 100`,
-  deduplication uses simplified keys that may not catch all
-  duplicates. This is an acceptable trade-off to avoid computing full
-  sequences (which would hang).
+  deduplication uses simplified keys that may not catch all duplicates.
+  This is an acceptable trade-off to avoid computing full sequences
+  (which would hang).
 
 * **SageMath Compatibility**: Some SageMath/multiprocessing
   configurations may cause workers to hang. The timeout mechanism
   detects this and falls back to sequential processing.
 
 * **Small State Spaces**: Overhead of multiprocessing may outweigh
-  benefits for small LFSRs (< 10,000 states).
-
-* **Memory**: Each worker maintains its own copy of SageMath objects,
-  but total memory usage is similar to sequential processing.
+  benefits for small LFSRs (< 10,000 states). The automatic selection
+  mechanism prevents parallel processing for small state spaces.
 
 * **Matrix Coefficient Extraction**: Critical that coefficients are
   extracted from the **last column** of the companion matrix, not the
   last row. Incorrect extraction leads to wrong matrix reconstruction
   and incorrect period computations.
 
-**Performance Results**:
-
-After optimization (lazy partitioning), parallel processing achieves
-excellent speedup for medium-sized LFSRs:
-
-* **7-bit LFSR (128 states)**: 6.37x - 9.89x speedup
-* **Best configuration**: 1-2 workers for medium LFSRs
-* **Efficiency**: 159% - 989% (overhead reduction from optimization)
-* **Overhead**: Negative in some cases (optimization improved
-  performance)
-
-**Optimization Implemented**:
+**Optimization Details**:
 
 The main bottleneck (state space partitioning, 60% of time) was
 optimized using lazy iteration:
 
 * **Before**: Materialized all states upfront, then partitioned
 * **After**: Lazy iteration with on-the-fly conversion to tuples
-* **Result**: 6-10x speedup improvement for medium LFSRs
+* **Result**: 6-10× speedup improvement for medium LFSRs
 
 **Future Improvements**:
 
 * Dynamic load balancing (instead of static partitioning)
 * Shared memory for visited set (with proper locking)
 * Progress tracking across workers
-* Alternative parallelization approaches (threading,
-  concurrent.futures)
-* Further reduce process overhead (reuse workers, cache
-  reconstruction)
+* Alternative parallelization approaches (threading, concurrent.futures)
+* Further reduce process overhead (reuse workers, cache reconstruction)
 
 Period Distribution Statistics
 -------------------------------
