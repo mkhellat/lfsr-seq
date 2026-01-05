@@ -993,8 +993,59 @@ The algorithm for finding all sequences:
    d. Record period :math:`k` and sequence
 3. **Categorize**: Group states by their sequence cycles
 
-**Complexity**: 
-   :math:`O(q^d)` time and space (visiting each state once).
+**Complexity Analysis**:
+
+The algorithm's complexity is determined by the total number of possible
+states in the LFSR state space.
+
+* **Time Complexity**: :math:`O(q^d)`
+  
+  - **State Space Size**: There are exactly :math:`q^d` distinct state
+    vectors (each of :math:`d` elements from :math:`\mathbb{F}_q`)
+  
+  - **State Visitation**: Each state is visited at most once during the
+    traversal phase. When a state is encountered, it is either:
+    
+    * Already marked as visited (skipped in :math:`O(1)` time using a
+      hash set or boolean array)
+    
+    * Unvisited, in which case we:
+      
+      - Detect the cycle period :math:`\lambda` using cycle detection
+        (see below), requiring :math:`O(\lambda)` time
+      
+      - Generate the full sequence of length :math:`\lambda`, requiring
+        :math:`O(\lambda)` matrix-vector multiplications
+      
+      - Mark all :math:`\lambda` states in the cycle as visited
+  
+  - **Total Operations**: Since each state belongs to exactly one cycle,
+    and the sum of all cycle lengths equals :math:`q^d`, the total time
+    is :math:`O(q^d)` state operations plus :math:`O(q^d)` matrix-vector
+    multiplications. Assuming matrix-vector multiplication is :math:`O(d^2)`
+    (which is constant for fixed :math:`d`), the overall time complexity
+    is :math:`O(q^d)`.
+
+* **Space Complexity**: :math:`O(q^d)`
+  
+  - **Visited State Tracking**: We maintain a data structure (hash set or
+    boolean array) to track which of the :math:`q^d` states have been
+    visited, requiring :math:`O(q^d)` space.
+  
+  - **Cycle Storage**: During cycle detection and sequence generation for
+    a cycle of period :math:`\lambda`, we temporarily store up to
+    :math:`\lambda` states. However, this is temporary space that can be
+    reused across cycles. The maximum space needed at any point is
+    :math:`O(\lambda_{\max})` where :math:`\lambda_{\max}` is the
+    maximum cycle period, which is bounded by :math:`q^d - 1`.
+  
+  - **Output Storage**: If storing all sequences for output, additional
+    space of :math:`O(q^d)` is needed (one state per sequence position).
+
+* **Optimality**: This complexity is optimal in the worst case, as any
+  algorithm that must examine all :math:`q^d` states requires at least
+  :math:`\Omega(q^d)` time and space. The algorithm achieves this lower
+  bound by visiting each state exactly once.
 
 Cycle Detection Algorithms
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
