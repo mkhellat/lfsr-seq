@@ -1135,6 +1135,22 @@ systematically enumerates states :math:`S_0, S_1, S_2, \ldots, S_k` until
 * **No Early Termination**: Must enumerate the entire cycle even if
   period could be detected earlier
 
+.. prf:example:: Naive Enumeration
+   :label: ex-naive-enumeration
+
+   Consider an LFSR with period :math:`\lambda = 15`. The algorithm
+   proceeds as follows:
+
+   * Step 0: :math:`S_0` (initial state)
+   * Step 1: :math:`S_1 = S_0 \cdot C`
+   * Step 2: :math:`S_2 = S_1 \cdot C`
+   * ...
+   * Step 15: :math:`S_{15} = S_{14} \cdot C = S_0`
+
+   The algorithm detects that :math:`S_{15} = S_0` and returns the
+   period :math:`\lambda = 15`. The algorithm performs exactly 15 state
+   transitions before detecting the period.
+
 Floyd's Cycle Detection Algorithm
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -1173,16 +1189,7 @@ hare) that traverse the sequence at different speeds.
 4. Count steps :math:`k` until :math:`T_k = H_k`
 5. The period is :math:`\lambda = k`
 
-**Space Complexity Note**:
-
-While the period-finding phase uses only :math:`O(1)` auxiliary space
-(two state pointers), practical implementations that require storing the
-full sequence for output still need :math:`O(\lambda)` space. The
-space advantage of Floyd's algorithm is most significant in period-only
-mode, where it achieves true :math:`O(1)` space complexity.
-
-Mathematical Correctness
-^^^^^^^^^^^^^^^^^^^^^^^^^
+**Mathematical Correctness**:
 
 We now provide a rigorous proof that Floyd's algorithm correctly
 identifies the period :math:`\lambda` of the state sequence.
@@ -1246,41 +1253,42 @@ identifies the period :math:`\lambda` of the state sequence.
    Therefore, the algorithm correctly identifies :math:`\lambda` as the
    period of the sequence.
 
-Complexity Analysis
-^^^^^^^^^^^^^^^^^^^
+**Complexity Analysis**:
 
-**Time Complexity**: :math:`O(\lambda)`
-
-* **Phase 1**: The tortoise and hare meet after at most :math:`\lambda`
-  iterations (since they meet when the tortoise has moved a multiple of
-  :math:`\lambda` steps). The tortoise performs :math:`\sim \lambda`
-  state transitions, while the hare performs :math:`\sim 2\lambda`
-  transitions (moving twice as fast). Total: :math:`\sim 3\lambda`
-  operations.
-
-* **Phase 2**: Both pointers move one step at a time until they meet
-  again, requiring at most :math:`\lambda` steps. Total: :math:`\sim
-  \lambda` operations.
-
-* **Overall**: The algorithm performs approximately :math:`4\lambda`
-  state transitions in the worst case, compared to :math:`\lambda` for
-  naive enumeration. However, the asymptotic complexity remains
-  :math:`O(\lambda)` since the constant factor is independent of the
-  input size.
-
-**Space Complexity**:
-
-* **Period-Only Mode**: :math:`O(1)` auxiliary space
+* **Time Complexity**: :math:`O(\lambda)`
   
-  The algorithm maintains only two state pointers (tortoise and hare),
-  each requiring :math:`O(d)` space to store a state vector. For fixed
-  :math:`d`, this is constant space. Empirical measurements confirm
-  constant memory usage (~1.60 KB) independent of period size.
-
-* **Full Sequence Mode**: :math:`O(\lambda)` space
+  The algorithm operates in two phases:
   
-  If the complete sequence must be stored for output, both algorithms
-  require :math:`O(\lambda)` space, negating Floyd's space advantage.
+  - **Phase 1**: The tortoise and hare meet after at most :math:`\lambda`
+    iterations (since they meet when the tortoise has moved a multiple of
+    :math:`\lambda` steps). The tortoise performs :math:`\sim \lambda`
+    state transitions, while the hare performs :math:`\sim 2\lambda`
+    transitions (moving twice as fast). Total: :math:`\sim 3\lambda`
+    operations.
+  
+  - **Phase 2**: Both pointers move one step at a time until they meet
+    again, requiring at most :math:`\lambda` steps. Total: :math:`\sim
+    \lambda` operations.
+  
+  - **Overall**: The algorithm performs approximately :math:`4\lambda`
+    state transitions in the worst case, compared to :math:`\lambda` for
+    naive enumeration. However, the asymptotic complexity remains
+    :math:`O(\lambda)` since the constant factor is independent of the
+    input size.
+
+* **Space Complexity**: :math:`O(1)` (period-only mode) or
+  :math:`O(\lambda)` (full sequence mode)
+  
+  - **Period-Only Mode**: The algorithm maintains only two state pointers
+    (tortoise and hare), each requiring :math:`O(d)` space to store a
+    state vector. For fixed :math:`d`, this is constant space. The
+    period-finding phase uses only :math:`O(1)` auxiliary space. Empirical
+    measurements confirm constant memory usage (~1.60 KB) independent of
+    period size.
+  
+  - **Full Sequence Mode**: If the complete sequence must be stored for
+    output, the algorithm requires :math:`O(\lambda)` space to store all
+    states, negating the space advantage of the period-finding phase.
 
 **Comparison with Naive Enumeration**:
 
@@ -1328,37 +1336,6 @@ Complexity Analysis
      remain synchronized
    * After 15 steps: :math:`T_{15} = S_{15} = S_0`, :math:`H_{15} = S_0`
    * The period is :math:`\lambda = 15`
-
-**Algorithm Selection**:
-
-The implementation provides multiple cycle detection algorithms through
-the ``--algorithm`` command-line option:
-
-* **enumeration** (default): Naive enumeration method, recommended for
-  most use cases
-* **floyd**: Floyd's cycle detection algorithm
-* **brent**: Brent's cycle detection algorithm (alternative two-pointer
-  method)
-* **auto**: Automatic selection based on heuristics
-
-**Mode-Specific Behavior**:
-
-* **Full Sequence Mode**: When generating complete sequences for output,
-  both algorithms require :math:`O(\lambda)` space to store all states.
-  Enumeration is the default choice due to superior performance.
-
-* **Period-Only Mode** (``--period-only`` flag): When only the period
-  value is needed, both algorithms achieve true :math:`O(1)` space
-  complexity. Enumeration remains the default due to typically 3-5×
-  better performance, with Floyd available as an alternative for
-  verification or educational purposes.
-
-**Performance Analysis**:
-
-For detailed performance profiling and comparison of different cycle
-detection algorithms, see the performance analysis script
-(``scripts/performance_profile.py``) and the comprehensive performance
-discussion in the user guide.
 
 Brent's Cycle Detection Algorithm
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -1419,9 +1396,14 @@ repeats with :math:`p_{k+1} = 2p_k`.
 * **Space Complexity**: :math:`O(1)` (period-only mode) or
   :math:`O(\lambda)` (full sequence mode)
   
-  Similar to Floyd's algorithm, Brent's method maintains only two state
-  pointers and auxiliary variables (power, counter), achieving
-  :math:`O(1)` space in period-only mode.
+  - **Period-Only Mode**: Similar to Floyd's algorithm, Brent's method
+    maintains only two state pointers (tortoise and hare) and auxiliary
+    variables (power, counter), achieving :math:`O(1)` space in
+    period-only mode.
+  
+  - **Full Sequence Mode**: If the complete sequence must be stored for
+    output, the algorithm requires :math:`O(\lambda)` space to store all
+    states.
 
 **Comparison with Floyd's Algorithm**:
 
