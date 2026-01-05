@@ -1190,13 +1190,11 @@ hare) that traverse the sequence at different speeds.
 
 **Note on Phase 2 for LFSR Sequences**:
 
-For LFSR sequences (which are purely periodic from the start), Phase 2 is
-**redundant** because Phase 1 already determines the period. Since Phase 1
-completes in exactly :math:`m = \lambda` iterations (the smallest positive
-multiple of :math:`\lambda`), we can simply return :math:`\lambda = m`
-after Phase 1. The implementation includes Phase 2 to follow the general
-Floyd's algorithm structure, but an optimized version for LFSR sequences
-could skip Phase 2 entirely.
+For LFSR sequences, which are purely periodic from :math:`S_0`, Phase 2 is
+**unnecessary**. Phase 1 completes in exactly :math:`m = \lambda` iterations,
+yielding :math:`\lambda = m` directly. The algorithm should terminate after
+Phase 1 for LFSR sequences. Phase 2 is only required for general cycle
+detection problems with non-cyclic tails (see below).
 
 **Mathematical Correctness**:
 
@@ -1251,52 +1249,31 @@ identifies the period :math:`\lambda` of the state sequence.
    :math:`\lambda` iterations, since the sequence is periodic with period
    :math:`\lambda`.
 
-   **Redundancy for LFSR Sequences**:
+   **LFSR Sequences**:
 
-   However, for LFSR sequences, Phase 2 is **redundant** because Phase 1
-   already determines the period. Since Phase 1 completes in exactly
-   :math:`m = \lambda` iterations (the smallest positive multiple of
-   :math:`\lambda`), we can simply return :math:`\lambda = m` after Phase
-   1 without needing Phase 2. The algorithm description includes Phase 2
-   because Floyd's algorithm was originally designed for more general
-   cycle detection scenarios (e.g., linked lists with tails before the
-   cycle entry point), where Phase 2 is necessary. For purely periodic
-   LFSR sequences starting from :math:`S_0`, Phase 1 alone is sufficient.
+   For LFSR sequences, Phase 1 suffices: it completes in exactly
+   :math:`m = \lambda` iterations, directly yielding the period. Phase 2 is
+   unnecessary and should be omitted. The algorithm correctly identifies
+   :math:`\lambda` as the period after Phase 1.
 
-   Therefore, the algorithm correctly identifies :math:`\lambda` as the
-   period of the sequence, though Phase 2 is unnecessary for LFSR
-   sequences.
+**When is Phase 2 Needed?**
 
-**When is Phase 2 Actually Needed?**
+Floyd's algorithm was designed for general cycle detection, where sequences
+may have a **non-cyclic tail** before the cycle. For such problems, Phase
+2 is essential.
 
-Floyd's algorithm was originally designed for **general cycle detection
-problems**, which differ from LFSR sequences in a crucial way: they may
-have a **non-cyclic "tail"** before entering the cycle. Phase 2 is
-essential in these cases.
+**General Problem Structure**:
 
-**The General Problem Structure**:
-
-Consider a sequence that consists of:
-
-1. **Tail (non-cyclic prefix)**: :math:`S_0, S_1, \ldots, S_{\mu-1}` of
-   length :math:`\mu \geq 0`
-2. **Cycle entry point**: :math:`S_\mu`
-3. **Cycle**: :math:`S_\mu, S_{\mu+1}, \ldots, S_{\mu+\lambda-1}, S_{\mu+\lambda} = S_\mu, \ldots`
-   of length :math:`\lambda`
-
-The sequence structure is:
+A sequence with tail has structure:
 
 .. math::
 
    S_0 \to S_1 \to \cdots \to S_{\mu-1} \to S_\mu \to S_{\mu+1} \to \cdots \to S_{\mu+\lambda-1} \to S_\mu \to \cdots
 
-**Why Phase 1 Alone is Insufficient**:
-
-In Phase 1, the tortoise and hare meet at some point inside the cycle,
-but this meeting point is **not necessarily** at the cycle entry point
-:math:`S_\mu`. The meeting occurs at position :math:`S_m` where
-:math:`m = \mu + k\lambda` for some :math:`k \geq 1` (i.e., somewhere in
-the cycle after at least one full cycle).
+where :math:`\mu \geq 0` is the tail length and :math:`\lambda` is the
+cycle length. In Phase 1, the pointers meet at :math:`S_m` where
+:math:`m = \mu + k\lambda` for some :math:`k \geq 1`, which is not
+necessarily the cycle entry point :math:`S_\mu`.
 
 **Example with Tail**:
 
@@ -1324,31 +1301,18 @@ example, but this is not guaranteed). However, we don't know:
 2. **The cycle length** :math:`\lambda` (we know we're in a cycle, but
    not its length)
 
-**How Phase 2 Solves This**:
+**Phase 2 for General Problems**:
 
-Phase 2 finds both the cycle entry point and the cycle length:
+Phase 2 determines the cycle entry point :math:`S_\mu` (by resetting one
+pointer to the start and moving both one step at a time until they meet)
+and the cycle length :math:`\lambda` (by counting steps from the entry
+point until returning to it).
 
-1. **Find cycle entry**: Reset one pointer to the start, move both one
-   step at a time. They meet at the cycle entry point :math:`S_\mu`.
-2. **Find cycle length**: From the cycle entry point, count steps until
-   returning to the same point, giving :math:`\lambda`.
+**LFSR Sequences**:
 
-**Why LFSR Sequences are Special**:
-
-LFSR sequences are **purely periodic** from the start: there is no tail
-(:math:`\mu = 0`), and the sequence immediately enters the cycle at
-:math:`S_0`. This means:
-
-* The cycle entry point is :math:`S_0` (known from the start)
-* Phase 1's meeting point is at :math:`S_m` where :math:`m = k\lambda`
-* The smallest positive :math:`m` is :math:`m = \lambda` (when :math:`k = 1`)
-* Therefore, :math:`\lambda = m` is already known from Phase 1
-
-For LFSR sequences, Phase 2 would simply confirm what we already know:
-the cycle starts at :math:`S_0` and has length :math:`\lambda = m`.
-Hence, Phase 2 is **redundant** for LFSR sequences, though the
-implementation includes it to follow the general Floyd's algorithm
-structure.
+LFSR sequences are purely periodic (:math:`\mu = 0`), so the cycle entry
+point is :math:`S_0` and Phase 1 yields :math:`m = \lambda` directly.
+Phase 2 is unnecessary.
 
 **Complexity Analysis**:
 
@@ -1382,27 +1346,16 @@ structure.
     
     Phase 1 completes after exactly :math:`m = 7 = \lambda` iterations.
   
-  - **Phase 2**: The implementation keeps the tortoise at the meeting point
-    :math:`S_m = S_0` and moves only the hare one step at a time, counting
-    iterations until the hare returns to the meeting point. This requires
-    :math:`\lambda` iterations and :math:`\lambda` state transitions (one
-    per iteration for the hare).
-    
-    **However, for LFSR sequences, Phase 2 is redundant**: Since Phase 1
-    completes in exactly :math:`m = \lambda` iterations, we already know
-    :math:`\lambda = m` from Phase 1. The current implementation includes
-    Phase 2 to follow the general Floyd's algorithm structure, but an
-    optimized version could return :math:`\lambda = m` after Phase 1,
-    avoiding Phase 2 entirely.
+  - **Phase 2** (for general problems): Requires :math:`\lambda` iterations
+    and :math:`\lambda` state transitions to determine the cycle length.
+    For LFSR sequences, Phase 2 is unnecessary as :math:`\lambda = m` is
+    known from Phase 1.
   
-  - **Overall**: The current implementation requires :math:`2\lambda`
-    iterations total (:math:`\lambda` for Phase 1, :math:`\lambda` for Phase
-    2) and :math:`4\lambda` state transitions (:math:`3\lambda` in Phase 1,
-    :math:`\lambda` in Phase 2). An optimized version skipping Phase 2 would
-    require only :math:`\lambda` iterations and :math:`3\lambda` state
-    transitions. This compares to :math:`\lambda` iterations and
-    :math:`\lambda` state transitions for naive enumeration. The asymptotic
-    complexity remains :math:`O(\lambda)` in all cases.
+  - **Overall for LFSR sequences**: The algorithm requires :math:`\lambda`
+    iterations and :math:`3\lambda` state transitions (Phase 1 only),
+    compared to :math:`\lambda` iterations and :math:`\lambda` state
+    transitions for naive enumeration. The asymptotic complexity is
+    :math:`O(\lambda)` in both cases.
 
 * **Space Complexity**: :math:`O(1)` (period-only mode) or
   :math:`O(\lambda)` (full sequence mode)
@@ -1420,59 +1373,27 @@ structure.
 
 **Comparison with Naive Enumeration**:
 
-The following comparison considers the **current implementation** (which
-includes Phase 2) versus naive enumeration, and also notes the potential
-for an optimized Floyd implementation:
+For LFSR sequences (where Phase 2 is omitted):
 
-* **Iteration Count**:
-  
-  - **Current Floyd**: :math:`2\lambda` iterations (:math:`\lambda` for Phase
-    1, :math:`\lambda` for Phase 2)
-  - **Optimized Floyd** (skipping Phase 2): :math:`\lambda` iterations
-  - **Enumeration**: :math:`\lambda` iterations
-  
-  The current implementation performs **2× more iterations** than
-  enumeration, while an optimized version would match enumeration's
-  iteration count.
+* **Iteration Count**: Both algorithms require :math:`\lambda` iterations.
 
-* **State Transition Count**:
-  
-  - **Current Floyd**: :math:`4\lambda` state transitions (:math:`3\lambda`
-    in Phase 1, :math:`\lambda` in Phase 2)
-  - **Optimized Floyd** (skipping Phase 2): :math:`3\lambda` state
-    transitions
-  - **Enumeration**: :math:`\lambda` state transitions
-  
-  The current implementation performs **4× more state transitions** than
-  enumeration, while an optimized version would perform **3× more**. This
-  overhead comes from the hare's double-speed traversal in Phase 1 (two
-  transitions per iteration) and the redundant Phase 2.
+* **State Transition Count**: Floyd performs :math:`3\lambda` transitions
+  (tortoise: :math:`\lambda`, hare: :math:`2\lambda`) versus enumeration's
+  :math:`\lambda` transitions, a **3× overhead** from the hare's
+  double-speed traversal.
 
 * **Time Performance**: For small-to-medium periods (< 1000),
-  enumeration is typically **3-5× faster** in practice. This performance
-  difference is primarily due to Floyd's higher number of state
-  transitions per iteration, which increases computational overhead even
-  though both algorithms have the same asymptotic :math:`O(\lambda)` time
-  complexity.
+  enumeration is typically **3-5× faster** in practice due to Floyd's
+  higher state transition count, despite identical asymptotic
+  :math:`O(\lambda)` complexity.
 
-* **Space Performance**: In period-only mode, both algorithms achieve
-  true :math:`O(1)` auxiliary space. However, enumeration uses slightly
-  less memory in practice (~1.44 KB vs ~1.60 KB) due to simpler state
-  management (single pointer vs. two pointers).
+* **Space Performance**: Both achieve :math:`O(1)` auxiliary space in
+  period-only mode. Enumeration uses slightly less memory (~1.44 KB vs
+  ~1.60 KB) due to single-pointer state management.
 
-* **Cache Performance**: Enumeration's sequential access pattern (visiting
-  states in order: :math:`S_0, S_1, S_2, \ldots`) is more cache-friendly
-  than Floyd's alternating pointer movements, which can cause cache
-  misses when the tortoise and hare access states that are far apart in
-  memory or computation order.
-
-**Summary**: While Floyd's algorithm offers the same asymptotic
-complexity as enumeration, the current implementation's inclusion of Phase
-2 (which is redundant for LFSR sequences) and the overhead from the
-two-pointer approach make enumeration more efficient in practice for
-small-to-medium periods. An optimized Floyd implementation skipping Phase
-2 would reduce but not eliminate this performance gap, as it would still
-perform 3× more state transitions than enumeration.
+* **Cache Performance**: Enumeration's sequential access pattern is more
+  cache-friendly than Floyd's alternating pointer movements, which can
+  cause cache misses when accessing distant states.
 
 .. prf:example:: Floyd's Cycle Detection
    :label: ex-floyd-cycle
