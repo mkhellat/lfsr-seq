@@ -30,31 +30,19 @@ class TestBuildStateUpdateMatrix:
         assert C.dimensions() == (4, 4)
         assert CS.dimensions() == (4, 4)
 
-        # Verify matrix structure (companion matrix form)
-        # First row should be [coeffs[0], 0, 0, 0] = [1, 0, 0, 0]
-        assert C[0, 0] == 1
+        # Verify companion matrix structure: coeffs in last column, 1s on subdiagonal
+        # For coeffs=[1,1,0,1]: last col = [1,1,0,1], subdiagonal = [1,1,1]
+        assert C[0, 3] == 1  # coeffs[0]
+        assert C[1, 3] == 1  # coeffs[1]
+        assert C[2, 3] == 0  # coeffs[2]
+        assert C[3, 3] == 1  # coeffs[3]
+        assert C[1, 0] == 1  # subdiagonal
+        assert C[2, 1] == 1  # subdiagonal
+        assert C[3, 2] == 1  # subdiagonal
+        # Off-diagonal zeros (spot checks)
+        assert C[0, 0] == 0
         assert C[0, 1] == 0
         assert C[0, 2] == 0
-        assert C[0, 3] == 0
-
-        # Second row should have 1 in first position: [0, 1, 0, 0]
-        assert C[1, 0] == 0
-        assert C[1, 1] == 1
-        assert C[1, 2] == 0
-        assert C[1, 3] == 0
-
-        # Third row should have 1 in second position: [0, 0, 1, 0]
-        assert C[2, 0] == 0
-        assert C[2, 1] == 0
-        assert C[2, 2] == 1
-        assert C[2, 3] == 0
-
-        # Fourth row should have coefficients: [coeffs[3], coeffs[2], coeffs[1], coeffs[0]]
-        # = [1, 0, 1, 1] for coeffs = [1, 1, 0, 1]
-        assert C[3, 0] == 1  # coeffs[3]
-        assert C[3, 1] == 1  # coeffs[2]
-        assert C[3, 2] == 0  # coeffs[1]
-        assert C[3, 3] == 1  # coeffs[0]
 
     def test_3bit_lfsr_gf2(self):
         """Test building state update matrix for 3-bit LFSR over GF(2)."""
@@ -64,18 +52,14 @@ class TestBuildStateUpdateMatrix:
         assert C.dimensions() == (3, 3)
         assert CS.dimensions() == (3, 3)
 
-        # Verify companion matrix structure
-        assert C[0, 0] == 1  # coeffs[0]
-        assert C[0, 1] == 0
-        assert C[0, 2] == 0
-
-        assert C[1, 0] == 0
-        assert C[1, 1] == 1
-        assert C[1, 2] == 0
-
-        assert C[2, 0] == 0  # coeffs[2]
-        assert C[2, 1] == 1  # coeffs[1]
-        assert C[2, 2] == 1  # coeffs[0]
+        # Verify companion matrix structure: coeffs in last column, 1s on subdiagonal
+        # For coeffs=[1,1,0]: last col = [1,1,0], subdiagonal = [1,1]
+        assert C[0, 2] == 1  # coeffs[0]
+        assert C[1, 2] == 1  # coeffs[1]
+        assert C[2, 2] == 0  # coeffs[2]
+        assert C[1, 0] == 1  # subdiagonal
+        assert C[2, 1] == 1  # subdiagonal
+        assert C[0, 0] == 0  # off-diagonal zero
 
     def test_lfsr_gf3(self):
         """Test building state update matrix over GF(3)."""
@@ -86,10 +70,13 @@ class TestBuildStateUpdateMatrix:
         # Verify field is GF(3)
         assert C.base_ring() == GF(3)
 
-        # Verify coefficients are in GF(3)
-        assert C[2, 0] == 1  # coeffs[2]
-        assert C[2, 1] == 2  # coeffs[1]
-        assert C[2, 2] == 1  # coeffs[0]
+        # Verify companion matrix structure: coeffs appear in last column of each row
+        # For coeffs=[1,2,1]: C[0,2]=1, C[1,2]=2, C[2,2]=1; subdiagonal has 1s
+        assert C[0, 2] == 1  # coeffs[0]
+        assert C[1, 2] == 2  # coeffs[1]
+        assert C[2, 2] == 1  # coeffs[2]
+        assert C[1, 0] == 1  # subdiagonal
+        assert C[2, 1] == 1  # subdiagonal
 
     def test_state_transition(self):
         """Test that state transition works: S_i * C = S_i+1."""

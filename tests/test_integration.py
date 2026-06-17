@@ -7,6 +7,7 @@ Integration tests for full LFSR analysis workflow.
 Tests the complete workflow from CSV input to analysis output.
 """
 
+import io
 import os
 import pytest
 import tempfile
@@ -86,7 +87,7 @@ class TestFullWorkflow:
         V = VectorSpace(GF(2), 4)
 
         seq_dict, period_dict, max_period, periods_sum = lfsr_sequence_mapper(
-            C, V, 2, None
+            C, V, 2, io.StringIO()
         )
 
         # Verify results

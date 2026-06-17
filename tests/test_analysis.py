@@ -244,10 +244,9 @@ class TestAlgorithmConsistency:
                 _, period_brent_po_mode = _find_sequence_cycle(state, C, visited_set5, algorithm="brent", period_only=True)
                 _, period_enum_po_mode = _find_sequence_cycle(state, C, visited_set6, algorithm="enumeration", period_only=True)
                 
-                # All should match
+                # All should match (no _find_period_brent exists; brent covered via _find_sequence_cycle_brent)
                 periods = [
                     period_floyd_po,
-                    period_brent_po,
                     period_enum_po,
                     period_floyd_full,
                     period_brent_full,

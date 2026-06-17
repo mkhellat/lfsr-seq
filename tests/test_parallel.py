@@ -13,6 +13,7 @@ Tests for parallel processing functionality including:
 """
 
 import os
+import threading
 import pytest
 import tempfile
 from pathlib import Path
@@ -112,11 +113,13 @@ class TestPartitionStateSpace:
         assert len(all_states) == 16
     
     def test_partition_empty_state_space(self):
-        """Test partitioning empty state space."""
-        # This shouldn't happen in practice, but test edge case
+        """Test partitioning a degenerate (degree-0) vector space."""
+        # VectorSpace(GF(2), 0) has exactly one element: the zero vector ()
+        # so partitioning across 2 workers yields 2 chunks (one non-empty, one empty)
         V = VectorSpace(GF(2), 0)
         chunks = _partition_state_space(V, 2)
-        assert chunks == []
+        total_states = sum(len(c) for c in chunks)
+        assert total_states == 1
 
 
 class TestProcessStateChunk:
@@ -133,10 +136,10 @@ class TestProcessStateChunk:
         for idx, state in enumerate(list(V)[:4]):  # First 4 states
             chunk.append((tuple(state), idx))
         
-        chunk_data = (chunk, coeffs, 2, 4, 'floyd', True, 0)
-        
+        chunk_data = (chunk, coeffs, 2, 4, 'floyd', True, 0, {}, threading.Lock())
+
         result = _process_state_chunk(chunk_data)
-        
+
         assert 'sequences' in result
         assert 'max_period' in result
         assert 'processed_count' in result
@@ -155,8 +158,8 @@ class TestProcessStateChunk:
         for idx, state in enumerate(list(V)[:4]):
             chunk.append((tuple(state), idx))
         
-        chunk_data = (chunk, coeffs, 2, 4, 'floyd', True, 0)  # period_only=True
-        
+        chunk_data = (chunk, coeffs, 2, 4, 'floyd', True, 0, {}, threading.Lock())  # period_only=True
+
         result = _process_state_chunk(chunk_data)
         
         # In period-only mode, sequences should have empty states lists
@@ -166,18 +169,19 @@ class TestProcessStateChunk:
             # States may be empty (period-only) or populated (for deduplication)
     
     def test_process_chunk_with_errors(self):
-        """Test worker handles errors gracefully."""
-        # Create invalid chunk data
-        invalid_coeffs = [999, 999, 999, 999]  # Invalid for GF(2)
+        """Test worker handles large coefficients gracefully (SageMath coerces mod p)."""
+        # SageMath silently coerces 999 → 1 mod 2, so this is not actually invalid
+        large_coeffs = [999, 999, 999, 999]
         chunk = [((0, 0, 0, 0), 0)]
-        
-        chunk_data = (chunk, invalid_coeffs, 2, 4, 'floyd', True, 0)
-        
+
+        chunk_data = (chunk, large_coeffs, 2, 4, 'floyd', True, 0, {}, threading.Lock())
+
         result = _process_state_chunk(chunk_data)
-        
-        # Should return error information, not crash
+
+        # Worker should complete without crashing and return a valid result dict
         assert 'errors' in result
-        assert len(result['errors']) > 0 or result['processed_count'] == 0
+        assert 'sequences' in result
+        assert 'processed_count' in result
 
 
 class TestMergeParallelResults:

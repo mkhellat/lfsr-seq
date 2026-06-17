@@ -82,7 +82,7 @@ class TestReadAndValidateCsv:
     def test_read_empty_csv(self, tmp_path):
         """Test that empty CSV files are rejected."""
         csv_file = tmp_path / "empty.csv"
-        csv_file.write_text("\n")  # Empty line
+        csv_file.write_text("")  # Truly empty file — csv.reader yields 0 rows
 
         with pytest.raises(SystemExit):
             read_and_validate_csv(str(csv_file), 2)
