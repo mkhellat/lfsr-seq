@@ -8,7 +8,9 @@ This module provides functions for building state update matrices and
 computing matrix orders.
 """
 
-from typing import Any, List, Optional, TextIO, Tuple
+import io as _io
+import contextlib as _contextlib
+from typing import Any, Dict, List, Optional, TextIO, Tuple
 
 from lfsr.sage_imports import *
 
@@ -123,3 +125,36 @@ def compute_matrix_order(
             CE = CE * state_update_matrix
 
     return None
+
+
+def analyze_lfsr(
+    coefficients: List[int],
+    field_order: int,
+) -> Tuple[Dict, Dict, int, int, Any, Any, int]:
+    """
+    Convenience wrapper: build matrix and run full LFSR state analysis.
+
+    Combines build_state_update_matrix and lfsr_sequence_mapper into a
+    single call. Output is suppressed (captured internally).
+
+    Args:
+        coefficients: LFSR coefficient vector as integers
+        field_order: Galois field order (prime or prime power)
+
+    Returns:
+        7-tuple of (seq_dict, period_dict, max_period, periods_sum, C, CS, d)
+        where d = len(coefficients).
+    """
+    from lfsr.analysis import lfsr_sequence_mapper
+
+    C, CS = build_state_update_matrix(coefficients, field_order)
+    d = len(coefficients)
+    F = GF(field_order)
+    V = VectorSpace(F, d)
+
+    sink = _io.StringIO()
+    with _contextlib.redirect_stdout(sink):
+        seq_dict, period_dict, max_period, periods_sum = lfsr_sequence_mapper(
+            C, V, field_order, output_file=sink, no_progress=True
+        )
+    return seq_dict, period_dict, max_period, periods_sum, C, CS, d

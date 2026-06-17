@@ -54,8 +54,10 @@ def polynomial_order(
     state_vector_space_size = int(gf_order) ** state_vector_dim
     bi = polynomial_degree
     ei = state_vector_space_size
+    R = PolynomialRing(GF(gf_order), "t")
+    t = R.gen()
     for j in range(bi, ei):
-        dividend = PolynomialRing(GF(gf_order), "t")(t**j)
+        dividend = R(t**j)
         divisor = polynomial
         q, r = dividend.quo_rem(divisor)
         if r == 1:

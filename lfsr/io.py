@@ -150,6 +150,33 @@ def read_and_validate_csv(filename: str, gf_order: int) -> List[List[str]]:
         return coeffs_list
 
 
+def read_coefficient_vectors(filename: str, gf_order: int) -> List[List[int]]:
+    """
+    Read and validate CSV, returning integer coefficient vectors.
+
+    Thin wrapper around read_and_validate_csv that converts each row
+    from strings to integers. Rows that cannot be fully parsed are
+    silently skipped.
+
+    Args:
+        filename: Path to the CSV file
+        gf_order: The field order for validation
+
+    Returns:
+        List of integer coefficient vectors
+    """
+    raw = read_and_validate_csv(filename, gf_order)
+    result = []
+    for row in raw:
+        try:
+            coeffs = [int(x.strip()) for x in row if x.strip()]
+            if coeffs:
+                result.append(coeffs)
+        except ValueError:
+            continue
+    return result
+
+
 def read_csv_coefficients(filename: str) -> List[List[str]]:
     """
     Read coefficient vectors from CSV file without validation.

@@ -24,7 +24,7 @@ from sage.rings.polynomial.polynomial_ring_constructor import PolynomialRing
 from sage.modules.free_module_element import vector
 from sage.modules.free_module import VectorSpace
 from sage.matrix.matrix_space import MatrixSpace
-# Matrix is created via MatrixSpace, not directly imported
+from sage.matrix.constructor import matrix
 
 # Symbolic ring
 from sage.symbolic.ring import SR
@@ -42,6 +42,10 @@ from sage.arith.misc import is_prime, gcd, primes
 from sage.arith.functions import lcm
 from sage.arith.misc import factor
 from sage.functions.other import sqrt
+
+# Functional helpers
+from sage.misc.functional import basis, det
+from sage.all import var
 
 # Re-export everything for compatibility with `from lfsr.sage_imports import *`
 __all__ = [
@@ -64,5 +68,9 @@ __all__ = [
     'factor',
     'primes',
     'sqrt',
+    'basis',
+    'det',
+    'matrix',
+    'var',
 ]
 

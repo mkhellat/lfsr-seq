@@ -26,7 +26,7 @@ except ImportError:
 class Pattern:
     """
     Detected pattern in a sequence.
-    
+
     Attributes:
         pattern_type: Type of pattern (e.g., 'repeating', 'anomaly')
         pattern_data: Pattern-specific data
@@ -39,6 +39,10 @@ class Pattern:
     start_position: int
     end_position: int
     confidence: float
+
+    @property
+    def description(self) -> str:
+        return f"{self.pattern_type} at [{self.start_position}:{self.end_position}]: {self.pattern_data}"
 
 
 def detect_repeating_subsequences(
