@@ -1210,7 +1210,7 @@ def cli_main() -> None:
                     if args.ml_model_file:
                         model = PeriodPredictionModel()
                         model.load_model(args.ml_model_file)
-                        predicted = model.predict_period(coefficients, args.gf_order)
+                        predicted = model.predict_period(coefficients, int(args.gf_order))
                         print(f"Predicted period: {predicted:.2f}", file=output_file)
                     else:
                         print("WARNING: No model file specified. Using default model.", file=output_file)
@@ -1223,11 +1223,11 @@ def cli_main() -> None:
                     print("Pattern Detection", file=output_file)
                     print("=" * 70, file=output_file)
                     
-                    seq_dict, period_dict, max_period, _, _, _, _ = analyze_lfsr(coefficients, args.gf_order)
+                    seq_dict, period_dict, max_period, _, _, _, _ = analyze_lfsr(coefficients, int(args.gf_order))
                     # Get first sequence
                     if seq_dict:
                         first_seq = list(seq_dict.values())[0]
-                        sequence = [state[0] for state in first_seq[:1000]]  # Get first 1000 bits
+                        sequence = [int(state[0]) for state in first_seq[:1000]]
                         patterns = detect_all_patterns(sequence)
                         
                         for pattern_type, pattern_list in patterns.items():
@@ -1241,20 +1241,21 @@ def cli_main() -> None:
                     print("Anomaly Detection", file=output_file)
                     print("=" * 70, file=output_file)
                     
-                    seq_dict, period_dict, max_period, _, _, _, _ = analyze_lfsr(coefficients, args.gf_order)
-                    theoretical_max = int(args.gf_order) ** len(coefficients) - 1
-                    
+                    _gf_order_int = int(args.gf_order)
+                    seq_dict, period_dict, max_period, _, _, _, _ = analyze_lfsr(coefficients, _gf_order_int)
+                    theoretical_max = _gf_order_int ** len(coefficients) - 1
+
                     from lfsr.polynomial import is_primitive_polynomial
                     from lfsr.sage_imports import GF, PolynomialRing
-                    F = GF(args.gf_order)
+                    F = GF(_gf_order_int)
                     R = PolynomialRing(F, "t")
                     # Create polynomial from coefficients
                     char_poly = R([1] + coefficients[::-1])  # Reverse for polynomial
-                    is_primitive = is_primitive_polynomial(char_poly, args.gf_order)
+                    is_primitive = is_primitive_polynomial(char_poly, _gf_order_int)
                     
                     if seq_dict:
                         first_seq = list(seq_dict.values())[0]
-                        sequence = [state[0] for state in first_seq[:1000]]
+                        sequence = [int(state[0]) for state in first_seq[:1000]]
                         anomalies = detect_all_anomalies(
                             sequence=sequence,
                             period_dict=period_dict,
@@ -1282,7 +1283,7 @@ def cli_main() -> None:
                         model_type="random_forest",
                         num_samples=100,
                         max_degree=min(10, len(coefficients) + 2),
-                        field_order=args.gf_order,
+                        field_order=int(args.gf_order),
                         save_path=args.train_model
                     )
                     print(f"Model trained and saved to {args.train_model}", file=output_file)
