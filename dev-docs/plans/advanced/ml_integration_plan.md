@@ -1,7 +1,14 @@
 # Phase 4.1: Machine Learning Integration Implementation Plan
 
-**Status**: In Progress 
+**Status**: In Progress (at time of writing)
 **Version**: 1.0
+
+> **Update**: `lfsr/ml/` is now a fully implemented subpackage (`base.py`, `features.py`,
+> `models.py`, `period_prediction.py`, `pattern_detection.py`, `anomaly_detection.py`,
+> `training.py`). CLI wiring is partial — `--predict-period`, `--detect-patterns`,
+> `--detect-anomalies`, and `--train-model` exist in `lfsr/cli.py`, but there is no
+> dedicated `cli_ml.py` and some library capabilities aren't exposed as flags. See
+> repo root `CLAUDE.md` for current status.
 
 ---
 

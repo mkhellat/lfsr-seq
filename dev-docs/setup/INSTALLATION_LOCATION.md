@@ -1,6 +1,12 @@
 # Installation Location
 
-## Current State
+> **Update**: This document describes a pre-refactor snapshot. Entry points are now
+> configured — `pyproject.toml`'s `[project.scripts]` maps `lfsr-seq = "lfsr.cli:cli_main"`,
+> so `lfsr-seq` **is** installed as a command at `.venv/bin/lfsr-seq` after
+> `make install-dev`. The "After Refactoring" state described below is the current
+> reality, not a future one.
+
+## Current State (historical, pre-refactor)
 
 After running `make install` or `make install-dev`, the package is installed in **editable mode** (development mode) in the virtual environment.
 
