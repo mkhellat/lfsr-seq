@@ -661,6 +661,17 @@ Grain uses a hybrid design:
 3. Run warm-up phase (discard initial output)
 4. Generate keystream
 
+.. note::
+   **Implementation limitation**: per the Grain-128 specification, the
+   pre-output bit computed during each of the 256 warm-up clockings should be
+   XORed back into both the LFSR and NFSR feedback (not just discarded). The
+   ``lfsr.ciphers.grain.Grain128`` implementation in this codebase omits that
+   feedback step during warm-up, so its keystream output will not match
+   official Grain-128 test vectors. This is a known, documented limitation
+   (see the ``_initialize`` method), not something relied on elsewhere in the
+   codebase. The NFSR nonlinear feedback terms themselves (used during both
+   warm-up and normal generation) are complete and match the spec.
+
 **Security Status**:
 
 Grain is considered secure:

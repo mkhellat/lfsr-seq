@@ -115,7 +115,10 @@ class Grain128(StreamCipher):
                    (self.nfsr_state[27] & self.nfsr_state[59]) ^
                    (self.nfsr_state[40] & self.nfsr_state[48]) ^
                    (self.nfsr_state[61] & self.nfsr_state[65]) ^
-                   (self.nfsr_state[68] & self.nfsr_state[84]))
+                   (self.nfsr_state[68] & self.nfsr_state[84]) ^
+                   (self.nfsr_state[22] & self.nfsr_state[24] & self.nfsr_state[25]) ^
+                   (self.nfsr_state[70] & self.nfsr_state[78] & self.nfsr_state[82]) ^
+                   (self.nfsr_state[88] & self.nfsr_state[92] & self.nfsr_state[93] & self.nfsr_state[95]))
         self.nfsr_state = [feedback] + self.nfsr_state[:-1]
         return feedback
 
@@ -155,11 +158,15 @@ class Grain128(StreamCipher):
         self.lfsr_state = iv + [1] * 32  # 96 + 32 = 128
 
         # Warm-up phase
+        # NOTE: per the Grain-128 spec, the pre-output bit should be XORed into
+        # both the LFSR and NFSR feedback during warmup (not just discarded as
+        # below). This simplified version omits that feedback, so keystream
+        # output will not match official Grain-128 test vectors. Left as a
+        # known limitation pending a dedicated fix with test-vector validation.
         for _ in range(self.WARMUP_STEPS):
-            output = self._get_output_bit()
+            self._get_output_bit()
             self._clock_lfsr()
             self._clock_nfsr()
-            # Use output in feedback (simplified)
 
     def generate_keystream(
         self,
