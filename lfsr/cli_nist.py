@@ -56,11 +56,11 @@ def load_sequence_from_file(sequence_file: str) -> List[int]:
                 except ValueError as e:
                     if "Invalid bit value" in str(e):
                         raise
-                    raise ValueError(f"Invalid bit value: {bit} (must be 0 or 1)")
+                    raise ValueError(f"Invalid bit value: {bit} (must be 0 or 1)") from e
 
         return sequence
-    except FileNotFoundError:
-        raise FileNotFoundError(f"Sequence file not found: {sequence_file}")
+    except FileNotFoundError as e:
+        raise FileNotFoundError(f"Sequence file not found: {sequence_file}") from e
 
 
 def perform_nist_test_cli(

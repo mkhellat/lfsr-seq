@@ -57,10 +57,10 @@ def load_combination_generator_from_json(config_file: str) -> CombinationGenerat
     try:
         with open(config_file, 'r') as f:
             config = json.load(f)
-    except FileNotFoundError:
-        raise FileNotFoundError(f"Configuration file not found: {config_file}")
+    except FileNotFoundError as e:
+        raise FileNotFoundError(f"Configuration file not found: {config_file}") from e
     except json.JSONDecodeError as e:
-        raise ValueError(f"Invalid JSON in configuration file: {e}")
+        raise ValueError(f"Invalid JSON in configuration file: {e}") from e
 
     # Validate structure
     if 'lfsrs' not in config:
@@ -89,7 +89,6 @@ def load_combination_generator_from_json(config_file: str) -> CombinationGenerat
     # Load combining function
     func_config = config['combining_function']
     func_type = func_config.get('type', 'custom')
-    num_inputs = func_config.get('num_inputs', len(lfsr_configs))
 
     if func_type == 'majority':
         def majority(*args):
@@ -175,12 +174,12 @@ def load_keystream_from_file(keystream_file: str) -> List[int]:
             if bit:
                 try:
                     keystream.append(int(bit))
-                except ValueError:
-                    raise ValueError(f"Invalid bit value: {bit} (must be 0 or 1)")
+                except ValueError as e:
+                    raise ValueError(f"Invalid bit value: {bit} (must be 0 or 1)") from e
 
         return keystream
-    except FileNotFoundError:
-        raise FileNotFoundError(f"Keystream file not found: {keystream_file}")
+    except FileNotFoundError as e:
+        raise FileNotFoundError(f"Keystream file not found: {keystream_file}") from e
 
 
 def perform_correlation_attack_cli(

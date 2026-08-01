@@ -112,24 +112,24 @@ def _plot_3d_interactive(
         y=states[:, 1],
         z=states[:, 2],
         mode='markers',
-        marker=dict(
-            size=5,
-            color=colors,
-            colorscale='Viridis',
-            opacity=0.7,
-            colorbar=dict(title="Period")
-        ),
+        marker={
+            "size": 5,
+            "color": colors,
+            "colorscale": 'Viridis',
+            "opacity": 0.7,
+            "colorbar": {"title": "Period"}
+        },
         text=[f"Period: {p}" for p in periods],
         hovertemplate='State: (%{x}, %{y}, %{z})<br>Period: %{text}<extra></extra>'
     ))
 
     fig.update_layout(
         title=config.title or "3D State Space Visualization",
-        scene=dict(
-            xaxis_title="State[0]",
-            yaxis_title="State[1]",
-            zaxis_title="State[2]"
-        ),
+        scene={
+            "xaxis_title": "State[0]",
+            "yaxis_title": "State[1]",
+            "zaxis_title": "State[2]"
+        },
         width=config.width * 80,
         height=config.height * 80
     )
@@ -263,8 +263,8 @@ def plot_state_space_projection(
             from sklearn.manifold import TSNE
             tsne = TSNE(n_components=2, random_state=42)
             projected = tsne.fit_transform(states_array)
-        except ImportError:
-            raise ImportError("scikit-learn required for t-SNE projection")
+        except ImportError as e:
+            raise ImportError("scikit-learn required for t-SNE projection") from e
     else:
         raise ValueError(f"Unknown projection method: {projection_method}")
 
