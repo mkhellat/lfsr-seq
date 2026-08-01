@@ -84,6 +84,36 @@ large LFSRs. Machine learning offers the potential to:
 - **Anomaly Detection**: Identifying data points or patterns that deviate
   significantly from expected behavior.
 
+CLI Usage
+---------
+
+The theoretical treatment below is implemented in the ``lfsr.ml`` subpackage
+and wired into the ``lfsr-seq`` CLI through the following flags (see
+:doc:`user_guide` for full option descriptions):
+
+.. code-block:: bash
+
+   # Predict period using a trained model
+   lfsr-seq coefficients.csv 2 --predict-period --ml-model-file model.pkl
+
+   # Detect patterns in generated sequences
+   lfsr-seq coefficients.csv 2 --detect-patterns
+
+   # Detect anomalies in sequences and distributions
+   lfsr-seq coefficients.csv 2 --detect-anomalies
+
+   # Train a period-prediction model and save it
+   lfsr-seq coefficients.csv 2 --train-model model.pkl
+
+CLI wiring is partial: ``--predict-period``, ``--detect-patterns``,
+``--detect-anomalies``, and ``--train-model`` cover the main entry points, but
+there is no dedicated ``cli_ml.py`` and not every library capability in
+``lfsr.ml`` is exposed as a flag. The corresponding classes live in
+``lfsr/ml/models.py`` (``BaseMLModel``, ``PeriodPredictionModel``) and
+``lfsr/ml/period_prediction.py``, ``lfsr/ml/pattern_detection.py``
+(``PatternDetector``), and ``lfsr/ml/anomaly_detection.py``
+(``AnomalyDetector``) for programmatic use.
+
 Notation and Terminology
 --------------------------
 

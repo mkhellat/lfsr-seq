@@ -1410,6 +1410,8 @@ ML-based analysis can be performed from the command line:
    --detect-anomalies         Detect anomalies in sequences and
                               distributions.
    --train-model FILE         Train ML model and save to file (specify
-                              output file).
+                              output file). Training sample count is currently
+                              fixed at 100 (not configurable via CLI flag);
+                              training can take several minutes.
    --ml-model-file FILE       Path to trained ML model file (for prediction).
 
