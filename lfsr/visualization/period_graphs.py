@@ -67,7 +67,6 @@ def plot_period_distribution(
 
     periods = list(period_dict.keys())
     counts = list(period_dict.values())
-    total_sequences = sum(counts)
 
     if config.interactive and HAS_PLOTLY:
         return _plot_period_distribution_interactive(
@@ -273,7 +272,7 @@ def _plot_period_vs_state_interactive(
         y=periods,
         mode='markers',
         name="Period",
-        marker=dict(size=5, opacity=0.6),
+        marker={"size": 5, "opacity": 0.6},
         hovertemplate='State: %{text}<br>Period: %{y}<extra></extra>',
         text=states
     ))

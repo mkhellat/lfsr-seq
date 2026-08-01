@@ -215,7 +215,7 @@ class KnownResultDatabase:
             comparison['known_order'] = primitive_result['order']
 
             if computed_is_primitive is not None:
-                comparison['primitive_match'] = computed_is_primitive == True
+                comparison['primitive_match'] = computed_is_primitive
                 comparison['matches'] = comparison['primitive_match']
 
             if computed_order is not None:

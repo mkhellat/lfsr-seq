@@ -1971,8 +1971,8 @@ def random_excursions_variant_test(sequence: List[int]) -> NISTTestResult:
         statistic=min(chi_square_values.values()) if chi_square_values else 0.0,
         details={
             "state_visit_totals": state_visit_totals,
-            "chi_square_values": {k: v for k, v in list(chi_square_values.items())[:5]},  # Show first 5
-            "p_values": {k: v for k, v in list(p_values.items())[:5]}  # Show first 5
+            "chi_square_values": dict(list(chi_square_values.items())[:5]),  # Show first 5
+            "p_values": dict(list(p_values.items())[:5])  # Show first 5
         }
     )
 
