@@ -108,7 +108,7 @@ class PeriodPredictionModel(BaseMLModel):
         if not HAS_SKLEARN:
             raise ImportError("scikit-learn is required for ML model training")
         
-        if not self.model:
+        if self.model is None:
             raise ValueError("Model not initialized")
         
         # Convert to numpy arrays if available
@@ -160,7 +160,7 @@ class PeriodPredictionModel(BaseMLModel):
         if not self.is_trained:
             raise ValueError("Model must be trained before prediction")
         
-        if not self.model:
+        if self.model is None:
             raise ValueError("Model not initialized")
         
         if HAS_NUMPY:

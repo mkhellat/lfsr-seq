@@ -819,7 +819,15 @@ def parse_args(args: Optional[list] = None) -> argparse.Namespace:
         metavar="FILE",
         help="Train ML model and save to file (specify output file)."
     )
-    
+
+    ml_group.add_argument(
+        "--ml-samples",
+        type=int,
+        default=100,
+        metavar="N",
+        help="Number of training samples for --train-model (default: 100)."
+    )
+
     ml_group.add_argument(
         "--ml-model-file",
         type=str,
@@ -1281,7 +1289,7 @@ def cli_main() -> None:
                     
                     model = train_period_prediction_model(
                         model_type="random_forest",
-                        num_samples=100,
+                        num_samples=args.ml_samples,
                         max_degree=min(10, len(coefficients) + 2),
                         field_order=int(args.gf_order),
                         save_path=args.train_model
