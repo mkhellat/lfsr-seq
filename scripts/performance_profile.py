@@ -356,7 +356,6 @@ def compare_algorithms(
         import statistics
         period_std = statistics.stdev(periods) if len(periods) > 1 else 0
         memory_std = statistics.stdev(floyd_memories) if len(floyd_memories) > 1 else 0
-        period_mean = statistics.mean(periods)
         memory_mean = statistics.mean(floyd_memories)
 
         print(f"Period range: {min(periods)} - {max(periods)} (std: {period_std:.1f})")
@@ -514,7 +513,6 @@ def compare_period_only_algorithms(
         import statistics
         period_std = statistics.stdev(periods) if len(periods) > 1 else 0
         memory_std = statistics.stdev(floyd_memories) if len(floyd_memories) > 1 else 0
-        period_mean = statistics.mean(periods)
         memory_mean = statistics.mean(floyd_memories)
 
         print(f"Period range: {min(periods)} - {max(periods)} (std: {period_std:.1f})")

@@ -83,8 +83,6 @@ def main():
     num_workers = 4
 
     C, _ = build_state_update_matrix(coeffs, gf_order)
-    d = len(coeffs)
-    V = VectorSpace(GF(gf_order), d)
     state_space_size = gf_order ** len(coeffs)
 
     print(f"\nTesting {desc} LFSR ({len(coeffs)}-bit)")

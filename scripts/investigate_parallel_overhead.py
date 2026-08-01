@@ -54,8 +54,8 @@ def test_sagemath_initialization():
     start = time.time()
     for _ in range(100):
         F = GF(2)
-        V = VectorSpace(F, 10)
-        v = vector(F, [0]*10)
+        V = VectorSpace(F, 10)  # noqa: F841 (benchmark measures construction cost, not value)
+        v = vector(F, [0]*10)  # noqa: F841 (benchmark measures construction cost, not value)
     elapsed = time.time() - start
     print(f"   100 initializations: {elapsed:.3f}s ({elapsed/100*1000:.2f}ms each)")
 
@@ -78,8 +78,8 @@ def sagemath_worker(x):
     """Worker that initializes SageMath."""
     if SAGEMATH_AVAILABLE:
         F = GF(2)
-        V = VectorSpace(F, 10)
-        v = vector(F, [0]*10)
+        V = VectorSpace(F, 10)  # noqa: F841 (benchmark measures construction cost, not value)
+        v = vector(F, [0]*10)  # noqa: F841 (benchmark measures construction cost, not value)
     return x * 2
 
 
@@ -113,7 +113,7 @@ def test_process_creation_overhead():
         ctx_spawn = multiprocessing.get_context('spawn')
         start = time.time()
         with ctx_spawn.Pool(processes=num_workers) as pool:
-            results = pool.map(dummy_worker, range(num_tasks))
+            results = pool.map(dummy_worker, range(num_tasks))  # noqa: F841 (benchmark measures construction cost, not value)
         spawn_time = time.time() - start
         print(f"   Total time: {spawn_time:.3f}s")
         print(f"   Per task: {spawn_time/num_tasks*1000:.2f}ms")
@@ -157,7 +157,7 @@ def test_sagemath_in_workers():
         ctx_spawn = multiprocessing.get_context('spawn')
         start = time.time()
         with ctx_spawn.Pool(processes=num_workers) as pool:
-            results = pool.map(sagemath_worker, range(num_tasks))
+            results = pool.map(sagemath_worker, range(num_tasks))  # noqa: F841 (benchmark measures construction cost, not value)
         spawn_sage_time = time.time() - start
         print(f"   Total time: {spawn_sage_time:.3f}s")
         print(f"   Per task: {spawn_sage_time/num_tasks*1000:.2f}ms")
@@ -180,7 +180,7 @@ def test_threading_vs_multiprocessing():
     def cpu_bound_task(x):
         """CPU-bound task: matrix multiplication."""
         F = GF(2)
-        V = VectorSpace(F, 10)
+        V = VectorSpace(F, 10)  # noqa: F841 (benchmark measures construction cost, not value)
         v1 = vector(F, [1]*10)
         v2 = vector(F, [1]*10)
         # Do some computation
@@ -206,7 +206,7 @@ def test_threading_vs_multiprocessing():
         ctx_fork = multiprocessing.get_context('fork')
         start = time.time()
         with ctx_fork.Pool(processes=num_workers) as pool:
-            results = pool.map(cpu_bound_task, range(num_tasks))
+            results = pool.map(cpu_bound_task, range(num_tasks))  # noqa: F841 (benchmark measures construction cost, not value)
         multiproc_time = time.time() - start
         print(f"   Total time: {multiproc_time:.3f}s")
         print(f"   Per task: {multiproc_time/num_tasks*1000:.2f}ms")
@@ -253,7 +253,7 @@ def test_state_space_partitioning():
         num_chunks = 4
         chunk_size = len(states_list) // num_chunks
         start = time.time()
-        chunks = [states_list[i:i+chunk_size] for i in range(0, len(states_list), chunk_size)]
+        chunks = [states_list[i:i+chunk_size] for i in range(0, len(states_list), chunk_size)]  # noqa: F841 (benchmark measures construction cost, not value)
         chunk_time = time.time() - start
         print(f"   Chunking into {num_chunks} chunks: {chunk_time:.3f}s")
 
@@ -293,7 +293,7 @@ def test_ipc_overhead():
             ctx_spawn = multiprocessing.get_context('spawn')
             start = time.time()
             with ctx_spawn.Pool(processes=num_workers) as pool:
-                results = pool.map(worker_with_data, [data] * num_workers)
+                results = pool.map(worker_with_data, [data] * num_workers)  # noqa: F841 (benchmark measures construction cost, not value)
             spawn_time = time.time() - start
             print(f"   Spawn mode: {spawn_time:.3f}s ({spawn_time/num_workers*1000:.2f}ms per worker)")
         except Exception as e:
@@ -329,7 +329,7 @@ def test_real_lfsr_processing():
     # Sequential
     start = time.time()
     for state in states:
-        period = _find_period(state, C, algorithm="enumeration")
+        period = _find_period(state, C, algorithm="enumeration")  # noqa: F841 (benchmark measures construction cost, not value)
     seq_time = time.time() - start
     print(f"   Sequential: {seq_time:.3f}s ({seq_time/len(states)*1000:.2f}ms per state)")
 
@@ -337,7 +337,7 @@ def test_real_lfsr_processing():
     def process_state(state_tuple):
         """Worker function to process a state."""
         F = GF(2)
-        V = VectorSpace(F, 10)
+        V = VectorSpace(F, 10)  # noqa: F841 (benchmark measures construction cost, not value)
         state = vector(F, state_tuple)
         C, _ = build_state_update_matrix(coeffs, 2)
         period = _find_period(state, C, algorithm="enumeration")
@@ -348,7 +348,7 @@ def test_real_lfsr_processing():
         state_tuples = [tuple(s) for s in states]
         start = time.time()
         with ctx_fork.Pool(processes=4) as pool:
-            results = pool.map(process_state, state_tuples)
+            results = pool.map(process_state, state_tuples)  # noqa: F841 (benchmark measures construction cost, not value)
         par_time = time.time() - start
         print(f"   Parallel (fork): {par_time:.3f}s ({par_time/len(states)*1000:.2f}ms per state)")
         print(f"   Speedup: {seq_time/par_time:.2f}x")

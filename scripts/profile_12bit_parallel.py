@@ -243,7 +243,6 @@ def profile_parallel(C, V, gf_order, num_workers, algorithm='enumeration', perio
     profile['worker_results'] = {}
 
     # Analyze worker results
-    total_worker_time = 0
     total_processed = 0
     total_sequences = 0
 

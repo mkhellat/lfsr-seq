@@ -32,7 +32,6 @@ def create_8bit_lfsr():
     # For x^8 + x^4 + x^3 + x^2 + 1, we have:
     # c0=1, c1=0, c2=1, c3=1, c4=1, c5=0, c6=0, c7=0, c8=1
     # But we store as [c0, c1, ..., c7] for degree 8
-    coeffs = [1, 0, 1, 1, 1, 0, 0, 0, 1]  # Including c8 for degree 8
     # Actually, for degree 8, we need 8 coefficients c0..c7
     # The polynomial is x^8 + x^4 + x^3 + x^2 + 1
     # So: c0=1, c1=0, c2=1, c3=1, c4=1, c5=0, c6=0, c7=0

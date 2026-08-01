@@ -40,7 +40,7 @@ def worker_with_sagemath_isolated(chunk_data):
     # Even though fork inherits parent's memory, creating fresh objects
     # avoids category mismatch errors
     F = GF(gf_order)
-    V = VectorSpace(F, degree)
+    V = VectorSpace(F, degree)  # noqa: F841 (sanity check that sage isolation works)
 
     # Reconstruct state vector from tuple
     state_list = [F(x) for x in state_tuple]

@@ -124,7 +124,7 @@ def test_correctness(coeffs, gf_order, desc, num_workers=4):
     def memory_monitor():
         """Background thread to monitor memory usage."""
         while memory_monitor_active and not _shutdown_requested:
-            memory_mb = monitor_memory()
+            monitor_memory()  # side effect: warns/triggers shutdown if over limit
             time.sleep(MEMORY_CHECK_INTERVAL)
 
     monitor_thread = threading.Thread(target=memory_monitor, daemon=True)
