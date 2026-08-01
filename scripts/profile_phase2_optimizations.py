@@ -64,7 +64,7 @@ def profile_configuration(
     coeffs: List[int],
     gf_order: int,
     desc: str,
-    num_workers_list: List[int] = [2, 4, 8],
+    num_workers_list: Optional[List[int]] = None,
     batch_sizes: Optional[List[int]] = None
 ) -> ProfilingResult:
     """
@@ -80,6 +80,9 @@ def profile_configuration(
     Returns:
         ProfilingResult with all measurements
     """
+    if num_workers_list is None:
+        num_workers_list = [2, 4, 8]
+
     print(f"\n{'='*80}")
     print(f"Profiling {desc} LFSR ({len(coeffs)}-bit)")
     print(f"{'='*80}")

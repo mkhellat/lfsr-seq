@@ -156,8 +156,10 @@ def verify_correctness(seq_result, parallel_result, test_name):
     return True
 
 
-def benchmark_lfsr(name, create_func, worker_counts=[1, 2, 4, 8]):
+def benchmark_lfsr(name, create_func, worker_counts=None):
     """Benchmark a specific LFSR configuration."""
+    if worker_counts is None:
+        worker_counts = [1, 2, 4, 8]
     print(f"\n{'='*80}", flush=True)
     print(f"Benchmarking {name} LFSR", flush=True)
     print(f"{'='*80}", flush=True)

@@ -30,8 +30,11 @@ except ImportError as e:
     sys.exit(1)
 
 
-def test_correctness(coeffs, gf_order, batch_sizes=[None, 100, 200, 500, 1000]):
+def test_correctness(coeffs, gf_order, batch_sizes=None):
     """Test that results are correct for different batch sizes."""
+    if batch_sizes is None:
+        batch_sizes = [None, 100, 200, 500, 1000]
+
     print(f"\n{'='*80}")
     print(f"TESTING CORRECTNESS: {len(coeffs)}-bit LFSR over GF({gf_order})")
     print(f"{'='*80}")
@@ -97,8 +100,11 @@ def test_correctness(coeffs, gf_order, batch_sizes=[None, 100, 200, 500, 1000]):
     return results
 
 
-def test_metrics(coeffs, gf_order, batch_sizes=[None, 200, 500]):
+def test_metrics(coeffs, gf_order, batch_sizes=None):
     """Test that work metrics are meaningful."""
+    if batch_sizes is None:
+        batch_sizes = [None, 200, 500]
+
     print(f"\n{'='*80}")
     print(f"TESTING METRICS: {len(coeffs)}-bit LFSR over GF({gf_order})")
     print(f"{'='*80}")
