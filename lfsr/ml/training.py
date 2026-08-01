@@ -86,7 +86,7 @@ def generate_training_data(
                 if poly_key not in generated:
                     generated.add(poly_key)
                     break
-            except:
+            except Exception:
                 continue
 
         # Compute period

@@ -22,13 +22,13 @@ class DuplicateWarningFilter(logging.Filter):
     def filter(self, record):
         try:
             msg = record.getMessage()
-        except:
+        except Exception:
             try:
                 if hasattr(record, 'args') and record.args:
                     msg = str(record.msg) % record.args
                 else:
                     msg = str(record.msg)
-            except:
+            except Exception:
                 msg = str(record)
         if "duplicate object description" in msg.lower():
             return False
@@ -194,13 +194,13 @@ def setup(app):
         def filter(self, record):
             try:
                 msg = record.getMessage()
-            except:
+            except Exception:
                 try:
                     if hasattr(record, 'args') and record.args:
                         msg = str(record.msg) % record.args
                     else:
                         msg = str(record.msg)
-                except:
+                except Exception:
                     msg = str(record)
             if "duplicate object description" in msg.lower():
                 return False

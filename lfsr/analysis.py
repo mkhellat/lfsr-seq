@@ -120,7 +120,7 @@ def _find_period_floyd(
             # This helps detect if matrix multiplication is actually hanging
             try:
                 _ = len(tortoise)  # Simple operation to check responsiveness
-            except:
+            except Exception:
                 # If we can't access tortoise, something is wrong
                 break
         tortoise = tortoise * state_update_matrix
@@ -466,11 +466,14 @@ def _find_sequence_cycle_enumeration(
     # Add debug logging
     import os
     import sys
+    def debug_log(msg):
+        print(f'[_find_sequence_cycle_enumeration PID {os.getpid()}] {msg}', file=sys.stderr, flush=True)
+
     try:
-        debug_log = lambda msg: print(f'[_find_sequence_cycle_enumeration PID {os.getpid()}] {msg}', file=sys.stderr, flush=True)
         debug_log('Starting enumeration...')
-    except:
-        debug_log = lambda msg: None
+    except Exception:
+        def debug_log(msg):
+            pass
 
     seq_lst = [start_state]
     # Convert vector to tuple for hashing (SageMath vectors are mutable and unhashable)
@@ -532,7 +535,10 @@ def _find_sequence_cycle(
     import os
     import sys
     DEBUG_PARALLEL = os.environ.get('DEBUG_PARALLEL', '0') == '1'
-    debug_log = lambda msg: print(f'[_find_sequence_cycle PID {os.getpid()}] {msg}', file=sys.stderr, flush=True) if DEBUG_PARALLEL else lambda msg: None
+
+    def debug_log(msg):
+        if DEBUG_PARALLEL:
+            print(f'[_find_sequence_cycle PID {os.getpid()}] {msg}', file=sys.stderr, flush=True)
 
     if DEBUG_PARALLEL:
         debug_log(f'_find_sequence_cycle called: period_only={period_only}, algorithm={algorithm}')
@@ -829,7 +835,10 @@ def _merge_parallel_results(
     import os
     import sys
     DEBUG_PARALLEL = os.environ.get('DEBUG_PARALLEL', '0') == '1'
-    merge_debug = lambda msg: print(f'[Merge PID {os.getpid()}] {msg}', file=sys.stderr, flush=True) if DEBUG_PARALLEL else lambda msg: None
+
+    def merge_debug(msg):
+        if DEBUG_PARALLEL:
+            print(f'[Merge PID {os.getpid()}] {msg}', file=sys.stderr, flush=True)
 
     if DEBUG_PARALLEL:
         merge_debug(f'Deduplicating {len(all_sequences)} sequences from {len(worker_results)} workers')
@@ -1087,7 +1096,10 @@ def _process_state_chunk(
 
     # Debug logging can be enabled by setting environment variable
     DEBUG_PARALLEL = os.environ.get('DEBUG_PARALLEL', '0') == '1'
-    debug_log = lambda msg: print(f'[Worker {worker_id} PID {os.getpid()}] {msg}', file=sys.stderr, flush=True) if DEBUG_PARALLEL else lambda msg: None
+
+    def debug_log(msg):
+        if DEBUG_PARALLEL:
+            print(f'[Worker {worker_id} PID {os.getpid()}] {msg}', file=sys.stderr, flush=True)
 
     if DEBUG_PARALLEL:
         debug_log('Starting worker function...')
@@ -1181,7 +1193,7 @@ def _process_state_chunk(
         debug_log(f'Warning: SageMath isolation test failed: {e}, continuing anyway...')
         # Fallback: create objects anyway (might still work)
         F = GF(gf_order)
-        V = VectorSpace(F, lfsr_degree)
+        V = VectorSpace(F, lfsr_degree)  # noqa: F841 (sanity check that sage isolation works)
 
     # Local visited set for this worker (to avoid processing same cycle multiple times in this chunk)
     local_visited = set()
@@ -1698,7 +1710,6 @@ def lfsr_sequence_mapper_parallel(
     row_width = TABLE_ROW_WIDTH
     # Reconstruct special state for formatting
     F = GF(gf_order)
-    V_special = VectorSpace(F, d)
     special_state = vector(F, [F(1) if i == d - 1 else F(0) for i in range(d)])
 
     if period_only:
@@ -1812,7 +1823,7 @@ def _process_task_batch_dynamic(
     else:
         # Original: Shared queue mode
         task_queue, coeffs_vector, gf_order, lfsr_degree, algorithm, period_only, worker_id, shared_cycles, cycle_lock, batch_aggregation_count = worker_data
-        worker_queues = None
+        worker_queues = None  # noqa: F841 (kept for symmetry with hybrid-mode branch above)
         assigned_chunk = None
         use_hybrid_mode = False
         use_work_stealing = False
@@ -1822,7 +1833,10 @@ def _process_task_batch_dynamic(
     import sys
 
     DEBUG_PARALLEL = os.environ.get('DEBUG_PARALLEL', '0') == '1'
-    debug_log = lambda msg: print(f'[Dynamic Worker {worker_id} PID {os.getpid()}] {msg}', file=sys.stderr, flush=True) if DEBUG_PARALLEL else lambda msg: None
+
+    def debug_log(msg):
+        if DEBUG_PARALLEL:
+            print(f'[Dynamic Worker {worker_id} PID {os.getpid()}] {msg}', file=sys.stderr, flush=True)
 
     if DEBUG_PARALLEL:
         debug_log('Starting dynamic worker function...')
@@ -1870,7 +1884,7 @@ def _process_task_batch_dynamic(
     except Exception as e:
         debug_log(f'Warning: SageMath isolation test failed: {e}, continuing anyway...')
         F = GF(gf_order)
-        V = VectorSpace(F, lfsr_degree)
+        V = VectorSpace(F, lfsr_degree)  # noqa: F841 (sanity check that sage isolation works)
 
     # Local visited set for this worker
     local_visited = set()
@@ -2384,21 +2398,21 @@ def lfsr_sequence_mapper_parallel_dynamic(
                 for worker_queue in worker_queues:
                     try:
                         worker_queue.put(None, block=False)  # Non-blocking for sentinel
-                    except:
+                    except Exception:
                         pass
             elif use_work_stealing:
                 # Phase 3.1: One sentinel per worker queue
                 for worker_queue in worker_queues:
                     try:
                         worker_queue.put(None, block=False)  # Non-blocking for sentinel
-                    except:
+                    except Exception:
                         pass
             else:
                 # Original: One sentinel per worker in shared queue
                 for _ in range(num_workers):
                     try:
                         task_queue.put(None, block=False)  # Non-blocking for sentinel
-                    except:
+                    except Exception:
                         pass
 
     # Start producer thread (not needed for hybrid mode)
@@ -2589,7 +2603,7 @@ def lfsr_sequence_mapper_parallel_dynamic(
                 producer_stop_requested.set()
             if 'producer' in locals() and producer is not None:
                 producer.join(timeout=2.0)  # Quick cleanup
-        except:
+        except Exception:
             pass  # Ignore cleanup errors
 
         import traceback
