@@ -16,20 +16,19 @@ The module is organized as follows:
 - comparison.py: Cipher comparison framework
 """
 
-from lfsr.ciphers.base import (
-    StreamCipher,
-    CipherConfig,
-    CipherAnalysisResult,
-    CipherStructure
-)
-
 # Import cipher implementations
 from lfsr.ciphers.a5_1 import A5_1
 from lfsr.ciphers.a5_2 import A5_2
+from lfsr.ciphers.base import (
+    CipherAnalysisResult,
+    CipherConfig,
+    CipherStructure,
+    StreamCipher,
+)
 from lfsr.ciphers.e0 import E0
-from lfsr.ciphers.trivium import Trivium
 from lfsr.ciphers.grain import Grain128, Grain128a
 from lfsr.ciphers.lili128 import LILI128
+from lfsr.ciphers.trivium import Trivium
 
 __all__ = [
     "StreamCipher",

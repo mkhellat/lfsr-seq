@@ -7,9 +7,9 @@ Unit tests for finite field validation functions.
 Tests for validate_gf_order, validate_coefficient, and validate_coefficient_vector.
 """
 
-import pytest
-import sys
 from unittest.mock import patch
+
+import pytest
 
 from lfsr.field import (
     validate_coefficient,

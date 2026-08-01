@@ -8,10 +8,9 @@ This module provides base classes and common utilities for creating
 visualizations of LFSR analysis results.
 """
 
-from typing import Any, Dict, List, Optional, Tuple, Union
 from dataclasses import dataclass
 from enum import Enum
-import os
+from typing import Dict, Optional
 
 try:
     import matplotlib
@@ -23,8 +22,8 @@ except ImportError:
     plt = None
 
 try:
-    import plotly.graph_objects as go
     import plotly.express as px
+    import plotly.graph_objects as go
     HAS_PLOTLY = True
 except ImportError:
     HAS_PLOTLY = False
@@ -52,7 +51,7 @@ class OutputFormat(Enum):
 class VisualizationConfig:
     """
     Configuration for visualizations.
-    
+
     Attributes:
         width: Figure width in inches
         height: Figure height in inches
@@ -82,36 +81,36 @@ class VisualizationConfig:
 class BaseVisualization:
     """
     Base class for LFSR visualizations.
-    
+
     This class provides common functionality for all visualization types,
     including configuration, export, and common utilities.
-    
+
     **Key Terminology**:
-    
+
     - **Visualization**: A graphical representation of data or analysis results.
       Visualizations help understand patterns, relationships, and properties
       that may not be obvious from raw data.
-    
+
     - **Static Plot**: A non-interactive image file (PNG, SVG, PDF) that can be
       included in documents or presentations.
-    
+
     - **Interactive Plot**: A plot that allows user interaction (zooming, panning,
       tooltips) typically in HTML format using libraries like Plotly.
-    
+
     - **Publication Quality**: Visualizations suitable for inclusion in research
       papers, with high resolution, proper formatting, and clear labels.
     """
-    
+
     def __init__(self, config: Optional[VisualizationConfig] = None):
         """
         Initialize visualization.
-        
+
         Args:
             config: Optional visualization configuration
         """
         self.config = config or VisualizationConfig()
         self._check_dependencies()
-    
+
     def _check_dependencies(self) -> None:
         """Check if required dependencies are available."""
         if not HAS_MATPLOTLIB and self.config.output_format != OutputFormat.HTML:
@@ -119,30 +118,30 @@ class BaseVisualization:
                 "matplotlib is required for static plot generation. "
                 "Install with: pip install matplotlib"
             )
-        
+
         if not HAS_PLOTLY and self.config.interactive:
             raise ImportError(
                 "plotly is required for interactive plots. "
                 "Install with: pip install plotly"
             )
-    
+
     def save(self, filename: str) -> None:
         """
         Save visualization to file.
-        
+
         Args:
             filename: Output filename
         """
         raise NotImplementedError("Subclasses must implement save()")
-    
+
     def show(self) -> None:
         """Display visualization (if in interactive environment)."""
         raise NotImplementedError("Subclasses must implement show()")
-    
+
     def to_html(self) -> str:
         """
         Convert visualization to HTML string.
-        
+
         Returns:
             HTML string representation
         """
@@ -152,7 +151,7 @@ class BaseVisualization:
 def check_visualization_dependencies() -> Dict[str, bool]:
     """
     Check which visualization dependencies are available.
-    
+
     Returns:
         Dictionary mapping library names to availability status
     """

@@ -3,10 +3,10 @@
 # For the full list of built-in configuration values, see the documentation:
 # https://www.sphinx-doc.org/en/master/usage/configuration.html
 
+import logging
 import os
 import sys
 import warnings
-import logging
 
 # CRITICAL: Suppress SageMath deprecation warnings BEFORE any imports
 # These warnings cause Sphinx to hang during autodoc processing
@@ -182,13 +182,12 @@ def autodoc_skip_member(app, what, name, obj, skip, options):
 def setup(app):
     """Setup function for Sphinx."""
     app.connect("autodoc-skip-member", autodoc_skip_member)
-    
+
     # Suppress duplicate object warnings using Sphinx's warning system
     # The root cause: Sphinx creates object descriptions for types in docstrings
     # When the same type appears in multiple modules, it's seen as a duplicate
-    import sphinx.util.logging
     import logging
-    
+
     # Create comprehensive filter
     class DuplicateWarningFilter(logging.Filter):
         """Filter to suppress duplicate object description warnings."""
@@ -206,19 +205,19 @@ def setup(app):
             if "duplicate object description" in msg.lower():
                 return False
             return True
-    
+
     # Apply filter comprehensively to all loggers
     dup_filter = DuplicateWarningFilter()
     root_logger = logging.getLogger()
     for handler in root_logger.handlers:
         handler.addFilter(dup_filter)
-    
+
     # Also add to Sphinx-specific loggers
     for name in ['sphinx', 'sphinx.ref', 'sphinx.application', 'sphinx.environment']:
         logger = logging.getLogger(name)
         for handler in logger.handlers:
             handler.addFilter(dup_filter)
-    
+
     # The suppress_warnings is already configured in the config above
     # No need to add it again here
 

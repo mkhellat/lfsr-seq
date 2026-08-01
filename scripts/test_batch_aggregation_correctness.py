@@ -10,7 +10,6 @@ This script verifies that batch aggregation doesn't affect correctness:
 """
 
 import sys
-import os
 import time
 from pathlib import Path
 
@@ -20,11 +19,12 @@ sys.path.insert(0, str(project_root))
 
 try:
     from sage.all import *
-    from lfsr.core import build_state_update_matrix
+
     from lfsr.analysis import (
         lfsr_sequence_mapper,
-        lfsr_sequence_mapper_parallel_dynamic
+        lfsr_sequence_mapper_parallel_dynamic,
     )
+    from lfsr.core import build_state_update_matrix
 except ImportError as e:
     print(f"ERROR: Cannot import required modules: {e}")
     print("This test requires SageMath")
@@ -36,16 +36,16 @@ def test_correctness(coeffs, gf_order, desc, num_workers=4):
     print(f"\n{'='*80}")
     print(f"Testing {desc} LFSR ({len(coeffs)}-bit)")
     print(f"{'='*80}")
-    
+
     # Build state update matrix
     C, V = build_state_update_matrix(coeffs, gf_order)
-    
+
     # Calculate state space size
     state_space_size = gf_order ** len(coeffs)
     print(f"\nState space size: {state_space_size:,} states")
-    
+
     # Sequential baseline
-    print(f"\n1. Sequential (baseline):")
+    print("\n1. Sequential (baseline):")
     start = time.time()
     seq_dict, seq_period_dict, seq_max_period, seq_periods_sum = lfsr_sequence_mapper(
         C, V, gf_order, period_only=True, algorithm="enumeration", no_progress=True
@@ -53,7 +53,7 @@ def test_correctness(coeffs, gf_order, desc, num_workers=4):
     seq_time = time.time() - start
     print(f"   ✓ Completed in {seq_time:.3f}s")
     print(f"   Sequences: {len(seq_period_dict)}, Sum: {seq_periods_sum}, Max: {seq_max_period}")
-    
+
     # Dynamic with batch aggregation (Phase 2.2)
     print(f"\n2. Dynamic mode with batch aggregation ({num_workers} workers):")
     start = time.time()
@@ -63,7 +63,7 @@ def test_correctness(coeffs, gf_order, desc, num_workers=4):
     )
     dyn_time = time.time() - start
     dyn_speedup = seq_time / dyn_time if dyn_time > 0 else 0
-    
+
     correct = (
         len(dyn_period_dict) == len(seq_period_dict) and
         dyn_periods_sum == seq_periods_sum and
@@ -72,13 +72,13 @@ def test_correctness(coeffs, gf_order, desc, num_workers=4):
     status = "✓ CORRECT" if correct else "✗ INCORRECT"
     print(f"   {status}: {dyn_time:.3f}s (speedup: {dyn_speedup:.2f}x)")
     print(f"   Sequences: {len(dyn_period_dict)}, Sum: {dyn_periods_sum}, Max: {dyn_max_period}")
-    
+
     if not correct:
-        print(f"   ERROR: Mismatch!")
+        print("   ERROR: Mismatch!")
         print(f"     Expected: {len(seq_period_dict)} sequences, sum={seq_periods_sum}, max={seq_max_period}")
         print(f"     Got:      {len(dyn_period_dict)} sequences, sum={dyn_periods_sum}, max={dyn_max_period}")
         return False
-    
+
     return True
 
 
@@ -87,7 +87,7 @@ def main():
     print("="*80)
     print("BATCH AGGREGATION CORRECTNESS TEST (Phase 2.2)")
     print("="*80)
-    
+
     # Test cases: different LFSR sizes
     test_cases = [
         ([1, 1, 0, 1], 2, "4-bit"),  # 16 states - Small
@@ -95,9 +95,9 @@ def main():
         ([1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1], 2, "12-bit"),  # 4096 states - Small
         ([1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 2, "14-bit"),  # 16384 states - Medium
     ]
-    
+
     all_passed = True
-    
+
     for coeffs, gf_order, desc in test_cases:
         try:
             passed = test_correctness(coeffs, gf_order, desc, num_workers=4)
@@ -108,7 +108,7 @@ def main():
             import traceback
             traceback.print_exc()
             all_passed = False
-    
+
     # Final summary
     print(f"\n{'='*80}")
     if all_passed:

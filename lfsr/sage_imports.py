@@ -14,38 +14,37 @@ without deprecated warnings.
 # This avoids importing deprecated items that are included in sage.all
 
 # Finite fields
-from sage.rings.finite_rings.finite_field_constructor import GF
-from sage.rings.finite_rings.finite_field_base import FiniteField
-
-# Polynomials
-from sage.rings.polynomial.polynomial_ring_constructor import PolynomialRing
-
-# Vectors and matrices
-from sage.modules.free_module_element import vector
-from sage.modules.free_module import VectorSpace
-from sage.matrix.matrix_space import MatrixSpace
-from sage.matrix.constructor import matrix
-
-# Symbolic ring
-from sage.symbolic.ring import SR
-
-# Number rings (commonly used in examples and type hints)
-# These are typically imported from sage.rings.all
-from sage.rings.all import ZZ, QQ, RR, CC
-
-# Integers and rationals
-from sage.rings.integer import Integer
-from sage.rings.rational import Rational
+from sage.all import var
+from sage.arith.functions import lcm
 
 # Arithmetic functions
-from sage.arith.misc import is_prime, gcd, primes
-from sage.arith.functions import lcm
-from sage.arith.misc import factor
+from sage.arith.misc import factor, gcd, is_prime, primes
 from sage.functions.other import sqrt
+from sage.matrix.constructor import matrix
+from sage.matrix.matrix_space import MatrixSpace
 
 # Functional helpers
 from sage.misc.functional import basis, det
-from sage.all import var
+from sage.modules.free_module import VectorSpace
+
+# Vectors and matrices
+from sage.modules.free_module_element import vector
+
+# Number rings (commonly used in examples and type hints)
+# These are typically imported from sage.rings.all
+from sage.rings.all import CC, QQ, RR, ZZ
+from sage.rings.finite_rings.finite_field_base import FiniteField
+from sage.rings.finite_rings.finite_field_constructor import GF
+
+# Integers and rationals
+from sage.rings.integer import Integer
+
+# Polynomials
+from sage.rings.polynomial.polynomial_ring_constructor import PolynomialRing
+from sage.rings.rational import Rational
+
+# Symbolic ring
+from sage.symbolic.ring import SR
 
 # Re-export everything for compatibility with `from lfsr.sage_imports import *`
 __all__ = [

@@ -189,12 +189,12 @@ class TestPrimitivePolynomial:
         """Test that primitive polynomial has maximum period."""
         R = PolynomialRing(GF(2), "t")
         poly = R("t^4 + t + 1")
-        
+
         # If primitive, order should be 2^4 - 1 = 15
         degree = poly.degree()
         max_order = 2 ** degree - 1
         order = polynomial_order(poly, degree, 2)
-        
+
         if is_primitive_polynomial(poly, 2):
             assert order == max_order
 
@@ -213,7 +213,7 @@ class TestPrimitivePolynomial:
 
         # Check if polynomial is primitive
         is_prim = is_primitive_polynomial(char_poly, 2)
-        
+
         # If primitive, output should contain [PRIMITIVE]
         content = output_file.read_text()
         if is_prim:

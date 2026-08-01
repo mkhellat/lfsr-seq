@@ -8,8 +8,8 @@ This module provides functions for building state update matrices and
 computing matrix orders.
 """
 
-import io as _io
 import contextlib as _contextlib
+import io as _io
 from typing import Any, Dict, List, Optional, TextIO, Tuple
 
 from lfsr.sage_imports import *

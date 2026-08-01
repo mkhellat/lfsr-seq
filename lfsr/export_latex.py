@@ -8,9 +8,8 @@ This module provides functions to export analysis results in LaTeX format,
 enabling publication-quality output for research papers and reports.
 """
 
-from typing import Any, Dict, List, Optional, TextIO, Tuple, Union
 from datetime import datetime
-import json
+from typing import Any, Dict, List, Optional, TextIO, Tuple
 
 from lfsr.sage_imports import *
 
@@ -18,25 +17,25 @@ from lfsr.sage_imports import *
 def polynomial_to_latex(polynomial: Any, variable: str = "t") -> str:
     """
     Convert a SageMath polynomial to LaTeX format.
-    
+
     This function converts a polynomial to LaTeX representation suitable
     for inclusion in research papers.
-    
+
     **Key Terminology**:
-    
+
     - **LaTeX**: A document preparation system widely used in academic
       publishing for typesetting mathematical formulas and scientific documents.
-    
+
     - **Polynomial Representation**: Mathematical notation for polynomials,
       e.g., t^4 + t^3 + t + 1 in LaTeX becomes t^4 + t^3 + t + 1.
-    
+
     Args:
         polynomial: SageMath polynomial to convert
         variable: Variable name (default: "t")
-    
+
     Returns:
         LaTeX string representation of the polynomial
-    
+
     Example:
         >>> from lfsr.sage_imports import *
         >>> F = GF(2)
@@ -69,21 +68,21 @@ def export_polynomial_analysis_to_latex(
 ) -> str:
     """
     Export polynomial analysis results to LaTeX format.
-    
+
     This function generates LaTeX code for polynomial analysis results,
     including characteristic polynomial, order, primitivity, and factorization.
-    
+
     **Key Terminology**:
-    
+
     - **LaTeX Export**: Converting analysis results into LaTeX format for
       inclusion in research papers or reports.
-    
+
     - **Polynomial Analysis**: Comprehensive analysis of polynomial properties
       including order, primitivity, irreducibility, and factorization.
-    
+
     - **LaTeX Table**: Structured data presentation in LaTeX using tabular
       environment, commonly used in research papers.
-    
+
     Args:
         polynomial: The characteristic polynomial
         polynomial_order: Order of the polynomial
@@ -93,12 +92,12 @@ def export_polynomial_analysis_to_latex(
         factor_orders: Orders of each factor
         field_order: Field order (q)
         output_file: Optional file to write LaTeX code to
-    
+
     Returns:
         LaTeX code as string
     """
     latex_code = []
-    
+
     # Document structure
     latex_code.append("\\begin{table}[h]")
     latex_code.append("\\centering")
@@ -108,33 +107,33 @@ def export_polynomial_analysis_to_latex(
     latex_code.append("\\hline")
     latex_code.append("\\textbf{Property} & \\textbf{Value} \\\\")
     latex_code.append("\\hline")
-    
+
     # Polynomial
     poly_latex = polynomial_to_latex(polynomial)
     latex_code.append(f"Characteristic Polynomial & ${poly_latex}$ \\\\")
     latex_code.append("\\hline")
-    
+
     # Field order
     latex_code.append(f"Field Order & $\\mathbb{{F}}_{{{field_order}}}$ \\\\")
     latex_code.append("\\hline")
-    
+
     # Order
     if polynomial_order is not None:
         latex_code.append(f"Polynomial Order & ${polynomial_order}$ \\\\")
     else:
         latex_code.append("Polynomial Order & $\\infty$ \\\\")
     latex_code.append("\\hline")
-    
+
     # Primitivity
     primitive_str = "Yes" if is_primitive else "No"
     latex_code.append(f"Primitive & {primitive_str} \\\\")
     latex_code.append("\\hline")
-    
+
     # Irreducibility
     irreducible_str = "Yes" if is_irreducible else "No"
     latex_code.append(f"Irreducible & {irreducible_str} \\\\")
     latex_code.append("\\hline")
-    
+
     # Factorization
     if factors and len(factors) > 0:
         latex_code.append("\\hline")
@@ -142,30 +141,30 @@ def export_polynomial_analysis_to_latex(
         latex_code.append("\\hline")
         latex_code.append("\\textbf{Factor} & \\textbf{Order} \\\\")
         latex_code.append("\\hline")
-        
+
         for i, (factor_poly, multiplicity) in enumerate(factors):
             factor_latex = polynomial_to_latex(factor_poly)
             if multiplicity > 1:
                 factor_latex = f"({factor_latex})^{{{multiplicity}}}"
-            
+
             if factor_orders and i < len(factor_orders):
                 order = factor_orders[i]
                 order_str = str(order) if order is not None else "$\\infty$"
             else:
                 order_str = "---"
-            
+
             latex_code.append(f"${factor_latex}$ & ${order_str}$ \\\\")
             latex_code.append("\\hline")
-    
+
     latex_code.append("\\end{tabular}")
     latex_code.append("\\end{table}")
-    
+
     result = "\n".join(latex_code)
-    
+
     if output_file:
         output_file.write(result)
         output_file.write("\n")
-    
+
     return result
 
 
@@ -179,19 +178,19 @@ def export_period_distribution_to_latex(
 ) -> str:
     """
     Export period distribution to LaTeX format.
-    
+
     This function generates LaTeX code for period distribution tables,
     including statistics and theoretical comparisons.
-    
+
     **Key Terminology**:
-    
+
     - **Period Distribution**: The distribution of periods across all possible
       initial states of an LFSR. This shows how many sequences have each
       possible period.
-    
+
     - **LaTeX Table**: Structured presentation of data in LaTeX format,
       commonly used in research papers for presenting statistical results.
-    
+
     Args:
         period_dict: Dictionary mapping period to count
         field_order: Field order (q)
@@ -199,21 +198,21 @@ def export_period_distribution_to_latex(
         is_primitive: Whether polynomial is primitive
         theoretical_max_period: Theoretical maximum period (q^d - 1)
         output_file: Optional file to write LaTeX code to
-    
+
     Returns:
         LaTeX code as string
     """
     if theoretical_max_period is None:
         theoretical_max_period = int(field_order) ** lfsr_degree - 1
-    
+
     latex_code = []
-    
+
     # Compute statistics
     total_sequences = sum(period_dict.values())
     periods = list(period_dict.keys())
     max_period = max(periods) if periods else 0
     min_period = min(periods) if periods else 0
-    
+
     # Table structure
     latex_code.append("\\begin{table}[h]")
     latex_code.append("\\centering")
@@ -223,23 +222,23 @@ def export_period_distribution_to_latex(
     latex_code.append("\\hline")
     latex_code.append("\\textbf{Period} & \\textbf{Count} & \\textbf{Percentage} \\\\")
     latex_code.append("\\hline")
-    
+
     # Sort periods for display
     sorted_periods = sorted(period_dict.items(), key=lambda x: x[0], reverse=True)
-    
+
     # Show top 10 periods
     for period, count in sorted_periods[:10]:
         percentage = (count / total_sequences * 100) if total_sequences > 0 else 0
         latex_code.append(f"${period}$ & ${count}$ & ${percentage:.2f}\\%$ \\\\")
         latex_code.append("\\hline")
-    
+
     if len(sorted_periods) > 10:
         latex_code.append("\\multicolumn{3}{|c|}{\\textit{(showing top 10 periods)}} \\\\")
         latex_code.append("\\hline")
-    
+
     latex_code.append("\\end{tabular}")
     latex_code.append("\\end{table}")
-    
+
     # Statistics table
     latex_code.append("\\begin{table}[h]")
     latex_code.append("\\centering")
@@ -261,13 +260,13 @@ def export_period_distribution_to_latex(
     latex_code.append("\\hline")
     latex_code.append("\\end{tabular}")
     latex_code.append("\\end{table}")
-    
+
     result = "\n".join(latex_code)
-    
+
     if output_file:
         output_file.write(result)
         output_file.write("\n")
-    
+
     return result
 
 
@@ -278,33 +277,33 @@ def export_complete_analysis_to_latex(
 ) -> str:
     """
     Export complete analysis results to LaTeX document.
-    
+
     This function generates a complete LaTeX document with all analysis
     results, suitable for inclusion in research papers or standalone reports.
-    
+
     **Key Terminology**:
-    
+
     - **LaTeX Document**: A complete LaTeX file that can be compiled into
       a PDF document. Includes preamble (document setup), body (content),
       and optional bibliography.
-    
+
     - **Preamble**: The document setup section in LaTeX, including package
       imports, custom commands, and document class settings.
-    
+
     - **Standalone Document**: A complete LaTeX document that can be compiled
       independently, as opposed to a fragment meant to be included in another
       document.
-    
+
     Args:
         analysis_results: Dictionary containing all analysis results
         output_file: Optional file to write LaTeX code to
         include_preamble: Whether to include LaTeX document preamble
-    
+
     Returns:
         Complete LaTeX document as string
     """
     latex_code = []
-    
+
     if include_preamble:
         # Document preamble
         latex_code.append("\\documentclass[11pt]{article}")
@@ -320,7 +319,7 @@ def export_complete_analysis_to_latex(
         latex_code.append("\\begin{document}")
         latex_code.append("\\maketitle")
         latex_code.append("")
-    
+
     # Add sections based on available results
     if 'polynomial' in analysis_results:
         latex_code.append("\\section{Characteristic Polynomial Analysis}")
@@ -337,7 +336,7 @@ def export_complete_analysis_to_latex(
         )
         latex_code.append(poly_latex)
         latex_code.append("")
-    
+
     if 'period_distribution' in analysis_results:
         latex_code.append("\\section{Period Distribution}")
         latex_code.append("")
@@ -351,16 +350,16 @@ def export_complete_analysis_to_latex(
         )
         latex_code.append(period_latex)
         latex_code.append("")
-    
+
     if include_preamble:
         latex_code.append("\\end{document}")
-    
+
     result = "\n".join(latex_code)
-    
+
     if output_file:
         output_file.write(result)
         output_file.write("\n")
-    
+
     return result
 
 
@@ -371,9 +370,9 @@ def export_to_latex_file(
 ) -> None:
     """
     Export analysis results to a LaTeX file.
-    
+
     Convenience function to export results directly to a file.
-    
+
     Args:
         analysis_results: Dictionary containing all analysis results
         filename: Output filename (should have .tex extension)

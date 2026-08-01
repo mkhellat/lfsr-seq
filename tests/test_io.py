@@ -7,11 +7,9 @@ Unit tests for I/O operations.
 Tests for CSV file reading and validation functions.
 """
 
-import csv
 import os
+
 import pytest
-import tempfile
-from pathlib import Path
 
 from lfsr.io import read_and_validate_csv, validate_csv_file
 

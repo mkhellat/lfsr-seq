@@ -13,14 +13,14 @@ except ImportError:
     pytest.skip("SageMath not available", allow_module_level=True)
 
 from lfsr.analysis import (
-    _find_period_brent,
-    _find_period_floyd,
-    _find_period_enumeration,
     _find_period,
+    _find_period_brent,
+    _find_period_enumeration,
+    _find_period_floyd,
     _find_sequence_cycle,
     _find_sequence_cycle_brent,
-    _find_sequence_cycle_floyd,
     _find_sequence_cycle_enumeration,
+    _find_sequence_cycle_floyd,
 )
 from lfsr.core import build_state_update_matrix
 
@@ -33,7 +33,7 @@ class TestPeriodOnlyFunctions:
         coeffs = [1, 1, 0, 1]
         C, CS = build_state_update_matrix(coeffs, 2)
         V = VectorSpace(GF(2), 4)
-        
+
         # Test with first non-zero state
         for state in V:
             if state != V.zero():
@@ -47,7 +47,7 @@ class TestPeriodOnlyFunctions:
         coeffs = [1, 1, 0, 1]
         C, CS = build_state_update_matrix(coeffs, 2)
         V = VectorSpace(GF(2), 4)
-        
+
         # Test with first non-zero state
         for state in V:
             if state != V.zero():
@@ -61,7 +61,7 @@ class TestPeriodOnlyFunctions:
         coeffs = [1, 1, 0, 1]
         C, CS = build_state_update_matrix(coeffs, 2)
         V = VectorSpace(GF(2), 4)
-        
+
         # Test with first non-zero state
         for state in V:
             if state != V.zero():
@@ -75,7 +75,7 @@ class TestPeriodOnlyFunctions:
         coeffs = [1, 1, 0, 1]
         C, CS = build_state_update_matrix(coeffs, 2)
         V = VectorSpace(GF(2), 4)
-        
+
         # Test with multiple states
         tested = 0
         for state in V:
@@ -90,7 +90,7 @@ class TestPeriodOnlyFunctions:
         coeffs = [1, 1, 0, 1]
         C, CS = build_state_update_matrix(coeffs, 2)
         V = VectorSpace(GF(2), 4)
-        
+
         # Test with multiple states
         tested = 0
         for state in V:
@@ -106,7 +106,7 @@ class TestPeriodOnlyFunctions:
         coeffs = [1, 1, 0, 1]
         C, CS = build_state_update_matrix(coeffs, 2)
         V = VectorSpace(GF(2), 4)
-        
+
         for state in V:
             if state != V.zero():
                 # Test with different algorithms
@@ -114,7 +114,7 @@ class TestPeriodOnlyFunctions:
                 period_brent = _find_period(state, C, algorithm="brent")
                 period_enum = _find_period(state, C, algorithm="enumeration")
                 period_auto = _find_period(state, C, algorithm="auto")
-                
+
                 # All should return same period
                 assert period_floyd == period_brent == period_enum == period_auto
                 break
@@ -125,11 +125,11 @@ class TestPeriodOnlyFunctions:
         C, CS = build_state_update_matrix(coeffs, 2)
         V = VectorSpace(GF(2), 4)
         zero_state = V.zero()
-        
+
         # Zero state should have period 1 (fixed point)
         floyd_period = _find_period_floyd(zero_state, C)
         enum_period = _find_period_enumeration(zero_state, C)
-        
+
         assert floyd_period == 1
         assert enum_period == 1
 
@@ -143,7 +143,7 @@ class TestPeriodOnlyMode:
         C, CS = build_state_update_matrix(coeffs, 2)
         V = VectorSpace(GF(2), 4)
         visited_set = set()
-        
+
         for state in V:
             if state != V.zero():
                 seq_lst, period = _find_sequence_cycle(
@@ -159,7 +159,7 @@ class TestPeriodOnlyMode:
         C, CS = build_state_update_matrix(coeffs, 2)
         V = VectorSpace(GF(2), 4)
         visited_set = set()
-        
+
         for state in V:
             if state != V.zero():
                 seq_lst, period = _find_sequence_cycle(
@@ -175,7 +175,7 @@ class TestPeriodOnlyMode:
         C, CS = build_state_update_matrix(coeffs, 2)
         V = VectorSpace(GF(2), 4)
         visited_set = set()
-        
+
         for state in V:
             if state != V.zero():
                 seq_lst, period = _find_sequence_cycle(
@@ -190,22 +190,22 @@ class TestPeriodOnlyMode:
         coeffs = [1, 1, 0, 1]
         C, CS = build_state_update_matrix(coeffs, 2)
         V = VectorSpace(GF(2), 4)
-        
+
         for state in V:
             if state != V.zero():
                 visited_set1 = set()
                 visited_set2 = set()
-                
+
                 # Period-only mode
                 seq1, period1 = _find_sequence_cycle(
                     state, C, visited_set1, algorithm="enumeration", period_only=True
                 )
-                
+
                 # Full mode
                 seq2, period2 = _find_sequence_cycle(
                     state, C, visited_set2, algorithm="enumeration", period_only=False
                 )
-                
+
                 assert period1 == period2, f"Period mismatch: period_only={period1}, full={period2}"
                 assert seq1 == []
                 assert len(seq2) == period2
@@ -221,13 +221,13 @@ class TestAlgorithmConsistency:
         C, CS = build_state_update_matrix(coeffs, 2)
         V = VectorSpace(GF(2), 4)
         visited_set = set()
-        
+
         for state in V:
             if state != V.zero():
                 # Period-only functions
                 period_floyd_po = _find_period_floyd(state, C)
                 period_enum_po = _find_period_enumeration(state, C)
-                
+
                 # Full sequence functions
                 visited_set1 = set()
                 visited_set2 = set()
@@ -235,7 +235,7 @@ class TestAlgorithmConsistency:
                 seq1, period_floyd_full = _find_sequence_cycle_floyd(state, C, visited_set1)
                 seq2, period_enum_full = _find_sequence_cycle_enumeration(state, C, visited_set2)
                 seq3, period_brent_full = _find_sequence_cycle_brent(state, C, visited_set3)
-                
+
                 # Period-only mode
                 visited_set4 = set()
                 visited_set5 = set()
@@ -243,7 +243,7 @@ class TestAlgorithmConsistency:
                 _, period_floyd_po_mode = _find_sequence_cycle(state, C, visited_set4, algorithm="floyd", period_only=True)
                 _, period_brent_po_mode = _find_sequence_cycle(state, C, visited_set5, algorithm="brent", period_only=True)
                 _, period_enum_po_mode = _find_sequence_cycle(state, C, visited_set6, algorithm="enumeration", period_only=True)
-                
+
                 # All should match (no _find_period_brent exists; brent covered via _find_sequence_cycle_brent)
                 periods = [
                     period_floyd_po,
@@ -255,6 +255,6 @@ class TestAlgorithmConsistency:
                     period_brent_po_mode,
                     period_enum_po_mode,
                 ]
-                
+
                 assert len(set(periods)) == 1, f"Period mismatch: {periods} for state {state}"
                 break

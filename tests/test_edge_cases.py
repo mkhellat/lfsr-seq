@@ -8,6 +8,7 @@ Tests for boundary conditions, degenerate cases, and special scenarios.
 """
 
 import io
+
 import pytest
 
 # Import SageMath - will be skipped if not available via conftest
@@ -18,7 +19,11 @@ except ImportError:
 
 from lfsr.analysis import lfsr_sequence_mapper
 from lfsr.core import build_state_update_matrix, compute_matrix_order
-from lfsr.field import validate_coefficient, validate_coefficient_vector, validate_gf_order
+from lfsr.field import (
+    validate_coefficient,
+    validate_coefficient_vector,
+    validate_gf_order,
+)
 from lfsr.polynomial import characteristic_polynomial
 
 

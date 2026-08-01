@@ -47,54 +47,50 @@ where S_i is the LFSR state at step i and f is the output function
 producing k bits.
 """
 
-from typing import List, Optional, Callable
+from typing import Callable, List
 
-from lfsr.sage_imports import *
-
+from lfsr.advanced.base import AdvancedLFSR, AdvancedLFSRConfig
 from lfsr.attacks import LFSRConfig
-from lfsr.advanced.base import (
-    AdvancedLFSR,
-    AdvancedLFSRConfig
-)
 from lfsr.core import build_state_update_matrix
+from lfsr.sage_imports import *
 
 
 class MultiOutputLFSR(AdvancedLFSR):
     """
     Multi-output LFSR implementation.
-    
+
     **IMPORTANT**: A Multi-Output LFSR IS an LFSR (Linear Feedback Shift Register).
     The feedback remains LINEAR (XOR only). Multiple bits are output per step,
     but the feedback is still linear.
-    
+
     A multi-output LFSR produces multiple output bits per step, increasing
     the output rate compared to single-output LFSRs. The feedback is still linear.
-    
+
     **Key Distinction**:
     - **LFSR Feedback**: LINEAR (XOR only) - this is what makes it an LFSR
     - **Output Rate**: Multiple bits per step (but feedback is linear)
-    
+
     **Structure**:
-    
+
     - **Base LFSR**: Underlying LFSR with LINEAR feedback
     - **Output Function**: Function mapping state to multiple output bits
     - **Output Rate**: Number of bits output per step
-    
+
     **Example Usage**:
-    
+
         >>> from lfsr.advanced.multi_output import MultiOutputLFSR
         >>> from lfsr.attacks import LFSRConfig
-        >>> 
+        >>>
         >>> base_lfsr = LFSRConfig(coefficients=[1, 0, 0, 1], field_order=2, degree=4)
-        >>> 
+        >>>
         >>> # Output function: output first 2 bits of state
         >>> def output_func(state):
         ...     return [state[0], state[1]]  # 2 bits per step
-        >>> 
+        >>>
         >>> molfsr = MultiOutputLFSR(base_lfsr, output_func, output_rate=2)
         >>> sequence = molfsr.generate_sequence([1, 0, 0, 0], 100)
     """
-    
+
     def __init__(
         self,
         base_lfsr_config: LFSRConfig,
@@ -103,7 +99,7 @@ class MultiOutputLFSR(AdvancedLFSR):
     ):
         """
         Initialize Multi-Output LFSR.
-        
+
         Args:
             base_lfsr_config: Base LFSR configuration
             output_function: Function taking state and returning list of output bits
@@ -114,13 +110,13 @@ class MultiOutputLFSR(AdvancedLFSR):
         self.output_rate = output_rate
         self.state_size = base_lfsr_config.degree
         self.field_order = base_lfsr_config.field_order
-        
+
         # Build state update matrix
         self.C, _ = build_state_update_matrix(
             base_lfsr_config.coefficients,
             base_lfsr_config.field_order
         )
-    
+
     def get_config(self) -> AdvancedLFSRConfig:
         """Get Multi-Output LFSR configuration."""
         return AdvancedLFSRConfig(
@@ -132,14 +128,14 @@ class MultiOutputLFSR(AdvancedLFSR):
                 'field_order': self.field_order
             }
         )
-    
+
     def _clock_lfsr(self, state: List[int]) -> List[int]:
         """Clock base LFSR one step."""
         F = GF(self.field_order)
         state_vec = vector(F, state)
         new_state_vec = self.C * state_vec
         return [int(x) for x in new_state_vec]
-    
+
     def generate_sequence(
         self,
         initial_state: List[int],
@@ -147,14 +143,14 @@ class MultiOutputLFSR(AdvancedLFSR):
     ) -> List[int]:
         """
         Generate sequence from initial state.
-        
+
         Note: length is in output bits, not steps. The number of steps is
         length / output_rate.
-        
+
         Args:
             initial_state: Initial state as list of field elements
             length: Desired sequence length in bits
-        
+
         Returns:
             List of sequence elements (flattened output bits)
         """
@@ -163,24 +159,24 @@ class MultiOutputLFSR(AdvancedLFSR):
                 f"Multi-Output LFSR requires state of size {self.state_size}, "
                 f"got {len(initial_state)}"
             )
-        
+
         state = initial_state[:]
         sequence = []
         steps_needed = (length + self.output_rate - 1) // self.output_rate
-        
+
         for _ in range(steps_needed):
             # Get output bits from output function
             output_bits = self.output_function(state)
-            
+
             # Add to sequence
             sequence.extend(output_bits)
-            
+
             # Clock base LFSR
             state = self._clock_lfsr(state)
-        
+
         # Return only requested length
         return sequence[:length]
-    
+
     def analyze_structure(self) -> dict:
         """Analyze Multi-Output LFSR structure."""
         return {
@@ -191,7 +187,7 @@ class MultiOutputLFSR(AdvancedLFSR):
             'state_size': self.state_size,
             'note': f'Multi-output LFSR outputs {self.output_rate} bits per step'
         }
-    
+
     def _assess_security(
         self,
         structure_properties: dict
@@ -216,26 +212,26 @@ def create_simple_multi_output_lfsr(
 ) -> MultiOutputLFSR:
     """
     Create a simple multi-output LFSR outputting specified state bits.
-    
+
     Args:
         base_lfsr_config: Base LFSR configuration
         output_bits: List of state bit indices to output
-    
+
     Returns:
         MultiOutputLFSR instance
-    
+
     Example:
         >>> from lfsr.attacks import LFSRConfig
         >>> from lfsr.advanced.multi_output import create_simple_multi_output_lfsr
-        >>> 
+        >>>
         >>> base = LFSRConfig(coefficients=[1, 0, 0, 1], field_order=2, degree=4)
         >>> # Output bits 0, 1, 2 (3 bits per step)
         >>> molfsr = create_simple_multi_output_lfsr(base, [0, 1, 2])
     """
     output_rate = len(output_bits)
     degree = base_lfsr_config.degree
-    
+
     def output_func(state: List[int]) -> List[int]:
         return [state[i] for i in output_bits if 0 <= i < degree]
-    
+
     return MultiOutputLFSR(base_lfsr_config, output_func, output_rate)

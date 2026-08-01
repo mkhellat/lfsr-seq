@@ -8,13 +8,10 @@ vs enumeration method to verify performance claims and identify bottlenecks.
 """
 
 import argparse
-import cProfile
-import io
-import pstats
 import sys
 import time
 import tracemalloc
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, Tuple
 
 # Try to import sage (same mechanism as CLI)
 _sage_available = False
@@ -23,8 +20,8 @@ try:
     _sage_available = True
 except ImportError:
     # Try to find SageMath via 'sage' command
-    import subprocess
     import os
+    import subprocess
     try:
         result = subprocess.run(
             ["sage", "-c", "import sys; print('\\n'.join(sys.path))"],
@@ -46,10 +43,6 @@ if not _sage_available:
     print("ERROR: SageMath is required", file=sys.stderr)
     sys.exit(1)
 
-from lfsr.analysis import (
-    _find_sequence_cycle_enumeration,
-    _find_sequence_cycle_floyd,
-)
 from lfsr.core import build_state_update_matrix
 from lfsr.io import read_and_validate_csv
 
@@ -63,27 +56,27 @@ def time_algorithm(
 ) -> Tuple[float, int, Dict[str, Any]]:
     """
     Time an algorithm and collect detailed metrics.
-    
+
     Returns:
         (total_time, period, metrics_dict)
     """
     # Clear visited set for fair comparison
     visited_set.clear()
-    
+
     # Start memory tracing
     tracemalloc.start()
-    
+
     # Time the algorithm
     start_time = time.perf_counter()
     seq_lst, period = algorithm_func(start_state, state_update_matrix, visited_set)
     end_time = time.perf_counter()
-    
+
     # Get memory stats
     current, peak = tracemalloc.get_traced_memory()
     tracemalloc.stop()
-    
+
     total_time = end_time - start_time
-    
+
     metrics = {
         "total_time": total_time,
         "period": period,
@@ -92,7 +85,7 @@ def time_algorithm(
         "current_memory_bytes": current,
         "visited_states": len(visited_set),
     }
-    
+
     return total_time, period, metrics
 
 
@@ -103,18 +96,18 @@ def profile_floyd_phases(
 ) -> Dict[str, Any]:
     """
     Profile Floyd's algorithm by breaking it into phases.
-    
+
     Returns detailed timing for Phase 1, Phase 2, and enumeration phase.
     """
     visited_set.clear()
     tracemalloc.start()
-    
+
     metrics = {}
-    
+
     # Phase 1: Find meeting point
     tortoise = start_state
     hare = start_state * state_update_matrix
-    
+
     if tortoise == hare:
         metrics["phase1_time"] = 0.0
         metrics["phase1_steps"] = 0
@@ -122,31 +115,31 @@ def profile_floyd_phases(
         metrics["total_time"] = 0.0
         tracemalloc.stop()
         return metrics
-    
+
     phase1_start = time.perf_counter()
     steps = 0
     max_steps = 10000000
-    
+
     while tortoise != hare and steps < max_steps:
         tortoise = tortoise * state_update_matrix
         hare = (hare * state_update_matrix) * state_update_matrix
         steps += 1
-    
+
     phase1_end = time.perf_counter()
     metrics["phase1_time"] = phase1_end - phase1_start
     metrics["phase1_steps"] = steps
-    
+
     if steps >= max_steps:
         tracemalloc.stop()
         return metrics
-    
+
     # Phase 2: Find period
     meeting_point = tortoise
     lambda_period = 1
     hare = meeting_point * state_update_matrix
-    
+
     phase2_start = time.perf_counter()
-    
+
     if meeting_point == hare:
         lambda_period = 1
         phase2_steps = 0
@@ -156,12 +149,12 @@ def profile_floyd_phases(
             hare = hare * state_update_matrix
             phase2_steps += 1
         lambda_period = phase2_steps
-    
+
     phase2_end = time.perf_counter()
     metrics["phase2_time"] = phase2_end - phase2_start
     metrics["phase2_steps"] = phase2_steps
     metrics["lambda_period"] = lambda_period
-    
+
     # Enumeration phase
     enum_start = time.perf_counter()
     seq_lst = [start_state]
@@ -169,7 +162,7 @@ def profile_floyd_phases(
     visited_set.add(start_state_tuple)
     next_state = start_state * state_update_matrix
     seq_period = 1
-    
+
     enum_steps = 0
     while next_state != start_state and seq_period < lambda_period:
         seq_lst.append(next_state)
@@ -178,23 +171,23 @@ def profile_floyd_phases(
         seq_period += 1
         next_state = next_state * state_update_matrix
         enum_steps += 1
-    
+
     enum_end = time.perf_counter()
     metrics["enumeration_time"] = enum_end - enum_start
     metrics["enumeration_steps"] = enum_steps
     metrics["sequence_length"] = len(seq_lst)
-    
+
     metrics["total_time"] = (
         metrics["phase1_time"] + metrics["phase2_time"] + metrics["enumeration_time"]
     )
     metrics["period"] = lambda_period
-    
+
     current, peak = tracemalloc.get_traced_memory()
     tracemalloc.stop()
     metrics["peak_memory_bytes"] = peak
     metrics["current_memory_bytes"] = current
     metrics["visited_states"] = len(visited_set)
-    
+
     return metrics
 
 
@@ -208,16 +201,16 @@ def profile_enumeration(
     """
     visited_set.clear()
     tracemalloc.start()
-    
+
     start_time = time.perf_counter()
-    
+
     seq_lst = [start_state]
     start_state_tuple = tuple(start_state)
     visited_set.add(start_state_tuple)
     next_state = start_state * state_update_matrix
     seq_period = 1
     steps = 0
-    
+
     while next_state != start_state:
         seq_lst.append(next_state)
         next_state_tuple = tuple(next_state)
@@ -225,12 +218,12 @@ def profile_enumeration(
         seq_period += 1
         next_state = next_state * state_update_matrix
         steps += 1
-    
+
     end_time = time.perf_counter()
-    
+
     current, peak = tracemalloc.get_traced_memory()
     tracemalloc.stop()
-    
+
     metrics = {
         "total_time": end_time - start_time,
         "period": seq_period,
@@ -240,7 +233,7 @@ def profile_enumeration(
         "current_memory_bytes": current,
         "visited_states": len(visited_set),
     }
-    
+
     return metrics
 
 
@@ -253,24 +246,24 @@ def compare_algorithms(
     """
     Compare Floyd's algorithm vs enumeration on real data.
     """
-    from lfsr.field import validate_gf_order, validate_coefficient_vector
-    
+    from lfsr.field import validate_coefficient_vector, validate_gf_order
+
     gf_order = validate_gf_order(gf_order_str)
     coeffs_list = read_and_validate_csv(input_file, gf_order)
-    
+
     if not coeffs_list:
         print("ERROR: No coefficient vectors found", file=sys.stderr)
         return
-    
+
     # Use first coefficient vector
     coeffs_vector_str = coeffs_list[0]
     validate_coefficient_vector(coeffs_vector_str, gf_order, 1)
     coeffs_vector = [int(c) for c in coeffs_vector_str]
-    
+
     # Build state update matrix
     C, CS = build_state_update_matrix(coeffs_vector, gf_order)
     V = VectorSpace(GF(gf_order), len(coeffs_vector))
-    
+
     print("=" * 80)
     print("PERFORMANCE COMPARISON: Floyd vs Enumeration")
     print("=" * 80)
@@ -281,7 +274,7 @@ def compare_algorithms(
     print(f"Testing on first {num_states} non-zero states")
     print("=" * 80)
     print()
-    
+
     # Collect states to test
     test_states = []
     for state in V:
@@ -289,32 +282,32 @@ def compare_algorithms(
             test_states.append(state)
             if len(test_states) >= num_states:
                 break
-    
+
     floyd_times = []
     enum_times = []
     floyd_metrics_list = []
     enum_metrics_list = []
-    
+
     for i, state in enumerate(test_states, 1):
         print(f"\nState {i}/{len(test_states)}: {state}")
         print("-" * 80)
-        
+
         # Test Floyd
         visited_set_floyd = set()
         floyd_metrics = profile_floyd_phases(state, C, visited_set_floyd)
         floyd_times.append(floyd_metrics["total_time"])
         floyd_metrics_list.append(floyd_metrics)
-        
+
         # Test Enumeration
         visited_set_enum = set()
         enum_metrics = profile_enumeration(state, C, visited_set_enum)
         enum_times.append(enum_metrics["total_time"])
         enum_metrics_list.append(enum_metrics)
-        
+
         # Verify results match
         if floyd_metrics["period"] != enum_metrics["period"]:
             print(f"WARNING: Period mismatch! Floyd={floyd_metrics['period']}, Enum={enum_metrics['period']}")
-        
+
         # Print comparison
         print(f"Period: {enum_metrics['period']}")
         print(f"Floyd total time: {floyd_metrics['total_time']*1000:.3f} ms")
@@ -326,7 +319,7 @@ def compare_algorithms(
         print(f"Floyd peak memory: {floyd_metrics['peak_memory_bytes']/1024:.2f} KB")
         print(f"Enum peak memory: {enum_metrics['peak_memory_bytes']/1024:.2f} KB")
         print(f"Memory ratio: {floyd_metrics['peak_memory_bytes']/enum_metrics['peak_memory_bytes']:.2f}x")
-    
+
     # Summary statistics
     print("\n" + "=" * 80)
     print("SUMMARY STATISTICS")
@@ -335,29 +328,29 @@ def compare_algorithms(
     print(f"Average Enumeration time: {sum(enum_times)/len(enum_times)*1000:.3f} ms")
     print(f"Average speedup: {sum(enum_times)/sum(floyd_times):.2f}x")
     print()
-    
+
     # Analyze space complexity
     print("SPACE COMPLEXITY ANALYSIS")
     print("=" * 80)
     avg_floyd_memory = sum(m["peak_memory_bytes"] for m in floyd_metrics_list) / len(floyd_metrics_list)
     avg_enum_memory = sum(m["peak_memory_bytes"] for m in enum_metrics_list) / len(enum_metrics_list)
     avg_period = sum(m["period"] for m in enum_metrics_list) / len(enum_metrics_list)
-    
+
     print(f"Average period: {avg_period:.1f}")
     print(f"Average Floyd memory: {avg_floyd_memory/1024:.2f} KB")
     print(f"Average Enumeration memory: {avg_enum_memory/1024:.2f} KB")
     print(f"Memory ratio: {avg_floyd_memory/avg_enum_memory:.2f}x")
     print()
-    
+
     # Check if Floyd is O(1) - memory should not grow with period
     print("O(1) SPACE VERIFICATION")
     print("=" * 80)
     print("For O(1) space, Floyd's memory should be constant regardless of period.")
     print("Checking correlation between period and memory usage...")
-    
+
     periods = [m["period"] for m in floyd_metrics_list]
     floyd_memories = [m["peak_memory_bytes"] for m in floyd_metrics_list]
-    
+
     # Simple correlation check
     if len(periods) > 1:
         import statistics
@@ -365,10 +358,10 @@ def compare_algorithms(
         memory_std = statistics.stdev(floyd_memories) if len(floyd_memories) > 1 else 0
         period_mean = statistics.mean(periods)
         memory_mean = statistics.mean(floyd_memories)
-        
+
         print(f"Period range: {min(periods)} - {max(periods)} (std: {period_std:.1f})")
         print(f"Floyd memory range: {min(floyd_memories)/1024:.2f} - {max(floyd_memories)/1024:.2f} KB (std: {memory_std/1024:.2f} KB)")
-        
+
         if period_std > 0 and memory_std / memory_mean < 0.1:
             print("✓ Memory usage appears constant (O(1) space)")
         elif period_std > 0:
@@ -387,25 +380,25 @@ def compare_period_only_algorithms(
     """
     Compare period-only algorithms (Floyd vs enumeration) in period-only mode.
     """
-    from lfsr.field import validate_gf_order, validate_coefficient_vector
-    from lfsr.analysis import _find_period_floyd, _find_period_enumeration
-    
+    from lfsr.analysis import _find_period_enumeration, _find_period_floyd
+    from lfsr.field import validate_coefficient_vector, validate_gf_order
+
     gf_order = validate_gf_order(gf_order_str)
     coeffs_list = read_and_validate_csv(input_file, gf_order)
-    
+
     if not coeffs_list:
         print("ERROR: No coefficient vectors found", file=sys.stderr)
         return
-    
+
     # Use first coefficient vector
     coeffs_vector_str = coeffs_list[0]
     validate_coefficient_vector(coeffs_vector_str, gf_order, 1)
     coeffs_vector = [int(c) for c in coeffs_vector_str]
-    
+
     # Build state update matrix
     C, CS = build_state_update_matrix(coeffs_vector, gf_order)
     V = VectorSpace(GF(gf_order), len(coeffs_vector))
-    
+
     print("=" * 80)
     print("PERFORMANCE COMPARISON: Period-Only Mode (Floyd vs Enumeration)")
     print("=" * 80)
@@ -416,7 +409,7 @@ def compare_period_only_algorithms(
     print(f"Testing on first {num_states} non-zero states")
     print("=" * 80)
     print()
-    
+
     # Collect states to test
     test_states = []
     for state in V:
@@ -424,16 +417,16 @@ def compare_period_only_algorithms(
             test_states.append(state)
             if len(test_states) >= num_states:
                 break
-    
+
     floyd_times = []
     enum_times = []
     floyd_metrics_list = []
     enum_metrics_list = []
-    
+
     for i, state in enumerate(test_states, 1):
         print(f"\nState {i}/{len(test_states)}: {state}")
         print("-" * 80)
-        
+
         # Test Floyd period-only
         tracemalloc.start()
         start_time = time.perf_counter()
@@ -441,7 +434,7 @@ def compare_period_only_algorithms(
         end_time = time.perf_counter()
         current, peak = tracemalloc.get_traced_memory()
         tracemalloc.stop()
-        
+
         floyd_time = end_time - start_time
         floyd_times.append(floyd_time)
         floyd_metrics = {
@@ -451,7 +444,7 @@ def compare_period_only_algorithms(
             "current_memory_bytes": current,
         }
         floyd_metrics_list.append(floyd_metrics)
-        
+
         # Test Enumeration period-only
         tracemalloc.start()
         start_time = time.perf_counter()
@@ -459,7 +452,7 @@ def compare_period_only_algorithms(
         end_time = time.perf_counter()
         current, peak = tracemalloc.get_traced_memory()
         tracemalloc.stop()
-        
+
         enum_time = end_time - start_time
         enum_times.append(enum_time)
         enum_metrics = {
@@ -469,11 +462,11 @@ def compare_period_only_algorithms(
             "current_memory_bytes": current,
         }
         enum_metrics_list.append(enum_metrics)
-        
+
         # Verify results match
         if floyd_period != enum_period:
             print(f"WARNING: Period mismatch! Floyd={floyd_period}, Enum={enum_period}")
-        
+
         # Print comparison
         print(f"Period: {enum_period}")
         print(f"Floyd time: {floyd_time*1000:.3f} ms")
@@ -483,7 +476,7 @@ def compare_period_only_algorithms(
         print(f"Floyd peak memory: {floyd_metrics['peak_memory_bytes']/1024:.2f} KB")
         print(f"Enum peak memory: {enum_metrics['peak_memory_bytes']/1024:.2f} KB")
         print(f"Memory ratio: {floyd_metrics['peak_memory_bytes']/enum_metrics['peak_memory_bytes']:.2f}x")
-    
+
     # Summary statistics
     print("\n" + "=" * 80)
     print("SUMMARY STATISTICS (Period-Only Mode)")
@@ -493,29 +486,29 @@ def compare_period_only_algorithms(
     avg_speedup = sum(enum_times) / sum(floyd_times) if sum(floyd_times) > 0 else float('inf')
     print(f"Average speedup: {avg_speedup:.2f}x")
     print()
-    
+
     # Analyze space complexity
     print("SPACE COMPLEXITY ANALYSIS (Period-Only Mode)")
     print("=" * 80)
     avg_floyd_memory = sum(m["peak_memory_bytes"] for m in floyd_metrics_list) / len(floyd_metrics_list)
     avg_enum_memory = sum(m["peak_memory_bytes"] for m in enum_metrics_list) / len(enum_metrics_list)
     avg_period = sum(m["period"] for m in enum_metrics_list) / len(enum_metrics_list)
-    
+
     print(f"Average period: {avg_period:.1f}")
     print(f"Average Floyd memory: {avg_floyd_memory/1024:.2f} KB")
     print(f"Average Enumeration memory: {avg_enum_memory/1024:.2f} KB")
     print(f"Memory ratio: {avg_floyd_memory/avg_enum_memory:.2f}x")
     print()
-    
+
     # Check if Floyd is O(1) - memory should not grow with period
     print("O(1) SPACE VERIFICATION (Period-Only Mode)")
     print("=" * 80)
     print("For O(1) space, Floyd's memory should be constant regardless of period.")
     print("Checking correlation between period and memory usage...")
-    
+
     periods = [m["period"] for m in floyd_metrics_list]
     floyd_memories = [m["peak_memory_bytes"] for m in floyd_metrics_list]
-    
+
     # Simple correlation check
     if len(periods) > 1:
         import statistics
@@ -523,10 +516,10 @@ def compare_period_only_algorithms(
         memory_std = statistics.stdev(floyd_memories) if len(floyd_memories) > 1 else 0
         period_mean = statistics.mean(periods)
         memory_mean = statistics.mean(floyd_memories)
-        
+
         print(f"Period range: {min(periods)} - {max(periods)} (std: {period_std:.1f})")
         print(f"Floyd memory range: {min(floyd_memories)/1024:.2f} - {max(floyd_memories)/1024:.2f} KB (std: {memory_std/1024:.2f} KB)")
-        
+
         if period_std > 0 and memory_std / memory_mean < 0.1:
             print("✓ Memory usage appears constant (O(1) space) - Floyd working correctly!")
         elif period_std > 0:
@@ -551,7 +544,7 @@ def main():
         help="Compare period-only algorithms (Floyd vs enumeration without sequence storage)"
     )
     args = parser.parse_args()
-    
+
     if args.period_only:
         compare_period_only_algorithms(args.input_file, args.gf_order, args.num_states)
     else:

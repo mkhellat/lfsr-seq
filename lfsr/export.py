@@ -11,7 +11,7 @@ formats: JSON, CSV, and XML.
 import csv
 import json
 from datetime import datetime
-from typing import Any, Dict, List, Optional, TextIO
+from typing import Any, Dict, List, TextIO
 
 from lfsr.sage_imports import *
 
@@ -206,7 +206,6 @@ def export_nist_to_json(
         suite_result: NISTTestSuiteResult object
         output_file: File object to write JSON to
     """
-    from lfsr.nist import NISTTestSuiteResult, NISTTestResult
 
     # Build JSON structure
     result = {
@@ -235,8 +234,8 @@ def export_nist_to_json(
                 "passed": bool(test_result.passed),
                 "statistic": float(test_result.statistic),
                 "details": {
-                    k: (float(v) if isinstance(v, (int, float)) else 
-                        bool(v) if isinstance(v, bool) else 
+                    k: (float(v) if isinstance(v, (int, float)) else
+                        bool(v) if isinstance(v, bool) else
                         str(v) if not isinstance(v, (dict, list)) else v)
                     for k, v in test_result.details.items()
                 } if test_result.details else {},
@@ -443,7 +442,7 @@ def export_nist_to_html(
 <body>
     <div class="container">
         <h1>NIST SP 800-22 Statistical Test Suite Results</h1>
-        
+
         <div class="summary">
             <h2>Summary</h2>
             <div class="summary-item">
@@ -468,7 +467,7 @@ def export_nist_to_html(
                 Overall Assessment: {suite_result.overall_assessment}
             </div>
         </div>
-        
+
         <h2>Individual Test Results</h2>
         <table>
             <thead>
@@ -481,7 +480,7 @@ def export_nist_to_html(
             </thead>
             <tbody>
 """
-    
+
     for test_result in suite_result.results:
         status_class = "pass" if test_result.passed else "fail"
         status_text = "✓ PASS" if test_result.passed else "✗ FAIL"
@@ -492,10 +491,10 @@ def export_nist_to_html(
                     <td>{test_result.statistic:.6f}</td>
                 </tr>
 """
-    
+
     html += f"""            </tbody>
         </table>
-        
+
         <div class="metadata">
             <p><strong>Generated:</strong> {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</p>
             <p><strong>Test Suite:</strong> NIST SP 800-22 Revision 1a</p>
@@ -504,7 +503,7 @@ def export_nist_to_html(
 </body>
 </html>
 """
-    
+
     output_file.write(html)
 
 

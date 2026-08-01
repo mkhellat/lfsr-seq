@@ -8,7 +8,7 @@ This module provides algorithms for synthesizing LFSRs from sequences,
 including the Berlekamp-Massey algorithm and linear complexity calculation.
 """
 
-from typing import Any, List, Optional, Tuple
+from typing import Any, List, Tuple
 
 from lfsr.sage_imports import *
 

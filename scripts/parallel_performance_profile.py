@@ -64,12 +64,12 @@ def measure_sequential(
     algorithm: str = "auto",
 ) -> Tuple[float, Dict[str, Any]]:
     """Measure sequential processing performance."""
-    import io
     import contextlib
-    
+    import io
+
     tracemalloc.start()
     start_time = time.perf_counter()
-    
+
     # Suppress output
     with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
         seq_dict, period_dict, max_period, periods_sum = lfsr_sequence_mapper(
@@ -81,13 +81,13 @@ def measure_sequential(
             algorithm=algorithm,
             period_only=period_only,
         )
-    
+
     end_time = time.perf_counter()
     current, peak = tracemalloc.get_traced_memory()
     tracemalloc.stop()
-    
+
     elapsed = end_time - start_time
-    
+
     stats = {
         'elapsed_time': elapsed,
         'peak_memory_mb': peak / (1024 * 1024),
@@ -96,7 +96,7 @@ def measure_sequential(
         'max_period': max_period,
         'periods_sum': periods_sum,
     }
-    
+
     return elapsed, stats
 
 
@@ -109,12 +109,12 @@ def measure_parallel(
     algorithm: str = "auto",
 ) -> Tuple[float, Dict[str, Any]]:
     """Measure parallel processing performance."""
-    import io
     import contextlib
-    
+    import io
+
     tracemalloc.start()
     start_time = time.perf_counter()
-    
+
     # Suppress output
     with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
         seq_dict, period_dict, max_period, periods_sum = lfsr_sequence_mapper_parallel(
@@ -127,13 +127,13 @@ def measure_parallel(
             period_only=period_only,
             num_workers=num_workers,
         )
-    
+
     end_time = time.perf_counter()
     current, peak = tracemalloc.get_traced_memory()
     tracemalloc.stop()
-    
+
     elapsed = end_time - start_time
-    
+
     stats = {
         'elapsed_time': elapsed,
         'peak_memory_mb': peak / (1024 * 1024),
@@ -143,7 +143,7 @@ def measure_parallel(
         'periods_sum': periods_sum,
         'num_workers': num_workers,
     }
-    
+
     return elapsed, stats
 
 
@@ -153,25 +153,25 @@ def verify_correctness(
 ) -> Tuple[bool, List[str]]:
     """Verify that sequential and parallel results match."""
     errors = []
-    
+
     if seq_stats['num_sequences'] != par_stats['num_sequences']:
         errors.append(
             f"Sequence count mismatch: sequential={seq_stats['num_sequences']}, "
             f"parallel={par_stats['num_sequences']}"
         )
-    
+
     if seq_stats['max_period'] != par_stats['max_period']:
         errors.append(
             f"Max period mismatch: sequential={seq_stats['max_period']}, "
             f"parallel={par_stats['max_period']}"
         )
-    
+
     if seq_stats['periods_sum'] != par_stats['periods_sum']:
         errors.append(
             f"Period sum mismatch: sequential={seq_stats['periods_sum']}, "
             f"parallel={par_stats['periods_sum']}"
         )
-    
+
     return len(errors) == 0, errors
 
 
@@ -186,59 +186,59 @@ def benchmark_configuration(
     print(f"\n{'='*70}")
     print(f"Benchmarking: {num_workers} worker(s), period_only={period_only}")
     print(f"{'='*70}")
-    
+
     # Read input
     coeffs_list = read_and_validate_csv(input_file, gf_order)
     if not coeffs_list:
         print("ERROR: No valid coefficient vectors found")
         return {}
-    
+
     coeffs = coeffs_list[0]
     d = len(coeffs)
     state_space_size = int(gf_order) ** d
-    
-    print(f"LFSR Configuration:")
+
+    print("LFSR Configuration:")
     print(f"  Coefficients: {coeffs}")
     print(f"  Degree: {d}")
     print(f"  Field Order: {gf_order}")
     print(f"  State Space Size: {state_space_size:,}")
     print(f"  Number of Runs: {num_runs}")
-    
+
     # Build matrix and vector space
     C, CS = build_state_update_matrix(coeffs, gf_order)
     V = VectorSpace(GF(gf_order), d)
-    
+
     # Sequential runs
     print(f"\n{'─'*70}")
     print("Sequential Processing:")
     print(f"{'─'*70}")
     seq_times = []
     seq_stats_list = []
-    
+
     for run in range(num_runs):
         print(f"  Run {run+1}/{num_runs}...", end=' ', flush=True)
         elapsed, stats = measure_sequential(C, V, gf_order, period_only=period_only)
         seq_times.append(elapsed)
         seq_stats_list.append(stats)
         print(f"{elapsed:.3f}s")
-    
+
     seq_mean = statistics.mean(seq_times)
     seq_std = statistics.stdev(seq_times) if len(seq_times) > 1 else 0.0
     seq_stats = seq_stats_list[0]  # Use first run's stats
-    
+
     print(f"\n  Mean Time: {seq_mean:.3f}s ± {seq_std:.3f}s")
     print(f"  Peak Memory: {seq_stats['peak_memory_mb']:.2f} MB")
     print(f"  Sequences: {seq_stats['num_sequences']}")
     print(f"  Max Period: {seq_stats['max_period']}")
     print(f"  Period Sum: {seq_stats['periods_sum']}")
-    
+
     # Parallel runs
     print(f"\n{'─'*70}")
     print(f"Parallel Processing ({num_workers} workers):")
     print(f"{'─'*70}")
     par_times = []
     par_stats_list = []
-    
+
     for run in range(num_runs):
         print(f"  Run {run+1}/{num_runs}...", end=' ', flush=True)
         elapsed, stats = measure_parallel(
@@ -247,34 +247,34 @@ def benchmark_configuration(
         par_times.append(elapsed)
         par_stats_list.append(stats)
         print(f"{elapsed:.3f}s")
-    
+
     par_mean = statistics.mean(par_times)
     par_std = statistics.stdev(par_times) if len(par_times) > 1 else 0.0
     par_stats = par_stats_list[0]  # Use first run's stats
-    
+
     print(f"\n  Mean Time: {par_mean:.3f}s ± {par_std:.3f}s")
     print(f"  Peak Memory: {par_stats['peak_memory_mb']:.2f} MB")
     print(f"  Sequences: {par_stats['num_sequences']}")
     print(f"  Max Period: {par_stats['max_period']}")
     print(f"  Period Sum: {par_stats['periods_sum']}")
-    
+
     # Verify correctness
     print(f"\n{'─'*70}")
     print("Correctness Verification:")
     print(f"{'─'*70}")
     is_correct, errors = verify_correctness(seq_stats, par_stats)
-    
+
     if is_correct:
         print("  ✓ Results match between sequential and parallel")
     else:
         print("  ✗ ERRORS DETECTED:")
         for error in errors:
             print(f"    - {error}")
-    
+
     # Calculate speedup
     speedup = seq_mean / par_mean if par_mean > 0 else 0.0
     efficiency = speedup / num_workers if num_workers > 0 else 0.0
-    
+
     print(f"\n{'─'*70}")
     print("Performance Summary:")
     print(f"{'─'*70}")
@@ -283,7 +283,7 @@ def benchmark_configuration(
     print(f"  Speedup:         {speedup:.2f}x")
     print(f"  Efficiency:      {efficiency:.2%} ({efficiency * 100:.1f}% of theoretical max)")
     print(f"  Overhead:         {((par_mean * num_workers) / seq_mean - 1) * 100:.1f}%")
-    
+
     return {
         'state_space_size': state_space_size,
         'num_workers': num_workers,
@@ -317,37 +317,37 @@ def profile_with_cprofile(
     print(f"\n{'='*70}")
     print("Profiling Parallel Processing (cProfile)")
     print(f"{'='*70}")
-    
+
     # Read input
     coeffs_list = read_and_validate_csv(input_file, gf_order)
     if not coeffs_list:
         print("ERROR: No valid coefficient vectors found")
         return
-    
+
     coeffs = coeffs_list[0]
     d = len(coeffs)
-    
+
     # Build matrix and vector space
     C, CS = build_state_update_matrix(coeffs, gf_order)
     V = VectorSpace(GF(gf_order), d)
-    
+
     # Profile parallel processing
     profiler = cProfile.Profile()
     profiler.enable()
-    
+
     seq_dict, period_dict, max_period, periods_sum = lfsr_sequence_mapper_parallel(
         C, V, gf_order, output_file=None, no_progress=True,
         algorithm="auto", period_only=period_only, num_workers=num_workers
     )
-    
+
     profiler.disable()
-    
+
     # Print statistics
     stream = io.StringIO()
     stats = pstats.Stats(profiler, stream=stream)
     stats.sort_stats('cumulative')
     stats.print_stats(30)  # Top 30 functions
-    
+
     print(stream.getvalue())
 
 
@@ -381,24 +381,24 @@ def main():
         "--all-workers", action="store_true",
         help="Test all worker counts from 1 to CPU count"
     )
-    
+
     args = parser.parse_args()
-    
+
     period_only = args.period_only and not args.full_sequence
-    
+
     if args.profile:
         # Profile with first worker count
         num_workers = args.workers[0] if args.workers else 2
         profile_with_cprofile(args.input_file, args.gf_order, num_workers, period_only)
         return
-    
+
     # Determine worker counts to test
     if args.all_workers:
         cpu_count = multiprocessing.cpu_count()
         worker_counts = list(range(1, cpu_count + 1))
     else:
         worker_counts = args.workers
-    
+
     print(f"\n{'='*70}")
     print("Parallel LFSR State Enumeration Performance Profiling")
     print(f"{'='*70}")
@@ -408,7 +408,7 @@ def main():
     print(f"Worker Counts: {worker_counts}")
     print(f"Runs per Configuration: {args.runs}")
     print(f"CPU Cores Available: {multiprocessing.cpu_count()}")
-    
+
     # Run benchmarks
     results = []
     for num_workers in worker_counts:
@@ -421,7 +421,7 @@ def main():
         )
         if result:
             results.append(result)
-    
+
     # Summary table
     if results:
         print(f"\n{'='*70}")
@@ -430,14 +430,14 @@ def main():
         print(f"{'Workers':<10} {'Seq Time (s)':<15} {'Par Time (s)':<15} "
               f"{'Speedup':<10} {'Efficiency':<12} {'Correct':<10}")
         print(f"{'-'*70}")
-        
+
         for result in results:
             seq_time = result['sequential']['mean_time']
             par_time = result['parallel']['mean_time']
             speedup = result['speedup']
             efficiency = result['efficiency']
             correct = "✓" if result['correctness'] else "✗"
-            
+
             print(f"{result['num_workers']:<10} "
                   f"{seq_time:<15.3f} {par_time:<15.3f} "
                   f"{speedup:<10.2f} {efficiency:<12.1%} {correct:<10}")

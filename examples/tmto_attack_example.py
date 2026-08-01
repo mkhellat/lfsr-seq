@@ -10,8 +10,8 @@ Example Usage:
     python3 examples/tmto_attack_example.py
 """
 
-import sys
 import os
+import sys
 import time
 
 # Add parent directory to path
@@ -25,12 +25,7 @@ except ImportError:
     sys.exit(1)
 
 from lfsr.attacks import LFSRConfig
-from lfsr.tmto import (
-    HellmanTable,
-    RainbowTable,
-    tmto_attack,
-    optimize_tmto_parameters
-)
+from lfsr.tmto import HellmanTable, RainbowTable, optimize_tmto_parameters, tmto_attack
 
 
 def example_hellman_table():
@@ -38,46 +33,46 @@ def example_hellman_table():
     print("=" * 70)
     print("Example 1: Hellman Table")
     print("=" * 70)
-    
+
     # Create LFSR configuration
     lfsr = LFSRConfig(
         coefficients=[1, 0, 0, 1],
         field_order=2,
         degree=4
     )
-    
-    print(f"\nLFSR Configuration:")
+
+    print("\nLFSR Configuration:")
     print(f"  Coefficients: {lfsr.coefficients}")
     print(f"  Degree: {lfsr.degree}")
     print(f"  State space size: {lfsr.field_order ** lfsr.degree}")
-    
+
     # Create Hellman table
-    print(f"\nGenerating Hellman table...")
-    print(f"  Chain count: 100")
-    print(f"  Chain length: 50")
-    
+    print("\nGenerating Hellman table...")
+    print("  Chain count: 100")
+    print("  Chain length: 50")
+
     table = HellmanTable(chain_count=100, chain_length=50)
     start_time = time.perf_counter()
     table.generate(lfsr)
     generation_time = time.perf_counter() - start_time
-    
+
     print(f"  ✓ Table generated in {generation_time:.2f} seconds")
     print(f"  Chains created: {len(table.chains)}")
-    
+
     # Test lookup
     target_state = [1, 0, 1, 1]
     print(f"\nLooking up target state: {target_state}")
-    
+
     lookup_start = time.perf_counter()
     recovered = table.lookup(target_state, lfsr)
     lookup_time = time.perf_counter() - lookup_start
-    
+
     if recovered:
         print(f"  ✓ State recovered: {recovered}")
         print(f"  Lookup time: {lookup_time:.4f} seconds")
     else:
-        print(f"  ✗ State not found in table")
-        print(f"    (May need larger table or different target)")
+        print("  ✗ State not found in table")
+        print("    (May need larger table or different target)")
 
 
 def example_rainbow_table():
@@ -85,31 +80,31 @@ def example_rainbow_table():
     print("\n" + "=" * 70)
     print("Example 2: Rainbow Table")
     print("=" * 70)
-    
+
     lfsr = LFSRConfig(coefficients=[1, 0, 0, 1], field_order=2, degree=4)
-    
-    print(f"\nGenerating Rainbow table...")
-    print(f"  Chain count: 100")
-    print(f"  Chain length: 50")
-    
+
+    print("\nGenerating Rainbow table...")
+    print("  Chain count: 100")
+    print("  Chain length: 50")
+
     table = RainbowTable(chain_count=100, chain_length=50)
     start_time = time.perf_counter()
     table.generate(lfsr)
     generation_time = time.perf_counter() - start_time
-    
+
     print(f"  ✓ Table generated in {generation_time:.2f} seconds")
     print(f"  Chains created: {len(table.chains)}")
     print(f"  Reduction functions: {len(table.reduction_functions)}")
-    
+
     # Test lookup
     target_state = [1, 0, 1, 1]
     print(f"\nLooking up target state: {target_state}")
-    
+
     recovered = table.lookup(target_state, lfsr)
     if recovered:
         print(f"  ✓ State recovered: {recovered}")
     else:
-        print(f"  ✗ State not found in table")
+        print("  ✗ State not found in table")
 
 
 def example_tmto_attack():
@@ -117,11 +112,11 @@ def example_tmto_attack():
     print("\n" + "=" * 70)
     print("Example 3: TMTO Attack Function")
     print("=" * 70)
-    
+
     lfsr = LFSRConfig(coefficients=[1, 0, 0, 1], field_order=2, degree=4)
     target_state = [1, 0, 1, 1]
-    
-    print(f"\nPerforming Hellman table attack...")
+
+    print("\nPerforming Hellman table attack...")
     result = tmto_attack(
         lfsr_config=lfsr,
         target_state=target_state,
@@ -129,7 +124,7 @@ def example_tmto_attack():
         chain_count=100,
         chain_length=50
     )
-    
+
     print(f"\n{'─'*70}")
     print("Attack Results:")
     print(f"{'─'*70}")
@@ -148,20 +143,20 @@ def example_parameter_optimization():
     print("\n" + "=" * 70)
     print("Example 4: Parameter Optimization")
     print("=" * 70)
-    
+
     state_space_size = 16  # 2^4 for degree 4 LFSR
     available_memory = 10000
-    
-    print(f"\nOptimizing parameters:")
+
+    print("\nOptimizing parameters:")
     print(f"  State space size: {state_space_size}")
     print(f"  Available memory: {available_memory} states")
-    
+
     params = optimize_tmto_parameters(
         state_space_size=state_space_size,
         available_memory=available_memory,
         target_success_probability=0.5
     )
-    
+
     print(f"\n{'─'*70}")
     print("Optimal Parameters:")
     print(f"{'─'*70}")
@@ -177,19 +172,19 @@ def example_comparison():
     print("\n" + "=" * 70)
     print("Example 5: Hellman vs Rainbow Comparison")
     print("=" * 70)
-    
+
     lfsr = LFSRConfig(coefficients=[1, 0, 0, 1], field_order=2, degree=4)
     target_state = [1, 0, 1, 1]
-    
+
     chain_count = 100
     chain_length = 50
-    
-    print(f"\nComparing methods with same parameters:")
+
+    print("\nComparing methods with same parameters:")
     print(f"  Chain count: {chain_count}")
     print(f"  Chain length: {chain_length}")
-    
+
     # Hellman
-    print(f"\n1. Hellman Table:")
+    print("\n1. Hellman Table:")
     hellman_result = tmto_attack(
         lfsr_config=lfsr,
         target_state=target_state,
@@ -200,9 +195,9 @@ def example_comparison():
     print(f"   Success: {hellman_result.attack_successful}")
     print(f"   Coverage: {hellman_result.coverage:.2%}")
     print(f"   Precomputation: {hellman_result.precomputation_time:.2f}s")
-    
+
     # Rainbow
-    print(f"\n2. Rainbow Table:")
+    print("\n2. Rainbow Table:")
     rainbow_result = tmto_attack(
         lfsr_config=lfsr,
         target_state=target_state,
@@ -213,9 +208,9 @@ def example_comparison():
     print(f"   Success: {rainbow_result.attack_successful}")
     print(f"   Coverage: {rainbow_result.coverage:.2%}")
     print(f"   Precomputation: {rainbow_result.precomputation_time:.2f}s")
-    
-    print(f"\nNote: Rainbow tables typically have fewer collisions and")
-    print(f"      better coverage for the same memory usage.")
+
+    print("\nNote: Rainbow tables typically have fewer collisions and")
+    print("      better coverage for the same memory usage.")
 
 
 def main():
@@ -224,14 +219,14 @@ def main():
     print("Time-Memory Trade-Off Attacks Examples")
     print("=" * 70)
     print("\nThis script demonstrates TMTO attacks on LFSRs.\n")
-    
+
     try:
         example_hellman_table()
         example_rainbow_table()
         example_tmto_attack()
         example_parameter_optimization()
         example_comparison()
-        
+
         print("\n" + "=" * 70)
         print("Examples Complete!")
         print("=" * 70)
@@ -239,7 +234,7 @@ def main():
         print("  - TMTO Attacks Guide: docs/time_memory_tradeoff.rst")
         print("  - API Documentation: docs/api/tmto.rst")
         print("  - Mathematical Background: docs/mathematical_background.rst")
-        
+
     except Exception as e:
         print(f"\nERROR: {e}", file=sys.stderr)
         import traceback

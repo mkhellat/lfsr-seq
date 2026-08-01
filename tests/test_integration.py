@@ -8,10 +8,8 @@ Tests the complete workflow from CSV input to analysis output.
 """
 
 import io
-import os
+
 import pytest
-import tempfile
-from pathlib import Path
 
 # Import SageMath - will be skipped if not available via conftest
 try:
@@ -19,8 +17,8 @@ try:
 except ImportError:
     pytest.skip("SageMath not available", allow_module_level=True)
 
-from lfsr.cli import main
 from lfsr.analysis import lfsr_sequence_mapper
+from lfsr.cli import main
 from lfsr.core import build_state_update_matrix, compute_matrix_order
 
 

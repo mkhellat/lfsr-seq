@@ -22,7 +22,7 @@ class TestPeriodDistribution:
         """Test basic period distribution computation."""
         period_dict = {1: 15, 2: 15, 3: 15}
         stats = compute_period_distribution(period_dict, 2, 4, False)
-        
+
         assert "error" not in stats
         assert stats["total_sequences"] == 3
         assert stats["min_period"] == 15
@@ -35,7 +35,7 @@ class TestPeriodDistribution:
         # For primitive polynomial, all non-zero states should have max period
         period_dict = {1: 15, 2: 15, 3: 15}
         stats = compute_period_distribution(period_dict, 2, 4, True)
-        
+
         assert stats["comparison"]["max_period_equals_theoretical"] is True
         assert stats["comparison"]["max_period_ratio"] == 1.0
         assert stats["theoretical_bounds"]["max_theoretical_period"] == 15
@@ -45,7 +45,7 @@ class TestPeriodDistribution:
         """Test period distribution with varying periods."""
         period_dict = {1: 1, 2: 3, 3: 5, 4: 7, 5: 15}
         stats = compute_period_distribution(period_dict, 2, 4, False)
-        
+
         assert stats["total_sequences"] == 5
         assert stats["min_period"] == 1
         assert stats["max_period"] == 15
@@ -57,7 +57,7 @@ class TestPeriodDistribution:
         """Test period frequency histogram."""
         period_dict = {1: 15, 2: 15, 3: 3, 4: 3, 5: 1}
         stats = compute_period_distribution(period_dict, 2, 4, False)
-        
+
         freq = stats["period_frequency"]
         assert freq[15] == 2
         assert freq[3] == 2
@@ -73,7 +73,7 @@ class TestPeriodDistribution:
         """Test theoretical bounds computation."""
         period_dict = {1: 7, 2: 7, 3: 1}
         stats = compute_period_distribution(period_dict, 2, 3, False)
-        
+
         theo = stats["theoretical_bounds"]
         assert theo["max_theoretical_period"] == 7  # 2^3 - 1
         assert theo["state_space_size"] == 8  # 2^3
@@ -83,7 +83,7 @@ class TestPeriodDistribution:
         """Test comparison with theoretical bounds."""
         period_dict = {1: 15, 2: 15}
         stats = compute_period_distribution(period_dict, 2, 4, False)
-        
+
         comp = stats["comparison"]
         assert "max_period_equals_theoretical" in comp
         assert "max_period_ratio" in comp
@@ -94,6 +94,6 @@ class TestPeriodDistribution:
         # For primitive polynomial, all periods should be maximum
         period_dict = {1: 15, 2: 15, 3: 15, 4: 15}
         stats = compute_period_distribution(period_dict, 2, 4, True)
-        
+
         assert stats["comparison"].get("all_periods_maximum", False) is True
         assert stats["comparison"].get("expected_period") == 15

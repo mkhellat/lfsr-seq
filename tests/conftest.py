@@ -7,8 +7,8 @@ Pytest configuration and fixtures for LFSR test suite.
 This module provides shared fixtures and handles SageMath availability checks.
 """
 
+
 import pytest
-import sys
 
 # Try to import SageMath - if it fails, mark all tests to skip
 try:

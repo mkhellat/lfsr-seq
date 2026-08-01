@@ -9,12 +9,11 @@ MEMORY LIMIT: 4GB
 EMERGENCY SHUTDOWN: Enabled
 """
 
-import sys
 import os
-import time
 import resource
 import signal
 import subprocess
+import sys
 from pathlib import Path
 
 # Memory limit: 4GB
@@ -55,11 +54,11 @@ def run_test_with_memory_limit(test_script, timeout=120):
     print(f"{'='*80}")
     print(f"Memory limit: {MAX_MEMORY_MB}MB")
     print(f"Timeout: {timeout}s")
-    print(f"Emergency shutdown: Enabled")
-    
+    print("Emergency shutdown: Enabled")
+
     # Set memory limit using ulimit (if available)
     env = os.environ.copy()
-    
+
     # Run test with timeout and memory monitoring
     try:
         # Use timeout command for additional safety
@@ -84,7 +83,7 @@ def main():
     """Run memory-safe tests."""
     # Set up emergency signal handlers
     signal.signal(signal.SIGUSR1, memory_check_handler)
-    
+
     # Set memory limit (soft limit)
     try:
         # Set soft memory limit (4GB)
@@ -92,40 +91,40 @@ def main():
         print(f"✓ Memory limit set to {MAX_MEMORY_MB}MB")
     except (ValueError, OSError) as e:
         print(f"Warning: Could not set memory limit: {e}", file=sys.stderr)
-    
+
     print("="*80)
     print("MEMORY-SAFE TEST RUNNER")
     print("="*80)
     print(f"Memory limit: {MAX_MEMORY_MB}MB")
     print(f"Memory monitoring: Every {MEMORY_CHECK_INTERVAL}s")
-    print(f"Emergency shutdown: Enabled")
-    
+    print("Emergency shutdown: Enabled")
+
     # Test scripts to run (with timeouts)
     test_scripts = [
         ("scripts/test_lazy_generation_correctness.py", 60),   # Small test
         ("scripts/test_work_stealing_correctness.py", 90),    # Medium test
         ("scripts/test_hybrid_mode_correctness.py", 120),      # Larger test
     ]
-    
+
     results = []
     for test_script, timeout in test_scripts:
         if not Path(test_script).exists():
             print(f"⚠️  Skipping {test_script} (not found)")
             continue
-        
+
         initial_memory = check_memory()
         print(f"\nInitial memory: {initial_memory:.1f}MB")
-        
+
         success = run_test_with_memory_limit(test_script, timeout)
         results.append((test_script, success))
-        
+
         final_memory = check_memory()
         print(f"Final memory: {final_memory:.1f}MB (delta: {final_memory - initial_memory:.1f}MB)")
-        
+
         if _shutdown_requested:
             print("\n⚠️  Emergency shutdown requested, stopping tests")
             break
-    
+
     # Summary
     print(f"\n{'='*80}")
     print("TEST SUMMARY")
@@ -133,7 +132,7 @@ def main():
     for test_script, success in results:
         status = "✓ PASSED" if success else "✗ FAILED"
         print(f"{status}: {test_script}")
-    
+
     all_passed = all(success for _, success in results)
     if not all_passed:
         sys.exit(1)

@@ -34,56 +34,51 @@ Grain is considered secure:
 
 from typing import List, Optional
 
-from lfsr.sage_imports import *
-
 from lfsr.attacks import LFSRConfig
-from lfsr.ciphers.base import (
-    StreamCipher,
-    CipherConfig,
-    CipherStructure
-)
+from lfsr.ciphers.base import CipherConfig, CipherStructure, StreamCipher
+from lfsr.sage_imports import *
 
 
 class Grain128(StreamCipher):
     """
     Grain-128 stream cipher implementation.
-    
+
     Grain-128 uses one LFSR and one NFSR with a filter function for
     non-linear combining.
-    
+
     **Cipher Structure**:
-    
+
     - **LFSR**: 128 bits (linear feedback)
     - **NFSR**: 128 bits (non-linear feedback)
     - **Filter Function**: Non-linear function combining outputs
     - **Total State**: 256 bits
-    
+
     **Key and IV**:
-    
+
     - **Key Size**: 128 bits
     - **IV Size**: 96 bits
     - **Total State**: 256 bits
-    
+
     **Example Usage**:
-    
+
         >>> from lfsr.ciphers.grain import Grain128
         >>> cipher = Grain128()
         >>> key = [1] * 128
         >>> iv = [0] * 96
         >>> keystream = cipher.generate_keystream(key, iv, 100)
     """
-    
+
     LFSR_SIZE = 128
     NFSR_SIZE = 128
     TOTAL_SIZE = 256
-    
+
     WARMUP_STEPS = 256
-    
+
     def __init__(self):
         """Initialize Grain-128 cipher."""
         self.lfsr_state = None
         self.nfsr_state = None
-    
+
     def get_config(self) -> CipherConfig:
         """Get Grain-128 cipher configuration."""
         return CipherConfig(
@@ -98,7 +93,7 @@ class Grain128(StreamCipher):
                 'warmup_steps': self.WARMUP_STEPS
             }
         )
-    
+
     def _clock_lfsr(self) -> int:
         """Clock LFSR and return feedback."""
         # LFSR feedback (linear)
@@ -107,7 +102,7 @@ class Grain128(StreamCipher):
                    self.lfsr_state[81] ^ self.lfsr_state[96])
         self.lfsr_state = [feedback] + self.lfsr_state[:-1]
         return feedback
-    
+
     def _clock_nfsr(self) -> int:
         """Clock NFSR and return feedback."""
         # NFSR feedback (non-linear)
@@ -123,7 +118,7 @@ class Grain128(StreamCipher):
                    (self.nfsr_state[68] & self.nfsr_state[84]))
         self.nfsr_state = [feedback] + self.nfsr_state[:-1]
         return feedback
-    
+
     def _filter_function(self) -> int:
         """Compute filter function output."""
         # Filter function (non-linear)
@@ -133,7 +128,7 @@ class Grain128(StreamCipher):
             (self.lfsr_state[60] & self.lfsr_state[79]) ^ \
             (self.nfsr_state[12] & self.nfsr_state[95] & self.lfsr_state[95])
         return h
-    
+
     def _get_output_bit(self) -> int:
         """Get output bit from Grain-128."""
         # Output is XOR of NFSR bits and filter function
@@ -142,30 +137,30 @@ class Grain128(StreamCipher):
                  self.nfsr_state[64] ^ self.nfsr_state[73] ^
                  self.nfsr_state[89] ^ self._filter_function())
         return output
-    
+
     def _initialize(self, key: List[int], iv: Optional[List[int]]):
         """Initialize Grain-128 with key and IV."""
         if len(key) != 128:
             raise ValueError(f"Grain-128 requires 128-bit key, got {len(key)} bits")
-        
+
         if iv is None:
             iv = [0] * 96
         elif len(iv) != 96:
             raise ValueError(f"Grain-128 requires 96-bit IV, got {len(iv)} bits")
-        
+
         # Initialize NFSR with key
         self.nfsr_state = key[:]
-        
+
         # Initialize LFSR with IV + padding
         self.lfsr_state = iv + [1] * 32  # 96 + 32 = 128
-        
+
         # Warm-up phase
         for _ in range(self.WARMUP_STEPS):
             output = self._get_output_bit()
             self._clock_lfsr()
             self._clock_nfsr()
             # Use output in feedback (simplified)
-    
+
     def generate_keystream(
         self,
         key: List[int],
@@ -174,26 +169,26 @@ class Grain128(StreamCipher):
     ) -> List[int]:
         """
         Generate Grain-128 keystream.
-        
+
         Args:
             key: 128-bit secret key
             iv: 96-bit initialization vector, or None
             length: Desired keystream length in bits
-        
+
         Returns:
             List of keystream bits
         """
         self._initialize(key, iv)
-        
+
         keystream = []
         for _ in range(length):
             output = self._get_output_bit()
             keystream.append(output)
             self._clock_lfsr()
             self._clock_nfsr()
-        
+
         return keystream
-    
+
     def analyze_structure(self) -> CipherStructure:
         """Analyze Grain-128 cipher structure."""
         # LFSR configuration
@@ -204,9 +199,9 @@ class Grain128(StreamCipher):
         lfsr_coeffs[70] = 1
         lfsr_coeffs[81] = 1
         lfsr_coeffs[96] = 1
-        
+
         lfsr_config = LFSRConfig(coefficients=lfsr_coeffs, field_order=2, degree=128)
-        
+
         return CipherStructure(
             lfsr_configs=[lfsr_config],
             clock_control="Both LFSR and NFSR clock every step",
@@ -220,7 +215,7 @@ class Grain128(StreamCipher):
                 'note': 'Grain uses one LFSR and one NFSR with non-linear filter function'
             }
         )
-    
+
     def apply_attacks(
         self,
         keystream: List[int],
@@ -237,11 +232,11 @@ class Grain128(StreamCipher):
 class Grain128a(Grain128):
     """
     Grain-128a stream cipher implementation.
-    
+
     Grain-128a extends Grain-128 with authenticated encryption capabilities.
     The structure is similar to Grain-128 but includes authentication.
     """
-    
+
     def get_config(self) -> CipherConfig:
         """Get Grain-128a cipher configuration."""
         return CipherConfig(

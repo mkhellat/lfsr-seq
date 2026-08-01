@@ -9,12 +9,10 @@ results through seed tracking, configuration export, and environment capture.
 """
 
 import json
-import os
 import platform
 import sys
 from datetime import datetime
-from typing import Any, Dict, List, Optional, TextIO
-from pathlib import Path
+from typing import Any, Dict, Optional, TextIO
 
 try:
     import pkg_resources
@@ -26,20 +24,20 @@ except ImportError:
 def generate_seed() -> int:
     """
     Generate a random seed for reproducibility.
-    
+
     This function generates a seed that can be used to ensure reproducible
     random number generation in analysis.
-    
+
     **Key Terminology**:
-    
+
     - **Random Seed**: A value used to initialize a random number generator,
       ensuring that the same seed produces the same sequence of random numbers.
       This enables reproducibility of results that depend on randomness.
-    
+
     - **Reproducibility**: The ability to reproduce research results using
       the same methods, data, and parameters. This is essential for scientific
       validity and verification.
-    
+
     Returns:
         Random seed value
     """
@@ -50,19 +48,19 @@ def generate_seed() -> int:
 def capture_environment() -> Dict[str, Any]:
     """
     Capture environment information for reproducibility.
-    
+
     This function captures system and software environment information
     needed to reproduce analysis results.
-    
+
     **Key Terminology**:
-    
+
     - **Environment Capture**: Recording information about the computing
       environment, including operating system, Python version, and package
       versions. This enables others to reproduce results in similar environments.
-    
+
     - **Dependency Tracking**: Recording versions of software dependencies
       to ensure compatibility and reproducibility.
-    
+
     Returns:
         Dictionary with environment information
     """
@@ -82,7 +80,7 @@ def capture_environment() -> Dict[str, Any]:
         },
         'packages': {}
     }
-    
+
     # Capture package versions
     if HAS_PKG_RESOURCES:
         try:
@@ -95,7 +93,7 @@ def capture_environment() -> Dict[str, Any]:
                     pass
         except Exception:
             pass
-    
+
     return env
 
 
@@ -105,24 +103,24 @@ def export_configuration(
 ) -> str:
     """
     Export analysis configuration for reproducibility.
-    
+
     This function exports the complete configuration used for analysis,
     enabling others to reproduce the exact same analysis.
-    
+
     **Key Terminology**:
-    
+
     - **Configuration Export**: Saving all parameters and settings used
       in an analysis, including input data, method choices, and options.
       This is essential for reproducibility.
-    
+
     - **Reproducibility Report**: A document containing all information
       needed to reproduce research results, including configuration,
       environment, and execution parameters.
-    
+
     Args:
         analysis_config: Dictionary with analysis configuration
         output_file: Optional file to write configuration to
-    
+
     Returns:
         JSON string with configuration
     """
@@ -131,13 +129,13 @@ def export_configuration(
         'environment': capture_environment(),
         'export_timestamp': datetime.now().isoformat()
     }
-    
+
     config_json = json.dumps(config, indent=2, ensure_ascii=False)
-    
+
     if output_file:
         output_file.write(config_json)
         output_file.write("\n")
-    
+
     return config_json
 
 
@@ -149,12 +147,12 @@ def generate_reproducibility_report(
 ) -> str:
     """
     Generate comprehensive reproducibility report.
-    
+
     This function generates a complete reproducibility report containing
     all information needed to reproduce the analysis.
-    
+
     **Key Terminology**:
-    
+
     - **Reproducibility Report**: A comprehensive document containing
       all information needed to reproduce research results, including:
       - Configuration and parameters
@@ -162,17 +160,17 @@ def generate_reproducibility_report(
       - Input data
       - Execution details
       - Results summary
-    
+
     - **Scientific Reproducibility**: The ability of other researchers
       to reproduce published results using the same methods and data.
       This is a fundamental requirement for scientific validity.
-    
+
     Args:
         analysis_results: Dictionary with analysis results
         analysis_config: Dictionary with analysis configuration
         seed: Optional random seed used
         output_file: Optional file to write report to
-    
+
     Returns:
         Reproducibility report as string
     """
@@ -196,13 +194,13 @@ def generate_reproducibility_report(
             'step5': 'Compare results with results_summary section'
         }
     }
-    
+
     report_json = json.dumps(report, indent=2, ensure_ascii=False)
-    
+
     if output_file:
         output_file.write(report_json)
         output_file.write("\n")
-    
+
     return report_json
 
 
@@ -214,9 +212,9 @@ def save_reproducibility_report(
 ) -> None:
     """
     Save reproducibility report to file.
-    
+
     Convenience function to save reproducibility report directly to a file.
-    
+
     Args:
         analysis_results: Dictionary with analysis results
         analysis_config: Dictionary with analysis configuration

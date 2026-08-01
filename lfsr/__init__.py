@@ -42,6 +42,7 @@ from lfsr.constants import (
 from lfsr.formatter import dump, dump_seq_row, intro, section, subsection
 from lfsr.io import read_and_validate_csv, validate_csv_file
 
+
 # Sage-dependent imports are lazy-loaded to avoid requiring sage for --help
 # These will be imported on first access via __getattr__
 def __getattr__(name: str):

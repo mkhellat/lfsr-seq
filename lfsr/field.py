@@ -10,9 +10,8 @@ finite fields (Galois fields) used in LFSR analysis.
 
 import sys
 
-from lfsr.sage_imports import *
-
 from lfsr.constants import MAX_PRIME_POWER_LIMIT, MIN_GF_ORDER
+from lfsr.sage_imports import *
 
 
 def validate_gf_order(gf_order_str: str) -> int:

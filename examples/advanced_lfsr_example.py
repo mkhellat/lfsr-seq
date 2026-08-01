@@ -16,8 +16,8 @@ Example Usage:
     python3 examples/advanced_lfsr_example.py
 """
 
-import sys
 import os
+import sys
 
 # Add parent directory to path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -29,19 +29,15 @@ except ImportError:
     print("ERROR: SageMath is required for this example", file=sys.stderr)
     sys.exit(1)
 
-from lfsr.attacks import LFSRConfig
 from lfsr.advanced import (
-    NFSR,
-    FilteredLFSR,
-    ClockControlledLFSR,
-    MultiOutputLFSR,
     IrregularClockingLFSR,
-    create_simple_nfsr,
     create_simple_filtered_lfsr,
-    create_stop_and_go_lfsr,
     create_simple_multi_output_lfsr,
-    create_step_1_step_2_pattern
+    create_simple_nfsr,
+    create_step_1_step_2_pattern,
+    create_stop_and_go_lfsr,
 )
+from lfsr.attacks import LFSRConfig
 
 
 def example_nfsr():
@@ -50,22 +46,22 @@ def example_nfsr():
     print("Example 1: NFSR (Non-Linear Feedback Shift Register)")
     print("=" * 70)
     print("\n⚠️  IMPORTANT: NFSR is NOT an LFSR (non-linear feedback)\n")
-    
+
     base_lfsr = LFSRConfig(coefficients=[1, 0, 0, 1], field_order=2, degree=4)
-    
+
     # Create NFSR with non-linear feedback
     nfsr = create_simple_nfsr(base_lfsr, nonlinear_terms=[(1, 2)])
-    
+
     config = nfsr.get_config()
     print(f"Structure Type: {config.structure_type}")
-    print(f"Note: NFSR uses non-linear feedback (NOT an LFSR)")
-    
+    print("Note: NFSR uses non-linear feedback (NOT an LFSR)")
+
     # Analyze structure
     properties = nfsr.analyze_structure()
-    print(f"\nStructure Properties:")
+    print("\nStructure Properties:")
     for key, value in properties.items():
         print(f"  {key}: {value}")
-    
+
     # Generate sequence
     initial_state = [1, 0, 0, 0]
     sequence = nfsr.generate_sequence(initial_state, 50)
@@ -79,26 +75,26 @@ def example_filtered_lfsr():
     print("Example 2: Filtered LFSR")
     print("=" * 70)
     print("\n✓ NOTE: Filtered LFSR IS an LFSR (linear feedback + non-linear filter)\n")
-    
+
     base_lfsr = LFSRConfig(coefficients=[1, 0, 0, 1], field_order=2, degree=4)
-    
+
     # Create filtered LFSR
     filtered = create_simple_filtered_lfsr(
         base_lfsr,
         filter_taps=[0, 1, 2],
         nonlinear_terms=[(2, 3)]
     )
-    
+
     config = filtered.get_config()
     print(f"Structure Type: {config.structure_type}")
-    print(f"Note: Filtered LFSR has linear feedback + non-linear filter function")
-    
+    print("Note: Filtered LFSR has linear feedback + non-linear filter function")
+
     # Analyze structure
     properties = filtered.analyze_structure()
-    print(f"\nStructure Properties:")
+    print("\nStructure Properties:")
     for key, value in properties.items():
         print(f"  {key}: {value}")
-    
+
     # Generate sequence
     initial_state = [1, 0, 0, 0]
     sequence = filtered.generate_sequence(initial_state, 50)
@@ -112,23 +108,23 @@ def example_clock_controlled_lfsr():
     print("Example 3: Clock-Controlled LFSR")
     print("=" * 70)
     print("\n✓ NOTE: Clock-Controlled LFSR IS an LFSR (linear feedback + irregular clocking)\n")
-    
+
     main_lfsr = LFSRConfig(coefficients=[1, 0, 0, 1], field_order=2, degree=4)
     control_lfsr = LFSRConfig(coefficients=[1, 1], field_order=2, degree=2)
-    
+
     # Create stop-and-go clock-controlled LFSR
     cclfsr = create_stop_and_go_lfsr(main_lfsr, control_lfsr)
-    
+
     config = cclfsr.get_config()
     print(f"Structure Type: {config.structure_type}")
-    print(f"Note: Clock-Controlled LFSR has linear feedback + irregular clocking")
-    
+    print("Note: Clock-Controlled LFSR has linear feedback + irregular clocking")
+
     # Analyze structure
     properties = cclfsr.analyze_structure()
-    print(f"\nStructure Properties:")
+    print("\nStructure Properties:")
     for key, value in properties.items():
         print(f"  {key}: {value}")
-    
+
     # Generate sequence
     main_state = [1, 0, 0, 0]
     control_state = [1, 0]
@@ -143,23 +139,23 @@ def example_multi_output_lfsr():
     print("Example 4: Multi-Output LFSR")
     print("=" * 70)
     print("\n✓ NOTE: Multi-Output LFSR IS an LFSR (linear feedback + multiple outputs)\n")
-    
+
     base_lfsr = LFSRConfig(coefficients=[1, 0, 0, 1], field_order=2, degree=4)
-    
+
     # Create multi-output LFSR (outputs 2 bits per step)
     molfsr = create_simple_multi_output_lfsr(base_lfsr, [0, 1])
-    
+
     config = molfsr.get_config()
     print(f"Structure Type: {config.structure_type}")
     print(f"Output Rate: {config.parameters['output_rate']} bits per step")
-    print(f"Note: Multi-Output LFSR has linear feedback + multiple outputs")
-    
+    print("Note: Multi-Output LFSR has linear feedback + multiple outputs")
+
     # Analyze structure
     properties = molfsr.analyze_structure()
-    print(f"\nStructure Properties:")
+    print("\nStructure Properties:")
     for key, value in properties.items():
         print(f"  {key}: {value}")
-    
+
     # Generate sequence
     initial_state = [1, 0, 0, 0]
     sequence = molfsr.generate_sequence(initial_state, 50)
@@ -173,24 +169,24 @@ def example_irregular_clocking():
     print("Example 5: Irregular Clocking LFSR")
     print("=" * 70)
     print("\n✓ NOTE: Irregular Clocking LFSR IS an LFSR (linear feedback + irregular pattern)\n")
-    
+
     base_lfsr = LFSRConfig(coefficients=[1, 0, 0, 1], field_order=2, degree=4)
     control_lfsr = LFSRConfig(coefficients=[1, 1], field_order=2, degree=2)
-    
+
     # Create irregular clocking LFSR with step-1/step-2 pattern
     pattern_func = create_step_1_step_2_pattern()
     iclfsr = IrregularClockingLFSR(base_lfsr, control_lfsr, pattern_func)
-    
+
     config = iclfsr.get_config()
     print(f"Structure Type: {config.structure_type}")
-    print(f"Note: Irregular Clocking LFSR has linear feedback + irregular clocking pattern")
-    
+    print("Note: Irregular Clocking LFSR has linear feedback + irregular clocking pattern")
+
     # Analyze structure
     properties = iclfsr.analyze_structure()
-    print(f"\nStructure Properties:")
+    print("\nStructure Properties:")
     for key, value in properties.items():
         print(f"  {key}: {value}")
-    
+
     # Generate sequence
     base_state = [1, 0, 0, 0]
     control_state = [1, 0]
@@ -204,15 +200,15 @@ def example_comprehensive_analysis():
     print("\n" + "=" * 70)
     print("Example 6: Comprehensive Analysis")
     print("=" * 70)
-    
+
     base_lfsr = LFSRConfig(coefficients=[1, 0, 0, 1], field_order=2, degree=4)
     initial_state = [1, 0, 0, 0]
-    
+
     # Analyze filtered LFSR
     filtered = create_simple_filtered_lfsr(base_lfsr, [0, 1], [(2, 3)])
     result = filtered.analyze(initial_state=initial_state, sequence_length=1000)
-    
-    print(f"\nComprehensive Analysis Results:")
+
+    print("\nComprehensive Analysis Results:")
     print(f"  Structure Type: {result.structure_type}")
     print(f"  Structure Properties: {result.structure_properties}")
     print(f"  Sequence Properties: {result.sequence_properties}")
@@ -229,7 +225,7 @@ def main():
     print("  - LFSR = Linear Feedback Shift Register (feedback is ALWAYS linear)")
     print("  - NFSR = Non-Linear Feedback Shift Register (NOT an LFSR)")
     print("  - Filtered/Clock-Controlled/Multi-Output = ARE LFSRs (linear feedback)\n")
-    
+
     try:
         example_nfsr()
         example_filtered_lfsr()
@@ -237,7 +233,7 @@ def main():
         example_multi_output_lfsr()
         example_irregular_clocking()
         example_comprehensive_analysis()
-        
+
         print("\n" + "=" * 70)
         print("Examples Complete!")
         print("=" * 70)
@@ -245,7 +241,7 @@ def main():
         print("  - Advanced LFSR Structures Guide: docs/advanced_lfsr_structures.rst")
         print("  - API Documentation: docs/api/advanced.rst")
         print("  - Mathematical Background: docs/mathematical_background.rst")
-        
+
     except Exception as e:
         print(f"\nERROR: {e}", file=sys.stderr)
         import traceback

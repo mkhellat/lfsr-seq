@@ -10,8 +10,8 @@ Example Usage:
     python3 examples/ml_integration_example.py
 """
 
-import sys
 import os
+import sys
 
 # Add parent directory to path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -30,12 +30,12 @@ except ImportError:
     print("WARNING: scikit-learn not available. Some ML features may not work.", file=sys.stderr)
     HAS_SKLEARN = False
 
-from lfsr.ml.period_prediction import PeriodPredictionModel, create_period_prediction_model
-from lfsr.ml.pattern_detection import detect_all_patterns
-from lfsr.ml.anomaly_detection import detect_all_anomalies
-from lfsr.ml.training import generate_training_data, train_period_prediction_model
-from lfsr.ml.base import extract_polynomial_features
 from lfsr.core import analyze_lfsr
+from lfsr.ml.anomaly_detection import detect_all_anomalies
+from lfsr.ml.base import extract_polynomial_features
+from lfsr.ml.pattern_detection import detect_all_patterns
+from lfsr.ml.period_prediction import create_period_prediction_model
+from lfsr.ml.training import generate_training_data, train_period_prediction_model
 
 
 def example_period_prediction():
@@ -43,31 +43,31 @@ def example_period_prediction():
     print("=" * 70)
     print("Example 1: Period Prediction")
     print("=" * 70)
-    
+
     if not HAS_SKLEARN:
         print("\n⚠️  scikit-learn required for period prediction")
         return
-    
+
     # Generate training data and train model
     print("\nTraining period prediction model...")
     X, y = generate_training_data(num_samples=50, max_degree=8, field_order=2)
-    
+
     model = create_period_prediction_model("random_forest")
     metrics = model.train(X, y)
-    
-    print(f"\nTraining Metrics:")
+
+    print("\nTraining Metrics:")
     print(f"  MSE: {metrics['mse']:.2f}")
     print(f"  RMSE: {metrics['rmse']:.2f}")
     print(f"  R² Score: {metrics['r2_score']:.4f}")
-    
+
     # Predict period for a new polynomial
     coefficients = [1, 0, 0, 1]
     predicted = model.predict_period(coefficients, field_order=2)
-    
+
     # Compare with actual period
     _, _, actual_period, _, _, _, _ = analyze_lfsr(coefficients, 2)
-    
-    print(f"\nPrediction Example:")
+
+    print("\nPrediction Example:")
     print(f"  Coefficients: {coefficients}")
     print(f"  Predicted period: {predicted:.2f}")
     print(f"  Actual period: {actual_period}")
@@ -79,15 +79,15 @@ def example_pattern_detection():
     print("\n" + "=" * 70)
     print("Example 2: Pattern Detection")
     print("=" * 70)
-    
+
     # Generate a sequence with patterns
     sequence = [1, 0, 1, 0, 1, 0, 1, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 1, 1, 0, 0, 1]
-    
+
     print(f"\nAnalyzing sequence: {sequence[:20]}...")
-    
+
     patterns = detect_all_patterns(sequence)
-    
-    print(f"\nDetected Patterns:")
+
+    print("\nDetected Patterns:")
     for pattern_type, pattern_list in patterns.items():
         print(f"\n  {pattern_type}: {len(pattern_list)} patterns")
         for i, pattern in enumerate(pattern_list[:3]):  # Show top 3
@@ -101,20 +101,20 @@ def example_anomaly_detection():
     print("\n" + "=" * 70)
     print("Example 3: Anomaly Detection")
     print("=" * 70)
-    
+
     # Create sequence with anomaly
     sequence = [0] * 50 + [1] * 50 + [0] * 50 + [99] + [0] * 50  # 99 is an anomaly
-    
+
     print(f"\nAnalyzing sequence (length: {len(sequence)})...")
-    
+
     anomalies = detect_all_anomalies(
         sequence=sequence,
         period_dict={5: 10, 6: 8, 7: 12, 20: 1},  # 20 is unusual
         theoretical_max_period=15,
         is_primitive=False
     )
-    
-    print(f"\nDetected Anomalies:")
+
+    print("\nDetected Anomalies:")
     for anomaly_type, anomaly_list in anomalies.items():
         print(f"\n  {anomaly_type}: {len(anomaly_list)} anomalies")
         for i, anomaly in enumerate(anomaly_list[:3]):  # Show top 3
@@ -128,14 +128,14 @@ def example_model_training():
     print("\n" + "=" * 70)
     print("Example 4: Model Training")
     print("=" * 70)
-    
+
     if not HAS_SKLEARN:
         print("\n⚠️  scikit-learn required for model training")
         return
-    
+
     print("\nTraining period prediction model...")
     print("(This may take a moment)")
-    
+
     model = train_period_prediction_model(
         model_type="random_forest",
         num_samples=50,  # Small for example
@@ -143,7 +143,7 @@ def example_model_training():
         field_order=2,
         save_path=None  # Don't save in example
     )
-    
+
     print("\n✓ Model training complete!")
     print("  Model can now be used for period prediction")
 
@@ -153,25 +153,25 @@ def example_feature_extraction():
     print("\n" + "=" * 70)
     print("Example 5: Feature Extraction")
     print("=" * 70)
-    
-    from lfsr.ml.base import extract_polynomial_features, extract_sequence_features
-    
+
+    from lfsr.ml.base import extract_sequence_features
+
     # Polynomial features
     coefficients = [1, 0, 0, 1, 0, 1]
     features = extract_polynomial_features(coefficients, field_order=2, degree=6)
-    
-    print(f"\nPolynomial Features:")
+
+    print("\nPolynomial Features:")
     print(f"  Coefficients: {coefficients}")
     print(f"  Features: {features}")
-    print(f"  Feature names: degree, field_order, num_coeffs, nonzero_count,")
-    print(f"                  sparsity, is_trinomial, is_pentanomial,")
-    print(f"                  coeff_sum, coeff_mean")
-    
+    print("  Feature names: degree, field_order, num_coeffs, nonzero_count,")
+    print("                  sparsity, is_trinomial, is_pentanomial,")
+    print("                  coeff_sum, coeff_mean")
+
     # Sequence features
     sequence = [1, 0, 1, 0, 1, 1, 0, 1, 0, 1]
     seq_features = extract_sequence_features(sequence)
-    
-    print(f"\nSequence Features:")
+
+    print("\nSequence Features:")
     print(f"  Sequence: {sequence}")
     print(f"  Features: {seq_features[:5]}...")  # Show first 5
 
@@ -182,12 +182,12 @@ def main():
     print("Machine Learning Integration Examples")
     print("=" * 70)
     print("\nThis script demonstrates ML-based analysis capabilities.")
-    
+
     try:
         example_feature_extraction()
         example_pattern_detection()
         example_anomaly_detection()
-        
+
         if HAS_SKLEARN:
             example_period_prediction()
             example_model_training()
@@ -195,14 +195,14 @@ def main():
             print("\n" + "=" * 70)
             print("Note: Some examples require scikit-learn")
             print("Install with: pip install scikit-learn")
-        
+
         print("\n" + "=" * 70)
         print("Examples Complete!")
         print("=" * 70)
         print("\nFor more information, see:")
         print("  - ML Integration Guide: docs/ml_integration.rst")
         print("  - API Documentation: docs/api/ml.rst")
-        
+
     except Exception as e:
         print(f"\nERROR: {e}", file=sys.stderr)
         import traceback

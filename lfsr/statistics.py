@@ -10,9 +10,8 @@ sequences.
 """
 
 import math
-import math
 from collections import Counter
-from typing import Dict, List, Optional, Tuple, Union
+from typing import Dict, List, Optional, Union
 
 from lfsr.sage_imports import *
 
@@ -268,16 +267,16 @@ def compute_period_distribution(
 ) -> Dict[str, Union[int, float, Dict[int, int], Dict[str, Union[int, float]]]]:
     """
     Compute statistical distribution of LFSR sequence periods.
-    
+
     This function analyzes the distribution of periods across all sequences
     in an LFSR and compares them with theoretical bounds.
-    
+
     Args:
         period_dict: Dictionary mapping sequence numbers to periods
         gf_order: The Galois field order
         lfsr_degree: The degree of the LFSR (state vector dimension)
         is_primitive: Whether the characteristic polynomial is primitive
-        
+
     Returns:
         Dictionary containing:
         - 'total_sequences': Total number of sequences
@@ -295,18 +294,18 @@ def compute_period_distribution(
     """
     if not period_dict:
         return {"error": "Empty period dictionary"}
-    
+
     periods = list(period_dict.values())
     total_sequences = len(periods)
-    
+
     if total_sequences == 0:
         return {"error": "No periods found"}
-    
+
     # Basic statistics
     min_period = min(periods)
     max_period = max(periods)
     mean_period = sum(periods) / total_sequences
-    
+
     # Median
     sorted_periods = sorted(periods)
     n = len(sorted_periods)
@@ -314,24 +313,24 @@ def compute_period_distribution(
         median_period = (sorted_periods[n // 2 - 1] + sorted_periods[n // 2]) / 2.0
     else:
         median_period = float(sorted_periods[n // 2])
-    
+
     # Variance and standard deviation
     variance = sum((p - mean_period) ** 2 for p in periods) / total_sequences
     std_deviation = math.sqrt(variance)
-    
+
     # Period frequency histogram
     period_frequency = dict(Counter(periods))
-    
+
     # Theoretical bounds
     state_space_size = int(gf_order) ** lfsr_degree
     max_theoretical_period = state_space_size - 1  # q^d - 1 (excluding zero state)
-    
+
     theoretical_bounds = {
         "max_theoretical_period": max_theoretical_period,
         "state_space_size": state_space_size,
         "is_primitive": is_primitive,
     }
-    
+
     # For primitive polynomials, all non-zero states should have period q^d - 1
     if is_primitive:
         expected_period = max_theoretical_period
@@ -339,13 +338,13 @@ def compute_period_distribution(
     else:
         expected_period = None
         expected_sequences = None
-    
+
     # Comparison with theoretical bounds
     comparison = {
         "max_period_equals_theoretical": max_period == max_theoretical_period,
         "max_period_ratio": max_period / max_theoretical_period if max_theoretical_period > 0 else 0.0,
     }
-    
+
     if is_primitive:
         # For primitive polynomials, check if all periods are maximum
         all_max_period = all(p == max_theoretical_period for p in periods if p > 1)
@@ -353,14 +352,14 @@ def compute_period_distribution(
         comparison["expected_period"] = expected_period
         comparison["expected_sequences"] = expected_sequences
         comparison["actual_sequences_with_max_period"] = period_frequency.get(max_theoretical_period, 0)
-    
+
     # Period distribution characteristics
     unique_periods = len(period_frequency)
     distribution_info = {
         "unique_periods": unique_periods,
         "period_diversity": unique_periods / total_sequences if total_sequences > 0 else 0.0,
     }
-    
+
     return {
         "total_sequences": total_sequences,
         "periods": periods,
