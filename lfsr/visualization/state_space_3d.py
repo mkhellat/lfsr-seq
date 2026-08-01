@@ -124,8 +124,7 @@ def _plot_3d_interactive(
             colorbar=dict(title="Period")
         ),
         text=[f"Period: {p}" for p in periods],
-        hovertemplate='State: (%{x}, %{y}, %{z})<br>Period: %{text}
-          <extra></extra>'
+        hovertemplate='State: (%{x}, %{y}, %{z})<br>Period: %{text}<extra></extra>'
     ))
     
     fig.update_layout(

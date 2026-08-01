@@ -196,7 +196,7 @@ def example_significance_levels():
     """Example showing effect of different significance levels."""
     print("\n" + "=" * 70)
     print("Example 5: Effect of Significance Levels")
-    print("=" * 70")
+    print("=" * 70)
     
     sequence = [1, 0, 1, 1, 0, 0, 1, 0] * 125  # 1000 bits
     
