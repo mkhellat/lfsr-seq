@@ -102,8 +102,9 @@ and wired into the ``lfsr-seq`` CLI through the following flags (see
    # Detect anomalies in sequences and distributions
    lfsr-seq coefficients.csv 2 --detect-anomalies
 
-   # Train a period-prediction model and save it
-   lfsr-seq coefficients.csv 2 --train-model model.pkl
+   # Train a period-prediction model and save it (--ml-samples controls
+   # the training sample count, default 100)
+   lfsr-seq coefficients.csv 2 --train-model model.pkl --ml-samples 20
 
 CLI wiring is partial: ``--predict-period``, ``--detect-patterns``,
 ``--detect-anomalies``, and ``--train-model`` cover the main entry points, but

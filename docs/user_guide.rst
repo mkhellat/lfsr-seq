@@ -1402,6 +1402,9 @@ ML-based analysis can be performed from the command line:
    # Train ML model
    lfsr-seq coefficients.csv 2 --train-model model.pkl
 
+   # Train with a smaller sample count (faster, less accurate)
+   lfsr-seq coefficients.csv 2 --train-model model.pkl --ml-samples 20
+
 **Machine Learning Options**:
 
    --predict-period           Predict period using ML model (requires
@@ -1410,8 +1413,9 @@ ML-based analysis can be performed from the command line:
    --detect-anomalies         Detect anomalies in sequences and
                               distributions.
    --train-model FILE         Train ML model and save to file (specify
-                              output file). Training sample count is currently
-                              fixed at 100 (not configurable via CLI flag);
-                              training can take several minutes.
+                              output file). Training with the default
+                              100 samples can take several minutes.
+   --ml-samples N             Number of training samples for
+                              --train-model (default: 100).
    --ml-model-file FILE       Path to trained ML model file (for prediction).
 
