@@ -377,6 +377,8 @@ Optional arguments:
 
 **Examples:**
 
+`coefficients.csv` below is a placeholder name — create it first, e.g. `echo "1,1,0,1" > coefficients.csv` (see Input Format below for the CSV layout).
+
 ```bash
 # Basic analysis
 lfsr-seq coefficients.csv 2
@@ -397,13 +399,13 @@ lfsr-seq coefficients.csv 3
 lfsr-seq coefficients.csv 2 --check-primitive
 
 # Parallel processing with 4 workers (static mode)
-lfsr-seq coefficients.csv 2 --parallel 4
+lfsr-seq coefficients.csv 2 --parallel --num-workers 4
 
 # Parallel processing with dynamic load balancing (better for multi-cycle LFSRs)
-lfsr-seq coefficients.csv 2 --parallel 4 --parallel-mode dynamic
+lfsr-seq coefficients.csv 2 --parallel --num-workers 4 --parallel-mode dynamic
 
 # Dynamic mode with manual batch size (auto-selection is usually optimal)
-lfsr-seq coefficients.csv 2 --parallel 4 --parallel-mode dynamic --batch-size 300
+lfsr-seq coefficients.csv 2 --parallel --num-workers 4 --parallel-mode dynamic --batch-size 300
 ```
 
 ### Input Format
