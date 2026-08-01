@@ -183,7 +183,6 @@ def detect_distribution_anomalies(
         return anomalies
 
     max_observed = max(periods)
-    min_observed = min(periods)
 
     # Check for periods exceeding theoretical maximum
     if max_observed > theoretical_max_period:

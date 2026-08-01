@@ -159,11 +159,8 @@ def detect_statistical_anomalies(
         if HAS_NUMPY:
             window_array = np.array(window)
             window_mean = np.mean(window_array)
-            window_std = np.std(window_array) if len(window_array) > 1 else 0.0
         else:
             window_mean = sum(window) / len(window)
-            window_variance = sum((x - window_mean) ** 2 for x in window) / len(window)
-            window_std = window_variance ** 0.5 if window_variance > 0 else 0.0
 
         # Calculate z-score for mean deviation
         z_score = abs(window_mean - overall_mean) / overall_std if overall_std > 0 else 0.0

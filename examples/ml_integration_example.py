@@ -24,7 +24,7 @@ except ImportError:
     sys.exit(1)
 
 try:
-    from sklearn.ensemble import RandomForestRegressor
+    import sklearn  # noqa: F401
     HAS_SKLEARN = True
 except ImportError:
     print("WARNING: scikit-learn not available. Some ML features may not work.", file=sys.stderr)
@@ -136,7 +136,7 @@ def example_model_training():
     print("\nTraining period prediction model...")
     print("(This may take a moment)")
 
-    model = train_period_prediction_model(
+    train_period_prediction_model(
         model_type="random_forest",
         num_samples=50,  # Small for example
         max_degree=8,

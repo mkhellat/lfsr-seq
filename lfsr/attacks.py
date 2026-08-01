@@ -960,8 +960,6 @@ def compute_algebraic_immunity(
         # For small functions, we can enumerate all possible functions
         # of degree <= d and check if they are annihilators
 
-        found_annihilator = False
-
         # Simplified: Check if we can find a low-degree relation
         # Full implementation would use proper ANF analysis
 
@@ -983,12 +981,10 @@ def compute_algebraic_immunity(
             if ones == 0 or zeros == 0:
                 # Constant function - has annihilator of degree 0
                 min_degree = 0
-                found_annihilator = True
                 break
             elif ones == 1 or zeros == 1:
                 # Almost constant - low algebraic immunity
                 min_degree = 1
-                found_annihilator = True
                 break
 
         # For higher degrees, would need proper ANF analysis
@@ -1445,7 +1441,6 @@ def fast_correlation_attack(
     # Test each candidate
     best_correlation = -1.0
     best_state = None
-    best_sequence = None
 
     for candidate_state in candidates:
         # Generate sequence from this candidate
@@ -1467,7 +1462,6 @@ def fast_correlation_attack(
             if abs_corr > best_correlation:
                 best_correlation = abs_corr
                 best_state = [int(x) for x in candidate_state]
-                best_sequence = sequence
 
     # Iterative decoding refinement (simplified)
     # In full implementation, this would use belief propagation

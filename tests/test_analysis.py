@@ -220,7 +220,6 @@ class TestAlgorithmConsistency:
         coeffs = [1, 1, 0, 1]
         C, CS = build_state_update_matrix(coeffs, 2)
         V = VectorSpace(GF(2), 4)
-        visited_set = set()
 
         for state in V:
             if state != V.zero():

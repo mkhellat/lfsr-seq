@@ -1355,7 +1355,7 @@ def cli_main() -> None:
 
                 # Period distribution plot
                 if args.plot_period_distribution:
-                    fig = plot_period_distribution(
+                    plot_period_distribution(
                         period_dict,
                         theoretical_max_period=theoretical_max,
                         is_primitive=is_primitive,
@@ -1366,7 +1366,7 @@ def cli_main() -> None:
 
                 # State transition diagram
                 if args.plot_state_transitions:
-                    graph = generate_state_transition_diagram(
+                    generate_state_transition_diagram(
                         seq_dict,
                         period_dict,
                         max_states=50,
@@ -1377,7 +1377,7 @@ def cli_main() -> None:
 
                 # Period statistics
                 if args.plot_period_statistics:
-                    fig = plot_period_statistics(
+                    plot_period_statistics(
                         period_dict,
                         theoretical_max_period=theoretical_max,
                         is_primitive=is_primitive,
@@ -1388,7 +1388,7 @@ def cli_main() -> None:
 
                 # 3D state space
                 if args.plot_3d_state_space:
-                    fig = plot_3d_state_space(
+                    plot_3d_state_space(
                         seq_dict,
                         period_dict,
                         max_states=100,
@@ -1406,7 +1406,7 @@ def cli_main() -> None:
                         'success_probability': 0.5,
                         'attack_successful': False
                     }
-                    fig = visualize_correlation_attack(
+                    visualize_correlation_attack(
                         attack_results,
                         config=config,
                         output_file=args.visualize_attack

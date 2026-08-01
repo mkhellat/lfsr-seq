@@ -22,7 +22,6 @@ except ImportError:
 
 try:
     from sklearn.ensemble import GradientBoostingRegressor, RandomForestRegressor
-    from sklearn.model_selection import train_test_split
     HAS_SKLEARN = True
 except ImportError:
     HAS_SKLEARN = False

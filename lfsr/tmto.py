@@ -252,8 +252,6 @@ class HellmanTable:
         C, CS = build_state_update_matrix(lfsr_config.coefficients, lfsr_config.field_order)
 
         # Try to find target in chains
-        target_vec = vector(F, target_state)
-
         # Check if target is a chain endpoint
         target_list = target_state
         for start, end in self.chains:

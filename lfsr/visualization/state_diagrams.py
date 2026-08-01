@@ -91,8 +91,6 @@ def _generate_diagram_networkx(
         if state_count >= max_states:
             break
 
-        period = period_dict.get(seq_num, len(sequence))
-
         # Add nodes and edges
         for i in range(len(sequence) - 1):
             state_str = str(sequence[i])

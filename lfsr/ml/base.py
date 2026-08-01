@@ -19,9 +19,7 @@ except ImportError:
     HAS_NUMPY = False
 
 try:
-    from sklearn.ensemble import GradientBoostingRegressor, RandomForestRegressor
     from sklearn.metrics import mean_squared_error, r2_score
-    from sklearn.model_selection import train_test_split
     HAS_SKLEARN = True
 except ImportError:
     HAS_SKLEARN = False

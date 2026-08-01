@@ -73,7 +73,7 @@ def example_latex_export():
     print(f"\nPolynomial LaTeX: ${latex_str}$")
 
     # Create analysis results
-    analysis_results = {
+    analysis_results = {  # noqa: F841 (illustrative; export call commented out below)
         'field_order': 2,
         'lfsr_degree': 4,
         'polynomial': {

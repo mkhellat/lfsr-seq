@@ -225,7 +225,6 @@ class TestMergeParallelResults:
         # Create results with same cycle found by different workers
         # For small periods (<=100), full sequences are computed for deduplication
         cycle_states = [(0, 0, 0, 1), (1, 0, 0, 0), (0, 1, 0, 0)]
-        cycle_states_sorted = tuple(sorted(cycle_states))
 
         worker_results = [
             {
