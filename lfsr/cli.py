@@ -134,8 +134,8 @@ def main(
     coeffs_list = read_and_validate_csv(input_file_name, gf_order)
 
     # Print introduction
-    my_name = "Linear Feedback Shift Register Toy"
-    my_version = " 0.1 (08-Jan-2023)"
+    my_name = "LFSR Sequence Analysis Tool"
+    my_version = f" {__version__}"
     t_i = intro(my_name, my_version, input_file_name, gf_order_str, output_file)
 
     # CRITICAL: For multiple LFSRs, disable parallel by default
@@ -303,7 +303,7 @@ def main(
     # Print execution time
     t_f = datetime.datetime.now()
     t_e = t_f - t_i
-    print("\n  TOTAL execusion time : " + str(t_e))
+    print("\n  TOTAL execution time : " + str(t_e))
 
 
 def parse_args(args: Optional[list] = None) -> argparse.Namespace:
