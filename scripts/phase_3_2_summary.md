@@ -1,5 +1,13 @@
 # Phase 3.2: Hybrid Approach - Implementation Summary
 
+> **Update**: this document is a point-in-time implementation snapshot from
+> 2025-12-30. Testing and documentation were completed afterward; hybrid
+> mode's auto-selection logic (8K-64K states) is fully integrated in
+> `lfsr/analysis.py` and is part of the current, accepted parallel-mode
+> design (see `dev-docs/parallel/` and the root `CLAUDE.md`). The "Next
+> Steps" and "Testing in progress" notes below are historical and no
+> longer open.
+
 ## Status: ✅ IMPLEMENTATION COMPLETE (Testing in Progress)
 
 **Date**: 2025-12-30  
