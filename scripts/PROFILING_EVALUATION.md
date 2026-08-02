@@ -1,5 +1,16 @@
 # Comprehensive Profiling Data Evaluation
 
+> **Update**: this document is a point-in-time snapshot preceding the
+> Phase 2.3/2.4 (persistent worker pool, lazy task generation) and Phase
+> 3.1/3.2 (work stealing, hybrid mode) work. Its per-mode recommendations
+> below ("Use dynamic mode for 8+ cycles", manual static-vs-dynamic
+> selection) are superseded: the current `lfsr/analysis.py` auto-selects
+> hybrid mode for medium-sized problems rather than requiring callers to
+> choose a mode manually. The speedup figures in Section 2 are similarly
+> superseded by the more definitive, later benchmark in the root
+> `CLAUDE.md`: parallel speedup peaks at ~1.21x for 16-bit LFSRs, with
+> fork overhead dominating for smaller inputs (an accepted tradeoff).
+
 ## Executive Summary
 
 This document evaluates profiling data collected from 6 LFSR configurations (12-bit, 14-bit, 16-bit, each with 2 variants) across both static and dynamic parallel processing modes with 1, 2, 4, and 8 workers.
