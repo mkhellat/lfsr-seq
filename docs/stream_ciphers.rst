@@ -635,7 +635,12 @@ linear and non-linear components.
 
 - **Designed**: 2006 (Martin Hell, Thomas Johansson, Willi Meier)
 - **Purpose**: eSTREAM finalist (hardware category)
-- **Status**: Considered secure, used in research
+- **Status**: Original (2006) Grain-128 is considered broken; Grain-128a
+  (2011) and its successor Grain-128AEAD are the recommended, actively
+  analyzed members of the family. See "Grain-128AEAD: A lightweight AEAD
+  stream cipher" (Hell, Johansson, Meier, Sönnerup, Yoshida; NIST
+  Lightweight Cryptography submission, https://grain-128aead.github.io/),
+  Section 3.1.
 - **Variants**: Grain-128, Grain-128a (authenticated encryption variant)
 - **Design Philosophy**: Hybrid LFSR/NFSR design for hardware efficiency
 
@@ -662,26 +667,27 @@ Grain uses a hybrid design:
 4. Generate keystream
 
 .. note::
-   **Implementation limitation**: per the Grain-128 specification, the
-   pre-output bit computed during each of the 256 warm-up clockings should be
-   XORed back into both the LFSR and NFSR feedback (not just discarded). The
-   ``lfsr.ciphers.grain.Grain128`` implementation in this codebase omits that
-   feedback step during warm-up, so its keystream output will not match
-   official Grain-128 test vectors. This is a known, documented limitation
-   (see the ``_initialize`` method), not something relied on elsewhere in the
-   codebase. The NFSR nonlinear feedback terms themselves (used during both
-   warm-up and normal generation) are complete and match the spec.
+   **Implementation provenance**: the ``lfsr.ciphers.grain.Grain128``
+   register mechanics (tap-index convention, permanent LFSR-bit masking
+   into the NFSR feedback, LFSR padding, and the 256-clock warm-up with
+   pre-output feedback XORed into both registers) are confirmed against
+   the primary Grain-128AEAD specification. However, its nonlinear
+   feedback function :math:`g(x)` and filter function :math:`h(x)` are
+   those of Grain-128a/Grain-128AEAD, not the original 2006 Grain-128
+   paper's (weaker) functions — the exact original AND-term list could
+   not be confirmed against a reachable primary source, and since
+   original Grain-128 is deprecated anyway, this substitution was judged
+   preferable to guessing from unverified secondary sources. No official
+   Grain-128 test vectors are validated against this implementation; see
+   the module docstring in ``lfsr/ciphers/grain.py`` for full detail.
 
 **Security Status**:
 
-Grain is considered secure:
-
-- **No Practical Attacks**: No practical attacks found despite extensive
-  analysis
-- **Designed Security**: Designed for :math:`128`-bit security level
-- **Extensively Analyzed**: Subject to extensive cryptanalysis as eSTREAM
-  finalist
-- **Research Use**: Used in research and constrained environments
+- **Original Grain-128**: considered broken; superseded by Grain-128a
+- **Grain-128a / Grain-128AEAD**: extensively analyzed, designed for
+  :math:`128`-bit security, recommended for real use
+- **Research Use**: the original variant remains useful for research and
+  educational cryptanalysis, not for real-world security
 
 **Mathematical Foundation**:
 
