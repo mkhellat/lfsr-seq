@@ -21,6 +21,69 @@ This will:
 - Analyze sequences over GF(2)
 - Generate output in ``strange.csv.out``
 
+Glossary
+--------
+
+If you're new to LFSRs, the terms in the report output can be a lot to
+take in at once. Here's a quick reference for the ones you'll see most:
+
+**LFSR (Linear Feedback Shift Register)**
+    A simple building block used in cryptography and signal processing.
+    It holds a fixed-size register of bits (or field elements) and, on
+    each step, shifts them and computes one new value by XORing (or
+    combining, over larger fields) specific positions together. Those
+    specific positions are the *coefficients* you provide in the input
+    CSV.
+
+**GF(q) / Galois field order**
+    The set of values each register cell can hold. ``GF(2)`` means each
+    cell is a single bit (0 or 1) — the most common case. Larger orders
+    (e.g. ``GF(4)``, ``GF(8)``) use more values per cell and require the
+    order to be prime or a prime power.
+
+**State**
+    A snapshot of everything in the register at one moment — literally
+    the list of bits/values it currently holds.
+
+**State update matrix (C)**
+    A matrix representation of the LFSR's shift-and-feedback rule. Multiplying
+    the current state by this matrix produces the next state
+    (``S_i * C = S_{i+1}``). It's a compact way to reason about the LFSR
+    mathematically instead of simulating each shift by hand.
+
+**Sequence / cycle**
+    Starting from some initial state and repeatedly applying the update
+    rule eventually loops back to a state you've already seen. That loop
+    is a *sequence* (or *cycle*), and every possible starting state
+    belongs to exactly one such cycle.
+
+**Period (T)**
+    How many steps it takes a sequence to loop back to its starting
+    state. A period of 1 means the state never changes (a fixed point);
+    a large period means the LFSR produces a long, non-repeating-looking
+    stream of values before it repeats — generally more useful for
+    cryptographic or pseudo-random applications.
+
+**Order of the matrix, O(C)**
+    The smallest number of steps after which *every* state in the field
+    returns to itself — equivalently, the least common multiple of all
+    the individual sequence periods. It characterizes the LFSR as a
+    whole, not just one starting state.
+
+**Characteristic polynomial**
+    A polynomial derived algebraically from the state update matrix that
+    fully determines the LFSR's feedback behavior. Two different-looking
+    LFSRs with the same characteristic polynomial behave identically.
+
+**Primitive polynomial**
+    A characteristic polynomial is *primitive* if it produces the
+    longest possible period for a register of that size (every nonzero
+    state appears in one giant cycle). LFSRs built from primitive
+    polynomials are considered maximal-length and are the most commonly
+    sought-after configuration for pseudo-random sequence generation.
+
+For a deeper mathematical treatment, see :doc:`mathematical_background`.
+
 Command-Line Options
 --------------------
 

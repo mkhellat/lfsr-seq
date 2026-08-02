@@ -1455,6 +1455,8 @@ def cli_main() -> None:
 
         if not args.quiet:
             print(f"\nAnalysis complete. Results written to: {output_file_name}")
+            print("New to LFSR terminology? See the Glossary in the User Guide "
+                  "(docs/user_guide.rst, or run 'make docs' to browse it as HTML).")
 
     except IOError as e:
         print(f"ERROR: File I/O error: {e}", file=sys.stderr)
