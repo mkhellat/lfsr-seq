@@ -1,5 +1,12 @@
 # Phase 2.2: Reduce IPC Overhead - Implementation Summary
 
+> **Update**: this document is a point-in-time snapshot from 2025-12-30.
+> The "Next Steps" below (Phase 2.3 persistent worker pool, Phase 2.4
+> lazy task generation) were both implemented afterward and are part of
+> the current `lfsr/analysis.py` (see `scripts/phase_2_3_summary.md`,
+> `scripts/phase_2_4_summary.md`, and `dev-docs/parallel/`). They are not
+> open work.
+
 ## Status: ✅ COMPLETE
 
 **Date**: 2025-12-30  
