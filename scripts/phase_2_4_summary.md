@@ -1,5 +1,10 @@
 # Phase 2.4: Optimize Task Queue Population - Implementation Summary
 
+> **Update**: this document is a point-in-time snapshot from 2025-12-30.
+> Phase 2.3 (persistent worker pool) is listed below as future work, but
+> it was implemented the same day (see `scripts/phase_2_3_summary.md`)
+> and is part of the current `lfsr/analysis.py`. It is not open work.
+
 ## Status: ✅ COMPLETE
 
 **Date**: 2025-12-30  
