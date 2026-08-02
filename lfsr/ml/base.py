@@ -197,13 +197,23 @@ def extract_polynomial_features(
     - **Sparsity**: The proportion of zero coefficients. A sparse polynomial
       has many zero coefficients, while a dense polynomial has few zeros.
 
+    - **Irreducible**: A polynomial that cannot be factored into lower-degree
+      polynomials over the same field. Irreducibility is a prerequisite for
+      a polynomial to be primitive.
+
+    - **Primitive**: A characteristic polynomial is primitive if it produces
+      the maximum possible LFSR period, q^d - 1. This is a strong predictor
+      of period length and is included as a feature.
+
     Args:
         coefficients: Polynomial coefficients
         field_order: Field order
         degree: Optional polynomial degree (defaults to len(coefficients))
 
     Returns:
-        List of feature values
+        List of feature values, in order: [degree, field_order, num_coeffs,
+        nonzero_count, sparsity, is_trinomial, is_pentanomial, coeff_sum,
+        coeff_mean, is_irreducible, is_primitive]
     """
     if degree is None:
         degree = len(coefficients)
@@ -237,6 +247,29 @@ def extract_polynomial_features(
         features.append(coeff_mean)
     else:
         features.extend([0.0, 0.0])
+
+    # Irreducibility / primitivity, computed from the characteristic
+    # polynomial built from the coefficients. These are strong predictors
+    # of period length (a primitive polynomial always yields the maximum
+    # period q^d - 1) so they're worth the extra computation.
+    is_irreducible = 0.0
+    is_primitive = 0.0
+    if coefficients:
+        try:
+            from lfsr.polynomial import is_primitive_polynomial
+            from lfsr.sage_imports import GF, PolynomialRing
+
+            field = GF(field_order)
+            ring = PolynomialRing(field, "t")
+            char_poly = ring([1] + coefficients[::-1])
+
+            is_irreducible = 1.0 if char_poly.is_irreducible() else 0.0
+            is_primitive = 1.0 if is_primitive_polynomial(char_poly, field_order) else 0.0
+        except Exception:
+            pass
+
+    features.append(is_irreducible)
+    features.append(is_primitive)
 
     return features
 

@@ -71,7 +71,7 @@ class PeriodPredictionModel(BaseMLModel):
             feature_names = [
                 'degree', 'field_order', 'num_coeffs', 'nonzero_count',
                 'sparsity', 'is_trinomial', 'is_pentanomial',
-                'coeff_sum', 'coeff_mean'
+                'coeff_sum', 'coeff_mean', 'is_irreducible', 'is_primitive'
             ]
             config = MLModelConfig(
                 model_type=model_type,
