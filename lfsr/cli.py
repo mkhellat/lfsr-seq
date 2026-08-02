@@ -829,10 +829,33 @@ def parse_args(args: Optional[list] = None) -> argparse.Namespace:
     )
 
     ml_group.add_argument(
+        "--ml-model-type",
+        type=str,
+        choices=["random_forest", "gradient_boosting"],
+        default="random_forest",
+        help="Model type for --train-model (default: random_forest)."
+    )
+
+    ml_group.add_argument(
         "--ml-model-file",
         type=str,
         metavar="FILE",
-        help="Path to trained ML model file (for prediction)."
+        help="Path to trained ML model file (for prediction or --evaluate-model)."
+    )
+
+    ml_group.add_argument(
+        "--evaluate-model",
+        action="store_true",
+        help="Evaluate a trained model (--ml-model-file) on fresh synthetic "
+             "test data and report MSE/RMSE/R²."
+    )
+
+    ml_group.add_argument(
+        "--ml-test-samples",
+        type=int,
+        default=50,
+        metavar="N",
+        help="Number of test samples for --evaluate-model (default: 50)."
     )
 
     # NIST test suite options
@@ -1193,13 +1216,17 @@ def cli_main() -> None:
                     )
                     print(f"Reproducibility report saved to {args.reproducibility_report}", file=output_file)
             # Check if ML features requested
-            elif args.predict_period or args.detect_patterns or args.detect_anomalies or args.train_model:
+            elif (args.predict_period or args.detect_patterns or args.detect_anomalies or
+                  args.train_model or args.evaluate_model):
                 from lfsr.core import analyze_lfsr
                 from lfsr.io import read_coefficient_vectors
                 from lfsr.ml.anomaly_detection import detect_all_anomalies
                 from lfsr.ml.pattern_detection import detect_all_patterns
                 from lfsr.ml.period_prediction import PeriodPredictionModel
-                from lfsr.ml.training import train_period_prediction_model
+                from lfsr.ml.training import (
+                    evaluate_model_performance,
+                    train_period_prediction_model,
+                )
 
                 # Load coefficients from input file
                 if not args.input_file:
@@ -1292,13 +1319,35 @@ def cli_main() -> None:
                     print("=" * 70, file=output_file)
 
                     model = train_period_prediction_model(
-                        model_type="random_forest",
+                        model_type=args.ml_model_type,
                         num_samples=args.ml_samples,
                         max_degree=min(10, len(coefficients) + 2),
                         field_order=int(args.gf_order),
                         save_path=args.train_model
                     )
                     print(f"Model trained and saved to {args.train_model}", file=output_file)
+
+                # Model evaluation
+                if args.evaluate_model:
+                    print("=" * 70, file=output_file)
+                    print("Evaluating ML Model", file=output_file)
+                    print("=" * 70, file=output_file)
+
+                    if not args.ml_model_file:
+                        print("ERROR: --evaluate-model requires --ml-model-file", file=sys.stderr)
+                        sys.exit(1)
+
+                    model = PeriodPredictionModel()
+                    model.load_model(args.ml_model_file)
+                    metrics = evaluate_model_performance(
+                        model,
+                        test_samples=args.ml_test_samples,
+                        max_degree=min(10, len(coefficients) + 2),
+                        field_order=int(args.gf_order)
+                    )
+                    print(f"MSE: {metrics['mse']:.2f}", file=output_file)
+                    print(f"RMSE: {metrics['rmse']:.2f}", file=output_file)
+                    print(f"R² Score: {metrics['r2_score']:.4f}", file=output_file)
             # Check if visualization features requested
             elif (args.plot_period_distribution or args.plot_state_transitions or
                   args.plot_period_statistics or args.plot_3d_state_space or
