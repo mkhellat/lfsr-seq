@@ -110,10 +110,9 @@ CLI wiring is partial: ``--predict-period``, ``--detect-patterns``,
 ``--detect-anomalies``, and ``--train-model`` cover the main entry points, but
 there is no dedicated ``cli_ml.py`` and not every library capability in
 ``lfsr.ml`` is exposed as a flag. The corresponding classes live in
-``lfsr/ml/models.py`` (``BaseMLModel``, ``PeriodPredictionModel``) and
-``lfsr/ml/period_prediction.py``, ``lfsr/ml/pattern_detection.py``
-(``PatternDetector``), and ``lfsr/ml/anomaly_detection.py``
-(``AnomalyDetector``) for programmatic use.
+``lfsr/ml/base.py`` (``BaseMLModel``), ``lfsr/ml/period_prediction.py``
+(``PeriodPredictionModel``), ``lfsr/ml/pattern_detection.py``, and
+``lfsr/ml/anomaly_detection.py`` for programmatic use.
 
 Notation and Terminology
 --------------------------
