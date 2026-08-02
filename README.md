@@ -806,17 +806,20 @@ lfsr-seq coefficients.csv 2 --reproducibility-report report.json
 ### Example 13: Machine Learning Analysis
 
 ```bash
-# Predict period using ML model
-lfsr-seq coefficients.csv 2 --ml-predict-period
+# Predict period using a trained ML model
+lfsr-seq coefficients.csv 2 --predict-period --ml-model-file model.pkl
 
 # Detect patterns in sequence
-lfsr-seq coefficients.csv 2 --ml-detect-patterns --sequence-length 1000
+lfsr-seq coefficients.csv 2 --detect-patterns
 
 # Detect anomalies
-lfsr-seq coefficients.csv 2 --ml-detect-anomalies
+lfsr-seq coefficients.csv 2 --detect-anomalies
 
-# Train custom ML model
-lfsr-seq coefficients.csv 2 --ml-train --model-type period_predictor
+# Train an ML model (random_forest by default, or gradient_boosting)
+lfsr-seq coefficients.csv 2 --train-model model.pkl --ml-model-type gradient_boosting
+
+# Evaluate a trained model against fresh synthetic test data
+lfsr-seq coefficients.csv 2 --evaluate-model --ml-model-file model.pkl
 ```
 
 ### Example 14: Visualization
@@ -1262,7 +1265,7 @@ For time-memory trade-off attacks, see [TMTO Attacks Guide](docs/time_memory_tra
 For stream cipher analysis, see [Stream Ciphers Guide](docs/stream_ciphers.rst).
 For advanced LFSR structures, see [Advanced LFSR Structures Guide](docs/advanced_lfsr_structures.rst).
 For theoretical analysis features, see [Theoretical Analysis Guide](docs/theoretical_analysis.rst).
-For machine learning features, see [Machine Learning Guide](docs/machine_learning.rst) (if available).
+For machine learning features, see [Machine Learning Guide](docs/ml_integration.rst).
 For visualization features, see [Visualization Guide](docs/visualization.rst).
 For NIST test suite documentation, see [NIST SP 800-22 Guide](docs/nist_sp800_22.rst).
 For optimization techniques, see [Optimization Techniques Guide](docs/optimization_techniques.rst).

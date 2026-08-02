@@ -103,16 +103,30 @@ and wired into the ``lfsr-seq`` CLI through the following flags (see
    lfsr-seq coefficients.csv 2 --detect-anomalies
 
    # Train a period-prediction model and save it (--ml-samples controls
-   # the training sample count, default 100)
-   lfsr-seq coefficients.csv 2 --train-model model.pkl --ml-samples 20
+   # the training sample count, default 100; --ml-model-type selects
+   # random_forest [default] or gradient_boosting)
+   lfsr-seq coefficients.csv 2 --train-model model.pkl --ml-samples 20 \
+     --ml-model-type gradient_boosting
+
+   # Evaluate a trained model against fresh synthetic test data
+   # (--ml-test-samples controls the test sample count, default 50)
+   lfsr-seq coefficients.csv 2 --evaluate-model --ml-model-file model.pkl \
+     --ml-test-samples 30
 
 CLI wiring is partial: ``--predict-period``, ``--detect-patterns``,
-``--detect-anomalies``, and ``--train-model`` cover the main entry points, but
-there is no dedicated ``cli_ml.py`` and not every library capability in
-``lfsr.ml`` is exposed as a flag. The corresponding classes live in
-``lfsr/ml/base.py`` (``BaseMLModel``), ``lfsr/ml/period_prediction.py``
+``--detect-anomalies``, ``--train-model``, and ``--evaluate-model`` cover the
+main entry points, but there is no dedicated ``cli_ml.py`` and not every
+library capability in ``lfsr.ml`` is exposed as a flag -- the individual
+sub-detectors in ``pattern_detection.py``/``anomaly_detection.py`` (e.g.
+``detect_repeating_subsequences``, ``detect_distribution_anomalies``) are
+only reachable via their ``detect_all_*`` aggregators, not as separate
+flags. The corresponding classes live in ``lfsr/ml/base.py``
+(``BaseMLModel``, and the ``extract_polynomial_features`` /
+``extract_sequence_features`` feature extractors), ``lfsr/ml/period_prediction.py``
 (``PeriodPredictionModel``), ``lfsr/ml/pattern_detection.py``, and
-``lfsr/ml/anomaly_detection.py`` for programmatic use.
+``lfsr/ml/anomaly_detection.py`` for programmatic use. ``lfsr/ml/training.py``
+provides ``train_period_prediction_model`` and ``evaluate_model_performance``,
+which back ``--train-model`` and ``--evaluate-model`` respectively.
 
 Notation and Terminology
 --------------------------

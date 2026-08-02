@@ -219,7 +219,11 @@ corresponding sections below.
    - ``--detect-patterns`` - Detect patterns in generated sequences
    - ``--detect-anomalies`` - Detect anomalies in sequences and distributions
    - ``--train-model FILE`` - Train ML model and save to file
-   - ``--ml-model-file FILE`` - Path to trained ML model file
+   - ``--ml-samples N`` - Number of training samples for ``--train-model`` (default: 100)
+   - ``--ml-model-type {random_forest|gradient_boosting}`` - Model type for ``--train-model`` (default: random_forest)
+   - ``--ml-model-file FILE`` - Path to trained ML model file (for prediction or ``--evaluate-model``)
+   - ``--evaluate-model`` - Evaluate a trained model against fresh synthetic test data
+   - ``--ml-test-samples N`` - Number of test samples for ``--evaluate-model`` (default: 50)
 
 *NIST Test Suite Options* (See :ref:`nist-test-options`):
    - ``--nist-test`` - Run NIST SP 800-22 statistical test suite
@@ -1468,6 +1472,12 @@ ML-based analysis can be performed from the command line:
    # Train with a smaller sample count (faster, less accurate)
    lfsr-seq coefficients.csv 2 --train-model model.pkl --ml-samples 20
 
+   # Train a gradient boosting model instead of the default random forest
+   lfsr-seq coefficients.csv 2 --train-model model.pkl --ml-model-type gradient_boosting
+
+   # Evaluate a trained model on fresh synthetic test data
+   lfsr-seq coefficients.csv 2 --evaluate-model --ml-model-file model.pkl
+
 **Machine Learning Options**:
 
    --predict-period           Predict period using ML model (requires
@@ -1480,5 +1490,13 @@ ML-based analysis can be performed from the command line:
                               100 samples can take several minutes.
    --ml-samples N             Number of training samples for
                               --train-model (default: 100).
-   --ml-model-file FILE       Path to trained ML model file (for prediction).
+   --ml-model-type TYPE       Model type for --train-model: random_forest
+                              (default) or gradient_boosting.
+   --ml-model-file FILE       Path to trained ML model file (for prediction
+                              or --evaluate-model).
+   --evaluate-model           Evaluate a trained model (--ml-model-file) on
+                              fresh synthetic test data and report
+                              MSE/RMSE/R².
+   --ml-test-samples N        Number of test samples for --evaluate-model
+                              (default: 50).
 

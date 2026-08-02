@@ -3,11 +3,15 @@
 **Status**: In Progress (at time of writing)
 **Version**: 1.0
 
-> **Update**: `lfsr/ml/` is now a fully implemented subpackage (`base.py`, `features.py`,
-> `models.py`, `period_prediction.py`, `pattern_detection.py`, `anomaly_detection.py`,
-> `training.py`). CLI wiring is partial — `--predict-period`, `--detect-patterns`,
-> `--detect-anomalies`, and `--train-model` exist in `lfsr/cli.py`, but there is no
-> dedicated `cli_ml.py` and some library capabilities aren't exposed as flags. See
+> **Update**: `lfsr/ml/` is now a fully implemented subpackage (`base.py`,
+> `period_prediction.py`, `pattern_detection.py`, `anomaly_detection.py`,
+> `training.py`). Two earlier files, `features.py` and `models.py`, were removed
+> as dead code (zero consumers, fully superseded by the files above). CLI wiring
+> is partial — `--predict-period`, `--detect-patterns`, `--detect-anomalies`,
+> `--train-model`, `--ml-model-type`, and `--evaluate-model` exist in
+> `lfsr/cli.py`, but there is no dedicated `cli_ml.py` and the individual
+> sub-detectors in `pattern_detection.py`/`anomaly_detection.py` are only
+> reachable via their `detect_all_*` aggregators, not as separate flags. See
 > repo root `CLAUDE.md` for current status.
 
 ---
