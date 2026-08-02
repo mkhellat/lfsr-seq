@@ -1,5 +1,14 @@
 # Phase 2.1 & 2.2 Performance Profiling Analysis
 
+> **Update**: this document is a point-in-time snapshot from 2025-12-30.
+> All items in "Next Steps" below were completed afterward: Phase 2.3
+> (persistent worker pool) and 2.4 (lazy task generation) shipped, and
+> larger problems were profiled (see `scripts/profile_report_16bit.md`,
+> `scripts/PROFILING_EVALUATION.md`). The break-even-point estimate below
+> is superseded by the more definitive current figure in the root
+> `CLAUDE.md`: parallel speedup peaks at ~1.21x for 16-bit LFSRs, with
+> fork overhead dominating for smaller inputs (an accepted tradeoff).
+
 **Date**: 2025-12-30  
 **Purpose**: Validate performance improvements from adaptive batch sizing and batch aggregation
 
