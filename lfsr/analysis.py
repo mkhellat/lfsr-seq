@@ -463,17 +463,16 @@ def _find_sequence_cycle_enumeration(
         - sequence_list: List of all states in the cycle
         - period: Length of the cycle
     """
-    # Add debug logging
+    # Debug logging (disabled by default, enable with DEBUG_PARALLEL=1)
     import os
     import sys
-    def debug_log(msg):
-        print(f'[_find_sequence_cycle_enumeration PID {os.getpid()}] {msg}', file=sys.stderr, flush=True)
+    DEBUG_PARALLEL = os.environ.get('DEBUG_PARALLEL', '0') == '1'
 
-    try:
-        debug_log('Starting enumeration...')
-    except Exception:
-        def debug_log(msg):
-            pass
+    def debug_log(msg):
+        if DEBUG_PARALLEL:
+            print(f'[_find_sequence_cycle_enumeration PID {os.getpid()}] {msg}', file=sys.stderr, flush=True)
+
+    debug_log('Starting enumeration...')
 
     seq_lst = [start_state]
     # Convert vector to tuple for hashing (SageMath vectors are mutable and unhashable)
