@@ -9,6 +9,11 @@ This directory contains the test suite for the LFSR-Seq analysis tool.
 - `test_polynomial.py` - Unit tests for polynomial operations
 - `test_io.py` - Unit tests for I/O operations (CSV reading)
 - `test_integration.py` - Integration tests for complete workflows
+- `test_analysis.py` - Unit tests for cycle detection and state enumeration
+- `test_parallel.py` - Tests for parallel state enumeration (static/dynamic/hybrid modes)
+- `test_edge_cases.py` - Edge case and boundary condition tests
+- `test_statistics.py` - Unit tests for statistical analysis
+- `test_ciphers_grain.py` - Regression tests for the Grain-128 cipher implementation
 - `conftest.py` - Pytest configuration and fixtures
 - `fixtures/` - Test data files
 
