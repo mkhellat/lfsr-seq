@@ -10,11 +10,17 @@ This module provides shared fixtures and handles SageMath availability checks.
 
 import pytest
 
-# Try to import SageMath - if it fails, mark all tests to skip
-try:
+from lfsr._sage_discovery import ensure_sage_importable
+
+# Try to make SageMath importable (this may shell out to the `sage` command
+# to locate its modules if they aren't already on sys.path -- see
+# lfsr._sage_discovery for why a bare `from sage.all import *` isn't
+# reliable across all the ways SageMath can be installed) - if it still
+# fails, mark all tests to skip.
+if ensure_sage_importable():
     from sage.all import *
     SAGEMATH_AVAILABLE = True
-except ImportError:
+else:
     SAGEMATH_AVAILABLE = False
     # Create a dummy marker to skip tests that require SageMath
     pytestmark = pytest.mark.skip(reason="SageMath not available")
