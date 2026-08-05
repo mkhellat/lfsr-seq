@@ -89,8 +89,8 @@ cipher analysis, educational purposes, and security evaluation.
   - Multi-format report generation (Text, JSON, CSV, XML, HTML)
 
 ### Field Support
-- **Prime Fields**: Full support for GF(p) where p is prime
-- **Prime Power Fields**: Support for GF(pⁿ) extension fields
+- **Prime Fields**: Full support for `GF(p)` where `p` is prime
+- **Prime Power Fields**: Support for `GF(pⁿ)` extension fields
 - **Comprehensive Validation**: Input validation for field orders and coefficients
 
 ### User Experience
@@ -101,7 +101,7 @@ cipher analysis, educational purposes, and security evaluation.
 
 ### Performance Optimizations
 - **Multiple Cycle Detection Algorithms**: Floyd's (tortoise-and-hare), Brent's (powers-of-2), and enumeration methods
-- **Period-Only Mode**: True O(1) space complexity for period computation without sequence storage
+- **Period-Only Mode**: True `O(1)` space complexity for period computation without sequence storage
 - **Parallel State Enumeration**: Multi-process enumeration (fork-based, static and dynamic
   work-distribution modes, adaptive batch sizing, batch aggregation, lazy task generation, a
   persistent worker pool, and queue-based memory safety limits) is implemented and available via
@@ -115,7 +115,7 @@ cipher analysis, educational purposes, and security evaluation.
     speedup multiplier previously stated in project docs was not reproducible and has been
     removed; see `dev-docs/profiling/README.md` for the full account. Automatic fallback to
     sequential mode is used for small LFSRs.
-- **Optimized State Tracking**: Set-based visited state tracking for O(1) lookups
+- **Optimized State Tracking**: Set-based visited state tracking for `O(1)` lookups
 - **Primitive Polynomial Optimization**: Fast period prediction for primitive polynomials
 - **Period Computation via Factorization**: Computes period from the characteristic polynomial's
   factorization rather than full state enumeration — algorithmically preferable for large-degree
@@ -298,7 +298,7 @@ lfsr-seq strange.csv 2
 
 This will:
 - Read LFSR coefficients from `strange.csv`
-- Analyze sequences over GF(2)
+- Analyze sequences over `GF(2)`
 - Generate output in `strange.csv.out`
 
 ### Command-Line Options
@@ -1211,8 +1211,8 @@ If you need to process larger files, you can modify the limits in `lfsr/constant
 This tool is motivated by exercise 2 of Tanja Lange's cryptology course:
 - [Course Website](https://www.hyperelliptic.org/tanja/teaching/CS22/)
 
-The tool finds periods of all possible states with *d* number of
-entries defined over *GF(gf_order)* for a specific LFSR, and arranges
+The tool finds periods of all possible states with `d` number of
+entries defined over `GF(gf_order)` for a specific LFSR, and arranges
 them in sequences. The order of the Characteristic Polynomial of the
 LFSR is also obtained alongside the orders of its factors to be
 compared with the periods of the listed sequences.
