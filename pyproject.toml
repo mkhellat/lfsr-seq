@@ -57,7 +57,10 @@ dev = [
 lfsr-seq = "lfsr.cli:cli_main"
 
 [tool.setuptools]
-packages = ["lfsr"]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
 
 [tool.black]
 line-length = 88

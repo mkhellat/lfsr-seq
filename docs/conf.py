@@ -47,7 +47,7 @@ def _addHandler_with_filter(handler):
 _root_logger.addHandler = _addHandler_with_filter
 
 # Add the project root to the path
-sys.path.insert(0, os.path.abspath(".."))
+sys.path.insert(0, os.path.abspath("../src"))
 
 # -- Project information -----------------------------------------------------
 
