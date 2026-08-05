@@ -41,16 +41,16 @@ This directory contains all development documentation, analysis reports, and imp
   - Tested auto and manual batch sizes
   - All results verified correct (100% match with sequential)
   - Key finding: Overhead still dominates for small problems, approaching break-even for medium problems
-  - See `scripts/phase2_profiling_analysis.md` for detailed analysis
+  - See `profiling/reports/phase2_profiling_analysis.md` for detailed analysis
 - **Memory Safety (Critical Fix)**: Fixed memory leak from unbounded queue growth
   - **Queue size limits**: All queues have maxsize=100 to prevent unbounded growth
   - **Producer backpressure**: Producer blocks when queue is full (blocking put with timeout)
   - **Emergency stop**: producer_stop_requested Event allows immediate shutdown
   - **Thread cleanup**: Improved producer thread cleanup with emergency stop mechanism
   - **Memory monitoring**: All test scripts have 4GB memory limits and emergency shutdown
-  - **Test runner**: Created `scripts/test_memory_safe.py` for safe test execution
+  - **Test runner**: Created `profiling/investigations/test_memory_safe.py` for safe test execution
   - Prevents DDoS-like memory exhaustion from queue overflow
-  - See `scripts/memory_leak_analysis.md` and `scripts/memory_leak_fixes_summary.md` for details
+  - See `profiling/reports/memory_leak_analysis.md` and `profiling/reports/memory_leak_fixes_summary.md` for details
 - **Load Balancing Analysis**: Detailed comparison of static vs dynamic modes
 - **Verification**: Correctness and metrics verified for all optimizations
 - See [Parallel Processing Documentation](./parallel/README.md) for details
@@ -59,6 +59,7 @@ This directory contains all development documentation, analysis reports, and imp
 
 ### Core Documentation
 - **[Parallel Processing](./parallel/README.md)** - All parallel execution documentation
+- **[Profiling Archive](./profiling/README.md)** - Raw profiling/investigation scripts, logs, and reports behind the parallel processing work
 - **[Plans](./plans/README.md)** - Feature plans and implementation documentation
 - **[Setup & Installation](./setup/README.md)** - Building and installation documentation
 
@@ -71,6 +72,11 @@ dev-docs/
 │ ├── bugs/ # Bug reports and fixes
 │ ├── performance/ # Performance profiling results
 │ └── implementation/ # Implementation plans and fixes
+├── profiling/ # Raw profiling archive (historical, unmaintained)
+│ ├── scripts/ # Profiling/benchmarking scripts
+│ ├── investigations/ # Correctness/behavior investigation scripts
+│ ├── logs/ # Captured run output and structured results
+│ └── reports/ # Write-ups interpreting the above
 ├── plans/ # Feature and implementation plans
 │ ├── parallel/ # Parallel processing plans
 │ ├── features/ # Feature plans
@@ -121,6 +127,6 @@ dev-docs/
 
 ## Related Documentation
 
-- **User Documentation**: See `docs/` for Sphinx-generated user documentation
-- **API Reference**: See `docs/api/` for API documentation
-- **Code**: See `lfsr/` for source code
+- **User Documentation**: See `app/docs/` for Sphinx-generated user documentation
+- **API Reference**: See `app/docs/api/` for API documentation
+- **Code**: See `app/src/lfsr/` for source code
