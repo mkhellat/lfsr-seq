@@ -1,10 +1,10 @@
 [build-system]
-requires = ["setuptools>=61.0", "wheel"]
+requires = ["setuptools>=61.0", "wheel", "setuptools-scm>=8"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "lfsr-seq"
-version = "0.2.0"
+dynamic = ["version"]
 description = "Linear Feedback Shift Register Analysis Tool"
 readme = "README.md"
 requires-python = ">=3.8"
@@ -55,6 +55,9 @@ dev = [
 # After installation, lfsr-seq will be available at: .venv/bin/lfsr-seq
 [project.scripts]
 lfsr-seq = "lfsr.cli:cli_main"
+
+[tool.setuptools_scm]
+write_to = "src/lfsr/_version.py"
 
 [tool.setuptools]
 package-dir = {"" = "src"}

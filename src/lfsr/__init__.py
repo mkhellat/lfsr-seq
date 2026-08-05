@@ -20,7 +20,10 @@ Example:
     >>> main("coefficients.csv", "2", output_file=open("output.txt", "w"))
 """
 
-__version__ = "0.2.0"
+try:
+    from lfsr._version import version as __version__
+except ImportError:
+    __version__ = "0.0.0+unknown"
 __author__ = "Mohammadreza Khellat"
 
 # Import non-sage-dependent modules at top level
