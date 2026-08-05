@@ -2,12 +2,18 @@
 
 This guide explains how to build and use the Sphinx documentation for lfsr-seq.
 
+**All commands below are run from `app/`**, not the git repository root —
+that's where `docs/`, the `Makefile`, and `pyproject.toml` live (see the
+root `CLAUDE.md` for the full repository layout).
+
 ## Prerequisites
 
 Before building the documentation, ensure you have:
 
 1. **Python 3.8+** installed
-2. **SageMath** installed (for running examples)
+2. **SageMath** installed (for running examples; the build itself succeeds
+   without it, but autodoc-driven API pages for sage-dependent modules
+   will be sparser — see "SageMath Import Issues" below)
 3. **Virtual environment** set up (recommended)
 
 ## Quick Start
@@ -145,38 +151,60 @@ The documentation will be available at `http://localhost:8000` and will automati
 
 ## Documentation Structure
 
-The documentation is organized as follows:
+The documentation lives in `app/docs/` and is organized as follows:
 
 ```
-docs/
-├── conf.py # Sphinx configuration
-├── index.rst # Main documentation index
-├── installation.rst # Installation guide
-├── user_guide.rst # User guide
-├── mathematical_background.rst # Mathematical theory
-├── examples.rst # Usage examples
-├── api/ # API reference
-│ ├── index.rst # API index
-│ ├── core.rst # Core module
-│ ├── analysis.rst # Analysis module
-│ ├── polynomial.rst # Polynomial module
-│ ├── field.rst # Field module
-│ ├── synthesis.rst # Synthesis module
-│ ├── statistics.rst # Statistics module
-│ ├── export.rst # Export module
-│ ├── io.rst # I/O module
-│ ├── formatter.rst # Formatter module
-│ └── cli.rst # CLI module
-└── _build/ # Build output (generated)
+app/docs/
+├── conf.py                          # Sphinx configuration
+├── index.rst                        # Main documentation index
+├── installation.rst                 # Installation guide
+├── user_guide.rst                   # User guide (includes Glossary)
+├── examples.rst                     # Usage examples
+├── mathematical_background.rst      # Mathematical theory
+├── correlation_attacks.rst          # Correlation attack framework
+├── algebraic_attacks.rst            # Berlekamp-Massey / algebraic attacks
+├── time_memory_tradeoff.rst         # TMTO attacks
+├── stream_ciphers.rst               # Stream cipher implementations
+├── advanced_lfsr_structures.rst     # NFSR/filtered/clock-controlled/multi-output
+├── theoretical_analysis.rst         # Theoretical analysis features
+├── ml_integration.rst               # Machine learning integration
+├── parallelization.rst              # Parallel state enumeration
+├── optimization_techniques.rst      # Optimization/caching techniques
+├── nist_sp800_22.rst                # NIST SP 800-22 statistical test suite
+├── visualization.rst                # Visualization features
+├── api/                             # API reference (one file per lfsr module)
+│   ├── index.rst
+│   ├── core.rst
+│   ├── analysis.rst
+│   ├── polynomial.rst
+│   ├── field.rst
+│   ├── synthesis.rst
+│   ├── statistics.rst
+│   ├── export.rst
+│   ├── io.rst
+│   ├── formatter.rst
+│   ├── cli.rst
+│   ├── attacks.rst
+│   ├── tmto.rst
+│   ├── nist.rst
+│   ├── optimization.rst
+│   ├── ciphers.rst
+│   ├── advanced.rst
+│   └── visualization.rst
+└── _build/                          # Build output (generated, gitignored)
 ```
+
+This list reflects the current set of `.rst` files; if you add a new one,
+update this tree and `app/docs/index.rst`'s toctree together so this guide
+doesn't drift out of sync again.
 
 ## Configuration
 
-The Sphinx configuration is in `docs/conf.py`. Key settings:
+The Sphinx configuration is in `app/docs/conf.py`. Key settings:
 
 - **Project name**: `lfsr-seq`
 - **Theme**: Read the Docs (`sphinx_rtd_theme`)
-- **Extensions**: autodoc, viewcode, napoleon, mathjax, intersphinx
+- **Extensions**: autodoc, viewcode, napoleon, mathjax, intersphinx, sphinx_proof (theorem/proof environments)
 - **Math support**: MathJax for LaTeX equations
 
 ## Troubleshooting
@@ -190,7 +218,7 @@ If you get import errors when building:
  pip install -e .
  ```
 
-2. **Check Python path**: The `conf.py` adds the project root to `sys.path`, but ensure you're in the right directory.
+2. **Check Python path**: `conf.py` adds `app/src` to `sys.path` (relative to `app/docs/`), so autodoc can import `lfsr` directly even without an editable install — but you still need to run the build from `app/docs/` (or via `make docs` from `app/`) for that relative path to resolve correctly.
 
 ### Missing Dependencies
 
@@ -219,45 +247,65 @@ make docs
 
 ## Continuous Integration
 
-The documentation can be built in CI/CD pipelines:
+**Status quo**: `.github/workflows/ci.yml` does **not** currently build the
+documentation — it only runs tests, lint/format checks, and package
+builds. Documentation building is a manual (`make docs`) or local step
+today, not a CI gate.
+
+If you want to add it, a step like this would work (adjust
+`working-directory` to match the job's `defaults`, since the package now
+lives under `app/`):
 
 ```yaml
-# Example GitHub Actions step
+# Example GitHub Actions step (not currently present in ci.yml)
 - name: Build documentation
- run: |
- pip install sphinx sphinx-rtd-theme
- cd docs
- sphinx-build -b html . _build/html
+  working-directory: app
+  run: |
+    pip install sphinx sphinx-rtd-theme
+    cd docs
+    sphinx-build -b html . _build/html
 ```
 
 ## Publishing Documentation
 
-### Read the Docs
+**Status quo**: neither Read the Docs nor GitHub Pages is currently
+configured for this project — there is no `.readthedocs.yaml` in the
+repo and no Pages-publishing workflow in `.github/workflows/`. The
+sections below are setup instructions for if/when you want to wire one
+of these up, not a description of an existing pipeline.
+
+### Read the Docs (not yet configured)
 
 To publish on Read the Docs:
 
 1. Connect your GitHub repository to Read the Docs
-2. Read the Docs will automatically build from the `docs/` directory
-3. Ensure `pyproject.toml`'s `dev` extra includes Sphinx dependencies
+2. Add a `.readthedocs.yaml` at the git repository root pointing Read the
+   Docs at `app/docs/conf.py` and telling it to install the package from
+   `app/` (Read the Docs' default assumes `docs/` and `pyproject.toml`
+   sit at the repo root, which is no longer true here — this needs
+   explicit `sphinx.configuration`/`python.install` overrides)
+3. Ensure `app/pyproject.toml`'s `dev` extra includes Sphinx dependencies
 
-### GitHub Pages
+### GitHub Pages (not yet configured)
 
 To publish on GitHub Pages:
 
 1. Build the documentation:
- ```bash
- make docs
- ```
+   ```bash
+   cd app
+   make docs
+   ```
 
-2. Copy to `gh-pages` branch:
- ```bash
- git checkout --orphan gh-pages
- git rm -rf .
- cp -r docs/_build/html/* .
- git add .
- git commit -m "Add documentation"
- git push origin gh-pages
- ```
+2. Copy to `gh-pages` branch (paths below assume you're at the git
+   repository root, not `app/`):
+   ```bash
+   git checkout --orphan gh-pages
+   git rm -rf .
+   cp -r app/docs/_build/html/* .
+   git add .
+   git commit -m "Add documentation"
+   git push origin gh-pages
+   ```
 
 3. Enable GitHub Pages in repository settings
 
@@ -266,7 +314,7 @@ To publish on GitHub Pages:
 For local viewing:
 
 ```bash
-cd docs/_build/html
+cd app/docs/_build/html
 python3 -m http.server 8000
 # Open http://localhost:8000 in browser
 ```
@@ -275,9 +323,9 @@ python3 -m http.server 8000
 
 When adding new modules or functions:
 
-1. **Add API documentation**: Create or update files in `docs/api/`
-2. **Update index**: Add new sections to `docs/index.rst` if needed
-3. **Rebuild**: Run `make docs` to see changes
+1. **Add API documentation**: Create or update files in `app/docs/api/`
+2. **Update index**: Add new sections to `app/docs/index.rst` if needed
+3. **Rebuild**: Run `make docs` (from `app/`) to see changes
 4. **Test**: Verify all links work and examples run correctly
 
 ## Best Practices
