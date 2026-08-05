@@ -1116,7 +1116,7 @@ sphinx-build -b html . _build/html
 **Documentation Structure:**
 - User documentation: Installation, user guide, examples, mathematical background
 - API reference: Complete documentation for all modules and functions
-- Build guide: See `docs/BUILDING.md` for detailed build instructions
+- Build guide: See `dev-docs/setup/BUILDING.md` for detailed build instructions
 
 The documentation includes:
 - Comprehensive API reference for all modules
@@ -1283,17 +1283,17 @@ compared with the periods of the listed sequences.
 - **Result Caching**: Storing computed results for reuse without recomputation
 - **Mathematical Shortcut Detection**: Automatic detection of special cases for optimized computation
 
-For detailed mathematical background, see the [documentation](docs/mathematical_background.rst).
-For correlation attack theory and usage, see [Correlation Attacks Guide](docs/correlation_attacks.rst).
-For algebraic attack theory and usage, see [Algebraic Attacks Guide](docs/algebraic_attacks.rst).
-For time-memory trade-off attacks, see [TMTO Attacks Guide](docs/time_memory_tradeoff.rst).
-For stream cipher analysis, see [Stream Ciphers Guide](docs/stream_ciphers.rst).
-For advanced LFSR structures, see [Advanced LFSR Structures Guide](docs/advanced_lfsr_structures.rst).
-For theoretical analysis features, see [Theoretical Analysis Guide](docs/theoretical_analysis.rst).
-For machine learning features, see [Machine Learning Guide](docs/ml_integration.rst).
-For visualization features, see [Visualization Guide](docs/visualization.rst).
-For NIST test suite documentation, see [NIST SP 800-22 Guide](docs/nist_sp800_22.rst).
-For optimization techniques, see [Optimization Techniques Guide](docs/optimization_techniques.rst).
+For detailed mathematical background, see the [documentation](app/docs/mathematical_background.rst).
+For correlation attack theory and usage, see [Correlation Attacks Guide](app/docs/correlation_attacks.rst).
+For algebraic attack theory and usage, see [Algebraic Attacks Guide](app/docs/algebraic_attacks.rst).
+For time-memory trade-off attacks, see [TMTO Attacks Guide](app/docs/time_memory_tradeoff.rst).
+For stream cipher analysis, see [Stream Ciphers Guide](app/docs/stream_ciphers.rst).
+For advanced LFSR structures, see [Advanced LFSR Structures Guide](app/docs/advanced_lfsr_structures.rst).
+For theoretical analysis features, see [Theoretical Analysis Guide](app/docs/theoretical_analysis.rst).
+For machine learning features, see [Machine Learning Guide](app/docs/ml_integration.rst).
+For visualization features, see [Visualization Guide](app/docs/visualization.rst).
+For NIST test suite documentation, see [NIST SP 800-22 Guide](app/docs/nist_sp800_22.rst).
+For optimization techniques, see [Optimization Techniques Guide](app/docs/optimization_techniques.rst).
 
 ## Contributing
 
