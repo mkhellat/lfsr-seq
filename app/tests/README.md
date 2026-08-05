@@ -14,6 +14,11 @@ This directory contains the test suite for the LFSR-Seq analysis tool.
 - `test_edge_cases.py` - Edge case and boundary condition tests
 - `test_statistics.py` - Unit tests for statistical analysis
 - `test_ciphers_grain.py` - Regression tests for the Grain-128 cipher implementation
+- `test_cross_check_external.py` - Cross-checks our GF(2) output against two
+  third-party LFSR libraries (PyLFSR, lfsr-tools). Optional: skips cleanly
+  unless installed via `pip install -e ".[cross-check]"`. See the module's
+  docstring for the coefficient-convention mapping between tools and known
+  quality caveats in lfsr-tools.
 - `conftest.py` - Pytest configuration and fixtures
 - `fixtures/` - Test data files
 
@@ -22,6 +27,11 @@ This directory contains the test suite for the LFSR-Seq analysis tool.
 ### Prerequisites
 
 SageMath must be installed system-wide (it's not available via PyPI). The tests will automatically skip if SageMath is not available.
+
+Optional: `test_cross_check_external.py`'s tests require PyLFSR and
+lfsr-tools, installed via `pip install -e ".[cross-check]"` (not part
+of the default `[dev]` extra, since these are only used by that one
+test module). They also skip cleanly if not installed.
 
 ### Basic Test Execution
 

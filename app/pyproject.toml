@@ -50,6 +50,17 @@ dev = [
     "sphinx-proof>=0.1.0",
     "ipython>=8.0.0,<9.0.0",
 ]
+# Optional, GF(2)-only third-party LFSR libraries used solely to
+# cross-validate our own GF(2) sequence/period output and
+# Berlekamp-Massey recovery in tests/test_cross_check_external.py.
+# Not required for normal development; those tests skip cleanly if
+# this extra isn't installed. See that file's module docstring for
+# why these packages can't validate our GF(q>2) support and for known
+# quality caveats in lfsr-tools.
+cross-check = [
+    "pylfsr>=1.0.7,<2.0.0",
+    "lfsr-tools>=0.0.1,<1.0.0",
+]
 
 # Entry point for command-line interface
 # After installation, lfsr-seq will be available at: .venv/bin/lfsr-seq
