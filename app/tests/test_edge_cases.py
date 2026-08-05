@@ -74,7 +74,6 @@ class TestZeroState:
 class TestDegenerateLFSRs:
     """Tests for degenerate LFSR configurations."""
 
-    @pytest.mark.xfail(reason="all-zero matrix maps every state to zero, causing infinite loop in cycle detection — known degenerate case not handled by lfsr_sequence_mapper")
     def test_all_zero_coefficients(self):
         """Test LFSR with all zero coefficients (degenerate case)."""
         coeffs = [0, 0, 0, 0]
