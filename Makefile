@@ -166,6 +166,7 @@ clean:
 	rm -rf build/
 	rm -rf dist/
 	rm -rf *.egg-info
+	rm -rf src/*.egg-info
 	rm -rf .eggs
 	rm -rf .pytest_cache
 	rm -rf .mypy_cache
@@ -206,6 +207,7 @@ uninstall:
 			echo "  Package not found in virtual environment"; \
 		fi; \
 		rm -rf *.egg-info 2>/dev/null || true; \
+		rm -rf src/*.egg-info 2>/dev/null || true; \
 		rm -rf .eggs 2>/dev/null || true; \
 		echo "  ✓ Build metadata cleaned"; \
 	else \
@@ -218,6 +220,7 @@ uninstall:
 			echo "  Package not found in system Python"; \
 		fi; \
 		rm -rf *.egg-info 2>/dev/null || true; \
+		rm -rf src/*.egg-info 2>/dev/null || true; \
 		rm -rf .eggs 2>/dev/null || true; \
 		echo "  ✓ Build metadata cleaned"; \
 	fi
