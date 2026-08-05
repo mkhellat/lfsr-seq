@@ -1125,8 +1125,11 @@ systematically enumerates states :math:`S_0, S_1, S_2, \ldots, S_k` until
   :math:`\Omega(\lambda)` operations
 * **Cache Efficiency**: Sequential memory access pattern is
   cache-friendly
-* **Practical Performance**: Typically 3-5× faster than Floyd's
-  algorithm for small-to-medium periods
+* **Fewer State Transitions**: Floyd's algorithm performs one tortoise
+  step plus two hare steps per iteration (~3 transitions per step)
+  versus enumeration's one, so enumeration does roughly 3x fewer state
+  transitions for the same period. No wall-clock benchmark has been run
+  to confirm what this implies for actual running time.
 
 **Limitations**:
 
@@ -1382,10 +1385,11 @@ For LFSR sequences (where Phase 2 is omitted):
   :math:`\lambda` transitions, a **3× overhead** from the hare's
   double-speed traversal.
 
-* **Time Performance**: For small-to-medium periods (< 1000),
-  enumeration is typically **3-5× faster** in practice due to Floyd's
-  higher state transition count, despite identical asymptotic
-  :math:`O(\lambda)` complexity.
+* **Time Performance**: Despite identical asymptotic :math:`O(\lambda)`
+  complexity, the 3x transition-count overhead above suggests
+  enumeration should be faster in practice for small-to-medium periods.
+  No wall-clock benchmark has been run to confirm the actual ratio, so
+  no specific multiplier is claimed here.
 
 * **Space Performance**: Both achieve :math:`O(1)` auxiliary space in
   period-only mode. Enumeration uses slightly less memory (~1.44 KB vs
@@ -1591,9 +1595,10 @@ the period :math:`\lambda` of a periodic state sequence.
   Both Brent's and Floyd's perform **3× more** state transitions than
   enumeration.
 
-* **Practical Performance**: Similar to Floyd's, enumeration is
-  typically **3-5× faster** for small-to-medium periods due to simpler
-  control flow and better cache locality.
+* **Practical Performance**: Similar to Floyd's, the 3x transition-count
+  overhead above suggests enumeration should be faster for
+  small-to-medium periods. No wall-clock benchmark has been run to
+  confirm the actual ratio or attribute a cause (e.g. cache locality).
 
 * **Theoretical Interest**: Brent's algorithm provides an alternative
   approach to cycle detection, useful for verification and educational
@@ -1669,9 +1674,10 @@ considerations.
   mode, with enumeration using slightly less memory (~1.44 KB vs ~1.60
   KB for Floyd's/Brent's).
 
-* **Practical Performance**: Enumeration is typically 3-5× faster for
-  small-to-medium periods due to simpler control flow and better cache
-  locality.
+* **Practical Performance**: Enumeration has the smallest constant factor
+  (see Time Complexity above), so it should be faster for
+  small-to-medium periods in practice. No wall-clock benchmark has been
+  run to confirm a specific ratio.
 
 * **Theoretical Interest**: Floyd's and Brent's provide alternative
   approaches useful for verification and educational purposes.
@@ -1679,10 +1685,10 @@ considerations.
 **Default Recommendation**:
 
 For most practical LFSR analysis scenarios, naive enumeration is
-recommended as the default choice due to its superior performance,
-simplicity, and optimal time complexity with minimal constant factors.
-Floyd's and Brent's algorithms serve as valuable alternatives for
-verification and educational purposes.
+recommended as the default choice due to its smaller constant factor,
+simplicity, and optimal time complexity. Floyd's and Brent's algorithms
+serve as valuable alternatives for verification and educational
+purposes.
 
 Implementation Considerations
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -1707,26 +1713,32 @@ the ``--algorithm`` command-line option:
 
 * **Period-Only Mode** (``--period-only`` flag): When only the period
   value is needed, all algorithms achieve true :math:`O(1)` space
-  complexity. Enumeration remains the default due to typically 3-5×
-  better performance, with Floyd's and Brent's available as alternatives
-  for verification or educational purposes.
+  complexity. Enumeration remains the default due to its smaller state
+  transition constant factor (see above), with Floyd's and Brent's
+  available as alternatives for verification or educational purposes.
 
 **Performance Analysis**:
 
-For detailed performance profiling and comparison of different cycle
-detection algorithms, see the performance analysis script
-(``scripts/performance_profile.py``) and the comprehensive performance
-discussion in the user guide.
+A script that profiled cycle-detection algorithm performance during
+earlier development is archived at
+``dev-docs/profiling/scripts/performance_profile.py``; see the caveats
+in ``dev-docs/profiling/README.md`` before drawing conclusions from it.
 
 Parallel State Enumeration
 ---------------------------
 
 For large LFSRs with state spaces containing thousands or millions of
 states, sequential processing can be time-consuming. Parallel state
-enumeration partitions the state space across multiple CPU cores to
-achieve significant speedup on multi-core systems. The implementation
-uses fork mode (13-17x faster than spawn) with SageMath isolation to
-provide 2-4x speedup for large LFSRs.
+enumeration partitions the state space across multiple CPU cores and is
+implemented using fork mode (lower process-creation overhead than
+spawn) with SageMath isolation. **No reliable speedup has been measured
+for this feature** -- the profiling behind its original development
+(archived in ``dev-docs/profiling/``) used single-run, high-variance
+measurements, and the raw data it collected shows parallel enumeration
+slower than sequential processing across most configurations tested,
+worsening as worker count increases. See ``dev-docs/profiling/README.md``
+for the full account. Automatic fallback to sequential mode is used for
+small LFSRs where process/IPC overhead would dominate.
 
 **Motivation**:
 
@@ -1767,8 +1779,11 @@ The parallel implementation provides two modes for work distribution:
   - **Dynamic Work Distribution**: Workers continuously pull batches
     from the queue. When a worker finishes a batch, it immediately pulls
     the next available batch. Faster workers naturally take on more work,
-    providing automatic load balancing and reducing imbalance by 2-4x for
-    multi-cycle LFSRs.
+    providing automatic load balancing for multi-cycle LFSRs. A specific
+    imbalance-reduction ratio was previously claimed here but was based
+    on a single best-case data point contradicted by other configurations
+    in the same dataset (see ``dev-docs/profiling/README.md``); no
+    reliable figure is available.
   
   - **Result Merging**: After all workers complete, results are merged
     with automatic deduplication (same as static mode).
@@ -1907,16 +1922,19 @@ SageMath vectors are not directly pickleable for inter-process communication.
 **Performance Characteristics**:
 
 * **Theoretical Speedup**: Up to :math:`n`-fold on :math:`n` cores
-  (linear scaling for independent work)
-* **Practical Speedup**: 4-8× on typical multi-core systems (due to
-  overhead from process creation, IPC, and result merging)
-* **Best Case**: Large state spaces (> 10,000 states) with many CPU cores
-* **Optimization Results**: After optimization (lazy partitioning),
-  parallel processing achieves excellent speedup for medium-sized LFSRs:
-  
-  - **7-bit LFSR (128 states)**: 6.37× - 9.89× speedup
-  - **Best configuration**: 1-2 workers for medium LFSRs
-  - **Efficiency**: 159% - 989% (overhead reduction from optimization)
+  (linear scaling for independent work), an upper bound only
+* **Practical Speedup**: not reliably measured. Specific figures
+  previously quoted here (a "4-8x" practical range, and per-configuration
+  numbers implying over 100% parallel efficiency on 1-2 workers, which is
+  not physically possible for this kind of workload) were traced to
+  single-run profiling with 40-60% run-to-run variance and have been
+  removed. The archived raw data (``dev-docs/profiling/``) shows parallel
+  enumeration typically *slower* than sequential at the problem sizes
+  tested, worsening with more workers -- see
+  ``dev-docs/profiling/README.md`` for the full account and
+  ``dev-docs/parallel/`` for the current, honest assessment.
+* **Best Case**: intended for large state spaces (> 10,000 states) with
+  many CPU cores; not confirmed to actually help at any tested size.
 
 **Configuration**:
 
@@ -1979,7 +1997,10 @@ optimized using lazy iteration:
 
 * **Before**: Materialized all states upfront, then partitioned
 * **After**: Lazy iteration with on-the-fly conversion to tuples
-* **Result**: 6-10× speedup improvement for medium LFSRs
+* **Result**: intended to reduce partitioning overhead; no reliable
+  before/after speedup figure exists (an earlier "6-10x" claim here
+  traced to the same unreliable single-run profiling noted above and
+  has been removed)
 
 **Future Improvements**:
 
@@ -2531,39 +2552,45 @@ For a period :math:`\lambda`, Floyd's algorithm performs:
 
 **Comparison**:
 
-* Floyd performs approximately **2.5× more operations** than
-  enumeration
-* Actual measured ratio: **~3.83×** (due to implementation details and
-  meeting point location)
-* For period 24: Floyd = 92 operations, Enumeration = 24 operations
+* The :math:`\sim 2.5\lambda` derivation above is one operation-count
+  estimate for Floyd; a different derivation elsewhere in this document
+  gives :math:`3\lambda` (tortoise :math:`\lambda` + hare
+  :math:`2\lambda`). These two derivations disagree with each other,
+  which is a sign the accounting of exactly what counts as an
+  "operation" differs between them, not that both are simultaneously
+  correct.
+* For the single worked example of period 24 (Floyd = 92 operations,
+  enumeration = 24 operations), the ratio is 92/24 ≈ 3.83x -- this
+  specific arithmetic is correct for that one example, but it is a
+  single data point, not a general result, and does not match either of
+  the 2.5x or 3x analytic derivations above.
 
 Time Performance Analysis
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
-**Empirical Results** (Period-Only Mode):
+No rigorous wall-clock timing has been measured for Floyd vs.
+enumeration in period-only mode. Millisecond-level figures and a
+"3-5x" speedup claim previously appeared in this section; they were a
+single-run measurement at sub-millisecond scale (well below typical
+timer resolution) and have been removed as unreliable. What can be said
+with confidence:
 
-For typical LFSR periods (8-24):
+1. **Operation Count**: Floyd performs strictly more state transitions
+   than enumeration for the same period (see the transition-count
+   derivation above), so enumeration should be at least as fast in
+   practice.
+2. **Overhead**: Floyd's two-phase structure (find meeting point, then
+   find period) adds fixed overhead that enumeration doesn't pay,
+   which likely matters more for small periods than large ones.
+3. **No Compensating Advantage in Period-Only Mode**: both algorithms
+   are :math:`O(1)` space here, so Floyd's usual space advantage over
+   full-sequence enumeration doesn't apply.
 
-* **Floyd**: ~2.0 ms (92 operations for period 24)
-* **Enumeration**: ~0.5 ms (24 operations for period 24)
-* **Speedup**: Enumeration is **3-5× faster**
-* **Time per Operation**: Similar (~0.022 ms for both algorithms)
-
-**Why Floyd is Slower**:
-
-1. **More Operations**: Floyd does ~4× more matrix multiplications
-2. **Overhead Dominates**: Phase 1 + Phase 2 overhead outweighs
-   benefits for small periods
-3. **No Compensating Advantage**: Both algorithms are O(1) space, so
-   Floyd's theoretical advantage doesn't apply
-
-**Scaling Behavior**:
-
-* For periods < 100: Enumeration is consistently faster
-* For periods 100-1000: Enumeration remains faster (overhead still
-  dominates)
-* For periods > 1000: Needs testing, but overhead likely still
-  dominates for typical LFSRs
+**Scaling Behavior**: not measured. The qualitative expectation is that
+enumeration's fixed transition-count advantage should persist across
+period sizes, since it derives from the algorithms' structure rather
+than from a size-dependent effect, but this has not been verified
+empirically at any scale.
 
 Space Complexity Analysis
 ~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -2655,8 +2682,8 @@ The tool provides several profiling scripts:
    # Detailed phase analysis
    python3 scripts/detailed_performance_analysis.py input.csv 2
    
-   # Overhead analysis
-   python3 scripts/analyze_floyd_overhead.py input.csv 2
+   # Overhead analysis (archived, see dev-docs/profiling/README.md)
+   python3 dev-docs/profiling/scripts/analyze_floyd_overhead.py input.csv 2
 
 Summary and Recommendations
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -2666,10 +2693,12 @@ Summary and Recommendations
 1. ✅ **Floyd is correctly implemented** - algorithm works as designed
 2. ✅ **O(1) space achieved** - both algorithms achieve true O(1)
    space in period-only mode
-3. ❌ **Floyd is slower** - does ~4× more operations, making it 3-5×
-   slower
-4. ❌ **No practical advantage** - enumeration is better for typical
-   LFSR periods
+3. ❌ **Floyd is not faster** - performs strictly more state transitions
+   than enumeration for the same period (see transition-count derivation
+   above); no reliable wall-clock ratio has been measured
+4. ❌ **No practical advantage** - enumeration is expected to be better
+   for typical LFSR periods based on its lower transition count, though
+   this has not been benchmarked
 
 **Recommendations**:
 

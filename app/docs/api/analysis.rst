@@ -19,7 +19,9 @@ The module implements efficient cycle detection algorithms for finding sequence 
 **Floyd's Algorithm** (``_find_period_floyd``):
    Period-only version using tortoise-and-hare method.
    Finds period in O(period) time with true O(1) space.
-   Performs ~4× more operations than enumeration, making it 3-5× slower.
+   Performs ~3x more state transitions than enumeration (tortoise + 2x hare
+   steps per iteration vs. enumeration's one); no wall-clock benchmark has
+   been run to confirm a specific slowdown ratio in practice.
    Useful for educational/verification purposes.
 
 **Brent's Algorithm** (``_find_period_brent``):
@@ -116,7 +118,9 @@ The module provides two parallel processing modes for large state spaces:
    Parallel version using **dynamic load balancing** (shared task queue).
    States are divided into small batches (200 states) in a shared queue.
    Workers pull batches as they finish, providing automatic load balancing.
-   Best for LFSRs with many cycles (8+ cycles), reducing imbalance by 2-4x.
+   Best for LFSRs with many cycles (8+ cycles). No reliable load-balancing
+   or speed improvement has been benchmarked for this mode -- see
+   ``dev-docs/profiling/README.md``.
 
 **State Space Partitioning** (``_partition_state_space``):
    Divides the state space into chunks for static parallel processing.
@@ -214,10 +218,11 @@ it via CLI flags:
 
 **Performance Characteristics**:
 
-* **Speedup**: 6-10x on medium LFSRs (100-10,000 states) after optimization
-* **Best Configuration**: 1-2 workers for medium LFSRs
-* **Overhead**: Minimal after lazy partitioning optimization
-* **Bottlenecks**: Process overhead (38%) remains, but partitioning optimized (was 60%)
+* **Speedup**: not reliably measured; an earlier "6-10x" figure here was
+  based on single-run profiling and has been removed (see
+  ``dev-docs/profiling/README.md``)
+* **Overhead**: process creation and IPC overhead are the dominant costs
+  at the problem sizes tested so far, per the archived profiling data
 
 **Example Usage**:
 

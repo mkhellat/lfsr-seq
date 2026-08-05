@@ -15,9 +15,13 @@ Introduction
 
 **Optimization techniques** in the context of LFSR analysis are methods that
 improve the efficiency of computations by exploiting mathematical structure,
-caching results, and detecting special cases. These techniques can provide
-orders-of-magnitude speedup (10-100x or more) for certain problems, enabling
-analysis of larger LFSRs that would otherwise be computationally infeasible.
+caching results, and detecting special cases. These techniques change the
+underlying complexity class for certain problems (e.g. exponential
+:math:`O(q^d)` enumeration down to polynomial :math:`O(d^3)` factorization-based
+computation) rather than offering a fixed multiplier, enabling analysis of
+larger LFSRs that would otherwise be computationally infeasible. No specific
+speedup number below has been empirically benchmarked; see the notes on each
+technique for what is and isn't a measured claim.
 
 **Historical Context and Motivation**
 
@@ -190,10 +194,12 @@ multiple of :math:`\text{ord}(f_i(t))`.
 **Advantages**:
 
 - **Asymptotic Speedup**: Reduces complexity from exponential :math:`O(q^d)` to
-  polynomial :math:`O(d^3)`, enabling analysis of much larger LFSRs
-
-- **Practical Speedup**: For degree :math:`> 15`, factorization is typically
-  10-100x faster than enumeration
+  polynomial :math:`O(d^3)`, enabling analysis of much larger LFSRs. The ratio
+  :math:`q^d / d^3` grows without bound as :math:`d` increases, so there is no
+  single "typical" multiplier that holds across all degrees above some
+  threshold -- the advantage is qualitatively larger the larger :math:`d` gets.
+  No wall-clock benchmark has been run to quantify this in practice; treat this
+  as a complexity-class argument, not a measured speedup.
 
 - **Theoretical Insight**: Reveals period structure through factorization,
   providing understanding of how irreducible factors contribute to period
@@ -386,12 +392,19 @@ where :math:`A_{\mathcal{S}}` has better complexity than the general algorithm
    value
 
    **Detection**: Test if polynomial is irreducible and order equals :math:`q^d - 1`
-   
-   - Irreducibility test: :math:`O(d^3)` using Rabin's test
-   - Order computation: :math:`O(d^3)` 
-   - Total detection cost: :math:`O(d^3)`, but period computation is :math:`O(1)`
 
-   **Speedup**: :math:`10^6 - 10^9 \times` faster than enumeration for large degrees
+   - Irreducibility test: :math:`O(d^3)` using Rabin's test
+   - Order computation: :math:`O(d^3)`
+   - Total detection cost: :math:`O(d^3)`, but period computation itself
+     (once primitivity is known) is :math:`O(1)`
+
+   **Speedup**: the end-to-end complexity is :math:`O(d^3)` (dominated by
+   detection, not by the :math:`O(1)` period lookup), versus :math:`O(q^d)` for
+   enumeration -- the same :math:`q^d / d^3` argument as the general
+   factorization case above, not a separate, larger multiplier. An earlier
+   version of this page quoted "10\ :superscript:`6`\ -10\ :superscript:`9`\ x"
+   here by treating detection as free (:math:`O(1)`) rather than
+   :math:`O(d^3)`; that figure has been removed as incorrectly derived.
 
 2. **Irreducible Polynomials**:
 
@@ -407,7 +420,11 @@ where :math:`A_{\mathcal{S}}` has better complexity than the general algorithm
 
    **Detection**: Irreducibility test: :math:`O(d^3)` using Rabin's test
 
-   **Speedup**: :math:`10-100 \times` faster than enumeration for degree :math:`> 15`
+   **Speedup**: same :math:`O(q^d)` vs :math:`O(d^3)` complexity-class
+   argument as the general factorization method above; the ratio grows
+   without bound in :math:`d` rather than settling at a fixed multiplier, and
+   no wall-clock benchmark has been run to quantify it for any specific
+   degree.
 
 3. **Small Degrees**:
 
@@ -465,14 +482,23 @@ is the time complexity of algorithm :math:`A` on instance :math:`I`.
 | Irreducible Shortcut | :math:`O(d^3)` | Irreducible polynomials           |
 +----------------------+----------------+-----------------------------------+
 
-**Expected Speedups**:
+**Complexity Advantage** (no specific multiplier is claimed; see note below):
 
-- **Primitive Polynomials**: :math:`10^6 - 10^9 \times` faster (:math:`O(1)` vs.
-  :math:`O(2^d)`)
-- **Factorization vs. Enumeration**: :math:`10-100 \times` faster for degree
-  :math:`> 15`
+- **Primitive Polynomials**: end-to-end detection-plus-lookup cost is
+  :math:`O(d^3)` (the :math:`O(1)` period lookup is not the bottleneck --
+  detecting primitivity is), versus :math:`O(q^d)` for enumeration
+- **Factorization vs. Enumeration**: :math:`O(d^3)` versus :math:`O(q^d)` for
+  degree :math:`> 15`
 - **Caching**: Instant for repeated analyses (cache hit)
-- **Overall**: :math:`10-100 \times` speedup for structured problems
+
+.. note::
+   Earlier versions of this table quoted specific multipliers (e.g.
+   "10\ :superscript:`6`\ -10\ :superscript:`9`\ x", "10-100x") for the rows
+   above. Those figures were removed: the underlying :math:`q^d / d^3` ratio
+   grows without bound in :math:`d` rather than converging to a fixed range,
+   one of them incorrectly treated :math:`O(d^3)` detection cost as
+   :math:`O(1)`, and none were backed by an actual wall-clock benchmark. The
+   complexity-class arguments above are real; the specific numbers were not.
 
 Complexity Analysis
 --------------------

@@ -356,13 +356,13 @@ Basic Optional Arguments:
                               
                               - dynamic: Shared task queue - workers
                                 pull batches of states from a shared
-                                queue. Provides better load balancing
-                                for configurations with many cycles
-                                (8+ cycles). Reduces load imbalance by
-                                2-4x compared to static mode for
-                                multi-cycle LFSRs. Batch size is
-                                automatically optimized based on
-                                problem size.
+                                queue. Intended to provide better load
+                                balancing for configurations with many
+                                cycles (8+ cycles); no reliable
+                                improvement figure has been benchmarked
+                                (see dev-docs/profiling/README.md).
+                                Batch size is automatically optimized
+                                based on problem size.
                               
                               Recommendation: Use dynamic mode for
                               LFSRs that produce many cycles (e.g.,
@@ -496,14 +496,18 @@ The tool implements several performance optimizations:
     mode
 
     * Best for typical LFSR periods (< 1000)
-    * 3-5× faster than Floyd/Brent for small-to-medium periods
+    * Performs the fewest state transitions per period of the three
+      algorithms (see Floyd's, below); no wall-clock benchmark exists
+      to quantify the resulting speedup
     * True O(1) space in period-only mode
 
   * **Floyd's Algorithm**: Tortoise-and-hare method, available as
     option
 
     * Correctly implemented, achieves O(1) space in period-only mode
-    * Does ~4× more operations, making it 3-5× slower
+    * Performs ~3x more state transitions than enumeration (tortoise +
+      2x hare steps per iteration); the actual wall-clock slowdown has
+      not been benchmarked
     * Useful for educational/verification purposes
     
   * **Brent's Algorithm**: Powers-of-2 method, available as option
@@ -654,19 +658,26 @@ processes that run at the same time.
 
 **Performance Characteristics**:
 
-- **Large LFSRs (> 10,000 states)**: 2-4x speedup with 4 workers (when
-  overhead doesn't dominate)
-- **Medium LFSRs (1,000-10,000 states)**: 1.5-2x speedup
-- **Small LFSRs (< 1,000 states)**: Sequential is faster (overhead
-  dominates)
+**No reliable speedup has been measured for this feature.** Specific
+figures previously listed here (for large/medium LFSRs and multiple
+worker counts) were based on single-run, high-variance profiling and
+have been removed; the archived raw data
+(``dev-docs/profiling/``) actually shows parallel enumeration typically
+*slower* than sequential at every problem size tested so far, worsening
+with more workers. See ``dev-docs/profiling/README.md`` for the full
+account.
+
+- **Small LFSRs (< 1,000 states)**: Sequential is used automatically
+  (parallel mode is not attempted, since overhead is expected to
+  dominate at this size)
 
 **Implementation Details**:
 
-- Uses **fork mode** (13-17x faster than spawn) with SageMath
-  isolation
+- Uses **fork mode** (lower process-creation overhead than spawn) with
+  SageMath isolation
 - Automatic SageMath object isolation in workers prevents category
   mismatch errors
-- Optimized IPC and process creation overhead
+- Batches multiple states per IPC operation to reduce queue overhead
 - Automatic fallback to sequential for small LFSRs where overhead
   would dominate
 
@@ -708,10 +719,11 @@ work distribution strategies:
 
    - **Advantages**:
 
-     * 2-4x better load balancing for multi-cycle configurations
-     * More consistent performance across different LFSR
-       configurations
-     * Better utilization of all workers
+     * Intended to improve load balancing for multi-cycle configurations;
+       no reliable improvement figure has been benchmarked (see
+       ``dev-docs/profiling/README.md``)
+     * Better utilization of all workers, in principle, since idle
+       workers pull new batches immediately
 
    - **Limitations**: Slightly higher IPC overhead due to queue
      operations
@@ -847,9 +859,10 @@ Based on profiling data from 12-bit, 14-bit, and 16-bit LFSRs:
 
 **Performance Considerations**:
 
-- **Fork Mode**: Uses fork mode (Linux) which is 13-17x faster than
-  spawn
-  
+- **Fork Mode**: Uses fork mode (Linux), which avoids spawn's full
+  Python/SageMath process reinitialization per worker; no specific
+  speedup ratio has been reliably benchmarked
+
 - **SageMath Isolation**: Proper isolation prevents category mismatch
   errors
   

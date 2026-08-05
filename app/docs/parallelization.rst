@@ -126,7 +126,12 @@ You can override the automatic selection using the ``--batch-size`` CLI option
 
 **Advantages**:
 
-- **Better Load Balancing**: Reduces imbalance by 2-4x for multi-cycle configurations
+- **Better Load Balancing**: reduces imbalance for multi-cycle configurations
+  in principle; the one worked example later in this document (see "Why Load
+  Balancing Matters") shows a 3.9x imbalance-ratio improvement for a specific
+  14-bit/16-bit case, but this is a single data point, not a general figure --
+  other configurations in the same profiling dataset show dynamic mode with
+  *worse* imbalance than static mode, so no "typical" multiplier is claimed
 - **Automatic Adaptation**: Faster workers take on more work automatically
 - **Better Resource Utilization**: All workers stay busy until work is complete
 - **Consistent Performance**: More predictable performance across different LFSR configurations
@@ -317,7 +322,10 @@ Use Dynamic Mode When:
   better performance
 
 **Benefits**:
-- 2-4x better load balancing for multi-cycle configurations
+
+- Better load balancing for multi-cycle configurations, per the two worked
+  examples above; not established as a general multiplier (see the caveat
+  under "Advantages" earlier in this document)
 - Often better performance for LFSRs with many cycles
 - More consistent behavior across different LFSR configurations
 
@@ -526,7 +534,7 @@ Dynamic Mode Implementation
 3. **Persistent Worker Pool (Phase 2.3)**:
    - Workers are reused across multiple analyses (pool stays alive)
    - Reduces process creation overhead for repeated analyses
-   - Expected 2-3x speedup for multiple analyses in same program run
+   - No reliable speedup figure exists (the only measurement on record is a single, unrepeated ~10% observation, well within this profiling work's 40-60% run-to-run variance; an earlier "Expected 2-3x" estimate has been removed -- see ``dev-docs/profiling/README.md``)
    - Automatic cleanup on program exit
 
 3. **Result Merging**:
@@ -608,8 +616,11 @@ can be overridden using the ``--batch-size`` CLI option.
 
 To further reduce IPC overhead, workers use **batch aggregation**: instead of
 pulling one batch at a time, workers pull multiple batches per queue operation
-(2-8 batches, adaptive based on problem size). This reduces queue operations by
-2-8x and improves performance by 1.2-1.5x.
+(2-8 batches, adaptive based on problem size). Pulling 2-8 batches per
+operation reduces the number of queue operations by the same 2-8x factor,
+by construction. No reliable end-to-end wall-clock speedup has been
+measured for this optimization; an earlier "1.2-1.5x" estimate here was
+never benchmarked and has been removed.
 
 - **Small problems (<8K states)**: Pull 2-3 batches at once
 - **Medium problems (8K-64K states)**: Pull 3-5 batches at once
@@ -627,7 +638,9 @@ analyses:
 
 - **Pool Reuse**: Workers are created once and reused for subsequent analyses
 - **Reduced Overhead**: Eliminates process creation overhead for repeated analyses
-- **Faster Repeated Analyses**: Expected 2-3x speedup for multiple analyses
+- **Faster Repeated Analyses**: no reliable speedup figure has been
+  benchmarked (see the note under "Persistent Worker Pool (Phase 2.3)"
+  earlier in this document)
 - **Automatic Cleanup**: Pool cleaned up automatically on program exit
 
 **How It Works**:
@@ -639,7 +652,9 @@ analyses:
 
 **Benefits**:
 
-- **2-3x speedup** for multiple analyses in same program run
+- No reliable speedup figure has been benchmarked for this optimization
+  (see the note earlier in this document under "Persistent Worker Pool
+  (Phase 2.3)")
 - **Faster startup** for subsequent analyses (no pool creation delay)
 - **Better resource utilization** (workers ready for work)
 

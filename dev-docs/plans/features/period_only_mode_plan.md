@@ -1,5 +1,17 @@
 # Period-Only Mode Implementation Plan
 
+> **Update**: `--period-only` shipped and enumeration is the default
+> algorithm, as planned. Success Criterion 4 below ("enumeration is
+> 3-5x faster") was never benchmarked -- the "3-5x" figure propagated
+> from this checklist into several Sphinx docs and a source code
+> comment, none of which had a real measurement behind it either. The
+> only thing that's actually derivable is that Floyd performs ~3 state
+> transitions per step (tortoise + 2×hare) versus enumeration's 1, so
+> ~3x is what the stated `~3×O(period)` line below actually implies --
+> not "3-5x". All of these have since been corrected to the
+> qualitative/~3x framing; see `app/src/lfsr/analysis.py` and this
+> project's Sphinx docs under `app/docs/`.
+
 ## Overview
 
 Implement a period-only mode where Floyd's algorithm can demonstrate its true O(1) space advantage. This mode will compute periods without storing full sequences, making Floyd's algorithm actually useful.
