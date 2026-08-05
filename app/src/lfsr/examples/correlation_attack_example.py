@@ -7,14 +7,10 @@ This example demonstrates how to use the correlation attack framework to
 analyze combination generators and identify vulnerabilities.
 
 Example Usage:
-    python3 examples/correlation_attack_example.py
+    python3 -m lfsr.examples.correlation_attack_example
 """
 
-import os
 import sys
-
-# Add parent directory to path
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 # Try to import SageMath
 try:

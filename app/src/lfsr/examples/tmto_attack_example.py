@@ -7,15 +7,11 @@ This example demonstrates how to use time-memory trade-off attacks to
 recover LFSR states efficiently using precomputed tables.
 
 Example Usage:
-    python3 examples/tmto_attack_example.py
+    python3 -m lfsr.examples.tmto_attack_example
 """
 
-import os
 import sys
 import time
-
-# Add parent directory to path
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 # Try to import SageMath
 try:

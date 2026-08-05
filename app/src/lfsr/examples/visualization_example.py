@@ -8,14 +8,10 @@ distribution plots, state transition diagrams, statistical plots, 3D
 visualizations, and attack visualizations.
 
 Example Usage:
-    python3 examples/visualization_example.py
+    python3 -m lfsr.examples.visualization_example
 """
 
-import os
 import sys
-
-# Add parent directory to path
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 # Try to import SageMath
 try:

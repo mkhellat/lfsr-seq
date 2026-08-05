@@ -9,14 +9,10 @@ This example demonstrates the optimization techniques available in lfsr-seq:
 - Result caching
 
 Example Usage:
-    python3 examples/optimization_example.py
+    python3 -m lfsr.examples.optimization_example
 """
 
-import os
 import sys
-
-# Add parent directory to path
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 # Try to import SageMath
 try:

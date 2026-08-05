@@ -7,14 +7,10 @@ This example demonstrates ML-based analysis capabilities, including period
 prediction, pattern detection, anomaly detection, and model training.
 
 Example Usage:
-    python3 examples/ml_integration_example.py
+    python3 -m lfsr.examples.ml_integration_example
 """
 
-import os
 import sys
-
-# Add parent directory to path
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 # Try to import SageMath
 try:

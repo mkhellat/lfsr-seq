@@ -8,15 +8,11 @@ Parallel processing provides significant speedup for larger LFSRs by
 utilizing multiple CPU cores.
 
 Example Usage:
-    python3 examples/parallel_processing_example.py
+    python3 -m lfsr.examples.parallel_processing_example
 """
 
-import os
 import sys
 import time
-
-# Add parent directory to path
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 # Try to import SageMath
 try:

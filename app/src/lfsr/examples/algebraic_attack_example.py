@@ -7,14 +7,10 @@ This example demonstrates how to use the algebraic attack framework to
 analyze LFSRs and identify vulnerabilities through algebraic methods.
 
 Example Usage:
-    python3 examples/algebraic_attack_example.py
+    python3 -m lfsr.examples.algebraic_attack_example
 """
 
-import os
 import sys
-
-# Add parent directory to path
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 # Try to import SageMath
 try:

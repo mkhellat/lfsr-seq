@@ -217,7 +217,7 @@ Analyze the security properties of combining functions:
    if result.distinguishable:
        print("Keystream is distinguishable from random!")
 
-For complete examples, see ``examples/correlation_attack_example.py``.
+For complete examples, see ``src/lfsr/examples/correlation_attack_example.py``.
 
 Optimization Techniques
 -----------------------
@@ -271,7 +271,7 @@ Optimization Techniques
    stats = cache.get_stats()
    print(f"Cache hit rate: {stats['hit_rate']:.2%}")
 
-For complete examples, see ``examples/optimization_example.py``.
+For complete examples, see ``src/lfsr/examples/optimization_example.py``.
 
 Algebraic Attacks
 -----------------
@@ -316,7 +316,7 @@ Algebraic Attacks
        print(f"Cubes found: {result.cubes_found}")
        print(f"Recovered bits: {result.recovered_bits}")
 
-For complete examples, see ``examples/algebraic_attack_example.py``.
+For complete examples, see ``src/lfsr/examples/algebraic_attack_example.py``.
 
 Time-Memory Trade-Off Attacks
 ------------------------------
@@ -367,7 +367,7 @@ Time-Memory Trade-Off Attacks
    print(f"Optimal chain count: {params['chain_count']}")
    print(f"Optimal chain length: {params['chain_length']}")
 
-For complete examples, see ``examples/tmto_attack_example.py``.
+For complete examples, see ``src/lfsr/examples/tmto_attack_example.py``.
 
 NIST SP 800-22 Test Suite
 --------------------------
@@ -391,7 +391,7 @@ Run NIST statistical tests on binary sequences:
    print(f"Tests passed: {suite_result.tests_passed}/{suite_result.total_tests}")
    print(f"Overall: {suite_result.overall_assessment}")
 
-For complete examples, see ``examples/nist_test_example.py``.
+For complete examples, see ``src/lfsr/examples/nist_test_example.py``.
 
 Visualization
 -------------
@@ -460,7 +460,7 @@ Generate visualizations of LFSR analysis results:
        output_file="state_diagram.png"
    )
 
-For complete examples, see ``examples/visualization_example.py``.
+For complete examples, see ``src/lfsr/examples/visualization_example.py``.
 
 Machine Learning Integration
 ----------------------------
@@ -520,7 +520,7 @@ Use machine learning for period prediction, pattern detection, and anomaly detec
    anomalies = detect_all_anomalies(sequence)
    print(f"Found {len(anomalies)} anomalies")
 
-For complete examples, see ``examples/ml_integration_example.py``.
+For complete examples, see ``src/lfsr/examples/ml_integration_example.py``.
 
 Stream Cipher Analysis
 ----------------------
@@ -569,7 +569,7 @@ Analyze real-world stream ciphers:
    comparison = compare_ciphers(ciphers)
    print(f"Comparison report: {comparison}")
 
-For complete examples, see ``examples/stream_cipher_example.py``.
+For complete examples, see ``src/lfsr/examples/stream_cipher_example.py``.
 
 Advanced LFSR Structures
 ------------------------
@@ -621,7 +621,7 @@ Analyze advanced LFSR structures (NFSRs, filtered LFSRs, clock-controlled LFSRs,
    sequence_cc = clock_controlled.generate_sequence(initial_state, 100)
    print(f"Clock-controlled sequence: {len(sequence_cc)} elements")
 
-For complete examples, see ``examples/advanced_lfsr_example.py``.
+For complete examples, see ``src/lfsr/examples/advanced_lfsr_example.py``.
 
 Theoretical Analysis
 --------------------
@@ -690,7 +690,7 @@ Perform theoretical analysis, export to LaTeX, generate papers, and benchmark me
    benchmark_results = compare_methods(coefficients, 2)
    print(f"Benchmark results: {benchmark_results}")
 
-For complete examples, see ``examples/theoretical_analysis_example.py``.
+For complete examples, see ``src/lfsr/examples/theoretical_analysis_example.py``.
 
 
 Parallel Processing API

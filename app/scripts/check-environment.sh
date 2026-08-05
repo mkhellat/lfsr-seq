@@ -93,6 +93,6 @@ echo ""
 echo "Environment check completed successfully!"
 echo ""
 echo "You can now:"
-echo "  - Run the script directly: ./lfsr-seq <csv_file> <gf_order>"
-echo "  - Or install the package: pip install -e ."
+echo "  - Install the package: pip install -e ."
+echo "  - Then run it: lfsr-seq <csv_file> <gf_order>"
 

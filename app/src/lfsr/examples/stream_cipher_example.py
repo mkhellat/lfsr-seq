@@ -7,14 +7,10 @@ This example demonstrates how to analyze real-world stream ciphers, generate
 keystreams, and compare different cipher designs.
 
 Example Usage:
-    python3 examples/stream_cipher_example.py
+    python3 -m lfsr.examples.stream_cipher_example
 """
 
-import os
 import sys
-
-# Add parent directory to path
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 # Try to import SageMath
 try:

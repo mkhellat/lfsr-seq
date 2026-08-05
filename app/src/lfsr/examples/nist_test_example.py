@@ -7,14 +7,10 @@ This example demonstrates how to use the NIST SP 800-22 test suite to evaluate
 the randomness of binary sequences.
 
 Example Usage:
-    python3 examples/nist_test_example.py
+    python3 -m lfsr.examples.nist_test_example
 """
 
-import os
 import sys
-
-# Add parent directory to path
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 # Try to import SageMath
 try:
