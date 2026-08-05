@@ -28,6 +28,7 @@ help:
 	@echo "  make venv           - Create virtual environment (.venv)"
 	@echo "  make install        - Install package in development mode"
 	@echo "  make install-dev    - Install package with development dependencies"
+	@echo "  make dev-setup      - Create venv, check environment, and install dev dependencies"
 	@echo "  make test           - Run tests with pytest"
 	@echo "  make test-cov       - Run tests with coverage report"
 	@echo "  make lint           - Run linting checks (ruff)"
@@ -46,6 +47,7 @@ help:
 	@echo "  make docs-pdf       - Build Sphinx documentation (PDF)"
 	@echo "  make docs-clean-pdf - Clean PDF documentation build artifacts"
 	@echo "  make docs-live      - Start live documentation server (auto-reload)"
+	@echo "  make ci             - Run all CI checks (lint, format-check, type-check, test)"
 	@echo ""
 
 # Virtual environment target

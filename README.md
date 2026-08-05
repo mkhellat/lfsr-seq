@@ -273,6 +273,10 @@ source .venv/bin/activate
 - `make smoke-test` - Run a quick end-to-end sanity check
 - `make build` - Build distribution packages (uses venv if available)
 - `make docs` - Build Sphinx documentation (HTML)
+- `make docs-pdf` - Build Sphinx documentation (PDF, requires LaTeX)
+- `make docs-clean` - Clean HTML documentation build artifacts
+- `make docs-clean-pdf` - Clean PDF documentation build artifacts
+- `make docs-live` - Start a live-reloading documentation server
 - `make clean` - Remove build artifacts
 - `make clean-venv` - Remove virtual environment
 - `make distclean` - Remove all generated files (including venv)
