@@ -261,7 +261,17 @@ def extract_polynomial_features(
 
             field = GF(field_order)
             ring = PolynomialRing(field, "t")
-            char_poly = ring([1] + coefficients[::-1])
+            # Characteristic polynomial of build_state_update_matrix's
+            # companion matrix is t^d - c_{d-1}*t^{d-1} - ... - c1*t - c0
+            # (verified by direct symbolic derivation of det(xI - C) from
+            # that function's matrix construction, and checked numerically
+            # against C.characteristic_polynomial() for GF(2), GF(3), and
+            # GF(5) cases) -- NOT ring([1] + coefficients[::-1]), which an
+            # earlier version of this line used and which silently computes
+            # the wrong polynomial for every field order (confirmed to only
+            # coincidentally look right for GF(2) with palindromic
+            # coefficients).
+            char_poly = ring([(-c) % field_order for c in coefficients] + [1])
 
             is_irreducible = 1.0 if char_poly.is_irreducible() else 0.0
             is_primitive = 1.0 if is_primitive_polynomial(char_poly, field_order) else 0.0

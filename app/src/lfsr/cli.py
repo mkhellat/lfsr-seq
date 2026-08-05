@@ -1262,8 +1262,12 @@ def cli_main() -> None:
                     from lfsr.sage_imports import GF, PolynomialRing
                     F = GF(_gf_order_int)
                     R = PolynomialRing(F, "t")
-                    # Create polynomial from coefficients
-                    char_poly = R([1] + coefficients[::-1])  # Reverse for polynomial
+                    # Characteristic polynomial of the companion matrix is
+                    # t^d - c_{d-1}*t^{d-1} - ... - c1*t - c0 (see
+                    # lfsr.ml.base's extract_polynomial_features for the
+                    # verified derivation); NOT [1] + coefficients[::-1],
+                    # which computes the wrong polynomial for most inputs.
+                    char_poly = R([(-c) % _gf_order_int for c in coefficients] + [1])
                     is_primitive = is_primitive_polynomial(char_poly, _gf_order_int)
 
                     if seq_dict:
