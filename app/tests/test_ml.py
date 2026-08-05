@@ -27,18 +27,65 @@ class TestExtractPolynomialFeatures:
         assert len(features) == 11
 
     def test_primitive_polynomial_flagged(self):
-        # x^4 + x + 1 is a well-known primitive polynomial over GF(2)
+        # coeffs [1,0,0,1] over GF(2) -> characteristic polynomial
+        # x^4+x^3+1 (verified via build_state_update_matrix(...)
+        # .characteristic_polynomial()), a well-known primitive
+        # polynomial over GF(2)
         features = extract_polynomial_features([1, 0, 0, 1], 2, 4)
         is_irreducible, is_primitive = features[-2], features[-1]
         assert is_irreducible == 1.0
         assert is_primitive == 1.0
 
     def test_reducible_polynomial_not_flagged_primitive(self):
-        # x^4 + 1 = (x+1)^4 over GF(2) is reducible, hence not primitive
+        # coeffs [1,0,0,0] over GF(2) -> x^4+1 = (x+1)^4, reducible,
+        # hence not primitive
         features = extract_polynomial_features([1, 0, 0, 0], 2, 4)
         is_irreducible, is_primitive = features[-2], features[-1]
         assert is_irreducible == 0.0
         assert is_primitive == 0.0
+
+    def test_gf3_characteristic_polynomial_matches_matrix(self):
+        """extract_polynomial_features' internal char-poly construction
+        must match build_state_update_matrix's actual
+        characteristic_polynomial() for field orders > 2, where an
+        earlier version of this function's polynomial construction
+        (`ring([1] + coefficients[::-1])`, no negation, wrong order)
+        was silently wrong -- invisible for GF(2) with palindromic
+        coefficient vectors (negation mod 2 is a no-op), but wrong for
+        every GF(3)/GF(5)/... case."""
+        from lfsr.core import build_state_update_matrix
+
+        coeffs = [1, 2, 1]
+        gf_order = 3
+        C, _ = build_state_update_matrix(coeffs, gf_order)
+        actual_charpoly = C.characteristic_polynomial()
+
+        features = extract_polynomial_features(coeffs, gf_order, len(coeffs))
+        is_irreducible, is_primitive = features[-2], features[-1]
+
+        assert bool(is_irreducible) == actual_charpoly.is_irreducible()
+        if actual_charpoly.is_irreducible():
+            from lfsr.polynomial import is_primitive_polynomial
+
+            assert bool(is_primitive) == is_primitive_polynomial(actual_charpoly, gf_order)
+
+    def test_gf5_characteristic_polynomial_matches_matrix(self):
+        """Same cross-check as test_gf3_..., for GF(5)."""
+        from lfsr.core import build_state_update_matrix
+
+        coeffs = [1, 3, 2, 1]
+        gf_order = 5
+        C, _ = build_state_update_matrix(coeffs, gf_order)
+        actual_charpoly = C.characteristic_polynomial()
+
+        features = extract_polynomial_features(coeffs, gf_order, len(coeffs))
+        is_irreducible, is_primitive = features[-2], features[-1]
+
+        assert bool(is_irreducible) == actual_charpoly.is_irreducible()
+        if actual_charpoly.is_irreducible():
+            from lfsr.polynomial import is_primitive_polynomial
+
+            assert bool(is_primitive) == is_primitive_polynomial(actual_charpoly, gf_order)
 
 
 class TestExtractSequenceFeatures:
