@@ -114,3 +114,30 @@ def test_new_feature(self):
 - Some tests may be slow for large LFSRs (marked with `@pytest.mark.slow`)
 - Integration tests may take longer due to full workflow execution
 
+## Diagnosing an Intermittent Hang
+
+A few real bugs in this project (all fixed) only manifested as a test
+that hangs some fraction of the time rather than failing outright --
+the kind of thing a single `pytest` run can't reliably reproduce or
+debug. `scripts/diagnose-hang.sh` automates the technique that found
+them: run the target repeatedly, catch it the moment it's still alive
+past a grace period, and take a few `py-spy` stack-trace snapshots a
+few seconds apart (comparing local variables across snapshots reveals
+whether something is genuinely stuck versus just doing slow, real
+work). Requires `py-spy` in the venv (`.venv/bin/pip install py-spy`)
+and, to actually dump another process's stack, `sudo` (see the
+script's `--help` for why).
+
+```bash
+./scripts/diagnose-hang.sh -- tests/some_test.py::SomeTest::test_flaky
+```
+
+Two real, unrelated bugs were found this way in the ML test suite:
+a `conftest.py` wildcard import that fed a SageMath `LazyImport` object
+into pytest's fixture-discovery scan (an intermittent collection-time
+hang), and an unbounded retry loop in `lfsr.ml.training.generate_training_data`
+that could spin forever once it exhausted the finite number of distinct
+coefficient vectors at a small degree/field order. Both are fixed;
+see their commit messages for the full diagnosis if you want the
+worked example of what a `py-spy` trace of each looked like.
+

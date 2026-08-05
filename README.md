@@ -969,11 +969,12 @@ lfsr-seq/                    # git root: project meta-files only
 │   │   ├── api/            # API reference
 │   │   ├── mathematical_background.rst
 │   │   └── examples.rst
-│   ├── scripts/              # Dev-tooling scripts invoked by make (not shipped)
-│   │   ├── check-environment.sh
-│   │   ├── smoke-test.sh
-│   │   ├── test-build.sh
-│   │   └── test-install.sh
+│   ├── scripts/              # Dev-tooling scripts (not shipped)
+│   │   ├── check-environment.sh  # invoked by `make check-env`
+│   │   ├── smoke-test.sh         # invoked by `make smoke-test`
+│   │   ├── test-build.sh         # manual: verify the build process
+│   │   ├── test-install.sh       # manual: verify the install process
+│   │   └── diagnose-hang.sh      # manual: reproduce + py-spy an intermittent test hang
 │   ├── bootstrap            # Guided setup: probes the system, wraps make
 │   ├── Makefile             # Development tasks (install/test/lint/docs/...)
 │   ├── pyproject.toml       # Project metadata, build config, and dependencies
