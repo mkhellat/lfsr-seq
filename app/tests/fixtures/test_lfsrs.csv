@@ -2,24 +2,33 @@
 # Format: one coefficient vector per line
 # These are known LFSR configurations for testing
 
-# Simple 4-bit LFSR over GF(2) - known to have period 15 (maximal-length)
+# Simple 4-bit LFSR over GF(2) - characteristic polynomial x^4+x^3+x+1 is
+# reducible ((x+1)^2 * (x^2+x+1)), so this is NOT maximal-length; verified
+# actual max period is 6, periods_sum 16 (matches state space size 2^4).
+# (A previous version of this comment incorrectly claimed period 15 --
+# that describes [1,0,0,1], whose characteristic polynomial x^4+x^3+1 is
+# genuinely primitive.)
 1,1,0,1
 
-# Another 4-bit LFSR over GF(2)
+# Another 4-bit LFSR over GF(2) - reducible (x^4+x^3+x^2+1), max period 7,
+# periods_sum 16
 1,0,1,1
 
-# Simple 3-bit LFSR over GF(2) - period 7
+# Simple 3-bit LFSR over GF(2) - period 7 (verified: primitive, x^3+x+1)
 1,1,0
 
-# 2-bit LFSR over GF(2) - period 3
+# 2-bit LFSR over GF(2) - period 3 (verified: primitive, x^2+x+1)
 1,1
 
-# 5-bit LFSR over GF(2)
+# 5-bit LFSR over GF(2) - period 31, maximal-length (verified: primitive,
+# x^5+x^3+1)
 1,0,0,1,0
 
-# LFSR over GF(3) - for testing non-binary fields
+# LFSR over GF(3) - for testing non-binary fields - reducible, max period 4,
+# periods_sum 27
 1,2,1
 
-# LFSR over GF(5) - for testing larger prime fields
+# LFSR over GF(5) - for testing larger prime fields - reducible, max period
+# 12, periods_sum 625
 1,3,2,1
 
