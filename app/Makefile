@@ -89,7 +89,7 @@ install-dev: venv
 	fi
 
 # Testing targets
-test: venv
+test: install-dev
 	@echo "Running tests..."
 	@if [ -d ".venv" ]; then \
 		.venv/bin/python -m pytest tests/ -v; \
@@ -97,7 +97,7 @@ test: venv
 		python3 -m pytest tests/ -v; \
 	fi
 
-test-cov: venv
+test-cov: install-dev
 	@echo "Running tests with coverage..."
 	@if [ -d ".venv" ]; then \
 		.venv/bin/python -m pytest tests/ --cov=lfsr --cov-report=html --cov-report=term; \
@@ -108,7 +108,7 @@ test-cov: venv
 	@echo "Coverage report generated in htmlcov/index.html"
 
 # Code quality targets
-lint: venv
+lint: install-dev
 	@echo "Running linting checks..."
 	@if [ -d ".venv" ]; then \
 		.venv/bin/python -m ruff check .; \
@@ -116,7 +116,7 @@ lint: venv
 		python3 -m ruff check .; \
 	fi
 
-format: venv
+format: install-dev
 	@echo "Formatting code with black..."
 	@if [ -d ".venv" ]; then \
 		.venv/bin/python -m black .; \
@@ -124,7 +124,7 @@ format: venv
 		python3 -m black .; \
 	fi
 
-format-check: venv
+format-check: install-dev
 	@echo "Checking code formatting..."
 	@if [ -d ".venv" ]; then \
 		.venv/bin/python -m black --check .; \
@@ -132,7 +132,7 @@ format-check: venv
 		python3 -m black --check .; \
 	fi
 
-type-check: venv
+type-check: install-dev
 	@echo "Running type checking..."
 	@if [ -d ".venv" ]; then \
 		.venv/bin/python -m mypy . || true; \
