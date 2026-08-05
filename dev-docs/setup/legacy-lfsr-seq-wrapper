@@ -2,7 +2,16 @@
 # -*- coding: utf-8 -*-
 
 """
-lfsr-seq - Linear Feedback Shift Register Analysis Tool
+lfsr-seq - Linear Feedback Shift Register Analysis Tool (legacy wrapper)
+
+ARCHIVED, NON-FUNCTIONAL: this is the pre-packaging entry point, kept
+here only as a historical reference. It predates the src/ and app/
+layout migrations and its `from lfsr.cli import cli_main` import no
+longer resolves against any interpreter by default -- the package now
+lives at app/src/lfsr and is only importable once installed (e.g. via
+`pip install -e .` from app/). Use the installed console-script
+(`lfsr-seq`, on PATH after activating app/.venv) instead; see
+dev-docs/setup/README.md.
 
 This is a wrapper script that calls the modular CLI implementation.
 The old monolithic script has been replaced with a clean modular architecture.

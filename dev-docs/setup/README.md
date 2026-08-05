@@ -23,6 +23,15 @@ Information about where the package is installed:
 - Command installation status
 - Production install information
 
+### [legacy-lfsr-seq-wrapper](./legacy-lfsr-seq-wrapper)
+**Archived, non-functional pre-packaging entry point**
+
+The original root-level `lfsr-seq` script, kept here only as historical
+reference. It predates the `src/` and `app/` layout migrations and its
+import no longer resolves. Use the installed console-script (`lfsr-seq`,
+available on PATH once `app/.venv` is activated and the package is
+installed) instead.
+
 ## Quick Links
 
 - [Main Documentation Index](../README.md)

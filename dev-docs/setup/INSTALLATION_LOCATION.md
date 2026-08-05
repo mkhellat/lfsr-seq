@@ -4,7 +4,11 @@
 > configured — `pyproject.toml`'s `[project.scripts]` maps `lfsr-seq = "lfsr.cli:cli_main"`,
 > so `lfsr-seq` **is** installed as a command at `.venv/bin/lfsr-seq` after
 > `make install-dev`. The "After Refactoring" state described below is the current
-> reality, not a future one.
+> reality, not a future one. Additionally, the package tree has since moved into
+> `app/` (a top-level directory nested one level below the git repo root), so every
+> `.venv`/`pyproject.toml` path below should be read as `app/.venv`/`app/pyproject.toml`;
+> the root-level `lfsr-seq` script this document originally referenced has been
+> archived as non-functional (see `dev-docs/setup/legacy-lfsr-seq-wrapper`).
 
 ## Current State (historical, pre-refactor)
 
