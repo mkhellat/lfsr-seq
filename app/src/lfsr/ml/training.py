@@ -14,7 +14,6 @@ from typing import Dict, List, Optional, Tuple
 from lfsr.core import analyze_lfsr
 from lfsr.ml.base import extract_polynomial_features
 from lfsr.ml.period_prediction import PeriodPredictionModel
-from lfsr.sage_imports import *
 
 
 def generate_training_data(
@@ -57,37 +56,44 @@ def generate_training_data(
     X = []
     y = []
 
-    F = GF(field_order)
-    R = PolynomialRing(F, "t")
-
     generated = set()
 
     for _ in range(num_samples):
         # Generate random degree
         degree = random.randint(2, max_degree)
 
-        # Generate random coefficients
-        while True:
-            coefficients = [random.randint(0, field_order - 1) for _ in range(degree)]
-            coefficients[0] = 1  # Ensure monic polynomial
+        # Generate random coefficients, deduplicated on (degree,
+        # tuple(coefficients)) -- already a unique, hashable identifier
+        # for this LFSR configuration, no need to construct a SageMath
+        # polynomial object just to dedupe.
+        #
+        # CRITICAL: the number of distinct coefficient vectors at a given
+        # degree is finite (field_order^(degree-1), since coefficients[0]
+        # is always forced to 1) -- e.g. only 2 exist for degree=2 over
+        # GF(2). Once all of them are already in `generated` (easily
+        # reached well before num_samples for small degree/field_order
+        # combinations), an unbounded `while True` here spins forever
+        # redrawing already-seen vectors, burning CPU with no way to
+        # ever find a "new" one (confirmed via py-spy: caught spinning
+        # indefinitely inside random.randint with unchanging degree and
+        # a `generated` set that had stopped growing). Cap the retries
+        # and fall through to a duplicate rather than hang.
+        max_attempts = max(field_order ** degree, 100)
+        coefficients = None
+        for _ in range(max_attempts):
+            candidate = [random.randint(0, field_order - 1) for _ in range(degree)]
+            candidate[0] = 1  # Ensure c0 tap is always active
+            poly_key = (degree, tuple(candidate))
 
-            # Create polynomial
-            poly_str = "t^" + str(degree)
-            for i in range(1, degree):
-                if coefficients[i] != 0:
-                    poly_str += f" + {coefficients[i]}*t^{degree-i}"
-            if coefficients[degree-1] != 0:
-                poly_str += f" + {coefficients[degree-1]}"
-
-            try:
-                poly = R(poly_str)
-                poly_key = str(poly)
-
-                if poly_key not in generated:
-                    generated.add(poly_key)
-                    break
-            except Exception:
-                continue
+            if poly_key not in generated:
+                generated.add(poly_key)
+                coefficients = candidate
+                break
+        if coefficients is None:
+            # Exhausted all distinct vectors at this degree (or hit the
+            # attempt cap) -- reuse this draw anyway rather than looping
+            # forever; a duplicate training sample is harmless.
+            coefficients = candidate
 
         # Compute period
         try:
