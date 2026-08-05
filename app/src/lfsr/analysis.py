@@ -479,6 +479,19 @@ def _find_sequence_cycle_enumeration(
 
     debug_log('Starting enumeration...')
 
+    # NOTE: this loop must terminate on re-entering ANY previously-visited
+    # state, not just start_state. A degenerate LFSR (e.g. all-zero
+    # coefficients) is not a bijection on the state space: trajectories can
+    # be "rho-shaped" -- a tail that flows into a cycle not containing the
+    # start state at all (e.g. every non-zero state eventually reaching the
+    # fixed point 0 for an all-zero-coefficient LFSR). Such a trajectory
+    # never returns to start_state, so checking only `next_state ==
+    # start_state` would run this loop to its safety-limit cap (effectively
+    # a multi-minute hang) instead of correctly detecting the point where it
+    # merges into already-explored territory. visited_set is shared across
+    # the whole state-space enumeration (see lfsr_sequence_mapper), so
+    # checking against it also correctly stops the moment this trajectory
+    # merges into a sequence already accounted for by an earlier start state.
     seq_lst = [start_state]
     # Convert vector to tuple for hashing (SageMath vectors are mutable and unhashable)
     start_state_tuple = tuple(start_state)
@@ -490,10 +503,9 @@ def _find_sequence_cycle_enumeration(
     iteration = 0
 
     debug_log('Starting enumeration loop...')
-    while next_state != start_state:
+    next_state_tuple = tuple(next_state)
+    while next_state_tuple not in visited_set:
         seq_lst.append(next_state)
-        # Convert vector to tuple for hashing
-        next_state_tuple = tuple(next_state)
         visited_set.add(next_state_tuple)
         seq_period += 1
         iteration += 1
@@ -501,6 +513,7 @@ def _find_sequence_cycle_enumeration(
             debug_log(f'Iteration {iteration}, period={seq_period}')
         debug_log(f'Computing next state transition (iteration {iteration})...')
         next_state = next_state * state_update_matrix
+        next_state_tuple = tuple(next_state)
         debug_log(f'Transition {iteration} complete')
         if iteration > 1000000:  # Safety limit
             debug_log('Safety limit exceeded!')
