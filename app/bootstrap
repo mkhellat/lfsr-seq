@@ -1,9 +1,12 @@
 #!/bin/sh
-# bootstrap.sh - Automated installation and setup script for lfsr-seq
+# bootstrap - Guided first-time setup for lfsr-seq
 #
-# This script automates the installation and setup process for lfsr-seq
-# on POSIX-compliant systems. It checks dependencies, sets up the environment,
-# and installs the package.
+# Runs a configure-style system/dependency check (platform, Python, pip,
+# SageMath), then delegates the actual install/clean/uninstall work to the
+# Makefile in this directory, so there is exactly one place (the Makefile)
+# that knows how to build, test, or tear down the package. This script's
+# job is the guided pre-flight check and first-run experience, not
+# reimplementing what make already does.
 #
 # Usage:
 #   ./bootstrap [--dev] [--skip-sagemath-check] [--no-venv] [--clean] [--uninstall] [--help]
@@ -12,8 +15,8 @@
 #   --dev                 Install with development dependencies
 #   --skip-sagemath-check Skip SageMath availability check
 #   --no-venv             Skip virtual environment creation (install system-wide)
-#   --clean               Clean build artifacts and caches
-#   --uninstall           Uninstall the package
+#   --clean               Run "make distclean" (removes build artifacts and .venv)
+#   --uninstall           Run "make uninstall"
 #   --help                Show this help message
 #
 # Exit codes:
@@ -23,12 +26,14 @@
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-PROJECT_ROOT="$(cd "$SCRIPT_DIR" && pwd)"
+PROJECT_ROOT="$SCRIPT_DIR"
 INSTALL_DEV=false
 SKIP_SAGEMATH_CHECK=false
 CREATE_VENV=true
 CLEAN_ONLY=false
 UNINSTALL_ONLY=false
+
+cd "$PROJECT_ROOT"
 
 # Parse command line arguments
 while [ $# -gt 0 ]; do
@@ -54,7 +59,7 @@ while [ $# -gt 0 ]; do
             shift
             ;;
         --help|-h)
-            echo "bootstrap - Automated installation and setup for lfsr-seq"
+            echo "bootstrap - Guided first-time setup for lfsr-seq"
             echo ""
             echo "Usage: $0 [OPTIONS]"
             echo ""
@@ -62,8 +67,8 @@ while [ $# -gt 0 ]; do
             echo "  --dev                  Install with development dependencies"
             echo "  --skip-sagemath-check  Skip SageMath availability check"
             echo "  --no-venv              Skip virtual environment creation"
-            echo "  --clean                Clean build artifacts and caches"
-            echo "  --uninstall            Uninstall the package"
+            echo "  --clean                Run 'make distclean' (build artifacts + .venv)"
+            echo "  --uninstall            Run 'make uninstall'"
             echo "  --help, -h             Show this help message"
             echo ""
             exit 0
@@ -77,101 +82,82 @@ while [ $# -gt 0 ]; do
 done
 
 echo "=========================================="
-echo "lfsr-seq Bootstrap Script"
+echo "lfsr-seq Bootstrap"
 echo "=========================================="
 echo ""
 
-# Handle clean option
+# --------------------------------------------------------------------------
+# System / environment probe (configure-style)
+#
+# This mirrors what an autoconf-generated `configure` script would report
+# before building: platform identity, toolchain versions, and the
+# properties of this environment that determine how the rest of bootstrap
+# (and make) will behave. Nothing here mutates anything -- it is purely
+# diagnostic, so its output is safe to paste into a bug report.
+# --------------------------------------------------------------------------
+echo "Checking build environment..."
+echo ""
+
+UNAME_S="$(uname -s 2>/dev/null || echo unknown)"
+UNAME_M="$(uname -m 2>/dev/null || echo unknown)"
+UNAME_R="$(uname -r 2>/dev/null || echo unknown)"
+
+case "$UNAME_S" in
+    Linux)
+        PLATFORM_FAMILY="GNU/Linux"
+        if [ -r /etc/os-release ]; then
+            DISTRO_NAME="$(. /etc/os-release 2>/dev/null; echo "${PRETTY_NAME:-$NAME}")"
+        else
+            DISTRO_NAME="unknown distribution"
+        fi
+        echo "  Platform      : $PLATFORM_FAMILY ($DISTRO_NAME)"
+        ;;
+    Darwin)
+        PLATFORM_FAMILY="macOS"
+        MACOS_VERSION="$(sw_vers -productVersion 2>/dev/null || echo unknown)"
+        echo "  Platform      : $PLATFORM_FAMILY $MACOS_VERSION"
+        ;;
+    FreeBSD|OpenBSD|NetBSD|DragonFly)
+        PLATFORM_FAMILY="BSD"
+        echo "  Platform      : $UNAME_S (BSD family)"
+        ;;
+    *)
+        PLATFORM_FAMILY="unknown"
+        echo "  Platform      : $UNAME_S (untested; POSIX sh assumed)"
+        ;;
+esac
+echo "  Kernel        : $UNAME_S $UNAME_R"
+echo "  Architecture  : $UNAME_M"
+
+# Shell actually running this script (informational -- bootstrap requires
+# only POSIX sh features, but it helps to know what interpreted it).
+if [ -n "${ZSH_VERSION:-}" ]; then
+    echo "  Shell         : zsh $ZSH_VERSION"
+elif [ -n "${BASH_VERSION:-}" ]; then
+    echo "  Shell         : bash $BASH_VERSION"
+else
+    echo "  Shell         : $(readlink /proc/$$/exe 2>/dev/null || echo "$0" 2>/dev/null || echo unknown)"
+fi
+
+echo ""
+
+# Handle clean option -- delegate to make, don't reimplement its logic here
 if [ "$CLEAN_ONLY" = "true" ]; then
-    echo "Cleaning build artifacts and caches..."
+    echo "Delegating to 'make distclean' (removes build artifacts and .venv)..."
     echo ""
-    
-    # Remove build artifacts
-    echo "[1/4] Removing build directories..."
-    rm -rf build/ dist/ *.egg-info .eggs 2>/dev/null || true
-    echo "  ✓ Build directories removed"
-    
-    # Remove Python caches
-    echo "[2/4] Removing Python caches..."
-    find . -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null || true
-    find . -type f -name "*.pyc" -delete 2>/dev/null || true
-    find . -type f -name "*.pyo" -delete 2>/dev/null || true
-    echo "  ✓ Python caches removed"
-    
-    # Remove test and coverage artifacts
-    echo "[3/5] Removing test artifacts..."
-    rm -rf .pytest_cache .mypy_cache .ruff_cache htmlcov/ .coverage coverage.xml 2>/dev/null || true
-    echo "  ✓ Test artifacts removed"
-    
-    # Remove documentation artifacts
-    echo "[4/5] Removing documentation artifacts..."
-    rm -rf docs/_build/ docs/.doctrees/ 2>/dev/null || true
-    echo "  ✓ Documentation artifacts removed"
-    
-    # Remove temporary files
-    echo "[5/5] Removing temporary files..."
-    find . -type f -name "*.out" -delete 2>/dev/null || true
-    echo "  ✓ Temporary files removed"
-    
+    make -C "$PROJECT_ROOT" distclean
     echo ""
     echo "=========================================="
     echo "Clean completed successfully!"
     echo "=========================================="
-    echo ""
-    echo "Note: Virtual environment (.venv) was not removed"
-    echo "To remove it, use: make clean-venv or rm -rf .venv"
-    echo ""
     exit 0
 fi
 
-# Handle uninstall option
+# Handle uninstall option -- delegate to make
 if [ "$UNINSTALL_ONLY" = "true" ]; then
-    echo "Uninstalling lfsr-seq..."
+    echo "Delegating to 'make uninstall'..."
     echo ""
-    
-    # Check if virtual environment exists
-    if [ -d "$PROJECT_ROOT/.venv" ]; then
-        echo "[1/3] Uninstalling from virtual environment..."
-        . "$PROJECT_ROOT/.venv/bin/activate"
-        if python3 -m pip show lfsr-seq >/dev/null 2>&1; then
-            python3 -m pip uninstall -y lfsr-seq || {
-                echo "  ✗ ERROR: Failed to uninstall package"
-                exit 1
-            }
-            echo "  ✓ Package uninstalled from virtual environment"
-        else
-            echo "  ⚠ Package not found in virtual environment"
-        fi
-    else
-        echo "[1/3] Checking system-wide installation..."
-        if python3 -m pip show lfsr-seq >/dev/null 2>&1; then
-            echo "  ⚠ WARNING: Package found in system Python"
-            echo "  To uninstall system-wide, run: python3 -m pip uninstall lfsr-seq"
-            echo "  Or activate your virtual environment first"
-        else
-            echo "  Package not found in system Python"
-        fi
-    fi
-    
-    # Remove build metadata
-    echo "[2/3] Removing build metadata..."
-    rm -rf "$PROJECT_ROOT"/*.egg-info "$PROJECT_ROOT/.eggs" 2>/dev/null || true
-    echo "  ✓ Build metadata removed"
-    
-    # Clean Python caches in project
-    echo "[3/3] Cleaning project caches..."
-    find "$PROJECT_ROOT" -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null || true
-    find "$PROJECT_ROOT" -type f -name "*.pyc" -delete 2>/dev/null || true
-    echo "  ✓ Project caches cleaned"
-    
-    echo ""
-    echo "=========================================="
-    echo "Uninstall completed successfully!"
-    echo "=========================================="
-    echo ""
-    echo "Note: Virtual environment (.venv) was not removed"
-    echo "To remove it, use: make clean-venv or rm -rf .venv"
-    echo ""
+    make -C "$PROJECT_ROOT" uninstall
     exit 0
 fi
 
@@ -191,7 +177,7 @@ if [ "$PYTHON_MAJOR" -lt 3 ] || ([ "$PYTHON_MAJOR" -eq 3 ] && [ "$PYTHON_MINOR" 
     echo "  ✗ ERROR: Python 3.8+ required, found $PYTHON_VERSION"
     exit 1
 fi
-echo "  ✓ Python $PYTHON_VERSION found"
+echo "  ✓ Python $PYTHON_VERSION found ($(command -v python3))"
 
 # Step 2: Check pip
 echo "[2/6] Checking pip installation..."
@@ -204,14 +190,29 @@ if ! python3 -m pip --version >/dev/null 2>&1; then
         echo "      Debian/Ubuntu: sudo apt-get install python3-pip"
         echo "      Fedora/RHEL:   sudo dnf install python3-pip"
         echo "      Arch Linux:    sudo pacman -S python-pip"
+        echo "      macOS:         python3 -m ensurepip, or reinstall via brew/python.org"
         exit 1
     }
 fi
 echo "  ✓ pip available"
 
-# Step 3: Create virtual environment (default, PEP 668 compliant)
+# Step 3: Check make (required -- bootstrap delegates to it from here on)
+echo "[3/7] Checking make..."
+if ! command -v make >/dev/null 2>&1; then
+    echo "  ✗ ERROR: make not found"
+    echo "    bootstrap delegates build/install steps to make; please install it:"
+    echo "      Debian/Ubuntu: sudo apt-get install make"
+    echo "      Fedora/RHEL:   sudo dnf install make"
+    echo "      Arch Linux:    sudo pacman -S make"
+    echo "      macOS:         xcode-select --install (or: brew install make)"
+    echo "      FreeBSD/OpenBSD/NetBSD: make is part of the base system"
+    exit 1
+fi
+echo "  ✓ make available ($(command -v make))"
+
+# Step 4: Create virtual environment (default, PEP 668 compliant)
 if [ "$CREATE_VENV" = "true" ]; then
-    echo "[3/7] Creating virtual environment (PEP 668 compliant)..."
+    echo "[4/7] Creating virtual environment (PEP 668 compliant)..."
     if [ -d "$PROJECT_ROOT/.venv" ]; then
         echo "  ⚠ Virtual environment already exists at .venv"
         echo "  Using existing virtual environment"
@@ -219,13 +220,11 @@ if [ "$CREATE_VENV" = "true" ]; then
         python3 -m venv "$PROJECT_ROOT/.venv"
         echo "  ✓ Virtual environment created at .venv"
     fi
-    
-    # Activate virtual environment for subsequent steps
     . "$PROJECT_ROOT/.venv/bin/activate"
     echo "  ✓ Virtual environment activated"
     echo "  Note: This ensures PEP 668 compliance (no system-wide package installation)"
 else
-    echo "[3/7] Skipping virtual environment creation (--no-venv)"
+    echo "[4/7] Skipping virtual environment creation (--no-venv)"
     if [ -z "$VIRTUAL_ENV" ]; then
         echo "  ⚠ WARNING: Not in a virtual environment"
         echo "    Packages will be installed system-wide (may fail on PEP 668 systems)"
@@ -233,35 +232,37 @@ else
     fi
 fi
 
-# Step 4: Check SageMath (optional)
-echo "[4/7] Checking SageMath..."
+# Step 5: Check SageMath (optional, but required at runtime)
+echo "[5/7] Checking SageMath..."
 if [ "$SKIP_SAGEMATH_CHECK" = "false" ]; then
     SAGE_FOUND=false
     SAGE_VERSION="unknown"
-    
-    # First, try to import sage.all directly with python3
+
     if python3 -c "import sage.all" 2>/dev/null; then
         SAGE_VERSION=$(python3 -c "import sage; print(sage.__version__)" 2>/dev/null || echo "unknown")
         SAGE_FOUND=true
-    # If that fails, check if sage command exists and can import sage.all
     elif command -v sage >/dev/null 2>&1; then
         if sage -c "import sage.all" >/dev/null 2>&1; then
             SAGE_VERSION=$(sage --version 2>/dev/null | head -n1 || echo "unknown")
             SAGE_FOUND=true
         fi
     fi
-    
+
     if [ "$SAGE_FOUND" = "true" ]; then
         echo "  ✓ SageMath $SAGE_VERSION found"
     else
         echo "  ⚠ WARNING: SageMath not found"
-        echo "    lfsr-seq requires SageMath to run"
+        echo "    lfsr-seq requires SageMath to run (it is not available on PyPI"
+        echo "    and cannot be installed into this virtual environment via pip)."
         echo "    Install SageMath via your system package manager:"
-        echo "      Debian/Ubuntu: sudo apt-get install sagemath"
-        echo "      Fedora/RHEL:   sudo dnf install sagemath"
-        echo "      Arch Linux:    sudo pacman -S sagemath"
-        echo "      macOS:         brew install sagemath"
-        echo "      Conda:         conda install -c conda-forge sage"
+        echo "      Debian/Ubuntu:          sudo apt-get install sagemath"
+        echo "      Fedora/RHEL:            sudo dnf install sagemath"
+        echo "      Arch Linux:             sudo pacman -S sagemath"
+        echo "      macOS (Homebrew):       brew install sagemath"
+        echo "      Conda (any platform):   conda install -c conda-forge sage"
+        echo "      FreeBSD/OpenBSD/NetBSD: check your ports tree / pkg repository;"
+        echo "                              SageMath packaging on BSD is inconsistent,"
+        echo "                              conda-forge is the most reliable fallback"
         echo ""
         read -p "    Continue installation anyway? [y/N] " -n 1 -r
         echo
@@ -274,42 +275,22 @@ else
     echo "  ⏭ Skipped (--skip-sagemath-check)"
 fi
 
-# Step 5: Upgrade pip and build tools
-echo "[5/7] Upgrading pip and build tools..."
-python3 -m pip install --upgrade pip setuptools wheel build >/dev/null 2>&1 || {
-    echo "  ✗ ERROR: Failed to upgrade pip/build tools"
-    exit 1
-}
-echo "  ✓ pip and build tools upgraded"
-
-# Step 6: Install package
-echo "[6/7] Installing lfsr-seq..."
+# Step 6: Delegate the actual install to make
+echo "[6/7] Installing lfsr-seq (via make)..."
 if [ "$INSTALL_DEV" = "true" ]; then
-    echo "  Installing with development dependencies..."
-    python3 -m pip install -e ".[dev]" || {
-        echo "  ✗ ERROR: Installation failed"
-        exit 1
-    }
-    echo "  ✓ Installed with development dependencies"
+    make -C "$PROJECT_ROOT" install-dev
 else
-    python3 -m pip install -e . || {
-        echo "  ✗ ERROR: Installation failed"
-        exit 1
-    }
-    echo "  ✓ Installed successfully"
+    make -C "$PROJECT_ROOT" install
 fi
 
 # Step 7: Verify installation
-echo "[7/7] Verifying installation..."
-if [ -f "$PROJECT_ROOT/scripts/smoke-test.sh" ]; then
-    if "$PROJECT_ROOT/scripts/smoke-test.sh" >/dev/null 2>&1; then
-        echo "  ✓ Smoke tests passed"
-    else
-        echo "  ⚠ WARNING: Some smoke tests failed (this may be expected)"
-        echo "    Run './scripts/smoke-test.sh' for details"
-    fi
+echo "[7/7] Verifying installation (via make smoke-test)..."
+if make -C "$PROJECT_ROOT" smoke-test >/dev/null 2>&1; then
+    echo "  ✓ Smoke tests passed"
 else
-    echo "  ⏭ Smoke test script not found, skipping"
+    echo "  ⚠ WARNING: Some smoke tests failed (this may be expected, e.g. if"
+    echo "    SageMath is unavailable)"
+    echo "    Run 'make smoke-test' for details"
 fi
 
 echo ""
@@ -328,9 +309,9 @@ if [ "$CREATE_VENV" = "true" ]; then
     echo ""
 fi
 echo "Next steps:"
-echo "  1. Run environment check:  ./scripts/check-environment.sh"
-echo "  2. Run smoke tests:        ./scripts/smoke-test.sh"
-echo "  3. Try the tool:           ./lfsr-seq strange.csv 2"
+echo "  1. Run environment check:  make check-env"
+echo "  2. Run smoke tests:        make smoke-test"
+echo "  3. Try the tool:           lfsr-seq scripts/smoke-test-input.csv 2"
 echo ""
 if [ "$INSTALL_DEV" = "true" ]; then
     echo "Development tools available:"
@@ -342,4 +323,3 @@ if [ "$INSTALL_DEV" = "true" ]; then
 fi
 echo "For more information, see README.md"
 echo ""
-
