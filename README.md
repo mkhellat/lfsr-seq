@@ -148,6 +148,9 @@ cipher analysis, educational purposes, and security evaluation.
 
 - **Python 3.8 or higher**
 - **SageMath 9.7 or higher** - [Installation instructions](https://www.sagemath.org/)
+- **make** - used to drive install/test/build/docs tasks (see `app/Makefile`);
+  present by default on most GNU/Linux distributions and BSDs. On macOS,
+  install the Xcode Command Line Tools (`xcode-select --install`) or `brew install make`.
 
 ### Installing SageMath
 
@@ -181,6 +184,15 @@ conda install -c conda-forge sage
 
 ## Installation
 
+**All commands below are run from the `app/` directory**, not the git
+repository root — that's where `pyproject.toml`, the `Makefile`, and
+`bootstrap` live:
+
+```bash
+git clone <repo-url> lfsr-seq
+cd lfsr-seq/app
+```
+
 ### Quick Install (Recommended)
 
 Use the automated bootstrap script:
@@ -195,7 +207,7 @@ Use the automated bootstrap script:
 # Skip virtual environment (install system-wide)
 ./bootstrap --no-venv
 
-# Clean build artifacts and caches
+# Clean build artifacts and virtual environment
 ./bootstrap --clean
 
 # Uninstall the package
@@ -203,23 +215,25 @@ Use the automated bootstrap script:
 ```
 
 The bootstrap script will:
-- Check your Python and SageMath installation
+- Print a configure-style summary of your platform, kernel, architecture, and shell
+- Check your Python, pip, make, and SageMath installation
 - **Automatically create a virtual environment (`.venv`)** for PEP 668 compliance
-- Upgrade pip and build tools
-- Install the package in development mode
+- Delegate the actual install/clean/uninstall work to the `Makefile` below,
+  so there's a single source of truth for those steps
 - Run smoke tests to verify installation
 
-**Note:** 
+**Note:**
 - Virtual environment creation is the **default and recommended** approach (PEP 668 compliant)
 - The virtual environment is automatically activated during installation
 - After installation, activate it with: `source .venv/bin/activate`
 - Use `--no-venv` only if you need system-wide installation (not recommended, may fail on PEP 668 systems)
+- `bootstrap` requires `make` to be installed (see [Prerequisites](#prerequisites) for platform-specific install commands)
 
 ### Manual Installation
 
 1. **Check your environment:**
    ```bash
-   ./scripts/check-environment.sh
+   make check-env
    ```
 
 2. **Create a virtual environment (recommended):**
@@ -273,7 +287,10 @@ source .venv/bin/activate
 - `make format` - Format code (uses venv if available)
 - `make format-check` - Check code formatting without modifying
 - `make type-check` - Run type checking (uses venv if available)
+- `make check-env` - Verify Python/pip/SageMath environment
+- `make smoke-test` - Run a quick end-to-end sanity check
 - `make build` - Build distribution packages (uses venv if available)
+- `make docs` - Build Sphinx documentation (HTML)
 - `make clean` - Remove build artifacts
 - `make clean-venv` - Remove virtual environment
 - `make distclean` - Remove all generated files (including venv)
@@ -863,102 +880,124 @@ lfsr-seq coefficients.csv 2 --visualize-attack attack.png
 ## Project Structure
 
 ```
-lfsr-seq/
-├── src/lfsr/                # Main package (src/ layout)
-│   ├── __init__.py         # Package initialization
-│   ├── core.py             # Core LFSR mathematics
-│   ├── analysis.py         # Sequence analysis algorithms
-│   ├── polynomial.py       # Polynomial operations & optimization
-│   ├── field.py            # Finite field operations
-│   ├── io.py               # Input/output handling
-│   ├── formatter.py        # Output formatting
-│   ├── cli.py              # Command-line interface
-│   ├── synthesis.py         # Berlekamp-Massey & LFSR synthesis
-│   ├── statistics.py       # Statistical analysis tools
-│   ├── export.py           # Multi-format export functions
-│   ├── optimization.py     # Result caching & optimization utilities
-│   ├── attacks.py          # Correlation & algebraic attack framework
-│   ├── tmto.py             # Time-memory trade-off attacks
-│   ├── ciphers/            # Stream cipher analysis
-│   │   ├── __init__.py     # Cipher module initialization
-│   │   ├── base.py         # Base classes and interfaces
-│   │   ├── a5_1.py         # A5/1 GSM cipher
-│   │   ├── a5_2.py         # A5/2 GSM cipher
-│   │   ├── e0.py           # E0 Bluetooth cipher
-│   │   ├── trivium.py      # Trivium eSTREAM finalist
-│   │   ├── grain.py        # Grain family
-│   │   ├── lili128.py      # LILI-128 academic design
-│   │   └── comparison.py   # Cipher comparison framework
-│   ├── advanced/           # Advanced LFSR structures
-│   │   ├── __init__.py     # Advanced structures module initialization
-│   │   ├── base.py         # Base classes and interfaces
-│   │   ├── nonlinear.py    # NFSRs (Non-Linear Feedback Shift Registers)
-│   │   ├── filtered.py     # Filtered LFSRs
-│   │   ├── clock_controlled.py  # Clock-controlled LFSRs
-│   │   ├── multi_output.py # Multi-output LFSRs
-│   │   └── irregular_clocking.py  # Irregular clocking patterns
-│   ├── theoretical.py     # Theoretical analysis (irreducible polynomials)
-│   ├── export_latex.py    # LaTeX export functionality
-│   ├── paper_generator.py # Research paper generation
-│   ├── theoretical_db.py  # Known result database
-│   ├── benchmarking.py    # Benchmarking framework
-│   ├── reproducibility.py # Reproducibility features
-│   └── ml/                # Machine learning integration
-│       ├── __init__.py    # ML module initialization
-│       ├── base.py        # Base ML classes and interfaces
-│       ├── features.py    # Feature extraction
-│       ├── models.py      # ML models
-│       ├── period_prediction.py  # Period prediction models
-│       ├── pattern_detection.py  # Pattern detection
-│       ├── anomaly_detection.py  # Anomaly detection
-│       └── training.py    # Model training pipeline
-│   ├── visualization/     # Advanced visualization
-│       ├── __init__.py    # Visualization module initialization
-│       ├── base.py        # Base classes and configuration
-│       ├── period_graphs.py  # Period distribution visualizations
-│       ├── state_diagrams.py  # State transition diagrams
-│       ├── statistical_plots.py  # Statistical distribution plots
-│       ├── state_space_3d.py  # 3D state space visualizations
-│       └── attack_visualization.py  # Attack visualizations
-│   ├── cli_correlation.py  # CLI for correlation attacks
-│   ├── cli_algebraic.py    # CLI for algebraic attacks
-│   ├── cli_tmto.py         # CLI for TMTO attacks
-│   ├── cli_ciphers.py      # CLI for stream cipher analysis
-│   ├── cli_advanced.py     # CLI for advanced LFSR structures
-│   ├── cli_nist.py         # CLI for NIST tests
-│   ├── nist.py             # NIST SP 800-22 test suite
-│   └── constants.py        # Named constants
-├── tests/                   # Test suite
-│   ├── test_core.py        # Core function tests
-│   ├── test_field.py       # Field validation tests
-│   ├── test_polynomial.py  # Polynomial operation tests
-│   ├── test_io.py          # I/O operation tests
-│   ├── test_integration.py # Integration tests
-│   ├── test_edge_cases.py  # Edge case tests
-│   ├── conftest.py         # Pytest configuration
-│   └── fixtures/           # Test data
-├── docs/                    # Documentation
-│   ├── conf.py             # Sphinx configuration
-│   ├── index.rst           # Documentation index
-│   ├── installation.rst    # Installation guide
-│   ├── user_guide.rst      # User guide
-│   ├── api/                # API reference
-│   ├── mathematical_background.rst
-│   └── examples.rst
-├── scripts/                 # Utility scripts
-│   ├── check-environment.sh
-│   ├── smoke-test.sh
-│   ├── test-build.sh
-│   └── test-install.sh
-├── lfsr-seq                # Main executable script
-├── bootstrap               # Automated installation script
-├── Makefile                # Development tasks
-├── pyproject.toml          # Project metadata, build config, and dependencies
-├── strange.csv             # Sample input file
-└── README.md               # This file
+lfsr-seq/                    # git root: project meta-files only
+├── app/                     # the installable package, self-contained
+│   ├── src/lfsr/           # Main package (src/ layout)
+│   │   ├── __init__.py     # Package initialization
+│   │   ├── core.py         # Core LFSR mathematics
+│   │   ├── analysis.py     # Sequence analysis algorithms
+│   │   ├── polynomial.py   # Polynomial operations & optimization
+│   │   ├── field.py        # Finite field operations
+│   │   ├── io.py           # Input/output handling
+│   │   ├── formatter.py    # Output formatting
+│   │   ├── cli.py          # Command-line interface
+│   │   ├── synthesis.py     # Berlekamp-Massey & LFSR synthesis
+│   │   ├── statistics.py   # Statistical analysis tools
+│   │   ├── export.py       # Multi-format export functions
+│   │   ├── optimization.py # Result caching & optimization utilities
+│   │   ├── attacks.py      # Correlation & algebraic attack framework
+│   │   ├── tmto.py         # Time-memory trade-off attacks
+│   │   ├── py.typed        # PEP 561 marker (package ships type hints)
+│   │   ├── ciphers/        # Stream cipher analysis
+│   │   │   ├── __init__.py # Cipher module initialization
+│   │   │   ├── base.py     # Base classes and interfaces
+│   │   │   ├── a5_1.py     # A5/1 GSM cipher
+│   │   │   ├── a5_2.py     # A5/2 GSM cipher
+│   │   │   ├── e0.py       # E0 Bluetooth cipher
+│   │   │   ├── trivium.py  # Trivium eSTREAM finalist
+│   │   │   ├── grain.py    # Grain family
+│   │   │   ├── lili128.py  # LILI-128 academic design
+│   │   │   └── comparison.py  # Cipher comparison framework
+│   │   ├── advanced/       # Advanced LFSR structures
+│   │   │   ├── __init__.py # Advanced structures module initialization
+│   │   │   ├── base.py     # Base classes and interfaces
+│   │   │   ├── nonlinear.py  # NFSRs (Non-Linear Feedback Shift Registers)
+│   │   │   ├── filtered.py # Filtered LFSRs
+│   │   │   ├── clock_controlled.py  # Clock-controlled LFSRs
+│   │   │   ├── multi_output.py  # Multi-output LFSRs
+│   │   │   └── irregular_clocking.py  # Irregular clocking patterns
+│   │   ├── theoretical.py  # Theoretical analysis (irreducible polynomials)
+│   │   ├── export_latex.py # LaTeX export functionality
+│   │   ├── paper_generator.py  # Research paper generation
+│   │   ├── theoretical_db.py  # Known result database
+│   │   ├── benchmarking.py # Benchmarking framework
+│   │   ├── reproducibility.py  # Reproducibility features
+│   │   ├── examples/       # Runnable usage examples (ships in the wheel)
+│   │   │   ├── __init__.py
+│   │   │   ├── advanced_lfsr_example.py
+│   │   │   ├── correlation_attack_example.py
+│   │   │   ├── ml_integration_example.py
+│   │   │   └── ...          # one per major feature area
+│   │   ├── ml/              # Machine learning integration
+│   │   │   ├── __init__.py # ML module initialization
+│   │   │   ├── base.py     # Base ML classes and feature extraction
+│   │   │   ├── period_prediction.py  # Period prediction models
+│   │   │   ├── pattern_detection.py  # Pattern detection
+│   │   │   ├── anomaly_detection.py  # Anomaly detection
+│   │   │   └── training.py # Model training pipeline
+│   │   ├── visualization/   # Advanced visualization
+│   │   │   ├── __init__.py # Visualization module initialization
+│   │   │   ├── base.py     # Base classes and configuration
+│   │   │   ├── period_graphs.py  # Period distribution visualizations
+│   │   │   ├── state_diagrams.py  # State transition diagrams
+│   │   │   ├── statistical_plots.py  # Statistical distribution plots
+│   │   │   ├── state_space_3d.py  # 3D state space visualizations
+│   │   │   └── attack_visualization.py  # Attack visualizations
+│   │   ├── cli_correlation.py  # CLI for correlation attacks
+│   │   ├── cli_algebraic.py  # CLI for algebraic attacks
+│   │   ├── cli_tmto.py     # CLI for TMTO attacks
+│   │   ├── cli_ciphers.py  # CLI for stream cipher analysis
+│   │   ├── cli_advanced.py # CLI for advanced LFSR structures
+│   │   ├── cli_nist.py     # CLI for NIST tests
+│   │   ├── nist.py         # NIST SP 800-22 test suite
+│   │   └── constants.py    # Named constants
+│   ├── tests/               # Test suite
+│   │   ├── test_core.py    # Core function tests
+│   │   ├── test_field.py   # Field validation tests
+│   │   ├── test_polynomial.py  # Polynomial operation tests
+│   │   ├── test_io.py      # I/O operation tests
+│   │   ├── test_integration.py  # Integration tests
+│   │   ├── test_edge_cases.py  # Edge case tests
+│   │   ├── test_ml.py      # ML subpackage regression tests
+│   │   ├── conftest.py     # Pytest configuration
+│   │   └── fixtures/       # Test data
+│   ├── docs/                # Sphinx documentation source
+│   │   ├── conf.py         # Sphinx configuration
+│   │   ├── index.rst       # Documentation index
+│   │   ├── installation.rst  # Installation guide
+│   │   ├── user_guide.rst  # User guide (includes Glossary)
+│   │   ├── api/            # API reference
+│   │   ├── mathematical_background.rst
+│   │   └── examples.rst
+│   ├── scripts/              # Dev-tooling scripts invoked by make (not shipped)
+│   │   ├── check-environment.sh
+│   │   ├── smoke-test.sh
+│   │   ├── test-build.sh
+│   │   └── test-install.sh
+│   ├── bootstrap            # Guided setup: probes the system, wraps make
+│   ├── Makefile             # Development tasks (install/test/lint/docs/...)
+│   ├── pyproject.toml       # Project metadata, build config, and dependencies
+│   └── MANIFEST.in          # Explicit sdist file inclusion
+├── dev-docs/                 # Design docs, plans, and historical archives
+│   ├── parallel/            # Parallel enumeration design/analysis docs
+│   ├── profiling/           # Archived profiling/investigation raw material
+│   ├── plans/               # Feature and implementation plans
+│   └── setup/               # Build/install docs, incl. the archived legacy wrapper
+├── artwork/                  # Project icons and social-preview images
+├── .github/workflows/        # CI configuration
+├── CLAUDE.md                 # Guidance for AI coding assistants
+├── LICENSE
+└── README.md                 # This file
 ```
 
+All development commands (`make install-dev`, `make test`, `./bootstrap`,
+etc.) are run from `app/`, not the git repository root — see
+[Development](#development) below.
+
 ## Development
+
+All commands in this section are run from `app/` (see
+[Project Structure](#project-structure)).
 
 ### Setting Up Development Environment
 
@@ -1120,13 +1159,7 @@ make uninstall
 After installation, verify everything works:
 
 ```bash
-# Check environment
-./scripts/check-environment.sh
-
-# Run smoke tests
-./scripts/smoke-test.sh
-
-# Or use make
+# From app/:
 make check-env
 make smoke-test
 ```
@@ -1139,20 +1172,14 @@ Install SageMath via your system package manager (see Prerequisites
 section). The tool will skip tests that require SageMath if it's not
 available.
 
-### "Permission denied" on script execution
+### "command not found: lfsr-seq"
 
-Make the script executable:
+`lfsr-seq` is only on `PATH` once the package is installed and its
+virtual environment is active:
 ```bash
-chmod +x lfsr-seq
-```
-
-Or run directly with Python:
-```bash
-python3 lfsr-seq strange.csv 2
-```
-
-Or use the installed command (after installation):
-```bash
+cd app
+source .venv/bin/activate   # if not already active
+pip install -e .            # if not already installed
 lfsr-seq strange.csv 2
 ```
 
