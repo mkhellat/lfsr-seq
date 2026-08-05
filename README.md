@@ -249,7 +249,7 @@ If you have `make` installed:
 make dev-setup
 source .venv/bin/activate
 
-# Or install manually (venv is automatically created)
+# Or without the environment check (venv is automatically created)
 make install-dev
 source .venv/bin/activate
 
