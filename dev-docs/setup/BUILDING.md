@@ -238,7 +238,7 @@ To publish on Read the Docs:
 
 1. Connect your GitHub repository to Read the Docs
 2. Read the Docs will automatically build from the `docs/` directory
-3. Ensure `requirements.txt` or `pyproject.toml` includes Sphinx dependencies
+3. Ensure `pyproject.toml`'s `dev` extra includes Sphinx dependencies
 
 ### GitHub Pages
 

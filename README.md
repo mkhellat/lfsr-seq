@@ -864,7 +864,7 @@ lfsr-seq coefficients.csv 2 --visualize-attack attack.png
 
 ```
 lfsr-seq/
-├── lfsr/                    # Main package
+├── src/lfsr/                # Main package (src/ layout)
 │   ├── __init__.py         # Package initialization
 │   ├── core.py             # Core LFSR mathematics
 │   ├── analysis.py         # Sequence analysis algorithms
@@ -953,9 +953,7 @@ lfsr-seq/
 ├── lfsr-seq                # Main executable script
 ├── bootstrap               # Automated installation script
 ├── Makefile                # Development tasks
-├── pyproject.toml          # Project metadata and build config
-├── requirements.txt        # Runtime dependencies
-├── requirements-dev.txt    # Development dependencies
+├── pyproject.toml          # Project metadata, build config, and dependencies
 ├── strange.csv             # Sample input file
 └── README.md               # This file
 ```
