@@ -10,12 +10,15 @@ jobs:
   test:
     name: Test on Python ${{ matrix.python-version }}
     runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        working-directory: app
     strategy:
       fail-fast: false
       matrix:
         os: [ubuntu-latest]
         python-version: ['3.8', '3.9', '3.10', '3.11', '3.12', '3.13']
-    
+
     steps:
     - uses: actions/checkout@v4
     
@@ -49,13 +52,16 @@ jobs:
       uses: codecov/codecov-action@v3
       if: matrix.python-version == '3.11'
       with:
-        file: ./coverage.xml
+        file: ./app/coverage.xml
         fail_ci_if_error: false
 
   lint:
     name: Lint and Format Check
     runs-on: ubuntu-latest
-    
+    defaults:
+      run:
+        working-directory: app
+
     steps:
     - uses: actions/checkout@v4
     
@@ -84,7 +90,10 @@ jobs:
   build:
     name: Build Package
     runs-on: ubuntu-latest
-    
+    defaults:
+      run:
+        working-directory: app
+
     steps:
     - uses: actions/checkout@v4
     
