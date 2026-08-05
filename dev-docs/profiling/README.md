@@ -23,14 +23,27 @@ run by `make`, CI, or the test suite.
 
 ## Why this is kept
 
-The conclusions from this work are already distilled into maintained
-documentation: [`dev-docs/parallel/`](../parallel/README.md) for the
-polished analysis, and the root `CLAUDE.md`'s "Known limitations" section
-for the current, accepted-tradeoff summary (parallel speedup peaks at
-~1.21x for 16-bit LFSRs; fork overhead dominates smaller inputs). This
-archive isn't required reading — it exists so the raw evidence behind
-those conclusions isn't lost, and so a future investigation into parallel
-performance doesn't have to start from zero.
+This archive isn't required reading — it exists so the raw evidence
+behind past parallel-enumeration work isn't lost, and so a future
+investigation doesn't have to start from zero.
+
+**A critical note on the numbers in this archive**: the profiling scripts
+here measured each configuration exactly once (no repetition, no warmup,
+fixed run order), with 40-60% variance observed between identical reruns
+minutes apart — well above the effects being reported. The raw JSON data
+in [`logs/`](logs/) shows parallel enumeration *slower* than sequential
+across most measured configurations, worsening as worker count increases
+(e.g. 16-bit LFSRs: roughly 0.87x at 2 workers, 0.54x at 4, 0.31x at 8).
+Every specific speedup multiplier that was ever quoted elsewhere in this
+project's docs based on this material (fork-vs-spawn, batch aggregation,
+persistent pool reuse, load balancing, overall large-LFSR speedup) has
+since been stripped from those docs as unreproducible. Treat every number
+in this archive as unverified; the qualitative, honestly-supported
+takeaway is that parallel enumeration currently provides no reliable
+speedup at the problem sizes tested here, most likely due to fork/IPC
+overhead dominating cheap per-state work.
 
 If you're looking for the current state of parallel enumeration, start
-with `dev-docs/parallel/`, not here.
+with `dev-docs/parallel/`, not here — and be skeptical of any multiplier
+you find in either location unless it comes with a repeatable, multi-run
+benchmark attached.

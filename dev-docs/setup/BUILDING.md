@@ -3,8 +3,9 @@
 This guide explains how to build and use the Sphinx documentation for lfsr-seq.
 
 **All commands below are run from `app/`**, not the git repository root —
-that's where `docs/`, the `Makefile`, and `pyproject.toml` live (see the
-root `CLAUDE.md` for the full repository layout).
+that's where `docs/`, the `Makefile`, and `pyproject.toml` live. Repo-root
+project meta-files (`README.md`, `LICENSE`, `dev-docs/`) sit alongside
+`app/`, which holds the installable package.
 
 ## Prerequisites
 

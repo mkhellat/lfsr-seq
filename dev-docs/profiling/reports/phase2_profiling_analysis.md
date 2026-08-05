@@ -3,11 +3,16 @@
 > **Update**: this document is a point-in-time snapshot from 2025-12-30.
 > All items in "Next Steps" below were completed afterward: Phase 2.3
 > (persistent worker pool) and 2.4 (lazy task generation) shipped, and
-> larger problems were profiled (see `scripts/profile_report_16bit.md`,
-> `scripts/PROFILING_EVALUATION.md`). The break-even-point estimate below
-> is superseded by the more definitive current figure in the root
-> `CLAUDE.md`: parallel speedup peaks at ~1.21x for 16-bit LFSRs, with
-> fork overhead dominating for smaller inputs (an accepted tradeoff).
+> larger problems were profiled (see `../profile_report_16bit.md`,
+> `PROFILING_EVALUATION.md` in this folder). The break-even-point estimate
+> below, and every other specific speedup multiplier in this project's
+> profiling history, should be treated as unverified: the measurement
+> methodology behind all of it was single-run, wall-clock, fixed-order,
+> with 40-60% variance observed between identical reruns. The raw JSON
+> data in `../logs/` shows parallel enumeration slower than sequential
+> across most measured configurations. See `dev-docs/profiling/README.md`
+> for the full account — there is no more "definitive" figure superseding
+> this one; all of them share the same methodological problems.
 
 **Date**: 2025-12-30  
 **Purpose**: Validate performance improvements from adaptive batch sizing and batch aggregation

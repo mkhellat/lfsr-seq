@@ -22,7 +22,7 @@ This directory contains all feature plans and implementation documentation, orga
 ### In Progress
 - [Parallel Optimization Options](./parallel/parallel_optimization_options.md)
 
-### Planned (at time of writing — all five below are now implemented; see repo root CLAUDE.md for current status)
+### Planned (at time of writing — all five below are now implemented)
 - [Period Only Mode Plan](./features/period_only_mode_plan.md) — implemented (`--period-only` flag)
 - [Optimization Techniques Plan](./features/optimization_techniques_plan.md) — implemented (`app/src/lfsr/optimization.py`)
 - [Correlation Attack Framework](./attacks/correlation_attack_framework_plan.md) — implemented (`app/src/lfsr/cli_correlation.py`, `app/src/lfsr/attacks.py`)

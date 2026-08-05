@@ -4,12 +4,20 @@
 > Phase 2.3/2.4 (persistent worker pool, lazy task generation) and Phase
 > 3.1/3.2 (work stealing, hybrid mode) work. Its per-mode recommendations
 > below ("Use dynamic mode for 8+ cycles", manual static-vs-dynamic
-> selection) are superseded: the current `lfsr/analysis.py` auto-selects
-> hybrid mode for medium-sized problems rather than requiring callers to
-> choose a mode manually. The speedup figures in Section 2 are similarly
-> superseded by the more definitive, later benchmark in the root
-> `CLAUDE.md`: parallel speedup peaks at ~1.21x for 16-bit LFSRs, with
-> fork overhead dominating for smaller inputs (an accepted tradeoff).
+> selection) are superseded: the current `app/src/lfsr/analysis.py`
+> auto-selects hybrid mode for medium-sized problems rather than requiring
+> callers to choose a mode manually. The speedup figures in Section 2, and
+> this document's own "✓ ALL TESTS PASS" correctness claim below, should
+> both be treated as unreliable: a later audit found two of this dataset's
+> own runs (`profiling_12bit_v1.json`/`v2.json`, `static_4w`) recorded
+> `"correct": false` with cycle counts roughly 2.5-3x the expected state
+> count, directly contradicting the "all tests pass" line in this same
+> document. There is no separate "more definitive" figure elsewhere that
+> supersedes these numbers — every specific speedup multiplier quoted
+> anywhere in this project's history, based on this profiling material,
+> shares the same single-run, high-variance methodology and has since been
+> stripped from user-facing docs as unreproducible. See
+> `dev-docs/profiling/README.md` for the full account.
 
 ## Executive Summary
 

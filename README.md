@@ -102,44 +102,26 @@ cipher analysis, educational purposes, and security evaluation.
 ### Performance Optimizations
 - **Multiple Cycle Detection Algorithms**: Floyd's (tortoise-and-hare), Brent's (powers-of-2), and enumeration methods
 - **Period-Only Mode**: True O(1) space complexity for period computation without sequence storage
-- **Parallel State Enumeration**: Multi-process parallelization for large state space analysis
-  - Uses fork mode (13-17x faster than spawn) with SageMath isolation
-  - Two modes available: static (fixed partitioning) and dynamic (shared task queue with load balancing)
-  - Dynamic mode provides 2-4x better load balancing for multi-cycle configurations
-  - **Adaptive batch sizing (Phase 2.1)**: Automatically optimizes batch sizes based on problem size
-    - Small problems (<8K states): 500-1000 states per batch
-    - Medium problems (8K-64K states): 200-500 states per batch
-    - Large problems (>64K states): 100-200 states per batch
-    - Reduces IPC overhead for small problems, improves load balancing for large problems
-  - **Batch aggregation (Phase 2.2)**: Workers pull multiple batches at once (2-8 batches) to reduce IPC overhead
-    - Adaptive aggregation count based on problem size (2-3 for small, 3-5 for medium, 4-8 for large)
-    - Reduces queue operations by 2-8x
-    - Uses non-blocking operations (`get_nowait()`) with fallback to blocking `get()` for better CPU utilization
-    - Provides 1.2-1.5x additional speedup by reducing queue contention
-  - **Lazy task generation (Phase 2.4)**: Batches generated on-demand by background producer thread
-    - Generator function creates batches on-demand instead of pre-generating all
-    - Background producer thread populates queue as workers consume batches
-    - Reduces memory usage for large problems (only active batches in memory, O(batch_size * queue_size))
-    - Faster startup time (workers can start immediately, no upfront batch generation delay)
-    - Better scalability for very large problems (>100K states)
-  - **Persistent worker pool (Phase 2.3)**: Workers reused across multiple analyses
-    - Module-level pool that persists across multiple analyses
-    - Reduces process creation overhead for repeated analyses
-    - Expected 2-3x speedup for multiple analyses in same program run
-    - 10% speedup observed on second run (tested with 12-bit LFSR)
-    - Automatic cleanup on program exit via atexit handler
-  - **Memory Safety (Critical Fix)**: Prevents memory exhaustion from unbounded queue growth
-    - **Queue size limits**: All queues have maximum size (100 batches per queue)
-    - **Producer backpressure**: Producer blocks when queue is full, preventing unbounded growth
-    - **Emergency stop**: Producer can be stopped immediately if memory issues detected
-    - **Thread cleanup**: Proper cleanup prevents memory leaks from orphaned threads
-    - **Memory monitoring**: Test scripts include 4GB memory limits and emergency shutdown
-    - Prevents DDoS-like memory exhaustion from queue overflow
-  - Provides 2-4x speedup for large LFSRs (> 10,000 states)
-  - Automatic fallback to sequential for small LFSRs where overhead dominates
+- **Parallel State Enumeration**: Multi-process enumeration (fork-based, static and dynamic
+  work-distribution modes, adaptive batch sizing, batch aggregation, lazy task generation, a
+  persistent worker pool, and queue-based memory safety limits) is implemented and available via
+  `--parallel`.
+  - **No performance claim is made here.** The profiling behind this feature's original
+    development (archived in `dev-docs/profiling/`) used single-run, wall-clock, fixed-order
+    measurements with 40-60% run-to-run variance on identical reruns — well above the effects it
+    reported — and the raw data it collected shows parallel enumeration *slower* than sequential
+    across most measured configurations, worsening as worker count increases (e.g. 16-bit LFSRs:
+    roughly 0.87x at 2 workers, 0.54x at 4, 0.31x at 8, in the archived runs). Any specific
+    speedup multiplier previously stated in project docs was not reproducible and has been
+    removed; see `dev-docs/profiling/README.md` for the full account. Automatic fallback to
+    sequential mode is used for small LFSRs.
 - **Optimized State Tracking**: Set-based visited state tracking for O(1) lookups
 - **Primitive Polynomial Optimization**: Fast period prediction for primitive polynomials
-- **Period Computation via Factorization**: 10-100x faster for large LFSRs (degree > 15)
+- **Period Computation via Factorization**: Computes period from the characteristic polynomial's
+  factorization rather than full state enumeration — algorithmically preferable for large-degree
+  LFSRs, though no specific speedup multiplier has been benchmarked (no timing test exists in the
+  test suite for this comparison; treat any number you may see elsewhere in older docs as an
+  unverified planning estimate, not a measurement).
 - **Result Caching System**: In-memory and persistent caching for repeated analyses
 - **Mathematical Shortcut Detection**: Automatic detection of special cases (primitive, irreducible, etc.)
 - **Scalable Architecture**: Designed to handle larger LFSRs efficiently
@@ -985,7 +967,6 @@ lfsr-seq/                    # git root: project meta-files only
 │   └── setup/               # Build/install docs, incl. the archived legacy wrapper
 ├── artwork/                  # Project icons and social-preview images
 ├── .github/workflows/        # CI configuration
-├── CLAUDE.md                 # Guidance for AI coding assistants
 ├── LICENSE
 └── README.md                 # This file
 ```

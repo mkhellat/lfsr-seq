@@ -7,12 +7,12 @@
 > `period_prediction.py`, `pattern_detection.py`, `anomaly_detection.py`,
 > `training.py`). Two earlier files, `features.py` and `models.py`, were removed
 > as dead code (zero consumers, fully superseded by the files above). CLI wiring
-> is partial — `--predict-period`, `--detect-patterns`, `--detect-anomalies`,
-> `--train-model`, `--ml-model-type`, and `--evaluate-model` exist in
-> `lfsr/cli.py`, but there is no dedicated `cli_ml.py` and the individual
+> is now complete — `--predict-period`, `--detect-patterns`, `--detect-anomalies`,
+> `--train-model`, `--ml-model-type`, and `--evaluate-model` all exist in
+> `app/src/lfsr/cli.py`. There is still no dedicated `cli_ml.py`, and the individual
 > sub-detectors in `pattern_detection.py`/`anomaly_detection.py` are only
-> reachable via their `detect_all_*` aggregators, not as separate flags. See
-> repo root `CLAUDE.md` for current status.
+> reachable via their `detect_all_*` aggregators, not as separate flags, but
+> this is a minor structural note rather than a functional gap.
 
 ---
 

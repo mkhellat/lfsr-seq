@@ -4,7 +4,7 @@
 > 2025-12-30. Testing and documentation were completed afterward; hybrid
 > mode's auto-selection logic (8K-64K states) is fully integrated in
 > `lfsr/analysis.py` and is part of the current, accepted parallel-mode
-> design (see `dev-docs/parallel/` and the root `CLAUDE.md`). The "Next
+> design (see `dev-docs/parallel/`). The "Next
 > Steps" and "Testing in progress" notes below are historical and no
 > longer open.
 
