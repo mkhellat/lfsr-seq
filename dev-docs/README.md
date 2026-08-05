@@ -2,7 +2,7 @@
 
 This directory contains all development documentation, analysis reports, and implementation plans.
 
-**Note**: This is separate from `docs/` which contains Sphinx documentation for the project.
+**Note**: This is separate from `app/docs/` which contains Sphinx documentation for the project.
 
 ## Recent Updates
 

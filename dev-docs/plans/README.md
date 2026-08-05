@@ -24,10 +24,10 @@ This directory contains all feature plans and implementation documentation, orga
 
 ### Planned (at time of writing — all five below are now implemented; see repo root CLAUDE.md for current status)
 - [Period Only Mode Plan](./features/period_only_mode_plan.md) — implemented (`--period-only` flag)
-- [Optimization Techniques Plan](./features/optimization_techniques_plan.md) — implemented (`lfsr/optimization.py`)
-- [Correlation Attack Framework](./attacks/correlation_attack_framework_plan.md) — implemented (`lfsr/cli_correlation.py`, `lfsr/attacks.py`)
+- [Optimization Techniques Plan](./features/optimization_techniques_plan.md) — implemented (`app/src/lfsr/optimization.py`)
+- [Correlation Attack Framework](./attacks/correlation_attack_framework_plan.md) — implemented (`app/src/lfsr/cli_correlation.py`, `app/src/lfsr/attacks.py`)
 - [Fast Correlation Attack](./attacks/fast_correlation_attack_plan.md) — implemented (`--fast-correlation-attack`)
-- [Theoretical Analysis Plan](./analysis/theoretical_analysis_plan.md) — implemented (`lfsr/theoretical.py`, `lfsr/theoretical_db.py`)
+- [Theoretical Analysis Plan](./analysis/theoretical_analysis_plan.md) — implemented (`app/src/lfsr/theoretical.py`, `app/src/lfsr/theoretical_db.py`)
 
 ### Status & Reviews
 - [Final Status](./status/final_status.md)
