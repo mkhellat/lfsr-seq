@@ -252,14 +252,19 @@ def _find_period(
         start_state: The initial state vector to start the cycle from
         state_update_matrix: The LFSR state update matrix
         algorithm: Algorithm to use: "floyd", "brent", "enumeration",
-          or "auto" (default: "auto"). "auto" uses enumeration by
-          default (4x faster than Floyd in period-only mode)
+          or "auto" (default: "auto"). "auto" uses enumeration by default:
+          Floyd's algorithm performs ~3 state transitions per step
+          (one tortoise step plus two hare steps) versus one for plain
+          enumeration, so enumeration does roughly 3x fewer state
+          transitions for the same period. No end-to-end wall-clock
+          benchmark has been run to confirm this holds in practice.
 
     Returns:
         The period (length of the cycle)
     """
-    # CRITICAL FIX: Enumeration is 4x faster than Floyd in period-only mode
-    # Both are O(1) space, so use enumeration by default for speed
+    # Enumeration performs ~3x fewer state transitions than Floyd's
+    # algorithm in period-only mode (see docstring above); both are O(1)
+    # space, so use enumeration by default.
     if algorithm == "enumeration" or algorithm == "auto":
         # Enumeration is faster and still O(1) space in period-only mode
         return _find_period_enumeration(start_state, state_update_matrix)
@@ -1567,9 +1572,13 @@ def lfsr_sequence_mapper_parallel(
 
     # Use multiprocessing.Pool with 'fork' context (preferred) or 'spawn' (fallback)
     #
-    # PERFORMANCE CRITICAL: Fork mode is 13-17x faster than spawn for process creation
-    # - Fork: ~0.12ms per task (inherits parent's memory)
-    # - Spawn: ~1.69ms per task (new Python process)
+    # Fork avoids spawn's full Python (and SageMath) reinitialization per
+    # worker process, so it's expected to have meaningfully lower process
+    # creation overhead. No reliable, repeatable benchmark exists for the
+    # exact ratio -- an earlier "13-17x" figure quoted here traced back to
+    # a single, unrepeated measurement and has been removed; see
+    # dev-docs/profiling/README.md for why that whole line of profiling
+    # data is not trustworthy.
     #
     # SageMath isolation in workers (_process_state_chunk) ensures fork mode works correctly:
     # - Fresh GF/VectorSpace objects created in each worker
@@ -1581,13 +1590,13 @@ def lfsr_sequence_mapper_parallel(
         import time
         start_time = time.time()
 
-        # Prefer fork mode (much faster), fall back to spawn if not available
+        # Prefer fork mode (lower process-creation overhead than spawn), fall
+        # back to spawn if not available
         try:
-            # Fork mode: 13-17x faster, works on Linux
-            # SageMath isolation in workers makes this safe
+            # Fork mode: works on Linux; SageMath isolation in workers makes this safe
             ctx = multiprocessing.get_context('fork')
             if not no_progress:
-                print("  Using fork mode (fast, ~13-17x faster than spawn)")
+                print("  Using fork mode (lower process-creation overhead than spawn)")
         except ValueError:
             # Spawn mode: Slower but works on Windows/Mac where fork isn't available
             ctx = multiprocessing.get_context('spawn')
@@ -1613,14 +1622,16 @@ def lfsr_sequence_mapper_parallel(
                 sys.stdout.flush()
 
             try:
-                # Wait with reasonable timeout
-                # Serial takes max 35s, so parallel should be faster
-                # Fork mode is much faster (13-17x), so shorter timeout is sufficient
-                # Spawn mode is slower due to process creation overhead
+                # Wait with reasonable timeout. Spawn needs a larger timeout
+                # budget since each worker reinitializes a full Python (and
+                # SageMath) process; fork avoids that reinit cost, so a
+                # shorter timeout is used for it. These are conservative
+                # engineering margins, not derived from a specific measured
+                # speedup ratio.
                 if ctx.get_start_method() == 'spawn':
-                    total_timeout = 120  # Spawn needs more time for process creation (slower)
+                    total_timeout = 120  # Spawn needs more time for process creation
                 else:
-                    total_timeout = 40   # Fork is fast (13-17x faster), less overhead
+                    total_timeout = 40   # Fork avoids spawn's process-creation overhead
                 worker_results = async_result.get(timeout=total_timeout)
 
                 elapsed = time.time() - start_time
@@ -2145,10 +2156,14 @@ def lfsr_sequence_mapper_parallel_dynamic(
     **IPC Optimization (Phase 2.2)**:
 
     This implementation includes batch aggregation to reduce IPC overhead:
-    - Workers pull multiple batches at once (2-8 batches per queue operation)
+    - Workers pull multiple batches at once (2-8 batches per queue operation),
+      which reduces the number of queue operations by the same 2-8x factor
+      by construction
     - Uses get_nowait() (non-blocking) with fallback to blocking get()
-    - Reduces queue contention and IPC overhead by 1.2-1.5x
     - Batch aggregation count is adaptive based on problem size
+    - No reliable end-to-end wall-clock speedup figure has been measured for
+      this optimization; an earlier "1.2-1.5x" estimate here was never
+      benchmarked and has been removed (see dev-docs/profiling/README.md)
 
     Returns:
         Tuple of (seq_dict, period_dict, max_period, periods_sum)
