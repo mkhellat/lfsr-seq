@@ -112,3 +112,47 @@ class TestReadAndValidateCsv:
         assert len(result) == 1
         assert result[0] == ["1", "2", "1"]
 
+    def test_read_csv_skips_comment_lines(self, tmp_path):
+        """Lines starting with # (a coefficient vector's first field) are comments, not data."""
+        csv_file = tmp_path / "test.csv"
+        csv_file.write_text("# a comment\n1,1,0,1\n# another comment\n1,0,0,1\n")
+
+        result = read_and_validate_csv(str(csv_file), 2)
+        assert result == [["1", "1", "0", "1"], ["1", "0", "0", "1"]]
+
+    def test_read_csv_skips_indented_comment_lines(self, tmp_path):
+        """A comment line may be preceded by whitespace before the #."""
+        csv_file = tmp_path / "test.csv"
+        csv_file.write_text("   # indented comment\n1,1,0,1\n")
+
+        result = read_and_validate_csv(str(csv_file), 2)
+        assert result == [["1", "1", "0", "1"]]
+
+    def test_read_csv_skips_blank_lines(self, tmp_path):
+        """Blank lines between data rows are ignored, not treated as empty vectors."""
+        csv_file = tmp_path / "test.csv"
+        csv_file.write_text("1,1,0,1\n\n1,0,0,1\n")
+
+        result = read_and_validate_csv(str(csv_file), 2)
+        assert result == [["1", "1", "0", "1"], ["1", "0", "0", "1"]]
+
+    def test_read_csv_comments_and_blanks_dont_trigger_length_warning(
+        self, tmp_path, capsys
+    ):
+        """Comment/blank lines must not appear in the length-consistency check."""
+        csv_file = tmp_path / "test.csv"
+        csv_file.write_text("# note\n1,1,0,1\n\n# another note\n1,0,0,1\n")
+
+        result = read_and_validate_csv(str(csv_file), 2)
+        assert len(result) == 2
+        captured = capsys.readouterr()
+        assert "WARNING" not in captured.out
+
+    def test_read_csv_comment_only_file_is_empty(self, tmp_path):
+        """A file containing only comments/blank lines has no data rows."""
+        csv_file = tmp_path / "test.csv"
+        csv_file.write_text("# just a comment\n\n# another comment\n")
+
+        with pytest.raises(SystemExit):
+            read_and_validate_csv(str(csv_file), 2)
+

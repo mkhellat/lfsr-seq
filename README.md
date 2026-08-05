@@ -424,9 +424,23 @@ coefficients. Each row represents a different LFSR configuration:
 
 Each coefficient should be in the range [0, GF_order-1].
 
+**Comments and blank lines:**
+- A line whose first field starts with `#` (optionally preceded by
+  whitespace, e.g. `  # note`) is treated as a comment and ignored
+- Blank lines are ignored
+- Neither counts toward the row limit below or participates in the
+  "inconsistent vector length" check — only real coefficient rows do
+
+```csv
+# Two 4-bit LFSRs over GF(2)
+1,1,0,1
+
+1,0,0,1
+```
+
 **Security Limits:**
 - Maximum file size: 10 MB
-- Maximum CSV rows: 10,000
+- Maximum CSV rows: 10,000 (comment/blank lines don't count)
 - Path traversal protection enabled
 
 ### Output Formats

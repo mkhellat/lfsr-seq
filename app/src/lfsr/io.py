@@ -94,6 +94,23 @@ def validate_csv_file(filename: str) -> None:
         sys.exit(1)
 
 
+def _is_comment_or_blank_row(row: List[str]) -> bool:
+    """Return True if a raw csv.reader row is a comment line or blank line.
+
+    Comment lines are recognized by a ``#`` as the first non-whitespace
+    character of the row's first field (e.g. ``# some note`` or
+    ``  # some note``). A blank line parses as an empty row (``[]``), or
+    a row whose fields are all empty/whitespace-only (e.g. a line
+    containing only commas).
+    """
+    if not row:
+        return True
+    first_field = row[0].lstrip()
+    if first_field.startswith("#"):
+        return True
+    return all(not field.strip() for field in row)
+
+
 def read_and_validate_csv(filename: str, gf_order: int) -> List[List[str]]:
     """
     Read CSV file and validate its contents.
@@ -104,12 +121,21 @@ def read_and_validate_csv(filename: str, gf_order: int) -> List[List[str]]:
     - Row count limits (prevents memory exhaustion)
     - Content validation
 
+    CSV format:
+    - One coefficient vector per row, comma-separated
+    - Blank lines are ignored
+    - Lines whose first field starts with ``#`` (optionally preceded by
+      whitespace) are treated as comments and ignored
+    - Comment and blank lines do not count toward MAX_CSV_ROWS or
+      participate in the vector-length consistency check below
+
     Args:
         filename: Path to the CSV file
         gf_order: The field order for coefficient validation
 
     Returns:
-        List of coefficient vectors (each vector is a list of strings)
+        List of coefficient vectors (each vector is a list of strings).
+        Comment and blank lines are not included.
 
     Raises:
         SystemExit: If validation fails
@@ -120,14 +146,21 @@ def read_and_validate_csv(filename: str, gf_order: int) -> List[List[str]]:
         coeffs = csv.reader(coeffs_file)
         coeffs_list = []
 
-        # Read rows with limit to prevent memory exhaustion
-        for row_num, row in enumerate(coeffs, start=1):
+        # Read rows with limit to prevent memory exhaustion. Comment and
+        # blank lines are skipped before they're counted or stored, so
+        # they can't trigger bogus row-count/length-mismatch diagnostics
+        # or reach downstream int() conversion.
+        row_num = 0
+        for raw_row in coeffs:
+            if _is_comment_or_blank_row(raw_row):
+                continue
+            row_num += 1
             if row_num > MAX_CSV_ROWS:
                 print(f"ERROR: CSV file has too many rows: {filename}")
                 print(f"       Maximum allowed: {MAX_CSV_ROWS} rows")
                 print(f"       Found at least: {row_num} rows")
                 sys.exit(1)
-            coeffs_list.append(row)
+            coeffs_list.append(raw_row)
 
         # Check if CSV is empty
         if len(coeffs_list) == 0:
@@ -155,8 +188,14 @@ def read_coefficient_vectors(filename: str, gf_order: int) -> List[List[int]]:
     Read and validate CSV, returning integer coefficient vectors.
 
     Thin wrapper around read_and_validate_csv that converts each row
-    from strings to integers. Rows that cannot be fully parsed are
-    silently skipped.
+    from strings to integers. Comment lines and blank lines are already
+    excluded by read_and_validate_csv (see its docstring for the CSV
+    format), so any row reaching this function is expected to be real
+    data; a row that still can't be parsed as integers (e.g. contains
+    non-numeric, non-comment garbage) is silently skipped rather than
+    raising, on the assumption that malformed rows are better reported
+    by the caller's own validation (see validate_coefficient_vector)
+    than by a bare ValueError here.
 
     Args:
         filename: Path to the CSV file

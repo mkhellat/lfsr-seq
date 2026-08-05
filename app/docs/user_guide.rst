@@ -402,6 +402,19 @@ Each row represents a different LFSR configuration:
 
 Each coefficient should be in the range [0, GF_order-1].
 
+**Comments and blank lines**: a line whose first field starts with
+``#`` (optionally preceded by whitespace) is treated as a comment and
+ignored, as are blank lines. Neither counts toward the row limit or
+participates in the "inconsistent vector length" check -- only actual
+coefficient rows do:
+
+.. code-block:: text
+
+   # Two 4-bit LFSRs over GF(2)
+   1,1,0,1
+
+   1,0,0,1
+
 Output Formats
 --------------
 
