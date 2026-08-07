@@ -332,8 +332,10 @@ Optional arguments:
                         - auto: Enumeration for full mode, floyd for period-only
   --check-primitive     Explicitly check for primitive polynomials
                         (detection is automatic, flag makes it explicit)
-  --parallel N          Enable parallel processing with N workers
-                        (default: sequential, recommended for large LFSRs)
+  --parallel            Enable parallel state enumeration (opt-in only;
+                        never auto-enabled, see --num-workers below)
+  --num-workers N       Number of parallel workers (default: CPU count).
+                        Only used with --parallel.
   --parallel-mode {static,dynamic}
                         Parallel processing mode (default: static)
                         - static: Fixed work distribution (lower overhead)
