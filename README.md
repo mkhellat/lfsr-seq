@@ -1323,7 +1323,7 @@ git push origin feature/my-feature
 
 ## Testing
 
-The project includes comprehensive test coverage:
+The project includes:
 
 - **Unit Tests**: Test individual functions and modules
 - **Integration Tests**: Test complete workflows
@@ -1343,7 +1343,16 @@ make test-cov      # Run with coverage report
 pytest tests/ -v   # Run with verbose output
 ```
 
-Test coverage is maintained above 90% and enforced in CI.
+**A 90% coverage gate is configured** (`pyproject.toml`'s
+`--cov-fail-under=90`, applied to every pytest run including plain
+`make test`), but **actual coverage is not currently at that level**.
+Core LFSR math, the correlation attack framework, TMTO attacks, and the
+NIST SP 800-22 suite have real test coverage; several other
+CLI-integrated features (algebraic attacks, most stream ciphers,
+advanced LFSR structures, visualization, most sub-CLIs, theoretical
+analysis tooling) do not yet. This is being actively closed — see
+`app/tests/` for what's currently covered before relying on an
+untested module's correctness.
 
 ## CI/CD
 
