@@ -29,8 +29,8 @@ help:
 	@echo "  make install        - Install package in development mode"
 	@echo "  make install-dev    - Install package with development dependencies"
 	@echo "  make dev-setup      - Create venv, check environment, and install dev dependencies"
-	@echo "  make test           - Run tests with pytest"
-	@echo "  make test-cov       - Run tests with coverage report"
+	@echo "  make test           - Run tests with pytest (coverage gate enforced, see below)"
+	@echo "  make test-cov       - Run tests, always emitting an HTML coverage report too"
 	@echo "  make lint           - Run linting checks (ruff)"
 	@echo "  make format         - Format code with black"
 	@echo "  make format-check   - Check code formatting without modifying"
@@ -89,6 +89,11 @@ install-dev: venv
 	fi
 
 # Testing targets
+# NOTE: pyproject.toml's [tool.pytest.ini_options] addopts bakes in
+# --cov=lfsr --cov-fail-under=90 for every pytest invocation, so `test`
+# enforces the coverage gate too, not just `test-cov`. `test-cov` only
+# adds an explicit HTML report on top; it is not a separate "opt into
+# coverage" mode.
 test: install-dev
 	@echo "Running tests..."
 	@if [ -d ".venv" ]; then \
