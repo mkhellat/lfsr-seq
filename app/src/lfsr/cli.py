@@ -388,7 +388,7 @@ def parse_args(args: Optional[list] = None) -> argparse.Namespace:
         action="store_true",
         default=None,
         dest="use_parallel",
-        help="Enable parallel state enumeration (auto-enabled for large state spaces > 10,000)",
+        help="Enable parallel state enumeration (opt-in only; never auto-enabled — see --num-workers)",
     )
 
     parser.add_argument(
