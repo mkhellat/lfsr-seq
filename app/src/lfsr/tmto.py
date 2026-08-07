@@ -256,7 +256,11 @@ class HellmanTable:
         target_list = target_state
         for start, end in self.chains:
             if end == target_list:
-                # Reconstruct chain to find target
+                # Reconstruct chain to find target. Check chain_length + 1
+                # positions (start plus every one of the chain_length
+                # updates, including the state reached after the final
+                # update) since generate() may record a chain's end_state
+                # at any of those positions, including the last.
                 start_vec = vector(F, start)
                 current = start_vec
 
@@ -264,13 +268,16 @@ class HellmanTable:
                     if list(current) == target_list:
                         return start
                     current = C * current
+                if list(current) == target_list:
+                    return start
 
         # Try reduction function approach
         # Apply reduction to target and check if result is endpoint
         reduced = self._reduction_function(target_state, lfsr_config.field_order)
         for start, end in self.chains:
             if end == reduced:
-                # Reconstruct chain
+                # Reconstruct chain (see comment above re: chain_length + 1
+                # positions)
                 start_vec = vector(F, start)
                 current = start_vec
 
@@ -278,6 +285,8 @@ class HellmanTable:
                     if list(current) == target_state:
                         return start
                     current = C * current
+                if list(current) == target_state:
+                    return start
 
         return None
 
@@ -384,7 +393,7 @@ class RainbowTable:
         """
         def reduction_func(state: List[int]) -> List[int]:
             # Use step number to create different hash
-            state_bytes = bytes(str(state) + str(step)).encode('utf-8')
+            state_bytes = (str(state) + str(step)).encode('utf-8')
             hash_obj = hashlib.sha256(state_bytes)
             hash_int = int(hash_obj.hexdigest(), 16)
 
@@ -483,35 +492,47 @@ class RainbowTable:
 
         target_list = target_state
 
-        # Try all reduction functions in reverse order
-        for step in range(self.chain_length - 1, -1, -1):
-            # Compute state at this step
-            current = vector(F, target_list)
+        def _reconstruct(start: List[int]) -> Optional[List[int]]:
+            # Reproduce generate()'s exact per-step interleaving: update,
+            # then always reduce. generate() records end_state as the
+            # PRE-reduction state if that step was a distinguished point
+            # (breaking immediately), or as the POST-reduction state
+            # after the final step if no step was ever distinguished
+            # (the fallback branch) -- so a match can occur at either
+            # point, not just one of them.
+            current = vector(F, start)
+            for s in range(self.chain_length):
+                current = C * current
+                state_list = [int(x) for x in current]
+                if state_list == target_list:
+                    return start
+                reduced_state = self.reduction_functions[s](state_list)
+                current = vector(F, reduced_state)
+            if list(current) == target_list:
+                return start
+            return None
 
-            # Work backwards to step
-            for _ in range(self.chain_length - 1 - step):
-                # This is simplified - full implementation would properly
-                # work backwards through the chain
-                pass
+        # Direct match: target_state is itself a stored chain's
+        # end_state (the common case -- generate() records real
+        # end_states, and a genuine table lookup targets one of those).
+        for start, end in self.chains:
+            if end == target_list:
+                found = _reconstruct(start)
+                if found is not None:
+                    return found
 
-            # Apply reduction function for this step
+        # Reduction-function fallback: target_state may be a state that
+        # occurs mid-chain, one reduction step away from a chain whose
+        # recorded end_state equals reduction_functions[step](target).
+        # Try every step's reduction function, since which step target
+        # would have occurred at is not known in advance.
+        for step in range(self.chain_length):
             reduced = self.reduction_functions[step](target_list)
-
-            # Check if reduced state is an endpoint
             for start, end in self.chains:
                 if end == reduced:
-                    # Reconstruct chain
-                    start_vec = vector(F, start)
-                    current = start_vec
-
-                    for s in range(self.chain_length):
-                        if list(current) == target_list:
-                            return start
-                        current = C * current
-                        if s < len(self.reduction_functions) - 1:
-                            state_list = [int(x) for x in current]
-                            reduced_state = self.reduction_functions[s](state_list)
-                            current = vector(F, reduced_state)
+                    found = _reconstruct(start)
+                    if found is not None:
+                        return found
 
         return None
 

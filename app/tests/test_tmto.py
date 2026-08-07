@@ -169,9 +169,9 @@ class TestHellmanTableLookup:
     a state that is genuinely a non-endpoint member of a covered chain
     is NOT found by this method (verified below).
 
-    Two further, more serious bugs were found and are documented/tested
-    explicitly below (both scoped to the reconstruction loop that starts
-    at line 257 of lfsr/tmto.py):
+    One further, more serious bug was found and is documented/tested
+    explicitly below (scoped to the reconstruction loop that starts at
+    line 257 of lfsr/tmto.py):
 
     1. **False match on duplicate endpoints.** When multiple chains
        share the same `end_state` (verified to happen routinely at this
@@ -183,20 +183,17 @@ class TestHellmanTableLookup:
        start in list order -- not necessarily the chain the target
        actually belongs to. This silently returns a wrong
        recovered_state for every chain but the first with that end
-       value, rather than reporting ambiguity or failure.
+       value, rather than reporting ambiguity or failure. This is a
+       fundamental limitation of returning the target state alone (with
+       no chain-identifying information) to lookup() rather than a bug
+       fixed in this session.
 
-    2. **Off-by-one endpoint miss.** The reconstruction loop
-       (`for _ in range(self.chain_length): if list(current) ==
-       target: return start; current = C * current`) only checks
-       chain_length positions -- the start state plus the first
-       chain_length-1 updates -- and never checks the state reached
-       after the full chain_length-th update. When a chain's
-       distinguished point is only reached at that final step (which
-       generate() legitimately allows, since it searches for a
-       distinguished point across exactly chain_length steps before
-       falling back), lookup() fails to find that chain's own recorded
-       endpoint at all, even though it is unambiguous (no other chain
-       shares that end value).
+    A second bug, an off-by-one that made lookup() miss a chain's own
+    recorded endpoint when it was reached only at the final
+    chain_length-th update, was found and has since been fixed in
+    lfsr/tmto.py (see test_lookup_finds_endpoint_reached_only_at_final_step
+    below, which is now a regression test for the fix rather than a
+    bug-documentation test).
     """
 
     def test_lookup_succeeds_for_target_equal_to_a_chain_endpoint(self):
@@ -352,21 +349,20 @@ class TestHellmanTableLookup:
         trail = _walk_chain(C, F, recovered, chain_length)
         assert target in trail
 
-    def test_lookup_misses_endpoint_reached_only_at_final_step(self):
-        """BUG (see class docstring, point 2): a chain whose
-        distinguished point is only reached at the full chain_length-th
-        state-update step is NOT found by lookup(), even though its
-        end_state is unique in the table (so this is not the duplicate-
-        endpoint bug). With the class default distinguished_bits=8 (as
-        used internally by tmto_attack, which does not expose this
-        parameter), seed=1, chain_count=10, chain_length=8 against
-        REFERENCE_CONFIG, chain index 1 (start [1, 1, 1, 1], end
-        [0, 0, 1, 1]) independently walks to its recorded end_state only
-        at step 8 of 8, and that end_state is not shared by any other
-        chain -- the reconstruction loop in lookup() only checks
-        positions 0 through chain_length-1, so it never reaches that
-        state and returns None despite the endpoint being genuine and
-        unambiguous."""
+    def test_lookup_finds_endpoint_reached_only_at_final_step(self):
+        """Regression test for the off-by-one bug (see class docstring,
+        point 2, now fixed in lfsr/tmto.py): a chain whose distinguished
+        point is only reached at the full chain_length-th state-update
+        step must still be found by lookup(), since its end_state is
+        unique in the table (not the duplicate-endpoint case). With the
+        class default distinguished_bits=8 (as used internally by
+        tmto_attack, which does not expose this parameter), seed=1,
+        chain_count=10, chain_length=8 against REFERENCE_CONFIG, chain
+        index 1 (start [1, 1, 1, 1], end [0, 0, 1, 1]) independently
+        walks to its recorded end_state only at step 8 of 8, and that
+        end_state is not shared by any other chain -- lookup()'s
+        reconstruction loop now also checks the state reached after the
+        final update, not just positions 0 through chain_length-1."""
         random.seed(1)
         chain_length = 8
         table = HellmanTable(
@@ -385,15 +381,13 @@ class TestHellmanTableLookup:
         trail = _walk_chain(C, F, start, chain_length)
         assert trail.index(end) == chain_length, (
             "precondition: the endpoint must be reached exactly at the "
-            "final step for this to demonstrate the off-by-one bug"
+            "final step for this to demonstrate the off-by-one fix"
         )
         # Confirm the end_state is not shared with any other chain, so
-        # this is unambiguously the off-by-one bug and not bug 1.
+        # this is unambiguously testing the off-by-one fix and not bug 1.
         assert sum(1 for _s, e in table.chains if e == end) == 1
 
-        # The chain's own recorded endpoint is NOT found by lookup(),
-        # due to the off-by-one bug -- this is the buggy actual behavior.
-        assert table.lookup(end, REFERENCE_CONFIG) is None
+        assert table.lookup(end, REFERENCE_CONFIG) == start
 
     def test_lookup_fails_for_state_provably_outside_all_coverage(self):
         """A state whose value is not any chain's end_state, and whose
@@ -438,57 +432,181 @@ class TestHellmanTableLookup:
         assert all(0 <= x < 2 for x in reduced)
 
 
-class TestRainbowTableBrokenReductionFunction:
-    """Tests documenting the real bug found in RainbowTable's per-step
-    reduction function.
+class TestRainbowTableReductionFunction:
+    """Regression tests for a real bug found (and since fixed) in
+    RainbowTable's per-step reduction function.
 
-    lfsr/tmto.py's `_create_reduction_function` (around line 387) builds
-    its closure as:
+    lfsr/tmto.py's `_create_reduction_function` (around line 387) used
+    to build its closure as:
 
         state_bytes = bytes(str(state) + str(step)).encode('utf-8')
 
     `str(state) + str(step)` is a plain `str`; calling `bytes(some_str)`
     without an explicit encoding raises TypeError unconditionally (this
-    is different from HellmanTable's correct sibling implementation,
-    which does `bytes(str(state).encode('utf-8'))` -- encoding first,
-    then wrapping in bytes -- note the swapped order of encode()/bytes()
-    between the two classes). As a result RainbowTable.generate(),
-    RainbowTable.lookup(), and tmto_attack(method="rainbow") are all
-    completely non-functional: every call crashes, not just some inputs.
-    These tests assert that actual crashing behavior rather than
-    papering over it, per instructions not to modify tmto.py.
+    was different from HellmanTable's sibling implementation, which
+    does `bytes(str(state).encode('utf-8'))` -- encoding first, then
+    wrapping in bytes). As a result RainbowTable.generate(),
+    RainbowTable.lookup(), and tmto_attack(method="rainbow") were all
+    completely non-functional: every call crashed, not just some
+    inputs. Fixed by encoding the concatenated string directly
+    (`(str(state) + str(step)).encode('utf-8')`), matching the pattern
+    HellmanTable already used correctly.
     """
 
-    def test_reduction_function_closure_raises_typeerror(self):
+    def test_reduction_function_closure_returns_well_formed_state(self):
         """Calling a reduction function produced by
         _create_reduction_function directly (independent of generate())
-        crashes with TypeError -- isolates the bug to the closure itself,
-        not something specific to the generate() call path."""
+        must not crash, and must return a state of the same length as
+        its input with every component a valid field element."""
         table = RainbowTable(chain_count=1, chain_length=1)
         reduction_func = table._create_reduction_function(0, 2, 16)
-        with pytest.raises(TypeError, match="string argument without an encoding"):
-            reduction_func([1, 0, 0, 0])
+        result = reduction_func([1, 0, 0, 0])
+        assert len(result) == 4
+        assert all(0 <= x < 2 for x in result)
 
-    def test_generate_crashes_unconditionally(self):
-        """RainbowTable.generate() invokes the broken reduction functions
-        as soon as a chain reaches its first step, so it crashes on any
-        input, seed, or table size -- verified across multiple seeds to
-        confirm it's not a specific-input flake."""
+    def test_generate_succeeds_across_seeds(self):
+        """RainbowTable.generate() invokes the reduction functions as
+        soon as a chain reaches its first step, so this exercises the
+        fixed code path across multiple seeds/table sizes to confirm
+        it's genuinely fixed, not passing by chance on one input."""
         for seed in (0, 1, 2, 3):
             random.seed(seed)
             table = RainbowTable(chain_count=5, chain_length=4, distinguished_bits=1)
-            with pytest.raises(TypeError, match="string argument without an encoding"):
-                table.generate(REFERENCE_CONFIG)
+            table.generate(REFERENCE_CONFIG)
+            assert len(table.chains) == 5
 
     def test_is_distinguished_point_itself_works_correctly(self):
         """RainbowTable's _is_distinguished_point is a plain leading-zero
-        check with no dependency on the broken reduction functions, and
-        does work correctly in isolation -- confirms the bug is scoped to
-        the reduction function, not the whole class."""
+        check with no dependency on the reduction functions, and works
+        correctly in isolation."""
         table = RainbowTable(chain_count=1, chain_length=1, distinguished_bits=2)
         assert table._is_distinguished_point([0, 0, 1, 1]) is True
         assert table._is_distinguished_point([1, 0, 0, 0]) is False
         assert table._is_distinguished_point([]) is False
+
+
+class TestRainbowTableLookup:
+    """Regression tests for a fourth bug found (and since fixed) in
+    RainbowTable.lookup()'s reconstruction algorithm.
+
+    The original lookup() never checked whether target_state was itself
+    directly equal to a stored chain's end_state -- the common case for
+    a real lookup -- it only checked whether
+    reduction_functions[step](target_state) matched a stored end_state
+    for some step, an indirect condition that doesn't cover a target
+    that IS literally a recorded endpoint. It also inherited the same
+    "reconstruction loop misses the state reached after the final
+    update" issue fixed in HellmanTable.lookup(), but with an extra
+    twist: generate() records end_state as the PRE-reduction value when
+    a step is distinguished (breaking immediately), or the
+    POST-reduction value after the final step in the (here, common)
+    non-distinguished fallback case -- so the fix has to check both
+    points, not just one.
+
+    Fixed by rewriting lookup() to (1) check target_state directly
+    against stored end_states first (mirroring HellmanTable.lookup()'s
+    structure), then (2) fall back to trying every step's reduction
+    function, and (3) reconstructing via generate()'s exact per-step
+    interleaving with a check at both the pre- and post-reduction
+    point of each step.
+    """
+
+    def test_lookup_finds_every_chain_endpoint(self):
+        """Every (start, end) pair generate() actually produced must be
+        recoverable via lookup(end, ...) -- except where two chains
+        share the same end_state, a separate, documented, unfixed
+        limitation (see next test): lookup() cannot distinguish which
+        of several chains sharing an end_state a target belongs to, and
+        returns whichever one it finds first, which is correct for at
+        least one of the owning chains but not necessarily the one
+        being asked about."""
+        random.seed(1)
+        table = RainbowTable(chain_count=5, chain_length=4)
+        table.generate(REFERENCE_CONFIG)
+
+        for start, end in table.chains:
+            recovered = table.lookup(end, REFERENCE_CONFIG)
+            assert recovered is not None, f"lookup found nothing for end={end}"
+            # recovered must be SOME chain's start that legitimately
+            # reaches `end` -- not necessarily this exact (start, end)
+            # pair's start, if end_state is shared across chains.
+            owners = [s for s, e in table.chains if e == end]
+            assert recovered in owners
+
+    def test_lookup_disambiguates_unique_endpoints_exactly(self):
+        """For an end_state owned by exactly one chain (no duplicate),
+        lookup() must return that chain's exact start state, not merely
+        'some' owner."""
+        random.seed(1)
+        table = RainbowTable(chain_count=5, chain_length=4)
+        table.generate(REFERENCE_CONFIG)
+
+        unique_chains = [
+            (start, end)
+            for start, end in table.chains
+            if sum(1 for _s, e in table.chains if e == end) == 1
+        ]
+        assert unique_chains, "expected at least one chain with a unique end_state"
+        for start, end in unique_chains:
+            assert table.lookup(end, REFERENCE_CONFIG) == start
+
+    def test_lookup_returns_a_genuine_owner_for_duplicate_endpoints(self):
+        """When multiple chains share an end_state (verified to happen
+        with seed=1, chain_count=5, chain_length=4 against
+        REFERENCE_CONFIG: end_state [0, 1, 0, 1] is shared by chains
+        with starts [1, 1, 1, 1] and [1, 0, 0, 1]), lookup() cannot
+        disambiguate from the target state alone -- it returns
+        whichever owning chain it happens to check first. This documents
+        that known, accepted limitation (same class as
+        HellmanTable.lookup()'s documented duplicate-endpoint behavior)
+        rather than asserting it picks any particular one arbitrarily."""
+        random.seed(1)
+        table = RainbowTable(chain_count=5, chain_length=4)
+        table.generate(REFERENCE_CONFIG)
+
+        shared_end = [0, 1, 0, 1]
+        owners = [start for start, end in table.chains if end == shared_end]
+        assert owners == [[1, 1, 1, 1], [1, 0, 0, 1]], (
+            "table generation is deterministic under this seed; if this "
+            "no longer holds the test needs updating, not silently "
+            "loosening"
+        )
+
+        recovered = table.lookup(shared_end, REFERENCE_CONFIG)
+        assert recovered in owners
+
+    def test_lookup_fails_for_state_provably_outside_all_coverage(self):
+        """A state whose value is not any chain's end_state, and whose
+        reduction-function image (at every step) is also not any
+        chain's end_state, is provably outside what lookup() can find --
+        confirm it correctly reports failure (returns None)."""
+        random.seed(1)
+        chain_length = 4
+        table = RainbowTable(chain_count=5, chain_length=chain_length)
+        table.generate(REFERENCE_CONFIG)
+
+        ends = {tuple(end) for _start, end in table.chains}
+        all_states = [
+            [a, b, c, d]
+            for a in range(2)
+            for b in range(2)
+            for c in range(2)
+            for d in range(2)
+        ]
+        uncovered = None
+        for state in all_states:
+            if tuple(state) in ends:
+                continue
+            if any(
+                tuple(table.reduction_functions[step](state)) in ends
+                for step in range(chain_length)
+            ):
+                continue
+            uncovered = state
+            break
+
+        assert uncovered is not None, "expected at least one provably uncovered state"
+        assert table.lookup(uncovered, REFERENCE_CONFIG) is None
 
 
 class TestTmtoAttackDispatch:
@@ -502,24 +620,19 @@ class TestTmtoAttackDispatch:
     min(8, 4) == 4 leading entries, i.e. the *entire* state must be
     zero -- which only the all-zero state satisfies. Every other chain
     therefore falls back to "use the state after the full chain_length
-    steps as the end", which is exactly the trigger condition for the
-    off-by-one bug documented in TestHellmanTableLookup: independently
-    verified (seed=1, chain_count=10, chain_length=8) that with these
-    defaults every non-trivial chain's lookup fails. The only target
-    genuinely recoverable through tmto_attack's default hellman path at
-    this table size is therefore the all-zero state, which is what the
-    success-path test below uses; the failure this causes for realistic
-    (non-zero) targets is demonstrated by the second test.
+    steps as the end". Before the off-by-one fix in
+    HellmanTable.lookup() (see TestHellmanTableLookup), this meant every
+    non-trivial chain's lookup failed via tmto_attack's default
+    construction; now that lookup() also checks the state reached after
+    the final update, realistic (non-zero) targets are recoverable too,
+    as demonstrated below.
     """
 
     def test_hellman_method_recovers_the_all_zero_state(self):
         """The all-zero state is a fixed point of the state-update
         function (C * 0 = 0), so it is trivially both its own
         distinguished-point chain and reachable at step 0 of the
-        reconstruction loop -- avoiding the off-by-one bug entirely.
-        This is independently confirmed to be the only target
-        genuinely recoverable through tmto_attack's default-constructed
-        HellmanTable at this table size (see class docstring)."""
+        reconstruction loop."""
         random.seed(1)
         result = tmto_attack(
             REFERENCE_CONFIG,
@@ -534,15 +647,14 @@ class TestTmtoAttackDispatch:
         assert result.attack_successful is True
         assert result.recovered_state == [0, 0, 0, 0]
 
-    def test_hellman_method_fails_on_realistic_target_due_to_offbyone_bug(self):
-        """Demonstrates the practical impact of the off-by-one bug
-        (TestHellmanTableLookup docstring, point 2) through the public
-        tmto_attack() entry point rather than the class directly: a
-        target chosen to be a real, unambiguous chain endpoint (chain
-        index 1's end [0, 0, 1, 1], independently verified unique and
-        reached only at the final step under tmto_attack's actual
-        default construction) is NOT recovered, even though the table
-        does legitimately contain a chain ending there."""
+    def test_hellman_method_recovers_a_realistic_final_step_target(self):
+        """Regression test for the off-by-one fix (TestHellmanTableLookup),
+        exercised through the public tmto_attack() entry point rather
+        than the class directly: a target chosen to be a real,
+        unambiguous chain endpoint (chain index 1's end [0, 0, 1, 1],
+        independently verified unique and reached only at the final
+        step under tmto_attack's actual default construction) is now
+        correctly recovered."""
         random.seed(1)
         # Discover the real endpoint deterministically without disturbing
         # RNG state before the actual tmto_attack call (uses a probe
@@ -557,7 +669,7 @@ class TestTmtoAttackDispatch:
         assert end == [0, 0, 1, 1]
         assert sum(1 for _s, e in probe.chains if e == end) == 1, (
             "expected an unambiguous (non-duplicate) endpoint for this "
-            "test to isolate the off-by-one bug specifically"
+            "test to isolate the off-by-one fix specifically"
         )
 
         random.seed(1)  # reset so tmto_attack's internal generate() matches probe
@@ -569,25 +681,37 @@ class TestTmtoAttackDispatch:
             chain_length=8,
         )
 
-        # This SHOULD succeed (the table genuinely contains this chain),
-        # but does not, due to the off-by-one bug in lookup()'s
-        # reconstruction loop.
-        assert result.attack_successful is False
-        assert result.recovered_state is None
+        assert result.attack_successful is True
+        assert result.recovered_state == start
 
-    def test_rainbow_method_crashes_due_to_the_reduction_function_bug(self):
-        """method="rainbow" delegates to RainbowTable.generate(), which
-        (see TestRainbowTableBrokenReductionFunction) unconditionally
-        raises TypeError. tmto_attack does not catch this, so the
-        exception propagates to the caller."""
-        with pytest.raises(TypeError, match="string argument without an encoding"):
-            tmto_attack(
-                REFERENCE_CONFIG,
-                [1, 0, 1, 1],
-                method="rainbow",
-                chain_count=5,
-                chain_length=4,
-            )
+    def test_rainbow_method_recovers_a_genuinely_reachable_target(self):
+        """method="rainbow" delegates to RainbowTable.generate()/lookup(),
+        now fixed (see TestRainbowTableReductionFunction). A target
+        chosen as a real chain endpoint from a freshly-generated table
+        with a seeded RNG should be recovered. tmto_attack() constructs
+        RainbowTable(chain_count, chain_length) without exposing
+        distinguished_bits, so the probe below uses the same class
+        default (8) tmto_attack itself uses."""
+        random.seed(1)
+        probe = RainbowTable(
+            chain_count=5, chain_length=4
+        )  # default distinguished_bits=8
+        probe.generate(REFERENCE_CONFIG)
+        start, end = probe.chains[0]
+
+        random.seed(1)  # reset so tmto_attack's internal generate() matches probe
+        result = tmto_attack(
+            REFERENCE_CONFIG,
+            end,
+            method="rainbow",
+            chain_count=5,
+            chain_length=4,
+        )
+
+        assert isinstance(result, TMTOAttackResult)
+        assert result.method_used == "rainbow"
+        assert result.attack_successful is True
+        assert result.recovered_state == start
 
     def test_unknown_method_returns_failed_result_with_error_detail(self):
         """An unrecognized method name must not raise -- it returns a
