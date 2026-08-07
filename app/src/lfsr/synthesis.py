@@ -49,8 +49,10 @@ def berlekamp_massey(sequence: List[int], gf_order: int) -> Tuple[Any, int]:
         return PolynomialRing(F, "x")(1), 0
 
     # Initialize
-    C = PolynomialRing(F, "x")(1)  # Connection polynomial
-    B = PolynomialRing(F, "x")(1)  # Previous connection polynomial
+    R = PolynomialRing(F, "x")
+    x = R.gen()
+    C = R(1)  # Connection polynomial
+    B = R(1)  # Previous connection polynomial
     L = 0  # Current length of LFSR
     m = 1  # Previous discrepancy position
     b = F(1)  # Previous discrepancy value

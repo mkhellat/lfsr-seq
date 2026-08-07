@@ -519,9 +519,13 @@ def longest_run_of_ones_test(sequence: List[int], block_size: int = 8) -> NISTTe
         longest_runs.append(max_run)
 
     # Categorize blocks based on longest run
-    # For M=8: categories are <=1, 2, 3, 4, >=5
+    # For M=8: NIST SP 800-22's real categorization is 4 categories:
+    # <=1, 2, 3, >=4 (verified against an independent reference
+    # implementation; a 5th "4" vs ">=5" split, as this used to do, is
+    # not part of the spec and left the >=5 bucket with ~0 expected
+    # probability since the 4 real probabilities already sum to 1.0).
     if M == 8:
-        categories = [0, 0, 0, 0, 0]  # <=1, 2, 3, 4, >=5
+        categories = [0, 0, 0, 0]  # <=1, 2, 3, >=4
         for run in longest_runs:
             if run <= 1:
                 categories[0] += 1
@@ -529,17 +533,12 @@ def longest_run_of_ones_test(sequence: List[int], block_size: int = 8) -> NISTTe
                 categories[1] += 1
             elif run == 3:
                 categories[2] += 1
-            elif run == 4:
+            else:  # >= 4
                 categories[3] += 1
-            else:  # >= 5
-                categories[4] += 1
 
-        # Expected frequencies for M=8 (from NIST specification)
-        # These are approximate - exact values depend on block size
-        expected = [N * 0.2148, N * 0.3672, N * 0.2305, N * 0.1875, N * 0.0000]
-        # Adjust last category
-        expected[4] = N - sum(expected[:4])
-        K = 5  # Number of categories
+        # Expected frequencies for M=8 (from NIST SP 800-22 specification)
+        expected = [N * 0.2148, N * 0.3672, N * 0.2305, N * 0.1875]
+        K = 4  # Number of categories
     else:
         # For other block sizes, use simplified categorization
         # This is a simplified version - full implementation would handle all cases
@@ -837,7 +836,7 @@ def discrete_fourier_transform_test(sequence: List[int]) -> NISTTestResult:
 def non_overlapping_template_matching_test(
     sequence: List[int],
     template: Optional[List[int]] = None,
-    block_size: int = 8
+    block_size: int = 128
 ) -> NISTTestResult:
     """
     Test 7: Non-overlapping Template Matching Test.
@@ -865,8 +864,10 @@ def non_overlapping_template_matching_test(
     **Parameters**:
 
     - template: The m-bit pattern to search for (default:
-      [0, 0, 0, 0, 0, 0, 0, 0, 1])
-    - block_size (M): Size of each block (default: 8)
+      [0, 0, 0, 0, 0, 0, 0, 0, 1], a 9-bit pattern)
+    - block_size (M): Size of each block (default: 128; must exceed
+      the template length m, or M - m + 1 <= 0 and every block search
+      degenerates to zero possible match positions)
 
     **Minimum sequence length**: M * 10 (recommended: M * 100)
 
@@ -874,13 +875,13 @@ def non_overlapping_template_matching_test(
         sequence: Binary sequence (list of 0s and 1s)
         template: Template pattern to search for (default: 9-bit
           pattern ending in 1)
-        block_size: Size of each block (default: 8)
+        block_size: Size of each block (default: 128)
 
     Returns:
         NISTTestResult with test results
 
     Example:
-        >>> result = non_overlapping_template_matching_test([1, 0, 1, 0] * 250)
+        >>> result = non_overlapping_template_matching_test([1, 0, 1, 0] * 400)
         >>> print(f"P-value: {result.p_value:.6f}, Passed: {result.passed}")
     """
     n = len(sequence)
@@ -1323,38 +1324,50 @@ def linear_complexity_test(sequence: List[int], block_size: int = 500) -> NISTTe
     # - (M/3 + 2/9) / 2^M
     mu = M / 2.0 + (9.0 + ((-1) ** (M + 1))) / 36.0 - (M / 3.0 + 2.0 / 9.0) / (2 ** M)
 
-    # Compute deviations: T_i = (-1)^M * (LC_i - mu)
-    deviations = [((-1) ** M) * (lc - mu) for lc in linear_complexities]
+    # Compute deviations: T_i = (-1)^M * (LC_i - mu) + 2/9 (NIST SP
+    # 800-22's actual formula; the "+ 2/9" term was previously missing,
+    # independently verified against a published reference
+    # implementation).
+    deviations = [((-1) ** M) * (lc - mu) + 2.0 / 9.0 for lc in linear_complexities]
 
-    # Categorize deviations
-    # Categories: <= -2, -1, 0, +1, >= +2
-    categories = [0, 0, 0, 0, 0]
-    for d in deviations:
-        if d <= -2:
+    # Categorize deviations into NIST's real 7 half-integer-boundary
+    # bins (not 5 bins via exact float equality, which the previous
+    # version did -- T_i is essentially never exactly an integer since
+    # mu is fractional, so exact equality left nearly every value
+    # falling into the two catch-all extreme buckets; verified this
+    # against random data before fixing).
+    categories = [0, 0, 0, 0, 0, 0, 0]
+    for t in deviations:
+        if t <= -2.5:
             categories[0] += 1
-        elif d == -1:
+        elif t <= -1.5:
             categories[1] += 1
-        elif d == 0:
+        elif t <= -0.5:
             categories[2] += 1
-        elif d == 1:
+        elif t <= 0.5:
             categories[3] += 1
-        else:  # >= 2
+        elif t <= 1.5:
             categories[4] += 1
+        elif t <= 2.5:
+            categories[5] += 1
+        else:
+            categories[6] += 1
 
-    # Expected frequencies (from NIST specification, approximate)
-    # These are theoretical probabilities for each category
-    # For simplicity, we use approximations
-    pi_values = [0.0228, 0.1587, 0.3413, 0.3413, 0.1359]  # Approximate normal distribution
+    # Expected frequencies: NIST SP 800-22's real 7-category pi table
+    # (independently verified against a published reference
+    # implementation).
+    pi_values = [0.010417, 0.03125, 0.125, 0.5, 0.25, 0.0625, 0.020833]
+    K = 6  # degrees of freedom (7 categories - 1)
     expected = [N * pi for pi in pi_values]
 
     # Compute chi-square statistic
     chi_square = 0.0
-    for i in range(5):
+    for i in range(7):
         if expected[i] > 0:
             chi_square += ((categories[i] - expected[i]) ** 2) / expected[i]
 
-    # Compute p-value using chi-square distribution with 4 degrees of freedom
-    p_value = chi2.sf(chi_square, 4)
+    # Compute p-value using chi-square distribution with K degrees of freedom
+    p_value = chi2.sf(chi_square, K)
     p_value = max(0.0, min(1.0, p_value))  # Clamp to [0, 1]
 
     # Test passes if p-value >= 0.01
@@ -1806,12 +1819,19 @@ def random_excursions_test(sequence: List[int]) -> NISTTestResult:
     chi_square_values = {}
     p_values = {}
 
-    # Expected probabilities for each state (from NIST specification)
-    # P(x) = probability of visiting state x
-    expected_probs = {
-        -4: 0.03125, -3: 0.0625, -2: 0.125, -1: 0.25,
-        1: 0.25, 2: 0.125, 3: 0.0625, 4: 0.03125
-    }
+    def _pi(abs_x: int, k: int) -> float:
+        """NIST SP 800-22's per-cycle visit-count probability pi(k, x):
+        the probability that a cycle contains exactly k visits to state
+        x (k=0..4), or 5+ visits (k=5), for |x| = abs_x. Independently
+        verified against a published reference implementation's
+        numeric table for |x|=1..7 before use here (see commit
+        message / test suite for the cross-check)."""
+        p = 1.0 / (2 * abs_x)
+        if k == 0:
+            return 1 - p
+        if k < 5:
+            return (1.0 / (4 * abs_x * abs_x)) * (1 - p) ** (k - 1)
+        return p * (1 - p) ** 4
 
     for state in states:
         visits = state_visit_counts[state]
@@ -1826,13 +1846,12 @@ def random_excursions_test(sequence: List[int]) -> NISTTestResult:
             else:
                 visit_counts[5] += 1
 
-        # Expected frequencies
+        # Expected frequencies, using the actual NIST pi(k, x) formula
+        # (not the total-visit-probability constants from the variant
+        # test, which is a different quantity entirely).
         num_cycles = len(visits)
-        expected = [
-            num_cycles * expected_probs[state] * (1 - expected_probs[state]) ** k
-            for k in range(5)
-        ]
-        expected.append(num_cycles * (1 - sum(expected[:5]) / num_cycles if num_cycles > 0 else 0))
+        abs_x = abs(state)
+        expected = [num_cycles * _pi(abs_x, k) for k in range(6)]
 
         # Compute chi-square
         chi_square = 0.0
