@@ -548,102 +548,102 @@ if fast_result.attack_successful:
 dist_result = distinguishing_attack(gen, keystream, method="correlation")
 print(f"Distinguishable: {dist_result.distinguishable}")
 
-   # NIST statistical tests
-   nist_result = run_nist_test_suite(keystream)
-   print(f"Tests passed: {nist_result.passed_count}/{nist_result.total_tests}")
-   
-   # Algebraic attacks
-   from lfsr.attacks import (
-       LFSRConfig,
-       compute_algebraic_immunity,
-       groebner_basis_attack,
-       cube_attack
-   )
-   
-   lfsr = LFSRConfig(coefficients=[1, 0, 0, 1], field_order=2, degree=4)
-   
-   # Compute algebraic immunity
-   def filtering_function(x0, x1, x2, x3):
-       return x0 & x1
-   
-   ai_result = compute_algebraic_immunity(filtering_function, 4)
-   print(f"Algebraic immunity: {ai_result['algebraic_immunity']}")
-   
-   # Gröbner basis attack
-   gb_result = groebner_basis_attack(lfsr, keystream)
-   if gb_result.attack_successful:
-       print(f"Recovered state: {gb_result.recovered_state}")
-   
-   # Cube attack
-   cube_result = cube_attack(lfsr, keystream, max_cube_size=5)
-   if cube_result.attack_successful:
-       print(f"Cubes found: {cube_result.cubes_found}")
-   
-   # Time-Memory Trade-Off attacks
-   from lfsr.tmto import tmto_attack, optimize_tmto_parameters
-   
-   target_state = [1, 0, 1, 1]
-   tmto_result = tmto_attack(
-       lfsr_config=lfsr,
-       target_state=target_state,
-       method="hellman",
-       chain_count=1000,
-       chain_length=100
-   )
-   if tmto_result.attack_successful:
-       print(f"Recovered state: {tmto_result.recovered_state}")
-       print(f"Coverage: {tmto_result.coverage:.2%}")
-   
-   # Parameter optimization
-   params = optimize_tmto_parameters(
-       state_space_size=16,
-       available_memory=100000
-   )
-   print(f"Optimal chain count: {params['chain_count']}")
-   
-   # Stream cipher analysis
-   from lfsr.ciphers import A5_1, E0, Trivium, Grain128
-   from lfsr.ciphers.comparison import compare_ciphers, generate_comparison_report
-   
-   # Analyze A5/1 cipher
-   a5_1 = A5_1()
-   structure = a5_1.analyze_structure()
-   print(f"A5/1 has {len(structure.lfsr_configs)} LFSRs")
-   
-   # Generate keystream
-   key = [1] * 64
-   iv = [0] * 22
-   keystream = a5_1.generate_keystream(key, iv, 1000)
-   print(f"Generated {len(keystream)} keystream bits")
-   
-   # Compare ciphers
-   comparison = compare_ciphers([A5_1(), E0(), Trivium()])
-   report = generate_comparison_report(comparison)
-   print(report)
-   
-   # Optimization techniques
-   from lfsr.polynomial import (
-       compute_period_via_factorization,
-       detect_mathematical_shortcuts
-   )
-   from lfsr.optimization import ResultCache, get_global_cache
-   
-   # Period computation via factorization (faster for large LFSRs)
-   period = compute_period_via_factorization([1, 0, 0, 1], 2)
-   
-   # Detect mathematical shortcuts
-   shortcuts = detect_mathematical_shortcuts([1, 0, 0, 1], 2)
-   if shortcuts['is_primitive']:
-       print(f"Primitive polynomial! Period = {shortcuts['expected_period']}")
-   
-   # Result caching
-   cache = get_global_cache()
-   key = cache.generate_key([1, 0, 0, 1], 2, "period")
-   if key in cache:
-       period = cache.get(key)
-   else:
-       period = compute_period_via_factorization([1, 0, 0, 1], 2)
-       cache.set(key, period)
+# NIST statistical tests
+nist_result = run_nist_test_suite(keystream)
+print(f"Tests passed: {nist_result.passed_count}/{nist_result.total_tests}")
+
+# Algebraic attacks
+from lfsr.attacks import (
+    LFSRConfig,
+    compute_algebraic_immunity,
+    groebner_basis_attack,
+    cube_attack
+)
+
+lfsr = LFSRConfig(coefficients=[1, 0, 0, 1], field_order=2, degree=4)
+
+# Compute algebraic immunity
+def filtering_function(x0, x1, x2, x3):
+    return x0 & x1
+
+ai_result = compute_algebraic_immunity(filtering_function, 4)
+print(f"Algebraic immunity: {ai_result['algebraic_immunity']}")
+
+# Gröbner basis attack
+gb_result = groebner_basis_attack(lfsr, keystream)
+if gb_result.attack_successful:
+    print(f"Recovered state: {gb_result.recovered_state}")
+
+# Cube attack
+cube_result = cube_attack(lfsr, keystream, max_cube_size=5)
+if cube_result.attack_successful:
+    print(f"Cubes found: {cube_result.cubes_found}")
+
+# Time-Memory Trade-Off attacks
+from lfsr.tmto import tmto_attack, optimize_tmto_parameters
+
+target_state = [1, 0, 1, 1]
+tmto_result = tmto_attack(
+    lfsr_config=lfsr,
+    target_state=target_state,
+    method="hellman",
+    chain_count=1000,
+    chain_length=100
+)
+if tmto_result.attack_successful:
+    print(f"Recovered state: {tmto_result.recovered_state}")
+    print(f"Coverage: {tmto_result.coverage:.2%}")
+
+# Parameter optimization
+params = optimize_tmto_parameters(
+    state_space_size=16,
+    available_memory=100000
+)
+print(f"Optimal chain count: {params['chain_count']}")
+
+# Stream cipher analysis
+from lfsr.ciphers import A5_1, E0, Trivium, Grain128
+from lfsr.ciphers.comparison import compare_ciphers, generate_comparison_report
+
+# Analyze A5/1 cipher
+a5_1 = A5_1()
+structure = a5_1.analyze_structure()
+print(f"A5/1 has {len(structure.lfsr_configs)} LFSRs")
+
+# Generate keystream
+key = [1] * 64
+iv = [0] * 22
+keystream = a5_1.generate_keystream(key, iv, 1000)
+print(f"Generated {len(keystream)} keystream bits")
+
+# Compare ciphers
+comparison = compare_ciphers([A5_1(), E0(), Trivium()])
+report = generate_comparison_report(comparison)
+print(report)
+
+# Optimization techniques
+from lfsr.polynomial import (
+    compute_period_via_factorization,
+    detect_mathematical_shortcuts
+)
+from lfsr.optimization import ResultCache, get_global_cache
+
+# Period computation via factorization (faster for large LFSRs)
+period = compute_period_via_factorization([1, 0, 0, 1], 2)
+
+# Detect mathematical shortcuts
+shortcuts = detect_mathematical_shortcuts([1, 0, 0, 1], 2)
+if shortcuts['is_primitive']:
+    print(f"Primitive polynomial! Period = {shortcuts['expected_period']}")
+
+# Result caching
+cache = get_global_cache()
+key = cache.generate_key([1, 0, 0, 1], 2, "period")
+if key in cache:
+    period = cache.get(key)
+else:
+    period = compute_period_via_factorization([1, 0, 0, 1], 2)
+    cache.set(key, period)
 ```
 
 ## Usage Examples
