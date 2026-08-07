@@ -860,25 +860,6 @@ lfsr-seq coefficients.csv 2 --plot-period-statistics stats.png
 lfsr-seq coefficients.csv 2 --visualize-attack attack.png
 ```
 
-### Example 14: Advanced Visualization
-
-```bash
-# Generate period distribution plot
-lfsr-seq coefficients.csv 2 --plot-period-distribution period_dist.png
-
-# Generate state transition diagram
-lfsr-seq coefficients.csv 2 --plot-state-transitions state_diagram.png
-
-# Generate statistical plots
-lfsr-seq coefficients.csv 2 --plot-period-statistics stats.png
-
-# Generate interactive 3D visualization
-lfsr-seq coefficients.csv 2 --plot-3d-state-space state_space.html --viz-interactive
-
-# Visualize attack results
-lfsr-seq coefficients.csv 2 --visualize-attack attack.png
-```
-
 ## Project Structure
 
 ```
