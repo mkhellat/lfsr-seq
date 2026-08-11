@@ -127,20 +127,20 @@ class Trivium(StreamCipher):
 
     def _clock_trivium(self):
         """Clock all three Trivium registers."""
-        # Register A feedback (non-linear)
-        t1 = self.reg_a[65] ^ self.reg_a[92]
-        t2 = self.reg_a[90] & self.reg_a[91]
-        feedback_a = t1 ^ t2 ^ self.reg_c[108]
-
-        # Register B feedback (non-linear)
-        t1 = self.reg_b[68] ^ self.reg_b[83]
-        t2 = self.reg_b[81] & self.reg_b[82]
-        feedback_b = t1 ^ t2 ^ self.reg_a[68]
-
-        # Register C feedback (non-linear)
+        # Register A feedback (non-linear), driven by register C's taps
         t1 = self.reg_c[65] ^ self.reg_c[110]
         t2 = self.reg_c[108] & self.reg_c[109]
-        feedback_c = t1 ^ t2 ^ self.reg_b[77]
+        feedback_a = t1 ^ t2 ^ self.reg_a[68]
+
+        # Register B feedback (non-linear), driven by register A's taps
+        t1 = self.reg_a[65] ^ self.reg_a[92]
+        t2 = self.reg_a[90] & self.reg_a[91]
+        feedback_b = t1 ^ t2 ^ self.reg_b[77]
+
+        # Register C feedback (non-linear), driven by register B's taps
+        t1 = self.reg_b[68] ^ self.reg_b[83]
+        t2 = self.reg_b[81] & self.reg_b[82]
+        feedback_c = t1 ^ t2 ^ self.reg_c[86]
 
         # Clock registers
         self.reg_a = [feedback_a] + self.reg_a[:-1]
