@@ -28,7 +28,7 @@ class CipherComparison:
     ciphers: List[str]
     properties: Dict[str, Dict[str, Any]] = field(default_factory=dict)
     security_assessment: Dict[str, Dict[str, Any]] = field(default_factory=dict)
-    recommendations: List[str] = field(default_factory=dict)
+    recommendations: List[str] = field(default_factory=list)
 
 
 def compare_ciphers(
