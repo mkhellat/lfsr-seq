@@ -62,6 +62,20 @@ cross-check = [
     "lfsr-tools>=0.0.1,<1.0.0",
 ]
 
+# Plotting/dimensionality-reduction libraries used by lfsr.visualization.
+# All matplotlib/plotly/networkx imports in that package are soft
+# (guarded by HAS_MATPLOTLIB/HAS_PLOTLY/HAS_NETWORKX in
+# visualization/base.py) so the package itself doesn't hard-require
+# these. This extra exists so `make install-dev` reliably provides
+# them for tests/test_visualization_*.py to exercise the real code
+# paths instead of only the ImportError fallback branches.
+visualization = [
+    "matplotlib>=3.5.0,<4.0.0",
+    "plotly>=5.0.0,<6.0.0",
+    "networkx>=2.8.0,<4.0.0",
+    "scikit-learn>=1.0.0,<2.0.0",
+]
+
 # Entry point for command-line interface
 # After installation, lfsr-seq will be available at: .venv/bin/lfsr-seq
 [project.scripts]
