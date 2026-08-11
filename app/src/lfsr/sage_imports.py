@@ -25,6 +25,7 @@ from sage.matrix.matrix_space import MatrixSpace
 
 # Functional helpers
 from sage.misc.functional import basis, det
+from sage.misc.latex import latex
 from sage.modules.free_module import VectorSpace
 
 # Vectors and matrices
@@ -35,6 +36,9 @@ from sage.modules.free_module_element import vector
 from sage.rings.all import CC, QQ, RR, ZZ
 from sage.rings.finite_rings.finite_field_base import FiniteField
 from sage.rings.finite_rings.finite_field_constructor import GF
+
+# Infinity (used to represent unbounded polynomial order)
+from sage.rings.infinity import infinity as oo
 
 # Integers and rationals
 from sage.rings.integer import Integer
@@ -71,5 +75,7 @@ __all__ = [
     'det',
     'matrix',
     'var',
+    'latex',
+    'oo',
 ]
 

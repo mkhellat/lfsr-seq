@@ -13,6 +13,7 @@ import math
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional, Tuple, Union
 
+from lfsr.polynomial import polynomial_order
 from lfsr.sage_imports import *
 
 
