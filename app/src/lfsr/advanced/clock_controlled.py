@@ -152,7 +152,7 @@ class ClockControlledLFSR(AdvancedLFSR):
         """Clock an LFSR one step."""
         F = GF(field_order)
         state_vec = vector(F, state)
-        new_state_vec = C * state_vec
+        new_state_vec = state_vec * C
         return [int(x) for x in new_state_vec]
 
     def generate_sequence(

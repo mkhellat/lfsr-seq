@@ -151,7 +151,7 @@ class FilteredLFSR(AdvancedLFSR):
         """
         F = GF(self.field_order)
         state_vec = vector(F, state)
-        new_state_vec = self.C * state_vec
+        new_state_vec = state_vec * self.C
         return [int(x) for x in new_state_vec]
 
     def generate_sequence(

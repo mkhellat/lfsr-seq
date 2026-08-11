@@ -151,7 +151,7 @@ class IrregularClockingLFSR(AdvancedLFSR):
         state_vec = vector(F, state)
 
         for _ in range(steps):
-            state_vec = C * state_vec
+            state_vec = state_vec * C
 
         return [int(x) for x in state_vec]
 
