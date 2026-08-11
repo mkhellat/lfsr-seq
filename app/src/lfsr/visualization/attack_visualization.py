@@ -255,10 +255,13 @@ def visualize_attack_comparison(
             f"{result.get('execution_time', 0):.2f}"
         ])
 
-    table = ax4.table(cellText=table_data[1:], colLabels=table_data[0], cellLoc='center', loc='center')
-    table.auto_set_font_size(False)
-    table.set_fontsize(9)
-    table.scale(1, 2)
+    if len(table_data) > 1:
+        table = ax4.table(cellText=table_data[1:], colLabels=table_data[0], cellLoc='center', loc='center')
+        table.auto_set_font_size(False)
+        table.set_fontsize(9)
+        table.scale(1, 2)
+    else:
+        ax4.text(0.5, 0.5, "No attack results to summarize", ha='center', va='center')
 
     plt.tight_layout()
 

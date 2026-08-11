@@ -212,17 +212,16 @@ class TestVisualizeAttackComparison:
         visualize_attack_comparison(ATTACK_RESULTS_LIST, output_file=str(out))
         assert out.exists()
 
-    def test_empty_attack_list_crashes_building_summary_table(self):
-        """BUG (src/lfsr/visualization/attack_visualization.py, around
-        line 258, in visualize_attack_comparison): with an empty
-        attack_results list, table_data == [["Method","Success","Time (s)"]]
-        so table_data[1:] == [] (empty cellText). matplotlib's Axes.table()
-        does `cols = len(cellText[0])` unconditionally when cellText is
-        non-None but empty, raising IndexError: list index out of range.
-        The other three subplots (success rates, execution times, resource
-        usage) all handle an empty attack_results list gracefully (empty
-        bar charts); only the summary table subplot crashes. This test
-        documents the actual (crashing) behavior rather than papering over
-        it -- per task instructions the source file is not patched here."""
-        with pytest.raises(IndexError):
-            visualize_attack_comparison([])
+    def test_empty_attack_list_shows_placeholder_instead_of_crashing(self):
+        """Regression test (bug fixed 2026-08-11, see commit history):
+        with an empty attack_results list, table_data ==
+        [["Method","Success","Time (s)"]], so table_data[1:] == [] --
+        matplotlib's Axes.table() does `cols = len(cellText[0])`
+        unconditionally when cellText is non-None but empty, raising
+        IndexError. Fixed by skipping the table entirely and showing a
+        placeholder text when there are no rows to summarize, matching
+        the pattern already used by the resource-usage subplot."""
+        fig = visualize_attack_comparison([])
+        ax4 = fig.axes[3]
+        assert len(ax4.tables) == 0
+        assert any("No attack results" in t.get_text() for t in ax4.texts)
