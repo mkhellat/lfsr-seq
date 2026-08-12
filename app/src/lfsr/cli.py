@@ -1023,7 +1023,7 @@ def cli_main() -> None:
 
                 perform_tmto_attack_cli(
                     lfsr_coefficients=coefficients,
-                    field_order=args.gf_order,
+                    field_order=int(args.gf_order),
                     method=args.tmto_method,
                     chain_count=args.chain_count,
                     chain_length=args.chain_length,
