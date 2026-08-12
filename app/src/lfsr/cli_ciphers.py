@@ -46,7 +46,10 @@ def load_bits_from_file(file_path: str) -> List[int]:
     """
     Load bits from file.
 
-    Supports both binary files and text files with 0/1 characters.
+    Supports both binary files and text files with 0/1 characters. A
+    file is treated as text-mode 0/1 if its content, once decoded as
+    ASCII/UTF-8 and stripped of surrounding whitespace, consists only of
+    '0'/'1' characters; otherwise it is treated as raw binary.
 
     Args:
         file_path: Path to file
@@ -54,26 +57,22 @@ def load_bits_from_file(file_path: str) -> List[int]:
     Returns:
         List of bits (0 or 1)
     """
+    with open(file_path, 'rb') as f:
+        data = f.read()
+
     try:
-        with open(file_path, 'rb') as f:
-            data = f.read()
-            # Try to interpret as binary
-            bits = []
-            for byte in data:
-                for i in range(8):
-                    bits.append((byte >> (7 - i)) & 1)
-            return bits
-    except Exception:
-        # Try as text file
-        with open(file_path, 'r') as f:
-            content = f.read().strip()
-            bits = []
-            for char in content:
-                if char == '0':
-                    bits.append(0)
-                elif char == '1':
-                    bits.append(1)
-            return bits
+        content = data.decode('ascii').strip()
+    except UnicodeDecodeError:
+        content = None
+
+    if content is not None and content and all(c in '01' for c in content):
+        return [1 if c == '1' else 0 for c in content]
+
+    bits = []
+    for byte in data:
+        for i in range(8):
+            bits.append((byte >> (7 - i)) & 1)
+    return bits
 
 
 def perform_cipher_analysis_cli(
