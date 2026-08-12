@@ -2070,6 +2070,12 @@ def _process_task_batch_dynamic(
         process_single_batch(assigned_chunk)
         debug_log('Static chunk completed, starting work stealing...')
 
+    # In work-stealing/hybrid mode, each worker pulls from its own
+    # dedicated queue (worker_queues[worker_id]) rather than a single
+    # shared task_queue -- the producer feeds worker queues round-robin
+    # and sends one sentinel per worker queue (see producer_thread above).
+    own_queue = worker_queues[worker_id] if use_work_stealing else task_queue
+
     # Main loop: pull batches from queue until sentinel (None)
     while True:
         try:
@@ -2081,7 +2087,7 @@ def _process_task_batch_dynamic(
             # Try to pull multiple batches using get_nowait() (non-blocking)
             for _ in range(batch_aggregation_count):
                 try:
-                    batch = task_queue.get_nowait()
+                    batch = own_queue.get_nowait()
                     if batch is None:
                         # Sentinel received - process remaining batches then exit
                         sentinel_received = True
