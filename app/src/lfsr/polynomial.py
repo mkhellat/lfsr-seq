@@ -314,15 +314,16 @@ def compute_period_via_factorization(
         R = PolynomialRing(F, "t")
         t = R.gen()
 
-        # Characteristic polynomial: t^d + c_{d-1}*t^{d-1} + ... + c_1*t + c_0
-        # Note: coefficients are in reverse order for SageMath
+        # Characteristic polynomial: t^d - c_{d-1}*t^{d-1} - ... - c_1*t - c_0
+        # coefficients[i] corresponds to the t^i term (matches
+        # core.py's build_state_update_matrix convention).
         if state_vector_dim is None:
             state_vector_dim = len(coefficients)
 
         d = state_vector_dim
         char_poly = t**d
         for i, coeff in enumerate(coefficients):
-            char_poly += F(coeff) * t**(d - 1 - i)
+            char_poly += F(-coeff) * t**i
 
         # Factor the polynomial
         factors = factor(char_poly)
