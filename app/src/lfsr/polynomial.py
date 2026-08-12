@@ -429,6 +429,8 @@ def detect_mathematical_shortcuts(
     recommended_method = "enumeration"  # Default
     expected_period = None
     complexity_estimate = "O(q^d)"  # Default worst case
+    is_primitive = False
+    is_irreducible = False
 
     try:
         # Build characteristic polynomial
@@ -438,10 +440,9 @@ def detect_mathematical_shortcuts(
 
         char_poly = t**d
         for i, coeff in enumerate(coefficients):
-            char_poly += F(coeff) * t**(d - 1 - i)
+            char_poly += F(-coeff) * t**i
 
         # Check if primitive
-        is_primitive = False
         try:
             is_primitive = is_primitive_polynomial(char_poly, field_order)
             if is_primitive:
@@ -453,7 +454,6 @@ def detect_mathematical_shortcuts(
             pass
 
         # Check if irreducible (but not primitive)
-        is_irreducible = False
         if not is_primitive:
             try:
                 is_irreducible = char_poly.is_irreducible()
