@@ -1466,7 +1466,7 @@ def cli_main() -> None:
                     analyze_function=True,  # Always analyze function
                     fast_correlation_attack=args.fast_correlation_attack,
                     max_candidates=args.max_candidates,
-                    distinguishing_attack=args.distinguishing_attack,
+                    run_distinguishing_attack_flag=args.distinguishing_attack,
                     distinguishing_method=args.distinguishing_method,
                 )
             else:

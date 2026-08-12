@@ -16,6 +16,8 @@ from lfsr.attacks import (
     CombinationGenerator,
     LFSRConfig,
     analyze_combining_function,
+    distinguishing_attack as run_distinguishing_attack,
+    fast_correlation_attack as run_fast_correlation_attack,
     siegenthaler_correlation_attack,
 )
 from lfsr.sage_imports import *
@@ -193,7 +195,7 @@ def perform_correlation_attack_cli(
     analyze_function: bool = False,
     fast_correlation_attack: bool = False,
     max_candidates: int = 1000,
-    distinguishing_attack: bool = False,
+    run_distinguishing_attack_flag: bool = False,
     distinguishing_method: str = "correlation",
 ) -> None:
     """
@@ -248,13 +250,13 @@ def perform_correlation_attack_cli(
     print(file=output_file)
 
     # Perform distinguishing attack if requested
-    if distinguishing_attack:
+    if run_distinguishing_attack_flag:
         print("=" * 70, file=output_file)
         print("Distinguishing Attack Results", file=output_file)
         print("=" * 70, file=output_file)
         print(file=output_file)
 
-        dist_result = distinguishing_attack(
+        dist_result = run_distinguishing_attack(
             combination_generator=gen,
             keystream=keystream,
             method=distinguishing_method,
@@ -293,7 +295,7 @@ def perform_correlation_attack_cli(
 
         if fast_correlation_attack:
             # Fast correlation attack
-            result = fast_correlation_attack(
+            result = run_fast_correlation_attack(
                 combination_generator=gen,
                 keystream=keystream,
                 target_lfsr_index=lfsr_idx,
