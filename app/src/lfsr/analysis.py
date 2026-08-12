@@ -825,7 +825,7 @@ def _merge_parallel_results(
     """
     # Import SageMath functions (can't use import * in function)
     try:
-        from lfsr.sage_imports import GF, VectorSpace, vector
+        from lfsr.sage_imports import GF, vector
     except ImportError:
         # Fallback if sage.all not available
         import sys
@@ -946,7 +946,7 @@ def _merge_parallel_results(
     period_dict = {}
     seq_num = 0
 
-    V = VectorSpace(GF(gf_order), lfsr_degree)
+    F = GF(gf_order)
 
     for seq_info in unique_sequences:
         seq_num += 1
@@ -961,7 +961,7 @@ def _merge_parallel_results(
             seq_dict[seq_num] = []
         elif seq_info['states']:
             # Full mode: reconstruct and store sequence
-            seq_list = [vector(V, list(state_tuple)) for state_tuple in seq_info['states']]
+            seq_list = [vector(F, list(state_tuple)) for state_tuple in seq_info['states']]
             seq_dict[seq_num] = seq_list
         else:
             # Empty sequence (shouldn't happen, but handle gracefully)
