@@ -485,26 +485,23 @@ class TestCliMain:
         assert "ML Period Prediction" in out_content
         assert "No model file specified" in out_content
 
-    def test_cli_main_compare_known_crashes_due_to_tuple_unpacking_bug(self, monkeypatch, tmp_path, capsys):
-        """BUG (see report): cli.py's theoretical-analysis dispatch (around
-        line 1097) does:
-            seq_dict, period_dict, max_period, periods_sum, char_poly, \
-                char_poly_order, _ = analyze_lfsr(coefficients, args.gf_order)
-        but lfsr.core.analyze_lfsr's actual documented return signature is
+    def test_cli_main_compare_known_runs(self, monkeypatch, tmp_path):
+        """Regression test (bug fixed 2026-08-12, see commit history):
+        cli.py's theoretical-analysis dispatch used to unpack
+        analyze_lfsr()'s return tuple as (..., char_poly, char_poly_order,
+        _), but lfsr.core.analyze_lfsr's actual return signature is
         (seq_dict, period_dict, max_period, periods_sum, C, CS, d) -- the
         5th/6th elements are the state-update matrix C and companion-matrix
-        ring element CS, NOT a characteristic polynomial and its order.
-        `char_poly` therefore ends up bound to a raw sage Matrix object.
-        Every use of `char_poly` downstream (is_primitive_polynomial,
-        char_poly.is_irreducible(), etc.) then breaks -- here
-        is_primitive_polynomial(char_poly, ...) calls
-        `polynomial.degree()`, but a Matrix_mod2_dense has no `.degree`
-        attribute, so this crashes with AttributeError for EVERY input.
-        This affects all theoretical-analysis flags that share this code
-        path: --export-latex, --generate-paper, --compare-known,
-        --benchmark, --reproducibility-report (and the structurally
-        identical bug is duplicated again in the visualization dispatch
-        around line 1359)."""
+        ring element CS, not a characteristic polynomial and its order.
+        `char_poly` ended up bound to a raw sage Matrix, so every
+        downstream use (is_primitive_polynomial -> polynomial.degree())
+        crashed with AttributeError for every input, breaking
+        --export-latex, --generate-paper, --compare-known, --benchmark,
+        --reproducibility-report (and the same bug duplicated in the
+        visualization dispatch). Fixed by unpacking (C, CS, d) correctly
+        and deriving char_poly/char_poly_order via
+        characteristic_polynomial(CS, ...)/polynomial_order(...), matching
+        the pattern already used by the main analysis path."""
         csv_file = tmp_path / "in.csv"
         csv_file.write_text(SIMPLE_CSV)
         self._run(
@@ -512,16 +509,15 @@ class TestCliMain:
             [str(csv_file), "2", "--compare-known"],
         )
 
-        with pytest.raises(SystemExit) as exc_info:
-            cli_main()
-        assert exc_info.value.code == 1
-        captured = capsys.readouterr()
-        assert "has no attribute 'degree'" in captured.err
+        cli_main()
 
-    def test_cli_main_export_latex_crashes_due_to_tuple_unpacking_bug(self, monkeypatch, tmp_path, capsys):
-        """Same root cause as test_cli_main_compare_known_crashes_due_to_tuple_unpacking_bug
-        above, exercised via --export-latex instead of --compare-known --
-        confirms the bug is in the shared setup code, not specific to one
+        out_content = (tmp_path / (str(csv_file) + ".out")).read_text()
+        assert "Comparison with Known Results" in out_content
+
+    def test_cli_main_export_latex_runs(self, monkeypatch, tmp_path):
+        """Same root cause as test_cli_main_compare_known_runs above,
+        exercised via --export-latex instead of --compare-known --
+        confirms the fix applies to the shared setup code, not just one
         theoretical-analysis flag."""
         csv_file = tmp_path / "in.csv"
         csv_file.write_text(SIMPLE_CSV)
@@ -531,24 +527,19 @@ class TestCliMain:
             [str(csv_file), "2", "--export-latex", str(latex_out)],
         )
 
-        with pytest.raises(SystemExit) as exc_info:
-            cli_main()
-        assert exc_info.value.code == 1
-        captured = capsys.readouterr()
-        assert "has no attribute 'degree'" in captured.err
-        assert not latex_out.exists()
+        cli_main()
 
-    def test_cli_main_plot_period_distribution_crashes_same_unpacking_bug(self, monkeypatch, tmp_path, capsys):
-        """The visualization dispatch (cli.py around line 1359) duplicates
-        the exact same broken analyze_lfsr() tuple-unpacking pattern as the
-        theoretical-analysis dispatch (see
-        test_cli_main_compare_known_crashes_due_to_tuple_unpacking_bug):
-        `char_poly` ends up bound to the state-update matrix C, not a
-        polynomial, so is_primitive_polynomial(char_poly, ...) crashes
-        with AttributeError for every input. This means all of
-        --plot-period-distribution, --plot-state-transitions,
+        assert latex_out.exists()
+        assert "t^3" in latex_out.read_text() or "t^{3}" in latex_out.read_text()
+
+    def test_cli_main_plot_period_distribution_runs(self, monkeypatch, tmp_path):
+        """The visualization dispatch (cli.py, --plot-period-distribution
+        et al.) duplicated the exact same broken analyze_lfsr()
+        tuple-unpacking pattern as the theoretical-analysis dispatch (see
+        test_cli_main_compare_known_runs) and is fixed the same way. This
+        confirms --plot-period-distribution, --plot-state-transitions,
         --plot-period-statistics, --plot-3d-state-space, and
-        --visualize-attack are non-functional via the CLI."""
+        --visualize-attack are functional via the CLI again."""
         csv_file = tmp_path / "in.csv"
         csv_file.write_text(SIMPLE_CSV)
         plot_out = tmp_path / "plot.png"
@@ -557,12 +548,9 @@ class TestCliMain:
             [str(csv_file), "2", "--plot-period-distribution", str(plot_out)],
         )
 
-        with pytest.raises(SystemExit) as exc_info:
-            cli_main()
-        assert exc_info.value.code == 1
-        captured = capsys.readouterr()
-        assert "has no attribute 'degree'" in captured.err
-        assert not plot_out.exists()
+        cli_main()
+
+        assert plot_out.exists()
 
     def test_cli_main_detect_patterns_dispatches(self, monkeypatch, tmp_path):
         csv_file = tmp_path / "in.csv"
@@ -631,11 +619,12 @@ class TestCliMain:
             [str(csv_file), "2", "--reproducibility-report", str(report_out)],
         )
 
-        with pytest.raises(SystemExit):
-            # Shares the analyze_lfsr tuple-unpacking bug from the
-            # theoretical-analysis dispatch, so this crashes too -- see
-            # test_cli_main_compare_known_crashes_due_to_tuple_unpacking_bug.
-            cli_main()
+        cli_main()
+
+        assert report_out.exists()
+        report = json.loads(report_out.read_text())
+        assert report["report_type"] == "reproducibility_report"
+        assert report["configuration"]["coefficients"] == [1, 1, 0]
 
     def test_cli_main_correlation_attack_full_run(self, monkeypatch, tmp_path):
         csv_file = tmp_path / "in.csv"

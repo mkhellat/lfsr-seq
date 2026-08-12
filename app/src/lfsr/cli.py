@@ -1093,16 +1093,20 @@ def cli_main() -> None:
 
                 # Use first set of coefficients
                 coefficients = coeffs_list[0]
+                gf_order_int = int(args.gf_order)
 
                 # Perform analysis to get results
-                seq_dict, period_dict, max_period, periods_sum, char_poly, char_poly_order, _ = analyze_lfsr(
-                    coefficients, args.gf_order
+                seq_dict, period_dict, max_period, periods_sum, C, CS, d = analyze_lfsr(
+                    coefficients, gf_order_int
                 )
+                from lfsr.polynomial import characteristic_polynomial, polynomial_order
+                char_poly = characteristic_polynomial(CS, gf_order_int)
+                char_poly_order = polynomial_order(char_poly, d, gf_order_int)
 
                 # Prepare analysis results dictionary
                 from lfsr.polynomial import is_primitive_polynomial
-                is_primitive = is_primitive_polynomial(char_poly, args.gf_order)
-                theoretical_max = int(args.gf_order) ** len(coefficients) - 1
+                is_primitive = is_primitive_polynomial(char_poly, gf_order_int)
+                theoretical_max = gf_order_int ** len(coefficients) - 1
 
                 analysis_results = {
                     'field_order': args.gf_order,
@@ -1355,15 +1359,18 @@ def cli_main() -> None:
                     sys.exit(1)
 
                 coefficients = coeffs_list[0]
+                gf_order_int = int(args.gf_order)
 
                 # Perform analysis
-                seq_dict, period_dict, max_period, periods_sum, char_poly, char_poly_order, _ = analyze_lfsr(
-                    coefficients, args.gf_order
+                seq_dict, period_dict, max_period, periods_sum, C, CS, d = analyze_lfsr(
+                    coefficients, gf_order_int
                 )
+                from lfsr.polynomial import characteristic_polynomial
+                char_poly = characteristic_polynomial(CS, gf_order_int)
 
                 from lfsr.polynomial import is_primitive_polynomial
-                is_primitive = is_primitive_polynomial(char_poly, args.gf_order)
-                theoretical_max = int(args.gf_order) ** len(coefficients) - 1
+                is_primitive = is_primitive_polynomial(char_poly, gf_order_int)
+                theoretical_max = gf_order_int ** len(coefficients) - 1
 
                 # Determine output format
                 format_map = {
