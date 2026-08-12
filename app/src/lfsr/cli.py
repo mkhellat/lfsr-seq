@@ -960,6 +960,7 @@ def cli_main() -> None:
                 )
             # Check if advanced structure analysis mode
             elif args.advanced_structure:
+                from lfsr.attacks import LFSRConfig
                 from lfsr.cli_advanced import perform_advanced_structure_analysis_cli
 
                 # Load coefficients from input file
@@ -977,7 +978,7 @@ def cli_main() -> None:
                 coefficients = coeffs_list[0]
                 base_lfsr = LFSRConfig(
                     coefficients=coefficients,
-                    field_order=args.gf_order,
+                    field_order=int(args.gf_order),
                     degree=len(coefficients)
                 )
 

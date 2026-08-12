@@ -401,17 +401,15 @@ class TestCliMain:
         assert "Stream Cipher Analysis" in out_content
         assert "Grain" in out_content
 
-    def test_cli_main_advanced_structure_crashes_missing_import(self, monkeypatch, tmp_path, capsys):
-        """BUG (see report): cli.py's --advanced-structure dispatch (around
-        line 978) references `LFSRConfig(...)` but cli.py never imports
-        LFSRConfig from lfsr.attacks (contrast with cli_advanced.py,
-        cli_algebraic.py, cli_tmto.py, which all correctly
-        `from lfsr.attacks import LFSRConfig`). Every invocation of
-        --advanced-structure raises NameError: name 'LFSRConfig' is not
-        defined, caught by cli_main's outer except Exception and reported
-        as "ERROR: Unexpected error: name 'LFSRConfig' is not defined"
-        with exit code 1. This means --advanced-structure is completely
-        non-functional via the CLI entry point for every input."""
+    def test_cli_main_advanced_structure_runs(self, monkeypatch, tmp_path):
+        """Regression test (bug fixed 2026-08-12, see commit history):
+        cli.py's --advanced-structure dispatch referenced LFSRConfig(...)
+        without ever importing it from lfsr.attacks (contrast with
+        cli_advanced.py, cli_algebraic.py, cli_tmto.py, which all
+        correctly `from lfsr.attacks import LFSRConfig`), so every
+        invocation raised NameError: name 'LFSRConfig' is not defined.
+        Also had the same raw-string field_order bug as --tmto-attack.
+        Fixed by adding the import and converting to int(args.gf_order)."""
         csv_file = tmp_path / "in.csv"
         csv_file.write_text(SIMPLE_CSV)
         self._run(
@@ -419,12 +417,11 @@ class TestCliMain:
             [str(csv_file), "2", "--advanced-structure", "nfsr"],
         )
 
-        with pytest.raises(SystemExit) as exc_info:
-            cli_main()
-        assert exc_info.value.code == 1
-        captured = capsys.readouterr()
-        assert "LFSRConfig" in captured.err
-        assert "not defined" in captured.err
+        cli_main()
+
+        out_content = (tmp_path / (str(csv_file) + ".out")).read_text()
+        assert "Advanced LFSR Structure Analysis" in out_content
+        assert "nonlinear" in out_content.lower()
 
     def test_cli_main_advanced_structure_missing_coeffs_file(self, monkeypatch, tmp_path, capsys):
         # input file exists but has no data at all -- read_coefficient_vectors
