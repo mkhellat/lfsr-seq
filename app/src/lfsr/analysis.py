@@ -1017,8 +1017,12 @@ def _partition_state_space(
     if total_states == 0:
         return []
 
-    # Calculate chunk size
-    chunk_size = max(1, total_states // num_chunks)
+    # Calculate base chunk size and remainder; distribute the remainder
+    # one-per-chunk across the first `remainder` chunks so every state
+    # index in [0, total_states) is covered exactly once, even when
+    # total_states isn't evenly divisible by num_chunks.
+    base_chunk_size = total_states // num_chunks
+    remainder = total_states % num_chunks
 
     # BUG FIX: Don't iterate VectorSpace! Use state indices directly.
     # For GF(q)^d, state index i can be converted to tuple without iteration.
@@ -1038,16 +1042,18 @@ def _partition_state_space(
 
     # Create chunks by computing state tuples from indices (NO ITERATION!)
     chunks = []
+    start_idx = 0
     for chunk_idx in range(num_chunks):
-        chunk = []
-        start_idx = chunk_idx * chunk_size
-        end_idx = min(start_idx + chunk_size, total_states)
+        this_chunk_size = base_chunk_size + (1 if chunk_idx < remainder else 0)
+        end_idx = start_idx + this_chunk_size
 
+        chunk = []
         for state_idx in range(start_idx, end_idx):
             state_tuple = state_index_to_tuple(state_idx, d, gf_order)
             chunk.append((state_tuple, state_idx))
 
         chunks.append(chunk)
+        start_idx = end_idx
 
     return chunks
 
