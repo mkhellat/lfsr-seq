@@ -54,6 +54,7 @@ def polynomial_order(
     ei = state_vector_space_size
     R = PolynomialRing(GF(gf_order), "t")
     t = R.gen()
+    poly_order = oo
     for j in range(bi, ei):
         dividend = R(t**j)
         divisor = polynomial
@@ -61,8 +62,6 @@ def polynomial_order(
         if r == 1:
             poly_order = j
             break
-        elif j == state_vector_space_size:
-            poly_order = oo
     return poly_order
 
 
