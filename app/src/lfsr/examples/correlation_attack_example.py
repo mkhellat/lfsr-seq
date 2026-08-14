@@ -24,6 +24,8 @@ from lfsr.attacks import (
     LFSRConfig,
     analyze_combining_function,
     compute_correlation_coefficient,
+    distinguishing_attack,
+    fast_correlation_attack,
     siegenthaler_correlation_attack,
 )
 
@@ -218,6 +220,93 @@ def example_vulnerable_combination():
         print(f"  Success probability: {result.success_probability:.2%}")
         if result.attack_successful:
             print("  ⚠ VULNERABLE: Significant correlation detected!")
+
+
+def example_fast_correlation_attack():
+    """Example of the Meier-Staffelbach fast correlation attack."""
+    print("\n" + "=" * 70)
+    print("Example 5: Fast Correlation Attack (Meier-Staffelbach)")
+    print("=" * 70)
+
+    # AND function is NOT correlation immune -- a good target for the
+    # fast attack, same generator shape as example_vulnerable_combination.
+    def and_combiner(a, b):
+        return a & b
+
+    gen = CombinationGenerator(
+        lfsrs=[
+            LFSRConfig(coefficients=[1, 0, 0, 1], field_order=2, degree=4),
+            LFSRConfig(coefficients=[1, 1, 0, 1], field_order=2, degree=4)
+        ],
+        combining_function=and_combiner,
+        function_name='and'
+    )
+
+    print("\nCombination Generator:")
+    print("  Combining function: AND (vulnerable to correlation attacks)")
+    print(f"  Number of LFSRs: {len(gen.lfsrs)}")
+
+    keystream = gen.generate_keystream(length=2000)
+
+    print(f"\n{'─'*70}")
+    print("Fast Correlation Attack Results:")
+    print(f"{'─'*70}")
+
+    for i in range(len(gen.lfsrs)):
+        result = fast_correlation_attack(gen, keystream, target_lfsr_index=i)
+
+        print(f"\nLFSR {i+1}:")
+        print(f"  Correlation coefficient: {result.correlation_coefficient:.6f}")
+        print(f"  Attack successful: {result.attack_successful}")
+        if result.attack_successful:
+            print(f"  ✓ Recovered state: {result.recovered_state}")
+            print("  ⚠ VULNERABLE: State recovery successful!")
+        else:
+            print("  ✗ State recovery failed")
+        print(f"  Best correlation: {result.best_correlation:.6f}")
+        print(f"  Iterations performed: {result.iterations_performed}")
+        print(f"  Candidate states tested: {result.candidate_states_tested}")
+        print(f"  Complexity estimate: {result.complexity_estimate:.0f} operations")
+
+
+def example_distinguishing_attack():
+    """Example of a distinguishing attack on a combination generator."""
+    print("\n" + "=" * 70)
+    print("Example 6: Distinguishing Attack")
+    print("=" * 70)
+
+    def majority(a, b, c):
+        return 1 if (a + b + c) >= 2 else 0
+
+    gen = CombinationGenerator(
+        lfsrs=[
+            LFSRConfig(coefficients=[1, 0, 0, 1], field_order=2, degree=4),
+            LFSRConfig(coefficients=[1, 1, 0, 1], field_order=2, degree=4),
+            LFSRConfig(coefficients=[1, 0, 1, 1], field_order=2, degree=4)
+        ],
+        combining_function=majority,
+        function_name='majority'
+    )
+
+    print("\nCombination Generator Configuration:")
+    print(f"  Number of LFSRs: {len(gen.lfsrs)}")
+    print(f"  Combining function: {gen.function_name}")
+
+    keystream = gen.generate_keystream(length=1000)
+
+    print(f"\n{'─'*70}")
+    print("Distinguishing Attack Results:")
+    print(f"{'─'*70}")
+
+    result = distinguishing_attack(gen, keystream, method="correlation")
+
+    print(f"  Method: {result.method_used}")
+    print(f"  Distinguishable: {result.distinguishable}")
+    print(f"  Distinguishing statistic: {result.distinguishing_statistic:.6f}")
+    print(f"  P-value: {result.p_value:.6f}")
+    print(f"  Attack successful: {result.attack_successful}")
+    if result.attack_successful:
+        print("  ⚠ VULNERABLE: Keystream is distinguishable from random!")
 
 
 def main():
