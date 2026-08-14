@@ -29,29 +29,19 @@ this file must not modify any source file):
    dividing by zero. See TestGenerateDiscussionSectionBugs below and
    TestGenerateCompletePaperBugs::test_empty_analysis_results_no_longer_crashes.
 
-2. Unescaped/unbalanced LaTeX special characters in
-   ``generate_complete_paper`` (title/author, lines ~381/383),
-   ``generate_abstract_section`` (research_focus, line ~72), and the
-   ``\\item {text}`` interpolation of ``methods_used`` /
-   ``key_observations`` lists in ``generate_methodology_section`` /
-   ``generate_discussion_section``. None of these escape LaTeX's
-   reserved/special characters (``\\ { } % $ # _ & ^ ~``). This does not
-   raise a Python exception -- it's pure string interpolation -- but the
-   resulting LaTeX is broken/unsafe to compile:
-     - ``%`` starts a LaTeX comment, silently truncating the rest of the
-       line when compiled.
-     - ``_`` and ``&`` are catcode-special outside math mode and cause a
-       LaTeX compilation error (undefined control sequence / misplaced
-       alignment tab) unless escaped.
-     - A literal ``}`` in the title unbalances the brace-delimited
-       ``\\title{...}`` argument, e.g. title ``"100% Off_Sale & More}"``
-       above produces the literal output line
-       ``\\title{100% Off_Sale & More}}`` (verified below), i.e. the
-       document's title argument closes one brace early and leaves a
-       stray ``}`` dangling in the preamble -- unbalanced braces.
-   These tests document what the *output string* actually contains
-   (verified by running the real code), not a claim of confirmed LaTeX
-   compilation failure (no LaTeX toolchain was invoked).
+2. FIXED: previously-unescaped/unbalanced LaTeX special characters in
+   ``generate_complete_paper`` (title/author), ``generate_abstract_section``
+   (research_focus), and the ``\\item {text}`` interpolation of
+   ``methods_used`` / ``key_observations`` lists in
+   ``generate_methodology_section`` / ``generate_discussion_section``.
+   None of these escaped LaTeX's reserved/special characters
+   (``\\ { } % $ # _ & ^ ~``), so the resulting LaTeX was broken/unsafe
+   to compile (``%`` silently truncated the rest of the line as a
+   comment; ``_``/``&`` caused compilation errors outside math mode; a
+   literal ``}`` unbalanced the enclosing brace-delimited argument).
+   Fixed via a new ``escape_latex()`` helper applied at every
+   user-supplied-string interpolation site. See TestEscapeLatex and the
+   updated (now "*_now_escaped") tests in TestGenerateCompletePaperBugs.
 """
 
 import io
@@ -59,6 +49,7 @@ import io
 import pytest
 
 from lfsr.paper_generator import (
+    escape_latex,
     generate_abstract_section,
     generate_complete_paper,
     generate_discussion_section,
@@ -87,6 +78,48 @@ def sample_polynomial():
     F = GF(2)
     R = PolynomialRing(F, "t")
     return R("t^4 + t^3 + 1")
+
+
+# ---------------------------------------------------------------------------
+# escape_latex
+# ---------------------------------------------------------------------------
+
+
+class TestEscapeLatex:
+    def test_percent_sign(self):
+        assert escape_latex("100%") == "100\\%"
+
+    def test_underscore(self):
+        assert escape_latex("a_b") == "a\\_b"
+
+    def test_ampersand(self):
+        assert escape_latex("a & b") == "a \\& b"
+
+    def test_braces(self):
+        assert escape_latex("{x}") == "\\{x\\}"
+
+    def test_dollar_and_hash(self):
+        assert escape_latex("$x# ") == "\\$x\\# "
+
+    def test_caret_and_tilde(self):
+        assert escape_latex("a^b~c") == "a\\textasciicircum{}b\\textasciitilde{}c"
+
+    def test_backslash(self):
+        assert escape_latex("a\\b") == "a\\textbackslash{}b"
+
+    def test_backslash_escaped_before_other_replacements_leak(self):
+        # Backslash must be escaped first so that replacement text
+        # inserted for other characters (which itself contains '\')
+        # isn't re-escaped a second time.
+        result = escape_latex("100%")
+        assert result == "100\\%"
+        assert "\\\\" not in result
+
+    def test_plain_text_unchanged(self):
+        assert escape_latex("Plain ASCII title") == "Plain ASCII title"
+
+    def test_empty_string(self):
+        assert escape_latex("") == ""
 
 
 # ---------------------------------------------------------------------------
@@ -518,59 +551,53 @@ class TestGenerateCompletePaperBugs:
         result = generate_complete_paper({})
         assert "undefined fraction" in result
 
-    def test_title_percent_sign_passes_through_unescaped(self):
-        # BUG 2: '%' is LaTeX's comment character. Unescaped, everything
-        # after it on the \title{...} line is a LaTeX comment when
-        # compiled -- silently dropping the rest of the title (and
-        # potentially subsequent content on the same logical line).
+    def test_title_percent_sign_now_escaped(self):
+        # BUG 2 (fixed): '%' is LaTeX's comment character. escape_latex
+        # now converts it to '\%' so it no longer truncates the rest of
+        # the line when compiled.
         result = generate_complete_paper(SAFE_RESULTS, title="100% Faster LFSR Analysis")
         title_lines = [l for l in result.splitlines() if l.startswith("\\title{")]
-        assert title_lines == ["\\title{100% Faster LFSR Analysis}"]
-        # The raw, unescaped '%' is present verbatim -- LaTeX would treat
-        # everything from it onward on this line as a comment.
-        assert "100%" in title_lines[0]
-        assert "100\\%" not in title_lines[0]
+        assert title_lines == ["\\title{100\\% Faster LFSR Analysis}"]
 
-    def test_title_underscore_and_ampersand_pass_through_unescaped(self):
-        # '_' and '&' are catcode-special outside math mode; LaTeX would
-        # raise a compilation error (e.g. "Misplaced alignment tab
-        # character &") unless escaped as \_ and \&.
+    def test_title_underscore_and_ampersand_now_escaped(self):
+        # '_' and '&' are catcode-special outside math mode; now escaped
+        # as \_ and \& so they no longer break compilation.
         result = generate_complete_paper(SAFE_RESULTS, title="A_B & Co Analysis")
         title_lines = [l for l in result.splitlines() if l.startswith("\\title{")]
-        assert title_lines == ["\\title{A_B & Co Analysis}"]
-        assert "\\_" not in title_lines[0]
-        assert "\\&" not in title_lines[0]
+        assert title_lines == ["\\title{A\\_B \\& Co Analysis}"]
 
-    def test_title_with_literal_closing_brace_unbalances_argument(self):
-        # A literal '}' in the title closes the \title{...} argument one
-        # character early, leaving a stray '}' immediately after -- the
-        # brace-argument is unbalanced from LaTeX's perspective.
+    def test_title_with_literal_closing_brace_now_balanced(self):
+        # A literal '}' in the title used to close the \title{...}
+        # argument early. Now escaped to '\}' so the argument stays
+        # balanced.
         result = generate_complete_paper(SAFE_RESULTS, title="Weird}Title")
         title_lines = [l for l in result.splitlines() if l.startswith("\\title{")]
-        assert title_lines == ["\\title{Weird}Title}"]
-        # Confirm the brace count within this single output line is
-        # unbalanced relative to a well-formed \title{...} (1 open, 1
-        # matching close, then a stray extra close+literal 'Title}'):
+        assert title_lines == ["\\title{Weird\\}Title}"]
+        # The outer \title{...} wrapper still balances: 2 opens (wrapper +
+        # none nested), 2 closes (escaped \} counts as literal chars, not
+        # a real brace pair, plus the wrapper's own close).
         assert title_lines[0].count("{") == 1
-        assert title_lines[0].count("}") == 2
 
-    def test_author_special_characters_pass_through_unescaped(self):
+    def test_author_special_characters_now_escaped(self):
         result = generate_complete_paper(SAFE_RESULTS, author="Smith & Jones_Lab")
         author_lines = [l for l in result.splitlines() if l.startswith("\\author{")]
-        assert author_lines == ["\\author{Smith & Jones_Lab}"]
+        assert author_lines == ["\\author{Smith \\& Jones\\_Lab}"]
 
-    def test_research_focus_special_characters_unescaped_in_abstract(self):
+    def test_research_focus_special_characters_now_escaped_in_abstract(self):
         result = generate_complete_paper(SAFE_RESULTS, research_focus="50% faster & cheaper")
-        assert "The research focuses on 50% faster & cheaper." in result
+        assert "The research focuses on 50\\% faster \\& cheaper." in result
 
-    def test_key_observations_item_special_characters_unescaped(self):
+    def test_key_observations_item_special_characters_now_escaped(self):
         result = generate_complete_paper(
             SAFE_RESULTS, key_observations=["period is 100% of the theoretical max & optimal"]
         )
-        assert "\\item period is 100% of the theoretical max & optimal" in result
+        assert "\\item period is 100\\% of the theoretical max \\& optimal" in result
 
-    def test_methods_used_item_special_characters_unescaped(self):
+    def test_methods_used_item_special_characters_now_escaped(self):
         result = generate_complete_paper(
             SAFE_RESULTS, methods_used=["brute_force search (cost ~ O(2^n))"]
         )
-        assert "\\item brute_force search (cost ~ O(2^n))" in result
+        assert (
+            "\\item brute\\_force search (cost \\textasciitilde{} O(2\\textasciicircum{}n))"
+            in result
+        )
