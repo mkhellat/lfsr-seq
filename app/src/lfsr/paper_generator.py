@@ -303,7 +303,10 @@ def generate_discussion_section(
         latex_code.append("\\subsection{Period Structure}")
         latex_code.append("")
         latex_code.append(f"The observed maximum period of {max_period} represents ")
-        latex_code.append(f"{max_period/theoretical_max*100:.1f}\\% of the theoretical ")
+        if theoretical_max:
+            latex_code.append(f"{max_period/theoretical_max*100:.1f}\\% of the theoretical ")
+        else:
+            latex_code.append("an undefined fraction of the theoretical ")
         latex_code.append("maximum. This indicates the polynomial's period-generating ")
         latex_code.append("capabilities relative to primitive polynomials.")
         latex_code.append("")
