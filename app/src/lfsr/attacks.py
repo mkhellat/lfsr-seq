@@ -1428,12 +1428,26 @@ def fast_correlation_attack(
             if len(candidates) >= max_candidates:
                 break
 
-    # Test random states to fill remaining slots
+    # Test random states to fill remaining slots.
+    #
+    # CRITICAL: the number of distinct states of a degree-d LFSR over
+    # GF(field_order) is finite (field_order**d). Once every state is
+    # already in `candidates` (routinely reached for small-to-medium d,
+    # e.g. all 16 states of a degree-4 GF(2) LFSR are exhausted well
+    # before this function's own max_candidates=1000 default), an
+    # unbounded `while` here spins forever redrawing already-seen
+    # states, burning CPU with no way to ever find a "new" one. Cap the
+    # retries and stop early rather than hang -- fewer than
+    # max_candidates candidates is fine, the caller only ever iterates
+    # over however many were actually produced.
     import random
-    while len(candidates) < max_candidates:
+    max_attempts = max(field_order ** d, 100)
+    attempts = 0
+    while len(candidates) < max_candidates and attempts < max_attempts:
         state = [F(random.randint(0, field_order - 1)) for _ in range(d)]
         if state not in candidates:
             candidates.append(state)
+        attempts += 1
 
     # Limit to max_candidates
     candidates = candidates[:max_candidates]

@@ -496,6 +496,26 @@ class TestFastCorrelationAttack:
         )
         assert result.candidate_states_tested == 12
 
+    def test_max_candidates_exceeding_full_state_space_terminates(self):
+        """BUG (fixed): the random-candidate-fill loop
+        (`while len(candidates) < max_candidates: ... if state not in
+        candidates: candidates.append(state)`) had no attempt cap. A
+        degree-4 GF(2) LFSR has only 2**4 = 16 distinct states total; once
+        every state is already in `candidates`, every further random draw
+        collides and the loop can never grow `candidates` again --
+        confirmed hanging indefinitely (still running after 15s, well
+        past this test's needs) before the fix, for max_candidates as low
+        as 20. Requesting more candidates than exist in the entire state
+        space (max_candidates=1000, the function's own default) must
+        terminate promptly and simply yield every distinct state
+        (candidate_states_tested == 16), not hang."""
+        gen = majority_generator()
+        keystream = gen.generate_keystream(length=200)
+        result = fast_correlation_attack(
+            gen, keystream, target_lfsr_index=0, max_candidates=1000
+        )
+        assert result.candidate_states_tested == 16
+
 
 class TestDistinguishingAttack:
     """Tests for distinguishing_attack."""
