@@ -37,6 +37,35 @@ This directory contains the test suite for the LFSR-Seq analysis tool.
   unless installed via `pip install -e ".[cross-check]"`. See the module's
   docstring for the coefficient-convention mapping between tools and known
   quality caveats in lfsr-tools.
+- `test_benchmarking.py` - Tests for the benchmarking framework
+  (`lfsr.benchmarking`). Found and fixed a severe bug: the default
+  `method="enumeration"` path imported a function
+  (`lfsr.core.compute_period_enumeration`) that has never existed in
+  this codebase, so `compare_methods()` — and therefore the CLI's
+  `--benchmark` flag — crashed with `ImportError` on every single
+  invocation. Fixed by wiring it to the real enumeration engine
+  (`lfsr.analysis.lfsr_sequence_mapper`).
+- `test_paper_generator.py` - Tests for LaTeX research-paper section
+  generation (`lfsr.paper_generator`, wired into the CLI via
+  `--generate-paper`). Found and fixed 2 real bugs: a
+  `ZeroDivisionError` in `generate_discussion_section` whenever
+  `theoretical_max_period == 0` (reachable via an empty-coefficients
+  input, or trivially via any empty/partial `analysis_results` dict);
+  and unescaped LaTeX special characters (`% _ & { }` etc.) in
+  user-supplied `title`/`author`/`research_focus`/observation strings,
+  which could silently truncate or break the generated document.
+- `test_examples_*.py` - Smoke tests (one file per script) for the
+  standalone demo scripts in `src/lfsr/examples/` (not part of the
+  public API; each has a `main()` that runs several `example_*()`
+  functions). Found and fixed a real bug in
+  `correlation_attack_example.py`: `main()` called two functions
+  (`example_fast_correlation_attack`, `example_distinguishing_attack`)
+  that were never defined, crashing every run. Implementing the fix
+  also surfaced a second, more severe bug in the underlying library:
+  `lfsr.attacks.fast_correlation_attack()`'s candidate-generation loop
+  had no attempt cap and hung forever once it exhausted a small LFSR's
+  finite state space — reachable via the function's own default
+  (`max_candidates=1000`) for any small-to-medium demo-scale LFSR.
 - `conftest.py` - Pytest configuration and fixtures
 - `fixtures/` - Test data files
 
@@ -44,15 +73,19 @@ This directory contains the test suite for the LFSR-Seq analysis tool.
 
 A 90% coverage gate is configured (enforced for every `pytest`
 invocation via `pyproject.toml`'s `addopts`, not just `make test-cov`).
-As of 2026-08-07, actual total coverage is ~31%, not 90% — most of the
-package (`cli_*.py` sub-CLIs, `visualization/`, `theoretical*.py`,
-`export*.py`, `optimization.py`, `synthesis.py`, `reproducibility.py`,
-`advanced/*`, algebraic attacks, most stream ciphers) was implemented
-but never given tests. This is an active, ongoing effort, not a
-stable end-state: `attacks.py`, `tmto.py`, and `nist.py` were closed
-out in one session, each turning up real bugs that had shipped
-undetected. Treat any module without a corresponding `test_*.py` file
-here as unverified, not as working-by-assumption.
+As of 2026-08-14, **the gate passes**: total coverage is 90.05% (1213
+tests passing, 1 skipped, 0 failures). This was reached across several
+coverage-closing sessions starting 2026-08-07 — `attacks.py`, `tmto.py`,
+`nist.py`, `analysis.py`, `cli.py`/`cli_*.py`, `polynomial.py`,
+`statistics.py`, `ml/*`, `paper_generator.py`, `benchmarking.py`, and
+`examples/*` were each closed out from 0% coverage in turn, and
+**without a single exception, every one of them turned up at least one
+genuine, previously-undetected bug** shipped with 0% test coverage —
+wrong formulas, off-by-ones, crashes, infinite loops, and dead code
+paths. See individual commit history for the full bug list. A handful
+of modules remain in the 80-95% range on defensive or rarely-hit
+branches rather than untested from scratch; check a module's own
+`test_*.py` file (or lack thereof) before trusting its correctness.
 
 ## Running Tests
 

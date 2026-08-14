@@ -1345,14 +1345,15 @@ pytest tests/ -v   # Run with verbose output
 
 **A 90% coverage gate is configured** (`pyproject.toml`'s
 `--cov-fail-under=90`, applied to every pytest run including plain
-`make test`), but **actual coverage is not currently at that level**.
-Core LFSR math, the correlation attack framework, TMTO attacks, and the
-NIST SP 800-22 suite have real test coverage; several other
-CLI-integrated features (algebraic attacks, most stream ciphers,
-advanced LFSR structures, visualization, most sub-CLIs, theoretical
-analysis tooling) do not yet. This is being actively closed — see
-`app/tests/` for what's currently covered before relying on an
-untested module's correctness.
+`make test`), and as of 2026-08-14 **the gate passes**: total coverage
+is 90.05% (1213 tests passing, 1 skipped, 0 failures). Every module
+that previously shipped with 0% coverage has now been given real tests
+across several coverage-closing sessions, and — without exception —
+every one of them turned up at least one genuine, previously-undetected
+bug (wrong formulas, off-by-ones, crashes, infinite loops, dead code
+paths). See `app/tests/` for current coverage per module; a small
+number of modules remain in the 80-95% range on defensive/rarely-hit
+branches rather than untested from scratch.
 
 ## CI/CD
 
