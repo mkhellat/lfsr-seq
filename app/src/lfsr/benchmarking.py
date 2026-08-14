@@ -136,13 +136,26 @@ def benchmark_period_computation(
     Returns:
         BenchmarkResult with timing and correctness information
     """
-    from lfsr.core import compute_period_enumeration
     from lfsr.polynomial import compute_period_via_factorization
 
     start_time = time.time()
 
     if method == "enumeration":
-        computed_period = compute_period_enumeration(coefficients, field_order)
+        import contextlib
+        import io
+
+        from lfsr.analysis import lfsr_sequence_mapper
+        from lfsr.core import build_state_update_matrix
+
+        C, _ = build_state_update_matrix(coefficients, field_order)
+        F = GF(field_order)
+        V = VectorSpace(F, len(coefficients))
+        sink = io.StringIO()
+        with contextlib.redirect_stdout(sink):
+            _, _, computed_period, _ = lfsr_sequence_mapper(
+                C, V, field_order, output_file=sink, no_progress=True,
+                algorithm="enumeration", period_only=True,
+            )
     elif method == "factorization":
         computed_period = compute_period_via_factorization(coefficients, field_order)
     else:
