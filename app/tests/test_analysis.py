@@ -1264,31 +1264,32 @@ class TestProcessStateChunkExtra:
 
 
 class TestLfsrSequenceMapperParallelExtra:
-    def test_worker_count_note_is_dead_code_never_printed(self, monkeypatch, capsys):
-        """SUSPECTED REAL BUG: the "Note: Using N workers (optimal M...)"
-        message at analysis.py:1543-1545 is guarded by `original_num_workers
-        is None`, where `original_num_workers = num_workers` is captured at
-        line 1535 -- AFTER line 1506-1507 already replaced a caller-supplied
-        `num_workers=None` with `multiprocessing.cpu_count()`:
-
-            if num_workers is None:
-                num_workers = multiprocessing.cpu_count()   # line 1507
-            ...
-            original_num_workers = num_workers               # line 1535 -- never None here!
-
-        So `original_num_workers` can never actually be None at the point
-        it's checked, making the entire "Note: ..." print branch dead code
-        that can never execute for any input, contrary to what the
-        surrounding comments describe ("If None (auto), use optimal").
-        Confirmed independently via a standalone repro (varying cpu_count
-        via monkeypatch across the full range of state-space sizes) before
-        writing this assertion; this test documents the actual (broken)
-        behavior rather than the intended one."""
+    def test_worker_count_note_prints_when_auto_selection_hits_cpu_limit(self, monkeypatch, capsys):
+        """The "Note: Using N workers (optimal M...)" message must print
+        when auto mode (num_workers=None) selects an optimal worker count
+        that then gets capped by a low cpu_count(). This was previously
+        dead code: original_num_workers was captured AFTER num_workers=None
+        had already been replaced with cpu_count(), so the `is None` guard
+        could never be true. Fixed by capturing original_num_workers from
+        the caller-supplied value before any auto-fill."""
         monkeypatch.setattr(multiprocessing, "cpu_count", lambda: 1)
         C, V, d = make_matrix([1] * 11, 2)  # 2**11 = 2048 states -> optimal_workers=2
         with tempfile.TemporaryFile(mode="w+") as f:
             lfsr_sequence_mapper_parallel(
                 C, V, 2, output_file=f, no_progress=False, period_only=True, num_workers=None
+            )
+        captured = capsys.readouterr()
+        assert "Note: Using" in captured.err
+
+    def test_worker_count_note_not_printed_for_explicit_num_workers(self, monkeypatch, capsys):
+        """When the caller explicitly passes num_workers, the auto-select
+        "Note: ..." message must NOT print, even if it differs from the
+        optimal count."""
+        monkeypatch.setattr(multiprocessing, "cpu_count", lambda: 1)
+        C, V, d = make_matrix([1] * 11, 2)
+        with tempfile.TemporaryFile(mode="w+") as f:
+            lfsr_sequence_mapper_parallel(
+                C, V, 2, output_file=f, no_progress=False, period_only=True, num_workers=1
             )
         captured = capsys.readouterr()
         assert "Note: Using" not in captured.out

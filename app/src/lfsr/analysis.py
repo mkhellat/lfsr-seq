@@ -1522,6 +1522,10 @@ def lfsr_sequence_mapper_parallel(
     """
     from lfsr.formatter import dump, dump_seq_row, subsection
 
+    # Capture the caller-supplied value before auto-filling it, so the
+    # "auto vs. explicit" check below can still tell them apart.
+    original_num_workers = num_workers
+
     # Determine number of workers
     if num_workers is None:
         num_workers = multiprocessing.cpu_count()
@@ -1552,7 +1556,6 @@ def lfsr_sequence_mapper_parallel(
     # Use the optimal count, but respect user's explicit choice if provided
     # If user explicitly set num_workers, use it (they know what they want)
     # If None (auto), use optimal
-    original_num_workers = num_workers
     if num_workers is not None and num_workers != multiprocessing.cpu_count():
         # User explicitly set num_workers, respect it
         num_workers = max(1, min(num_workers, multiprocessing.cpu_count()))
