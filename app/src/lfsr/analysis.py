@@ -2488,9 +2488,19 @@ def lfsr_sequence_mapper_parallel_dynamic(
             print("  Producer thread started (lazy generation enabled, daemon=True)")
             sys.stdout.flush()
     else:
-        # Hybrid mode: No producer thread needed (static chunks assigned)
+        # Hybrid mode: No producer thread needed (static chunks assigned).
+        # Sentinels normally get queued from producer_thread()'s own
+        # `finally` block, but that function is never invoked in hybrid
+        # mode -- queue them here instead so each worker's own_queue poll
+        # loop can terminate once it drains its static chunk and any
+        # work-stolen overflow.
         producer = None
         producer_done.set()  # Mark as done immediately
+        for worker_queue in worker_queues:
+            try:
+                worker_queue.put(None, block=False)
+            except Exception:
+                pass
         if not no_progress:
             print("  Hybrid mode: Static chunks assigned, work stealing ready")
             sys.stdout.flush()

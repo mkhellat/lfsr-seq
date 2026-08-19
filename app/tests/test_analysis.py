@@ -1620,58 +1620,27 @@ class TestLfsrSequenceMapperParallelDynamicExtra:
             )
         assert result == ({}, {}, 0, 0)
 
-    def test_hybrid_mode_never_sends_worker_queue_sentinels(self):
-        """SUSPECTED REAL BUG, SEVERE (confirmed via a standalone,
-        deliberately-killed repro outside pytest -- see report -- NOT run
-        to completion here, since it hangs indefinitely and burns 100%
-        CPU on every worker): in
-        lfsr_sequence_mapper_parallel_dynamic, hybrid mode
-        (use_hybrid_mode=True, auto-selected for any state space in
-        [8192, 65536) states -- see lines 2266-2267) never starts the
-        `producer_thread` background thread:
-
-            if not use_hybrid_mode:
-                producer = threading.Thread(target=producer_thread, ...)
-                producer.start()
-            else:
-                producer = None
-                producer_done.set()   # <-- line 2470: only this runs
-
-        But ALL of the sentinel-queuing logic (`worker_queue.put(None,
-        block=False)` for every worker_queues[i]) lives inside
-        producer_thread()'s own `finally` block (lines 2432-2455) -- code
-        that only executes if producer_thread() is actually called. Since
-        hybrid mode skips starting that thread entirely, no sentinel is
-        EVER placed in any worker_queue for a hybrid-mode run.
-
-        Each worker (_process_task_batch_dynamic) processes its assigned
-        static chunk (lines 2067-2071 in that function), then falls into
-        `own_queue = worker_queues[worker_id]` and polls it in a `while
-        True: ... except queue_module.Empty: continue` loop (lines
-        2079-2124) waiting for a sentinel that will never arrive --
-        spinning at 100% CPU indefinitely. This makes hybrid mode hang
-        unconditionally for every input in its auto-selected size range,
-        not just an edge case.
-
-        This test verifies the structural fact (no code path reaches
-        producer_thread() when use_hybrid_mode is True) directly via
-        source inspection, rather than re-triggering the actual hang."""
-        import inspect
-
-        source = inspect.getsource(analysis_mod.lfsr_sequence_mapper_parallel_dynamic)
-        # The only call to producer_thread() (the function object, not the
-        # variable `producer`) must be reachable ONLY through the
-        # `if not use_hybrid_mode:` branch -- confirm the exact structure
-        # so this test breaks loudly if a future fix reorganizes it.
-        assert "target=producer_thread" in source
-        assert "if not use_hybrid_mode:" in source
-        # And confirm hybrid mode's else-branch does NOT start the thread
-        # or otherwise queue sentinels itself.
-        else_branch_start = source.index("else:\n        # Hybrid mode: No producer thread needed")
-        else_branch = source[else_branch_start: else_branch_start + 300]
-        assert "producer_thread()" not in else_branch
-        assert ".put(None" not in else_branch
-        assert "producer = None" in else_branch
+    def test_hybrid_mode_completes_without_hanging(self):
+        """Regression test for a fixed real bug: hybrid mode
+        (use_hybrid_mode=True, auto-selected for state spaces in
+        [8192, 65536)) never started the `producer_thread` background
+        thread, but ALL sentinel-queuing logic lived inside that thread's
+        own `finally` block. Since hybrid mode skipped starting the
+        thread entirely, no sentinel was ever placed in any worker_queue,
+        so each worker's own_queue poll loop spun forever waiting for a
+        sentinel that would never arrive. Fixed by queuing sentinels
+        directly in the hybrid-mode branch, right where producer_done is
+        set. This test uses a real 13-bit LFSR (8192 states, the smallest
+        input that auto-selects hybrid mode) and must complete quickly;
+        it hung indefinitely before the fix (verified independently)."""
+        coeffs = [1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1]  # degree 13 -> 8192 states
+        gf_order, d = 2, 13
+        C, V, _ = make_matrix(coeffs, gf_order)
+        with tempfile.TemporaryFile(mode="w+") as f:
+            seq_dict, period_dict, max_period, periods_sum = lfsr_sequence_mapper_parallel_dynamic(
+                C, V, gf_order, output_file=f, no_progress=True, period_only=True, num_workers=2
+            )
+        assert periods_sum == 8192
 
     def test_no_progress_false_prints_setup_messages(self, capsys):
         """no_progress=False on a small (non-hybrid) state space exercises
