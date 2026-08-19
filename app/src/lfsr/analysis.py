@@ -1011,8 +1011,28 @@ def _partition_state_space(
         gf_order = state_vector_space.base_ring().order()
         total_states = int(gf_order) ** d
     except (AttributeError, TypeError):
-        # Fallback: iterate once to count (for small state spaces)
-        total_states = sum(1 for _ in state_vector_space)
+        # Fallback: object doesn't expose basis()/base_ring().order(), so we
+        # can't compute state indices mathematically. Materialize states by
+        # iterating directly (only viable for small state spaces).
+        states = list(state_vector_space)
+        total_states = len(states)
+
+        if total_states == 0:
+            return []
+
+        base_chunk_size = total_states // num_chunks
+        remainder = total_states % num_chunks
+        chunks = []
+        start_idx = 0
+        for chunk_idx in range(num_chunks):
+            this_chunk_size = base_chunk_size + (1 if chunk_idx < remainder else 0)
+            end_idx = start_idx + this_chunk_size
+            chunk = [
+                (tuple(states[state_idx]), state_idx) for state_idx in range(start_idx, end_idx)
+            ]
+            chunks.append(chunk)
+            start_idx = end_idx
+        return chunks
 
     if total_states == 0:
         return []

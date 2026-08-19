@@ -1110,30 +1110,23 @@ class TestMergeParallelResultsExtra:
 
 
 class TestPartitionStateSpaceExtra:
-    def test_fallback_path_when_basis_or_order_missing_crashes(self):
-        """SUSPECTED REAL BUG (not a test-authoring mistake): when
-        state_vector_space lacks .basis()/.base_ring().order() (so the
-        `try` at analysis.py:1008-1012 raises AttributeError/TypeError),
-        the `except` branch at 1013-1015 sets ONLY `total_states` via
-        `sum(1 for _ in state_vector_space)` -- it never binds `d` or
-        `gf_order`. But `state_index_to_tuple(state_idx, d, gf_order)` at
-        line 1052 is called unconditionally afterwards (whenever
-        total_states > 0), referencing the same-named `d`/`gf_order` from
-        the enclosing scope. Since they were never assigned on the
-        except-branch, this is a guaranteed UnboundLocalError for ANY
-        object that reaches the fallback counting path with at least one
-        state -- i.e. the "iterate once to count (for small state spaces)"
-        fallback documented in the comment is entirely broken; it always
-        crashes instead of falling back gracefully. Confirmed independently
-        via a standalone repro outside pytest before writing this
-        assertion."""
+    def test_fallback_path_when_basis_or_order_missing_materializes_states(self):
+        """When state_vector_space lacks .basis()/.base_ring().order() (so
+        the `try` at analysis.py raises AttributeError/TypeError), the
+        `except` branch must fall back to materializing states by direct
+        iteration rather than crashing with UnboundLocalError (a real bug
+        fixed alongside this test: d/gf_order were never bound on that
+        branch, yet state_index_to_tuple(state_idx, d, gf_order) was called
+        unconditionally afterwards)."""
 
         class FakeSpace:
             def __iter__(self):
-                return iter([0, 1, 2])  # 3 "states"
+                return iter([(0, 0), (1, 0), (1, 1)])  # 3 "states"
 
-        with pytest.raises(UnboundLocalError):
-            _partition_state_space(FakeSpace(), 1)
+        chunks = _partition_state_space(FakeSpace(), 1)
+        assert len(chunks) == 1
+        assert [state for state, _idx in chunks[0]] == [(0, 0), (1, 0), (1, 1)]
+        assert [idx for _state, idx in chunks[0]] == [0, 1, 2]
 
     def test_zero_total_states_returns_empty_list(self):
         class EmptySpace:
