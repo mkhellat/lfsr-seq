@@ -527,6 +527,19 @@ class TestNonOverlappingTemplateMatchingTest:
         assert result.details["variance"] > 0
         assert 0.0 <= result.p_value <= 1.0
 
+    def test_block_size_smaller_than_template_gives_nonpositive_variance(self):
+        """When block_size (M) is smaller than the template length (m),
+        M - m + 1 <= 0, so prob_match = (M-m+1)/2^m is <= 0 and variance
+        (N * prob_match * (1-prob_match)) is <= 0 -- hitting the explicit
+        'Variance is zero or negative' guard rather than proceeding to
+        the chi-square computation. Uses the default 9-bit template with
+        block_size=4 (M-m+1 = -4)."""
+        seq = [0, 1] * 300  # 600 bits, > minimum M*10 = 40
+        result = non_overlapping_template_matching_test(seq, block_size=4)
+        assert not result.passed
+        assert result.p_value == 0.0
+        assert "Variance is zero or negative" in result.details["error"]
+
 
 # ---------------------------------------------------------------------------
 # Test 8: Overlapping Template Matching Test
@@ -839,6 +852,17 @@ class TestSerialTest:
         result = serial_test(seq, block_size=1)
         assert result.details["chi_square_m2"] == 0.0
         assert 0.0 <= result.p_value <= 1.0
+
+    def test_block_size_three_exercises_m2_terms(self):
+        """For m=3 (> 2), the (m-2)-bit (i.e. 1-bit) pattern counting
+        branch runs and contributes a real chi_square_m2/delta2_chi_square
+        computation, unlike block_size=1 or 2 above."""
+        seq = _prng_sequence(5000, seed=7)
+        result = serial_test(seq, block_size=3)
+        assert 0.0 <= result.p_value <= 1.0
+        # (m-2)-bit patterns for m=3 are single bits: only 2 possible
+        # patterns (0,), (1,), each should have been counted.
+        assert result.details["chi_square_m2"] >= 0.0
 
 
 # ---------------------------------------------------------------------------

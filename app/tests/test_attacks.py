@@ -32,10 +32,13 @@ from lfsr.attacks import (
     CombinationGenerator,
     LFSRConfig,
     analyze_combining_function,
+    compute_algebraic_immunity,
     compute_correlation_coefficient,
+    cube_attack,
     distinguishing_attack,
     estimate_attack_success_probability,
     fast_correlation_attack,
+    groebner_basis_attack,
     siegenthaler_correlation_attack,
 )
 from lfsr.sage_imports import GF, vector
@@ -608,3 +611,153 @@ class TestLFSRConfigDefaults:
 
         seq2 = gen.generate_lfsr_sequence(lfsr_index=0, length=1, initial_state=[1, 1, 1, 1])
         assert seq2[0] == 1
+
+
+class TestFastCorrelationAttackRefinementLoop:
+    """Tests for the iterative-decoding refinement loop inside
+    fast_correlation_attack (lines ~1480-1518): after the initial candidate
+    search, if the best candidate clears correlation_threshold, the function
+    tries flipping each bit of the best state looking for an improvement.
+    These cases specifically drive that loop through at least one real
+    improve-then-stop cycle (iterations_performed == 1), which the existing
+    tests in TestFastCorrelationAttack don't reach because their best
+    candidate is already optimal (0 iterations)."""
+
+    def test_refinement_improves_and_then_stops(self):
+        """With a small max_candidates and a true initial state that isn't
+        in the structured candidate set, the best initial candidate found is
+        suboptimal; the refinement loop's single-bit-flip search should find
+        an improvement once (iterations_performed == 1) and then stop when
+        no further single-bit flip improves it further."""
+        gen = majority_generator()
+        keystream = gen.generate_keystream(
+            length=400, initial_states=[[1, 1, 1, 0], [1, 0, 1, 0], [0, 1, 1, 1]]
+        )
+        result = fast_correlation_attack(
+            gen, keystream, target_lfsr_index=0, max_candidates=3, max_iterations=8
+        )
+        assert result.iterations_performed == 1
+        assert result.attack_successful is True
+        assert result.recovered_state == [0, 0, 1, 0]
+
+
+class TestComputeAlgebraicImmunity:
+    """Tests for compute_algebraic_immunity."""
+
+    def test_non_binary_field_order_unsupported(self):
+        """Only field_order=2 is currently supported; other field orders
+        return an explicit error result rather than attempting analysis."""
+
+        def dummy(a, b, c):
+            return a
+
+        result = compute_algebraic_immunity(dummy, 3, field_order=3)
+        assert result["algebraic_immunity"] == 0
+        assert result["annihilators_found"] == []
+        assert result["optimal"] is False
+        assert result["max_possible"] == 0
+        assert "error" in result
+
+    def test_majority_achieves_optimal_algebraic_immunity(self):
+        """majority(a,b,c) is balanced with no near-constant bias, so it
+        should not hit the degree-1 low-immunity heuristic and should be
+        reported as achieving the maximum possible algebraic immunity for
+        3 inputs (ceil(3/2) = 2)."""
+
+        def majority(a, b, c):
+            return 1 if (a + b + c) >= 2 else 0
+
+        result = compute_algebraic_immunity(majority, 3)
+        assert result["max_possible"] == 2
+        assert result["algebraic_immunity"] == 2
+        assert result["optimal"] is True
+
+    def test_constant_function_has_zero_algebraic_immunity(self):
+        """A constant function (always 0) is the most degenerate case:
+        every output is 0, immediately triggering the 'constant function'
+        branch (min_degree = 0)."""
+
+        def always_zero(a, b, c):
+            return 0
+
+        result = compute_algebraic_immunity(always_zero, 3)
+        assert result["algebraic_immunity"] == 0
+        assert result["optimal"] is False
+
+    def test_almost_constant_function_has_algebraic_immunity_one(self):
+        """AND of 3 inputs is 1 in exactly one of the 8 input rows (only
+        [1,1,1] gives ones==1), triggering the 'almost constant' branch
+        (min_degree = 1) rather than the constant-function branch."""
+
+        def and3(a, b, c):
+            return a & b & c
+
+        result = compute_algebraic_immunity(and3, 3)
+        assert result["algebraic_immunity"] == 1
+        assert result["optimal"] is False
+        assert result["max_possible"] == 2
+
+
+class TestGroebnerBasisAttack:
+    """Tests for groebner_basis_attack (placeholder implementation:
+    attack_successful is always False by construction, see the function's
+    own source -- these tests cover the length guard and the exception
+    branch, not a real state-recovery success case, which does not exist
+    in the current implementation)."""
+
+    def test_insufficient_keystream_returns_failure(self):
+        lfsr = LFSRConfig(coefficients=[1, 0, 0, 1], field_order=2, degree=4)
+        result = groebner_basis_attack(lfsr, keystream=[1, 0, 1])
+        assert result.attack_successful is False
+        assert result.method_used == "groebner_basis"
+        assert "Insufficient keystream" in result.details["error"]
+
+    def test_invalid_field_order_hits_exception_branch(self):
+        """field_order=0 is not a valid finite field order, so GF(0)
+        inside the function raises a ValueError, which is caught by the
+        function's own (TypeError, ValueError, AttributeError,
+        ArithmeticError) handler and converted into a failure result
+        carrying the error message rather than propagating.
+
+        Note: field_order=6 (a composite non-prime-power) was tried
+        first and also reaches this branch logically, but triggers a
+        reproducible SageMath internal category-cache assertion crash
+        under pytest-cov instrumentation specifically (not reproducible
+        running the same GF(6) call standalone without coverage) --
+        genuinely a Sage/coverage interaction issue, not specific to
+        this test's intent, so field_order=0 is used instead as a
+        stable way to reach the same except branch."""
+        lfsr = LFSRConfig(coefficients=[1, 0, 0, 1], field_order=0, degree=4)
+        keystream = [1, 0, 1, 1, 0, 1, 0, 0, 1, 1]
+        result = groebner_basis_attack(lfsr, keystream)
+        assert result.attack_successful is False
+        assert result.method_used == "groebner_basis"
+        assert "error" in result.details
+
+    def test_sufficient_keystream_runs_placeholder_path(self):
+        """With enough keystream and a valid field, the placeholder
+        Groebner-basis path runs to completion without raising."""
+        lfsr = LFSRConfig(coefficients=[1, 0, 0, 1], field_order=2, degree=4)
+        keystream = [1, 0, 1, 1, 0, 1, 0, 0, 1, 1]
+        result = groebner_basis_attack(lfsr, keystream)
+        assert result.attack_successful is False
+        assert result.equations_solved == 0
+
+
+class TestCubeAttack:
+    """Tests for cube_attack (placeholder implementation: attack_successful
+    is always False by construction; see the function's own source)."""
+
+    def test_insufficient_keystream_returns_failure(self):
+        lfsr = LFSRConfig(coefficients=[1, 0, 0, 1], field_order=2, degree=4)
+        result = cube_attack(lfsr, keystream=[1, 0, 1], max_cube_size=5)
+        assert result.attack_successful is False
+        assert "Insufficient keystream" in result.details["error"]
+
+    def test_sufficient_keystream_runs_placeholder_path(self):
+        lfsr = LFSRConfig(coefficients=[1, 0, 0, 1], field_order=2, degree=4)
+        keystream = [1, 0, 1, 1, 0, 1, 0, 0, 1, 1] * 4  # 40 bits, > 2**5
+        result = cube_attack(lfsr, keystream, max_cube_size=5)
+        assert result.attack_successful is False
+        assert result.details["max_cube_size_tried"] == 5
+        assert result.details["keystream_length"] == len(keystream)

@@ -143,6 +143,27 @@ class TestPerformAlgebraicAttackCli:
         captured = capsys.readouterr()
         assert "LFSR Configuration" in captured.out
 
+    def test_algebraic_immunity_reports_non_optimal_for_unbalanced_function(self):
+        """AND of 3 inputs is unbalanced (only [1,1,1] gives output 1),
+        triggering compute_algebraic_immunity's 'not optimal' path --
+        exercises the else branch in perform_algebraic_attack_cli that
+        prints the 'does not achieve maximum' warning."""
+        def and3(a, b, c):
+            return a & b & c
+
+        buf = io.StringIO()
+        perform_algebraic_attack_cli(
+            lfsr_coefficients=COEFFS,
+            field_order=2,
+            keystream=KEYSTREAM,
+            method="algebraic_immunity",
+            filtering_function=and3,
+            output_file=buf,
+        )
+        out = buf.getvalue()
+        assert "does not achieve maximum algebraic immunity" in out
+        assert "Vulnerable to algebraic attacks of degree" in out
+
     def test_lfsr_config_info_printed(self):
         buf = io.StringIO()
         perform_algebraic_attack_cli(

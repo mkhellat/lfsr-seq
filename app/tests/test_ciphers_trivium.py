@@ -249,3 +249,17 @@ def test_analyze_end_to_end():
     assert result.cipher_name == "Trivium"
     assert result.keystream_properties["length"] == 64
     assert result.structure.state_size == 288
+
+
+def test_clock_register_helper_shifts_in_feedback_bit():
+    """_clock_register is a small generic shift-register helper on the
+    Trivium class (`feedback = feedback_func(reg); return [feedback] +
+    reg[:-1]`); it is never actually called anywhere in the class's own
+    generate_keystream implementation (which inlines its own three
+    feedback formulas directly per the bug-fix note above this module's
+    tests), so it needs a direct unit test to exercise it at all."""
+    cipher = Trivium()
+    reg = [1, 0, 1, 1, 0]
+    new_reg = cipher._clock_register(reg, size=5, feedback_func=lambda r: r[0] ^ r[-1])
+    assert new_reg == [1 ^ 0] + reg[:-1]
+    assert len(new_reg) == len(reg)

@@ -128,6 +128,23 @@ class TestPerformCipherAnalysisCli:
         captured = capsys.readouterr()
         assert "Key size mismatch" in captured.err
 
+    def test_generate_keystream_iv_size_mismatch_warns_and_pads(self, tmp_path, capsys):
+        """Mirror of test_generate_keystream_key_size_mismatch_warns_and_pads,
+        but for the IV-size-mismatch branch."""
+        iv_file = tmp_path / "iv.txt"
+        iv_file.write_text("11")  # way too short for grain128 (needs 96 bits)
+
+        buf = io.StringIO()
+        perform_cipher_analysis_cli(
+            cipher_name="grain128",
+            generate_keystream=True,
+            keystream_length=16,
+            iv_file=str(iv_file),
+            output_file=buf,
+        )
+        captured = capsys.readouterr()
+        assert "IV size mismatch" in captured.err
+
     def test_compare_ciphers(self):
         buf = io.StringIO()
         perform_cipher_analysis_cli(

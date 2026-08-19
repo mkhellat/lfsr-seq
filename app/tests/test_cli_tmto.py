@@ -121,6 +121,54 @@ class TestPerformTmtoAttackCli:
         out = buf.getvalue()
         assert "Loaded 3 chains" in out
 
+    def test_valid_precomputed_rainbow_table_file_loads(self, tmp_path):
+        """Mirror of test_valid_precomputed_hellman_table_file_loads, for
+        the method="rainbow" branch of the table-file-loading logic
+        (cli_tmto.py lines ~117-122).
+
+        BUG (found, not fixed -- documented per task instructions):
+        unlike the hellman branch, reconstructing a RainbowTable from a
+        saved JSON file only restores `.chains`, never
+        `.reduction_functions` (which RainbowTable.__init__ leaves as an
+        empty list; it's only ever populated inside .generate(), never
+        called on this file-loaded path). RainbowTable.lookup() (called
+        by tmto_attack(method="rainbow")) unconditionally indexes
+        `self.reduction_functions[step]` for step in
+        range(self.chain_length) -- with reduction_functions == [], this
+        raises `IndexError: list index out of range` on every attack
+        that reaches this code path. Loading itself ("Loaded N chains")
+        succeeds and prints correctly; the crash happens one step later,
+        inside the subsequent tmto_attack() call. Repro: build a
+        rainbow-table JSON file with chain_count/chain_length/chains
+        keys (as generate_precomputed_table or manual export would
+        produce) and call perform_tmto_attack_cli(method="rainbow",
+        table_file=<that file>) -- see the IndexError asserted below.
+        Contrast with the hellman branch (test above), which works
+        correctly because HellmanTable.lookup() doesn't depend on any
+        per-step state beyond .chains."""
+        table_file = tmp_path / "table.json"
+        table_data = {
+            "chain_count": 3,
+            "chain_length": 4,
+            "chains": [[0, 1], [2, 3], [4, 5]],
+        }
+        table_file.write_text(json.dumps(table_data))
+
+        buf = io.StringIO()
+        with pytest.raises(IndexError):
+            perform_tmto_attack_cli(
+                lfsr_coefficients=COEFFS,
+                field_order=2,
+                method="rainbow",
+                chain_count=10,
+                chain_length=5,
+                table_file=str(table_file),
+                output_file=buf,
+            )
+        # The load itself (the lines this test targets) succeeded and
+        # printed before the later crash.
+        assert "Loaded 3 chains" in buf.getvalue()
+
     def test_output_defaults_to_stdout(self, capsys):
         perform_tmto_attack_cli(
             lfsr_coefficients=COEFFS,

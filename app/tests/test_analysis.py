@@ -21,7 +21,9 @@ lfsr.analysis before writing any assertions against it.
 """
 
 import multiprocessing
+import os
 import tempfile
+import threading
 
 import pytest
 
@@ -53,6 +55,14 @@ from lfsr.analysis import (
     shutdown_worker_pool,
 )
 import lfsr.analysis as analysis_mod
+
+
+@pytest.fixture
+def _debug_parallel_env(monkeypatch):
+    """Enable the DEBUG_PARALLEL debug-logging branches for the duration
+    of a test, restoring whatever value (or absence) existed before."""
+    monkeypatch.setenv("DEBUG_PARALLEL", "1")
+    yield
 
 
 # ---------------------------------------------------------------------------
@@ -961,3 +971,724 @@ class TestWorkerPoolLifecycle:
 
         assert analysis_mod._worker_pool is None
         assert analysis_mod._worker_pool_size == 0
+
+
+# ---------------------------------------------------------------------------
+# Additional coverage-closing tests: _merge_parallel_results edge branches
+# ---------------------------------------------------------------------------
+
+
+class TestMergeParallelResultsExtra:
+    def test_sagemath_import_failure_returns_empty(self, monkeypatch):
+        """If `from lfsr.sage_imports import GF, vector` raises ImportError,
+        the function must log to stderr and return the all-empty tuple
+        rather than propagating."""
+        import lfsr.sage_imports as sage_imports_mod
+
+        real_import = __import__
+
+        def fake_import(name, *args, **kwargs):
+            if name == "lfsr.sage_imports":
+                raise ImportError("simulated: sage not available")
+            return real_import(name, *args, **kwargs)
+
+        monkeypatch.setattr("builtins.__import__", fake_import)
+        seq_dict, period_dict, max_period, periods_sum = _merge_parallel_results(
+            [], gf_order=2, lfsr_degree=2, shared_cycles=None
+        )
+        assert (seq_dict, period_dict, max_period, periods_sum) == ({}, {}, 0, 0)
+
+    def test_shared_cycles_skips_empty_states_and_zero_period(self):
+        """Entries with falsy `states` or period==0 must be skipped (line
+        `if not states_tuples or period == 0: continue`) when shared_cycles
+        is used for dedup."""
+        worker_results = [
+            {
+                "sequences": [
+                    {"states": (), "period": 5, "start_state": (0, 0), "period_only": True},
+                    {"states": ((1, 1),), "period": 0, "start_state": (1, 1), "period_only": True},
+                    {"states": ((0, 1),), "period": 2, "start_state": (0, 1), "period_only": True},
+                ],
+                "max_period": 2,
+                "errors": [],
+            }
+        ]
+        shared_cycles = {(0, 1): 0}
+        seq_dict, period_dict, max_period, periods_sum = _merge_parallel_results(
+            worker_results, gf_order=2, lfsr_degree=2, shared_cycles=shared_cycles
+        )
+        # Only the third entry (non-empty states, non-zero period) survives.
+        assert list(period_dict.values()) == [2]
+
+    def test_shared_cycles_skips_malformed_states_entry(self):
+        """`states` that is neither a length-1 tuple nor a non-empty list
+        (e.g. a dict, or a list with 0 length after the falsy check somehow
+        passes) falls through to `continue` at the final else branch."""
+        worker_results = [
+            {
+                "sequences": [
+                    # A non-tuple, non-list truthy value hits the final
+                    # `else: continue` branch.
+                    {"states": "not-a-tuple-or-list", "period": 3, "start_state": (0,), "period_only": True},
+                ],
+                "max_period": 3,
+                "errors": [],
+            }
+        ]
+        seq_dict, period_dict, max_period, periods_sum = _merge_parallel_results(
+            worker_results, gf_order=2, lfsr_degree=2, shared_cycles={}
+        )
+        assert period_dict == {}
+
+    def test_fallback_dedup_empty_states_tuples_uses_period_start_state_key(self):
+        """When shared_cycles is None (fallback dedup path) and states is
+        falsy, the key becomes (period, start_state)."""
+        worker_results = [
+            {
+                "sequences": [
+                    {"states": [], "period": 4, "start_state": (1, 0, 0, 0), "period_only": True},
+                ],
+                "max_period": 4,
+                "errors": [],
+            }
+        ]
+        seq_dict, period_dict, max_period, periods_sum = _merge_parallel_results(
+            worker_results, gf_order=2, lfsr_degree=4, shared_cycles=None
+        )
+        assert period_dict == {1: 4}
+        # period_only defaults to seq_info.get('period_only', False); here it's True
+        assert seq_dict == {1: []}
+
+    def test_empty_states_reconstructs_as_empty_list_not_period_only(self):
+        """Full-mode (period_only=False) entry whose 'states' happens to be
+        empty must still land as [] via the final `else` branch (line 968),
+        not crash trying to reconstruct vectors from nothing."""
+        worker_results = [
+            {
+                "sequences": [
+                    {"states": [], "period": 1, "start_state": (0, 0), "period_only": False},
+                ],
+                "max_period": 1,
+                "errors": [],
+            }
+        ]
+        seq_dict, period_dict, max_period, periods_sum = _merge_parallel_results(
+            worker_results, gf_order=2, lfsr_degree=2, shared_cycles=None
+        )
+        assert seq_dict == {1: []}
+
+    def test_more_than_ten_errors_shows_truncation_message(self, capsys):
+        errors = [f"error-{i}" for i in range(15)]
+        worker_results = [{"sequences": [], "max_period": 0, "errors": errors}]
+        _merge_parallel_results(worker_results, gf_order=2, lfsr_degree=2, shared_cycles=None)
+        captured = capsys.readouterr()
+        assert "... and 5 more errors" in captured.err
+
+    def test_debug_parallel_env_var_exercises_debug_logging(self, _debug_parallel_env, capsys):
+        """DEBUG_PARALLEL=1 triggers the merge_debug print branches (both
+        shared_cycles and fallback code paths)."""
+        worker_results = [
+            {
+                "sequences": [
+                    {"states": ((0, 0),), "period": 1, "start_state": (0, 0), "period_only": True},
+                ],
+                "max_period": 1,
+                "errors": [],
+            }
+        ]
+        # shared_cycles path
+        _merge_parallel_results(worker_results, gf_order=2, lfsr_degree=2, shared_cycles={})
+        # fallback path
+        _merge_parallel_results(worker_results, gf_order=2, lfsr_degree=2, shared_cycles=None)
+        captured = capsys.readouterr()
+        assert "Merge PID" in captured.err
+
+
+# ---------------------------------------------------------------------------
+# Additional coverage-closing tests: _partition_state_space edge branches
+# ---------------------------------------------------------------------------
+
+
+class TestPartitionStateSpaceExtra:
+    def test_fallback_path_when_basis_or_order_missing_crashes(self):
+        """SUSPECTED REAL BUG (not a test-authoring mistake): when
+        state_vector_space lacks .basis()/.base_ring().order() (so the
+        `try` at analysis.py:1008-1012 raises AttributeError/TypeError),
+        the `except` branch at 1013-1015 sets ONLY `total_states` via
+        `sum(1 for _ in state_vector_space)` -- it never binds `d` or
+        `gf_order`. But `state_index_to_tuple(state_idx, d, gf_order)` at
+        line 1052 is called unconditionally afterwards (whenever
+        total_states > 0), referencing the same-named `d`/`gf_order` from
+        the enclosing scope. Since they were never assigned on the
+        except-branch, this is a guaranteed UnboundLocalError for ANY
+        object that reaches the fallback counting path with at least one
+        state -- i.e. the "iterate once to count (for small state spaces)"
+        fallback documented in the comment is entirely broken; it always
+        crashes instead of falling back gracefully. Confirmed independently
+        via a standalone repro outside pytest before writing this
+        assertion."""
+
+        class FakeSpace:
+            def __iter__(self):
+                return iter([0, 1, 2])  # 3 "states"
+
+        with pytest.raises(UnboundLocalError):
+            _partition_state_space(FakeSpace(), 1)
+
+    def test_zero_total_states_returns_empty_list(self):
+        class EmptySpace:
+            def __iter__(self):
+                return iter([])
+
+        chunks = _partition_state_space(EmptySpace(), 3)
+        assert chunks == []
+
+
+# ---------------------------------------------------------------------------
+# Additional coverage-closing tests: _process_state_chunk edge branches
+# ---------------------------------------------------------------------------
+
+
+class TestProcessStateChunkExtra:
+    def test_debug_parallel_env_exercises_debug_logging(self, _debug_parallel_env, capsys):
+        coeffs = [1, 1]
+        gf_order, d = 2, 2
+        chunk = [((0, 0), 0)]
+        manager = multiprocessing.Manager()
+        shared_cycles = manager.dict()
+        cycle_lock = manager.Lock()
+        chunk_data = (chunk, coeffs, gf_order, d, "auto", True, 0, shared_cycles, cycle_lock)
+        result = _process_state_chunk(chunk_data)
+        assert result["errors"] == []
+        captured = capsys.readouterr()
+        assert "Worker 0 PID" in captured.err
+        manager.shutdown()
+
+    def test_invalid_gf_order_returns_error_result(self):
+        """gf_order=6 is not a prime power; build_state_update_matrix must
+        raise inside the worker, which should be caught and reported as an
+        error result rather than propagating (lines 1187-1189)."""
+        coeffs = [1, 1]
+        chunk = [((0, 0), 0)]
+        chunk_data = (chunk, coeffs, 6, 2, "auto", True, 0, {}, threading.Lock())
+        result = _process_state_chunk(chunk_data)
+        assert result["sequences"] == []
+        assert result["processed_count"] == 0
+        assert len(result["errors"]) == 1
+        assert "Failed to build state update matrix" in result["errors"][0]
+
+    def test_already_claimed_cycle_is_skipped_fast_path(self):
+        """Pre-populate shared_cycles with the min_state of the (1,1)
+        coeffs=[1,1] 3-cycle {(1,0),(0,1),(1,1)} (min tuple is (0,1)) so
+        the worker's fast (no-lock) claimed-check short-circuits (lines
+        1326-1338) instead of processing the cycle."""
+        coeffs = [1, 1]
+        gf_order, d = 2, 2
+        chunk = [((1, 0), 0)]
+        manager = multiprocessing.Manager()
+        shared_cycles = manager.dict()
+        shared_cycles[(0, 1)] = 99  # claimed by "worker 99"
+        cycle_lock = manager.Lock()
+        chunk_data = (chunk, coeffs, gf_order, d, "enumeration", True, 0, shared_cycles, cycle_lock)
+        result = _process_state_chunk(chunk_data)
+        assert result["errors"] == []
+        assert result["sequences"] == []  # nothing claimed/produced by this worker
+        assert result["work_metrics"]["cycles_skipped"] == 1
+        manager.shutdown()
+
+    def test_malformed_state_tuple_produces_error_not_crash(self):
+        """A state tuple containing a value F() can't coerce (e.g. a
+        string) must be caught by the per-state try/except (lines
+        1414-1418), appended to errors, and NOT abort the whole chunk."""
+        coeffs = [1, 1]
+        gf_order, d = 2, 2
+        chunk = [(("not-a-number", 0), 0), ((0, 0), 1)]  # first is bad, second is fine
+        manager = multiprocessing.Manager()
+        shared_cycles = manager.dict()
+        cycle_lock = manager.Lock()
+        chunk_data = (chunk, coeffs, gf_order, d, "auto", True, 0, shared_cycles, cycle_lock)
+        result = _process_state_chunk(chunk_data)
+        assert len(result["errors"]) == 1
+        assert "not-a-number" in result["errors"][0] or "Error processing state" in result["errors"][0]
+        # second (valid) state should still have been processed
+        assert result["processed_count"] == 1
+        manager.shutdown()
+
+    def test_large_period_hits_periodic_hang_detection_check(self):
+        """A maximal-length 12-bit LFSR (period 2**12-1 = 4095, confirmed
+        by direct hand simulation before writing this test) forces the
+        min_state-search loop past 1000 iterations, exercising the
+        `if i > 0 and i % 1000 == 0: _ = len(str(current))` responsiveness
+        check at line 1320."""
+        coeffs = [1, 1, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0]  # primitive degree-12 poly
+        gf_order, d = 2, 12
+        chunk = [((1,) + (0,) * 11, 0)]
+        manager = multiprocessing.Manager()
+        shared_cycles = manager.dict()
+        cycle_lock = manager.Lock()
+        chunk_data = (chunk, coeffs, gf_order, d, "enumeration", True, 0, shared_cycles, cycle_lock)
+        result = _process_state_chunk(chunk_data)
+        assert result["errors"] == []
+        assert result["max_period"] == 4095
+        manager.shutdown()
+
+    def test_claimed_between_check_and_lock_race_branch(self):
+        """Simulate the check-then-claim race at lines 1340-1352: the fast
+        (no-lock) membership check at line 1326 sees the cycle as
+        NOT-yet-claimed, but by the time the lock is acquired, another
+        "worker" has claimed it. A stateful fake dict-like object flips
+        from reporting False to True on `__contains__` between the two
+        checks to deterministically force this branch instead of relying
+        on a genuine multi-process race."""
+        coeffs = [1, 1]
+        gf_order, d = 2, 2
+
+        class RacingSharedCycles(dict):
+            def __init__(self):
+                super().__init__()
+                self._checks = 0
+
+            def __contains__(self, key):
+                self._checks += 1
+                if self._checks == 1:
+                    return False  # fast check: not claimed yet
+                return True  # check inside the lock: "claimed" by another worker
+
+            def __getitem__(self, key):
+                return 99  # "claimed by worker 99"
+
+        shared_cycles = RacingSharedCycles()
+        chunk = [((1, 0), 0)]
+        chunk_data = (chunk, coeffs, gf_order, d, "enumeration", True, 0, shared_cycles, threading.Lock())
+        result = _process_state_chunk(chunk_data)
+        assert result["errors"] == []
+        assert result["sequences"] == []  # not claimed by this worker after all
+
+
+# ---------------------------------------------------------------------------
+# Additional coverage-closing tests: lfsr_sequence_mapper_parallel branches
+# ---------------------------------------------------------------------------
+
+
+class TestLfsrSequenceMapperParallelExtra:
+    def test_worker_count_note_is_dead_code_never_printed(self, monkeypatch, capsys):
+        """SUSPECTED REAL BUG: the "Note: Using N workers (optimal M...)"
+        message at analysis.py:1543-1545 is guarded by `original_num_workers
+        is None`, where `original_num_workers = num_workers` is captured at
+        line 1535 -- AFTER line 1506-1507 already replaced a caller-supplied
+        `num_workers=None` with `multiprocessing.cpu_count()`:
+
+            if num_workers is None:
+                num_workers = multiprocessing.cpu_count()   # line 1507
+            ...
+            original_num_workers = num_workers               # line 1535 -- never None here!
+
+        So `original_num_workers` can never actually be None at the point
+        it's checked, making the entire "Note: ..." print branch dead code
+        that can never execute for any input, contrary to what the
+        surrounding comments describe ("If None (auto), use optimal").
+        Confirmed independently via a standalone repro (varying cpu_count
+        via monkeypatch across the full range of state-space sizes) before
+        writing this assertion; this test documents the actual (broken)
+        behavior rather than the intended one."""
+        monkeypatch.setattr(multiprocessing, "cpu_count", lambda: 1)
+        C, V, d = make_matrix([1] * 11, 2)  # 2**11 = 2048 states -> optimal_workers=2
+        with tempfile.TemporaryFile(mode="w+") as f:
+            lfsr_sequence_mapper_parallel(
+                C, V, 2, output_file=f, no_progress=False, period_only=True, num_workers=None
+            )
+        captured = capsys.readouterr()
+        assert "Note: Using" not in captured.out
+        assert "Note: Using" not in captured.err
+
+    def test_pool_map_async_timeout_falls_back_to_sequential(self, monkeypatch):
+        """Simulate a multiprocessing.TimeoutError from async_result.get()
+        to exercise the timeout-handling fallback (lines 1659-1685), which
+        must terminate the pool and return the same result the plain
+        sequential mapper would."""
+        C, V, d = make_matrix([1, 1], 2)
+
+        class FakeAsyncResult:
+            def get(self, timeout=None):
+                raise multiprocessing.TimeoutError("simulated timeout")
+
+        class FakePool:
+            def map_async(self, func, iterable):
+                return FakeAsyncResult()
+
+            def terminate(self):
+                pass
+
+            def join(self, timeout=None):
+                pass
+
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *args):
+                return False
+
+        class FakeCtx:
+            def Pool(self, processes):
+                return FakePool()
+
+            def get_start_method(self):
+                return "fork"
+
+        monkeypatch.setattr(multiprocessing, "get_context", lambda method: FakeCtx())
+
+        with tempfile.TemporaryFile(mode="w+") as f:
+            seq_dict, period_dict, max_period, periods_sum = lfsr_sequence_mapper_parallel(
+                C, V, 2, output_file=f, no_progress=True, period_only=True, num_workers=2
+            )
+        # Falls back to sequential lfsr_sequence_mapper, which is known-correct.
+        assert periods_sum == 4
+        assert sorted(period_dict.values()) == [1, 3]
+
+    def test_pool_creation_exception_falls_back_to_sequential(self, monkeypatch):
+        """A generic exception anywhere in the parallel-setup try block
+        (lines 1696-1711) must trigger the fallback to
+        lfsr_sequence_mapper rather than propagating."""
+        C, V, d = make_matrix([1, 1], 2)
+
+        def broken_get_context(method):
+            raise RuntimeError("simulated pool-creation failure")
+
+        monkeypatch.setattr(multiprocessing, "get_context", broken_get_context)
+
+        with tempfile.TemporaryFile(mode="w+") as f:
+            seq_dict, period_dict, max_period, periods_sum = lfsr_sequence_mapper_parallel(
+                C, V, 2, output_file=f, no_progress=True, period_only=True, num_workers=2
+            )
+        assert periods_sum == 4
+        assert sorted(period_dict.values()) == [1, 3]
+
+    def test_period_sum_mismatch_warning_printed(self, monkeypatch, capsys):
+        """If periods_sum doesn't match the true state-space size (e.g. a
+        merge bug), a WARNING is printed to stderr (lines 1774-1778).
+        Force this by monkeypatching _merge_parallel_results to return an
+        intentionally wrong periods_sum."""
+        C, V, d = make_matrix([1, 1], 2)
+
+        def fake_merge(worker_results, gf_order, lfsr_degree, shared_cycles=None):
+            return {1: []}, {1: 1}, 1, 999  # wrong periods_sum on purpose
+
+        monkeypatch.setattr(analysis_mod, "_merge_parallel_results", fake_merge)
+        with tempfile.TemporaryFile(mode="w+") as f:
+            lfsr_sequence_mapper_parallel(
+                C, V, 2, output_file=f, no_progress=True, period_only=True, num_workers=1
+            )
+        captured = capsys.readouterr()
+        assert "WARNING: Period sum" in captured.err
+
+
+# ---------------------------------------------------------------------------
+# Additional coverage-closing tests: _process_task_batch_dynamic branches
+# ---------------------------------------------------------------------------
+
+
+class TestProcessTaskBatchDynamicExtra:
+    def test_hybrid_mode_dispatch_processes_assigned_chunk(self):
+        """Hybrid mode is detected when worker_data[0] and [1] are both
+        lists (lines 1839-1844): an assigned static chunk plus a list of
+        worker_queues. The assigned chunk must be processed as a batch
+        before the worker moves on to pulling from its own queue."""
+        coeffs = [1, 1]
+        gf_order, d = 2, 2
+        manager = multiprocessing.Manager()
+        shared_cycles = manager.dict()
+        cycle_lock = manager.Lock()
+        worker_queues = [manager.Queue(), manager.Queue()]
+        worker_queues[0].put(None)  # sentinel: no queued work beyond the static chunk
+        worker_queues[1].put(None)
+
+        assigned_chunk = [((0, 0), 0), ((1, 0), 1)]
+        worker_data = (
+            assigned_chunk,
+            worker_queues,
+            0,
+            coeffs,
+            gf_order,
+            d,
+            "auto",
+            True,
+            shared_cycles,
+            cycle_lock,
+            1,
+        )
+        result = _process_task_batch_dynamic(worker_data)
+        assert result["errors"] == []
+        assert result["processed_count"] == 2  # fixed point + 3-cycle start
+        periods = sorted(s["period"] for s in result["sequences"])
+        assert periods == [1, 3]
+        manager.shutdown()
+
+    def test_debug_parallel_env_exercises_debug_logging(self, _debug_parallel_env, capsys):
+        coeffs = [1, 1]
+        gf_order, d = 2, 2
+        manager = multiprocessing.Manager()
+        shared_cycles = manager.dict()
+        cycle_lock = manager.Lock()
+        task_queue = manager.Queue()
+        task_queue.put([((0, 0), 0)])
+        task_queue.put(None)
+        worker_data = (task_queue, coeffs, gf_order, d, "auto", True, 0, shared_cycles, cycle_lock, 1)
+        result = _process_task_batch_dynamic(worker_data)
+        assert result["errors"] == []
+        captured = capsys.readouterr()
+        assert "Dynamic Worker 0 PID" in captured.err
+        manager.shutdown()
+
+    def test_sagemath_import_failure_returns_error_result(self, monkeypatch):
+        real_import = __import__
+
+        def fake_import(name, *args, **kwargs):
+            if name == "lfsr.sage_imports":
+                raise ImportError("simulated: sage not available")
+            return real_import(name, *args, **kwargs)
+
+        monkeypatch.setattr("builtins.__import__", fake_import)
+        manager = multiprocessing.Manager()
+        task_queue = manager.Queue()
+        task_queue.put(None)
+        worker_data = (task_queue, [1, 1], 2, 2, "auto", True, 0, {}, threading.Lock(), 1)
+        result = _process_task_batch_dynamic(worker_data)
+        assert result["sequences"] == []
+        assert "SageMath not available" in result["errors"][0]
+        manager.shutdown()
+
+    def test_invalid_gf_order_returns_error_result(self):
+        """gf_order=6 (not a prime power) makes build_state_update_matrix
+        raise inside the worker (lines 1891-1893)."""
+        manager = multiprocessing.Manager()
+        task_queue = manager.Queue()
+        task_queue.put(None)
+        worker_data = (task_queue, [1, 1], 6, 2, "auto", True, 0, {}, threading.Lock(), 1)
+        result = _process_task_batch_dynamic(worker_data)
+        assert result["sequences"] == []
+        assert "Failed to build state update matrix" in result["errors"][0]
+        manager.shutdown()
+
+    def test_already_claimed_cycle_skipped_in_shared_queue_mode(self):
+        coeffs = [1, 1]
+        gf_order, d = 2, 2
+        manager = multiprocessing.Manager()
+        shared_cycles = manager.dict()
+        shared_cycles[(0, 1)] = 99  # pre-claim the 3-cycle's min_state
+        cycle_lock = manager.Lock()
+        task_queue = manager.Queue()
+        task_queue.put([((1, 0), 0)])
+        task_queue.put(None)
+        worker_data = (task_queue, coeffs, gf_order, d, "enumeration", True, 0, shared_cycles, cycle_lock, 1)
+        result = _process_task_batch_dynamic(worker_data)
+        assert result["errors"] == []
+        assert result["sequences"] == []
+        assert result["work_metrics"]["cycles_skipped"] == 1
+        manager.shutdown()
+
+    def test_malformed_state_in_batch_produces_error_not_crash(self):
+        coeffs = [1, 1]
+        gf_order, d = 2, 2
+        manager = multiprocessing.Manager()
+        shared_cycles = manager.dict()
+        cycle_lock = manager.Lock()
+        task_queue = manager.Queue()
+        task_queue.put([(("bad", 0), 0), ((0, 0), 1)])
+        task_queue.put(None)
+        worker_data = (task_queue, coeffs, gf_order, d, "auto", True, 0, shared_cycles, cycle_lock, 1)
+        result = _process_task_batch_dynamic(worker_data)
+        assert len(result["errors"]) == 1
+        assert result["processed_count"] == 1
+        manager.shutdown()
+
+    def test_batch_aggregation_pulls_multiple_batches_at_once(self):
+        """batch_aggregation_count > 1 pulls several batches per
+        get_nowait() round (lines around 2088-2098); verify multiple
+        pre-queued batches are all processed correctly."""
+        coeffs = [1, 1]
+        gf_order, d = 2, 2
+        manager = multiprocessing.Manager()
+        shared_cycles = manager.dict()
+        cycle_lock = manager.Lock()
+        task_queue = manager.Queue()
+        task_queue.put([((0, 0), 0)])
+        task_queue.put([((1, 0), 1)])
+        task_queue.put(None)
+        worker_data = (task_queue, coeffs, gf_order, d, "auto", True, 0, shared_cycles, cycle_lock, 4)
+        result = _process_task_batch_dynamic(worker_data)
+        assert result["errors"] == []
+        assert result["processed_count"] == 2
+        assert result["work_metrics"]["batches_processed"] == 2
+        manager.shutdown()
+
+    def test_large_period_hits_periodic_hang_detection_check(self):
+        """Mirrors TestProcessStateChunkExtra's equivalent test: a
+        maximal-length 12-bit LFSR (period 4095, hand-verified) forces the
+        min_state-search loop in the dynamic worker's period-only branch
+        past 1000 iterations (line 1975)."""
+        coeffs = [1, 1, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0]
+        gf_order, d = 2, 12
+        manager = multiprocessing.Manager()
+        shared_cycles = manager.dict()
+        cycle_lock = manager.Lock()
+        task_queue = manager.Queue()
+        task_queue.put([((1,) + (0,) * 11, 0)])
+        task_queue.put(None)
+        worker_data = (task_queue, coeffs, gf_order, d, "enumeration", True, 0, shared_cycles, cycle_lock, 1)
+        result = _process_task_batch_dynamic(worker_data)
+        assert result["errors"] == []
+        assert result["max_period"] == 4095
+        manager.shutdown()
+
+    def test_period_computation_exception_is_caught(self, monkeypatch):
+        """Force _find_period to raise inside the dynamic worker's
+        period-only branch (line 1959-1961) by monkeypatching it at the
+        module level (the worker does `from lfsr.analysis import
+        _find_period` inside process_single_batch's enclosing function, so
+        patching analysis_mod._find_period is visible to it)."""
+
+        def broken_find_period(*args, **kwargs):
+            raise RuntimeError("simulated period computation failure")
+
+        monkeypatch.setattr(analysis_mod, "_find_period", broken_find_period)
+        coeffs = [1, 1]
+        gf_order, d = 2, 2
+        manager = multiprocessing.Manager()
+        shared_cycles = manager.dict()
+        cycle_lock = manager.Lock()
+        task_queue = manager.Queue()
+        task_queue.put([((1, 0), 0)])
+        task_queue.put(None)
+        worker_data = (task_queue, coeffs, gf_order, d, "auto", True, 0, shared_cycles, cycle_lock, 1)
+        result = _process_task_batch_dynamic(worker_data)
+        assert len(result["errors"]) == 1
+        assert "Error computing period" in result["errors"][0]
+        manager.shutdown()
+
+    def test_claimed_between_check_and_lock_race_branch(self):
+        """Mirrors TestProcessStateChunkExtra's equivalent test for the
+        shared-queue-mode dynamic worker (lines 1993-2011): a stateful
+        fake dict-like shared_cycles flips from False to True between the
+        fast check and the locked re-check."""
+        coeffs = [1, 1]
+        gf_order, d = 2, 2
+
+        class RacingSharedCycles(dict):
+            def __init__(self):
+                super().__init__()
+                self._checks = 0
+
+            def __contains__(self, key):
+                self._checks += 1
+                if self._checks == 1:
+                    return False
+                return True
+
+            def __getitem__(self, key):
+                return 99
+
+        shared_cycles = RacingSharedCycles()
+        manager = multiprocessing.Manager()
+        task_queue = manager.Queue()
+        task_queue.put([((1, 0), 0)])
+        task_queue.put(None)
+        worker_data = (task_queue, coeffs, gf_order, d, "enumeration", True, 0, shared_cycles, threading.Lock(), 1)
+        result = _process_task_batch_dynamic(worker_data)
+        assert result["errors"] == []
+        assert result["sequences"] == []
+        manager.shutdown()
+
+
+# ---------------------------------------------------------------------------
+# Additional coverage-closing tests: lfsr_sequence_mapper_parallel_dynamic
+# ---------------------------------------------------------------------------
+
+
+class TestLfsrSequenceMapperParallelDynamicExtra:
+    def test_zero_state_space_returns_empty(self):
+        """A vector-space-like object lacking .basis()/.base_ring().order()
+        falls back to `sum(1 for _ in state_vector_space)` (the
+        AttributeError branch at analysis.py:2204-2209); an empty iterator
+        makes that fallback compute state_space_size == 0, hitting the
+        early return at line 2252-2253. (Note: unlike
+        _partition_state_space, this fallback does NOT reference `d` or
+        `gf_order_val` afterwards before the early return, so it doesn't
+        hit the sibling UnboundLocalError bug documented elsewhere.)"""
+        C, _, d = make_matrix([1, 1], 2)
+
+        class FakeSpace:
+            def __iter__(self):
+                return iter([])
+
+        with tempfile.TemporaryFile(mode="w+") as f:
+            result = lfsr_sequence_mapper_parallel_dynamic(
+                C, FakeSpace(), 2, output_file=f, no_progress=True, period_only=True, num_workers=1
+            )
+        assert result == ({}, {}, 0, 0)
+
+    def test_hybrid_mode_never_sends_worker_queue_sentinels(self):
+        """SUSPECTED REAL BUG, SEVERE (confirmed via a standalone,
+        deliberately-killed repro outside pytest -- see report -- NOT run
+        to completion here, since it hangs indefinitely and burns 100%
+        CPU on every worker): in
+        lfsr_sequence_mapper_parallel_dynamic, hybrid mode
+        (use_hybrid_mode=True, auto-selected for any state space in
+        [8192, 65536) states -- see lines 2266-2267) never starts the
+        `producer_thread` background thread:
+
+            if not use_hybrid_mode:
+                producer = threading.Thread(target=producer_thread, ...)
+                producer.start()
+            else:
+                producer = None
+                producer_done.set()   # <-- line 2470: only this runs
+
+        But ALL of the sentinel-queuing logic (`worker_queue.put(None,
+        block=False)` for every worker_queues[i]) lives inside
+        producer_thread()'s own `finally` block (lines 2432-2455) -- code
+        that only executes if producer_thread() is actually called. Since
+        hybrid mode skips starting that thread entirely, no sentinel is
+        EVER placed in any worker_queue for a hybrid-mode run.
+
+        Each worker (_process_task_batch_dynamic) processes its assigned
+        static chunk (lines 2067-2071 in that function), then falls into
+        `own_queue = worker_queues[worker_id]` and polls it in a `while
+        True: ... except queue_module.Empty: continue` loop (lines
+        2079-2124) waiting for a sentinel that will never arrive --
+        spinning at 100% CPU indefinitely. This makes hybrid mode hang
+        unconditionally for every input in its auto-selected size range,
+        not just an edge case.
+
+        This test verifies the structural fact (no code path reaches
+        producer_thread() when use_hybrid_mode is True) directly via
+        source inspection, rather than re-triggering the actual hang."""
+        import inspect
+
+        source = inspect.getsource(analysis_mod.lfsr_sequence_mapper_parallel_dynamic)
+        # The only call to producer_thread() (the function object, not the
+        # variable `producer`) must be reachable ONLY through the
+        # `if not use_hybrid_mode:` branch -- confirm the exact structure
+        # so this test breaks loudly if a future fix reorganizes it.
+        assert "target=producer_thread" in source
+        assert "if not use_hybrid_mode:" in source
+        # And confirm hybrid mode's else-branch does NOT start the thread
+        # or otherwise queue sentinels itself.
+        else_branch_start = source.index("else:\n        # Hybrid mode: No producer thread needed")
+        else_branch = source[else_branch_start: else_branch_start + 300]
+        assert "producer_thread()" not in else_branch
+        assert ".put(None" not in else_branch
+        assert "producer = None" in else_branch
+
+    def test_no_progress_false_prints_setup_messages(self, capsys):
+        """no_progress=False on a small (non-hybrid) state space exercises
+        the verbose setup print statements (lines 2201, 2296-2306,
+        2318-2334 etc.)."""
+        C, V, d = make_matrix([1, 1, 0, 1], 2)  # 16 states, small/non-hybrid
+        with tempfile.TemporaryFile(mode="w+") as f:
+            seq_dict, period_dict, max_period, periods_sum = lfsr_sequence_mapper_parallel_dynamic(
+                C, V, 2, output_file=f, no_progress=False, period_only=True, num_workers=2
+            )
+        assert periods_sum == 16
+        captured = capsys.readouterr()
+        assert "Using work stealing with 2 per-worker queues" in captured.out
+        assert "Using lazy task generation" in captured.out

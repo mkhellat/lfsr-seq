@@ -64,3 +64,14 @@ def test_none_iv_defaults_to_zero():
     with_none = Grain128().generate_keystream(key, None, 32)
     with_zero = Grain128().generate_keystream(key, [0] * 96, 32)
     assert with_none == with_zero
+
+
+def test_apply_attacks_reports_deprecated_status():
+    cipher = Grain128()
+    keystream = cipher.generate_keystream([0] * 128, [0] * 96, 32)
+    result = cipher.apply_attacks(keystream)
+    assert "broken" in result["note"].lower()
+    assert result["known_vulnerabilities"] == [
+        "Reduced-round cryptanalysis of the initialization phase"
+    ]
+    assert "deprecated" in result["security_status"].lower()

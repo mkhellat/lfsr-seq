@@ -38,6 +38,7 @@ bugs were found in this module.
 
 import io
 import contextlib
+from unittest import mock
 
 import pytest
 
@@ -127,6 +128,123 @@ class TestExampleFunctions:
         assert real_cache_path.exists() == existed_before
 
 
+class TestFactorizationFailureBranches:
+    """example_period_via_factorization() has two independent
+    if/else branches (lines 49-53 and 61-65) for the small and the
+    "larger" (degree 8) coefficient lists. Both use the module-level
+    compute_period_via_factorization -- monkeypatch it to always
+    return None to hit both "Factorization failed" else-branches."""
+
+    def test_both_failure_branches_printed(self, monkeypatch):
+        monkeypatch.setattr(m, "compute_period_via_factorization", lambda *a, **kw: None)
+        buf = io.StringIO()
+        with contextlib.redirect_stdout(buf):
+            m.example_period_via_factorization()
+        out = buf.getvalue()
+        assert "Factorization failed, fall back to enumeration" in out
+        assert "Factorization failed" in out
+
+
+class TestResultCachingBranches:
+    def test_key_already_in_cache_on_first_access(self):
+        """Regression coverage for lines 116-118: if the key is already
+        present before the "first access" check (simulated here by
+        pre-seeding the cache), the cache-hit branch prints "Found in
+        cache" instead of computing."""
+        from lfsr.optimization import ResultCache
+        from lfsr.polynomial import compute_period_via_factorization
+
+        cache = ResultCache(cache_file=None)
+        coefficients = [1, 0, 0, 1]
+        field_order = 2
+        key = cache.generate_key(coefficients, field_order, "period")
+        # Pre-seed so `key in cache` is True on the function's "first access".
+        period = compute_period_via_factorization(coefficients, field_order)
+        cache.set(key, period)
+
+        # Patch ResultCache to return our pre-seeded instance so
+        # example_result_caching()'s internal `ResultCache(cache_file=None)`
+        # call yields a cache that already contains the key.
+        def fake_result_cache(cache_file=None):
+            return cache
+
+        buf = io.StringIO()
+        with contextlib.redirect_stdout(buf):
+            with mock.patch.object(m, "ResultCache", fake_result_cache):
+                m.example_result_caching()
+        out = buf.getvalue()
+        assert "First access (cache miss):" in out
+        assert "Found in cache:" in out
+
+    def test_key_evicted_between_accesses_hits_unexpected_branch(self):
+        """Regression coverage for line 132: the "Second access" check
+        prints "Not in cache (unexpected)" if the key vanished between
+        the set() in the first branch and the second `key in cache`
+        check. Simulate this with a ResultCache stand-in whose
+        __contains__ returns True only once (first access), then False."""
+
+        class FlakyCache:
+            def __init__(self, real_cache):
+                self._real = real_cache
+                self._contains_calls = 0
+
+            def generate_key(self, *a, **kw):
+                return self._real.generate_key(*a, **kw)
+
+            def __contains__(self, key):
+                self._contains_calls += 1
+                # First access (miss) -> False; simulate the entry
+                # vanishing before the second check too (also False),
+                # forcing the "unexpected" branch.
+                return False
+
+            def get(self, key):
+                return self._real.get(key)
+
+            def set(self, key, value):
+                return self._real.set(key, value)
+
+            def get_stats(self):
+                return self._real.get_stats()
+
+        from lfsr.optimization import ResultCache
+
+        real_cache = ResultCache(cache_file=None)
+        flaky = FlakyCache(real_cache)
+
+        def fake_result_cache(cache_file=None):
+            return flaky
+
+        buf = io.StringIO()
+        with contextlib.redirect_stdout(buf):
+            with mock.patch.object(m, "ResultCache", fake_result_cache):
+                m.example_result_caching()
+        out = buf.getvalue()
+        assert "Not in cache, computing..." in out
+        assert "Not in cache (unexpected)" in out
+
+
+class TestGlobalCacheHitBranch:
+    def test_key_already_in_global_cache(self, patched_global_cache):
+        """Regression coverage for lines 159-161: if the key is already
+        present in the (redirected) global cache before
+        example_global_cache() runs, the "Found in persistent cache"
+        branch is taken instead of computing+caching."""
+        from lfsr.optimization import get_global_cache
+        from lfsr.polynomial import compute_period_via_factorization
+
+        cache = get_global_cache()
+        key = cache.generate_key([1, 0, 0, 1], 2, "period")
+        period = compute_period_via_factorization([1, 0, 0, 1], 2)
+        cache.set(key, period)
+
+        buf = io.StringIO()
+        with contextlib.redirect_stdout(buf):
+            m.example_global_cache()
+        out = buf.getvalue()
+        assert "Found in persistent cache:" in out
+
+
 class TestMain:
     def test_main_runs_end_to_end(self, capsys, patched_global_cache):
         m.main()
@@ -134,3 +252,23 @@ class TestMain:
         assert "Optimization Techniques Examples" in captured.out
         assert "Examples Complete!" in captured.out
         assert "ERROR" not in captured.err
+
+    def test_main_prints_traceback_and_exits_on_exception(
+        self, monkeypatch, capsys, patched_global_cache
+    ):
+        """Regression coverage for lines 192-196: main()'s except
+        Exception handler prints an ERROR message, a traceback, and
+        calls sys.exit(1)."""
+
+        def raiser():
+            raise RuntimeError("forced failure for coverage")
+
+        monkeypatch.setattr(m, "example_period_via_factorization", raiser)
+
+        with pytest.raises(SystemExit) as exc_info:
+            m.main()
+        assert exc_info.value.code == 1
+
+        captured = capsys.readouterr()
+        assert "ERROR: forced failure for coverage" in captured.err
+        assert "RuntimeError" in captured.err

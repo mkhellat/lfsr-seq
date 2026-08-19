@@ -6,6 +6,10 @@ the numpy+sklearn path and the pure-Python fallback path), and the
 extract_sequence_features fallback branches. Complements test_ml.py's
 existing feature-extraction / char-poly-correctness tests."""
 
+import builtins
+import importlib
+import sys
+
 import pytest
 
 import lfsr.ml.base as mlbase
@@ -15,6 +19,28 @@ from lfsr.ml.base import (
     extract_polynomial_features,
     extract_sequence_features,
 )
+
+
+def _reimport_with_blocked_import(module_name, blocked_name):
+    """See tests/test_ml_anomaly_detection.py for the rationale: forces
+    a fresh import of `module_name` with `import blocked_name` made to
+    raise ImportError, to exercise the module's own `except ImportError:
+    HAS_X = False` fallback branch at definition time."""
+    real_import = builtins.__import__
+
+    def fake_import(name, *args, **kwargs):
+        if name == blocked_name:
+            raise ImportError(f"simulated: {blocked_name} unavailable")
+        return real_import(name, *args, **kwargs)
+
+    if module_name in sys.modules:
+        del sys.modules[module_name]
+
+    builtins.__import__ = fake_import
+    try:
+        return importlib.import_module(module_name)
+    finally:
+        builtins.__import__ = real_import
 
 
 class DummyModel(BaseMLModel):
@@ -186,3 +212,25 @@ class TestExtractSequenceFeaturesFallback:
         seq = list(range(20))
         features = extract_sequence_features(seq, max_length=5)
         assert features[0] == 5.0
+
+
+class TestImportFallbacks:
+    """Regression coverage for the module-level `except ImportError:
+    HAS_NUMPY/HAS_SKLEARN = False` branches themselves (lines ~18-19,
+    24-25)."""
+
+    def test_numpy_import_error_sets_has_numpy_false(self):
+        try:
+            fresh = _reimport_with_blocked_import("lfsr.ml.base", "numpy")
+            assert fresh.HAS_NUMPY is False
+        finally:
+            del sys.modules["lfsr.ml.base"]
+            import lfsr.ml.base  # noqa: F401
+
+    def test_sklearn_import_error_sets_has_sklearn_false(self):
+        try:
+            fresh = _reimport_with_blocked_import("lfsr.ml.base", "sklearn.metrics")
+            assert fresh.HAS_SKLEARN is False
+        finally:
+            del sys.modules["lfsr.ml.base"]
+            import lfsr.ml.base  # noqa: F401

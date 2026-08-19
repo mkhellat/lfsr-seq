@@ -80,3 +80,56 @@ class TestMain:
         assert "Machine Learning Integration Examples" in captured.out
         assert "Examples Complete!" in captured.out
         assert "ERROR" not in captured.err
+
+    def test_main_prints_traceback_and_exits_on_exception(self, monkeypatch, capsys):
+        """Regression coverage for lines 202-206: main()'s except
+        Exception handler prints an ERROR message, a traceback, and
+        calls sys.exit(1)."""
+
+        def raiser():
+            raise RuntimeError("forced failure for coverage")
+
+        monkeypatch.setattr(m, "example_feature_extraction", raiser)
+
+        with pytest.raises(SystemExit) as exc_info:
+            m.main()
+        assert exc_info.value.code == 1
+
+        captured = capsys.readouterr()
+        assert "ERROR: forced failure for coverage" in captured.err
+        assert "RuntimeError" in captured.err
+
+
+class TestSklearnUnavailableBranches:
+    """scikit-learn is actually installed in this environment, so
+    HAS_SKLEARN is True at import time. Monkeypatch the module-level
+    flag to False to hit the "scikit-learn not available"/"required"
+    early-return and skip branches -- doesn't touch the import-guard
+    except block itself (lines 25-27, genuinely unreachable without
+    uninstalling scikit-learn from this environment)."""
+
+    def test_period_prediction_early_returns_without_sklearn(self, monkeypatch):
+        monkeypatch.setattr(m, "HAS_SKLEARN", False)
+        buf = io.StringIO()
+        with contextlib.redirect_stdout(buf):
+            m.example_period_prediction()
+        out = buf.getvalue()
+        assert "scikit-learn required for period prediction" in out
+        assert "Training Metrics" not in out
+
+    def test_model_training_early_returns_without_sklearn(self, monkeypatch):
+        monkeypatch.setattr(m, "HAS_SKLEARN", False)
+        buf = io.StringIO()
+        with contextlib.redirect_stdout(buf):
+            m.example_model_training()
+        out = buf.getvalue()
+        assert "scikit-learn required for model training" in out
+        assert "Model training complete" not in out
+
+    def test_main_prints_sklearn_note_when_unavailable(self, monkeypatch, capsys):
+        monkeypatch.setattr(m, "HAS_SKLEARN", False)
+        m.main()
+        captured = capsys.readouterr()
+        assert "Note: Some examples require scikit-learn" in captured.out
+        assert "pip install scikit-learn" in captured.out
+        assert "Examples Complete!" in captured.out

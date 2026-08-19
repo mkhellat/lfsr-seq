@@ -69,6 +69,27 @@ class TestPolynomialToLatex:
     def test_custom_variable_name_substituted(self, sample_polynomial):
         assert polynomial_to_latex(sample_polynomial, variable="x") == "x^{4} + x^{3} + 1"
 
+    def test_latex_conversion_failure_falls_back_to_str(self):
+        """Regression coverage for lines 54-56: when SageMath's latex()
+        raises (AttributeError or TypeError), polynomial_to_latex must
+        fall back to str(polynomial).replace("t", variable) rather than
+        propagating. Uses an object whose Sage `_latex_` protocol method
+        raises but whose __str__ still works, so the fallback path is
+        exercised with a real recoverable failure rather than a total
+        crash (a broken __str__ would make both the primary path and the
+        fallback raise the same error, which wouldn't isolate this
+        branch)."""
+
+        class BrokenLatexProtocol:
+            def _latex_(self):
+                raise TypeError("broken _latex_ protocol method")
+
+            def __str__(self):
+                return "t^4 + t + 1"
+
+        result = polynomial_to_latex(BrokenLatexProtocol(), variable="x")
+        assert result == "x^4 + x + 1"
+
 
 # ---------------------------------------------------------------------------
 # export_polynomial_analysis_to_latex
@@ -102,6 +123,89 @@ class TestExportPolynomialAnalysisToLatex:
         assert "Primitive & No" in result
         assert "Irreducible & No" in result
         assert "Polynomial Order & $\\infty$" in result
+
+    def test_factorization_table_with_matching_factor_orders(self):
+        """Regression coverage for lines 139-157: the factorization block,
+        including a multiplicity > 1 factor (rendered with an exponent)
+        and a matching factor_orders entry (numeric order_str branch)."""
+        R = PolynomialRing(GF(2), "t")
+        f1 = R("t + 1")
+        f2 = R("t^3 + t + 1")
+        result = export_polynomial_analysis_to_latex(
+            polynomial=R("t^4 + t + 1"),
+            polynomial_order=15,
+            is_primitive=True,
+            is_irreducible=True,
+            factors=[(f1, 1), (f2, 2)],
+            factor_orders=[1, 7],
+            field_order=2,
+        )
+        assert "\\multicolumn{2}{|c|}{\\textbf{Factorization}} \\\\" in result
+        assert "\\textbf{Factor} & \\textbf{Order} \\\\" in result
+        # multiplicity == 1 -> no exponent notation
+        assert "$t + 1$ & $1$ \\\\" in result
+        # multiplicity > 1 -> wrapped with exponent
+        assert "$(t^{3} + t + 1)^{2}$ & $7$ \\\\" in result
+
+    def test_factorization_table_missing_factor_orders_uses_dashes(self):
+        """When factor_orders is None (or shorter than factors), the
+        order_str falls back to '---' (line 154) instead of indexing."""
+        R = PolynomialRing(GF(2), "t")
+        f1 = R("t + 1")
+        result = export_polynomial_analysis_to_latex(
+            polynomial=R("t^4 + t + 1"),
+            polynomial_order=15,
+            is_primitive=True,
+            is_irreducible=True,
+            factors=[(f1, 1)],
+            factor_orders=None,
+            field_order=2,
+        )
+        assert "$t + 1$ & $---$ \\\\" in result
+
+    def test_factorization_table_factor_order_none_renders_infinity(self):
+        """When factor_orders[i] is explicitly None, order_str becomes
+        '$\\infty$' (line 152's else-branch of `if order is not None`)."""
+        R = PolynomialRing(GF(2), "t")
+        f1 = R("t + 1")
+        result = export_polynomial_analysis_to_latex(
+            polynomial=R("t^4 + t + 1"),
+            polynomial_order=15,
+            is_primitive=True,
+            is_irreducible=True,
+            factors=[(f1, 1)],
+            factor_orders=[None],
+            field_order=2,
+        )
+        assert "$t + 1$ & $$\\infty$$ \\\\" in result
+
+    def test_empty_factors_list_skips_factorization_block(self, sample_polynomial):
+        """factors=[] is falsy, so `if factors and len(factors) > 0`
+        (line 138) must skip the whole factorization block, same as
+        factors=None."""
+        result = export_polynomial_analysis_to_latex(
+            polynomial=sample_polynomial,
+            polynomial_order=None,
+            is_primitive=False,
+            is_irreducible=False,
+            factors=[],
+            field_order=2,
+        )
+        assert "Factorization" not in result
+
+    def test_output_file_receives_content_plus_newline(self, sample_polynomial):
+        """Regression coverage for lines 164-166: output_file.write is
+        called with the result plus a trailing newline."""
+        buf = io.StringIO()
+        result = export_polynomial_analysis_to_latex(
+            polynomial=sample_polynomial,
+            polynomial_order=15,
+            is_primitive=True,
+            is_irreducible=True,
+            field_order=2,
+            output_file=buf,
+        )
+        assert buf.getvalue() == result + "\n"
 
 
 # ---------------------------------------------------------------------------

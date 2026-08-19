@@ -32,6 +32,21 @@ def two_lfsr_xor_config():
     }
 
 
+def three_lfsr_majority_config():
+    """Majority-of-3 combiner: provably correlated with each input LFSR
+    (see tests/test_attacks.py's module docstring for the derivation),
+    used to exercise the CLI's attack_successful=True output branches,
+    which the xor-combiner config above can never reach."""
+    return {
+        "lfsrs": [
+            {"coefficients": [1, 0, 0, 1], "field_order": 2, "degree": 4},
+            {"coefficients": [1, 1, 0, 1], "field_order": 2, "degree": 4},
+            {"coefficients": [1, 0, 1, 1], "field_order": 2, "degree": 4},
+        ],
+        "combining_function": {"type": "majority", "num_inputs": 3},
+    }
+
+
 class TestLoadCombinationGeneratorFromJson:
     def test_valid_xor_config(self, tmp_path):
         cfg_file = tmp_path / "cfg.json"
@@ -136,6 +151,26 @@ class TestLoadCombinationGeneratorFromJson:
         cfg_file = tmp_path / "cfg.json"
         cfg_file.write_text(json.dumps(config))
         with pytest.raises(ValueError, match="missing 'coefficients'"):
+            load_combination_generator_from_json(str(cfg_file))
+
+    def test_lfsr_missing_field_order_raises(self, tmp_path):
+        config = {
+            "lfsrs": [{"coefficients": [1, 1, 0], "degree": 3}],
+            "combining_function": {"type": "xor"},
+        }
+        cfg_file = tmp_path / "cfg.json"
+        cfg_file.write_text(json.dumps(config))
+        with pytest.raises(ValueError, match="missing 'field_order'"):
+            load_combination_generator_from_json(str(cfg_file))
+
+    def test_lfsr_missing_degree_raises(self, tmp_path):
+        config = {
+            "lfsrs": [{"coefficients": [1, 1, 0], "field_order": 2}],
+            "combining_function": {"type": "xor"},
+        }
+        cfg_file = tmp_path / "cfg.json"
+        cfg_file.write_text(json.dumps(config))
+        with pytest.raises(ValueError, match="missing 'degree'"):
             load_combination_generator_from_json(str(cfg_file))
 
 
@@ -283,3 +318,45 @@ class TestPerformCorrelationAttackCli:
         out = buf.getvalue()
         assert "Distinguishing Attack Results" in out
         assert "Distinguishable:" in out
+
+    def test_majority_combiner_shows_vulnerable_output_for_all_attack_types(self, tmp_path):
+        """The xor-combiner tests above never reach the "Attack
+        successful: True" / "VULNERABLE" branches in
+        perform_correlation_attack_cli's output formatting, since xor
+        is provably uncorrelated. Majority-of-3 IS provably correlated
+        (see test_attacks.py's module docstring), so with enough
+        keystream this exercises the success/"VULNERABLE" print
+        branches for the distinguishing attack, the Siegenthaler
+        attack, and the fast correlation attack in a single run."""
+        cfg_file = tmp_path / "cfg.json"
+        cfg_file.write_text(json.dumps(three_lfsr_majority_config()))
+
+        buf = io.StringIO()
+        perform_correlation_attack_cli(
+            config_file=str(cfg_file),
+            output_file=buf,
+            keystream_length=300,
+            target_lfsr_index=0,
+            run_distinguishing_attack_flag=True,
+        )
+        out = buf.getvalue()
+        assert "Attack successful: True" in out
+        assert "VULNERABLE: Keystream is distinguishable from random!" in out
+        assert "VULNERABLE: Significant correlation detected!" in out
+
+    def test_majority_combiner_fast_correlation_attack_recovers_state(self, tmp_path):
+        cfg_file = tmp_path / "cfg.json"
+        cfg_file.write_text(json.dumps(three_lfsr_majority_config()))
+
+        buf = io.StringIO()
+        perform_correlation_attack_cli(
+            config_file=str(cfg_file),
+            output_file=buf,
+            keystream_length=300,
+            target_lfsr_index=0,
+            fast_correlation_attack=True,
+            max_candidates=10,
+        )
+        out = buf.getvalue()
+        assert "Recovered state:" in out
+        assert "VULNERABLE: State recovery successful!" in out

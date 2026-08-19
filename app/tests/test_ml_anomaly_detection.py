@@ -8,6 +8,9 @@ frequency outliers), and the detect_all_anomalies dispatcher.
 
 Complements the existing (light) coverage in test_ml.py."""
 
+import builtins
+import sys
+
 import pytest
 
 import lfsr.ml.anomaly_detection as anomdet
@@ -17,6 +20,34 @@ from lfsr.ml.anomaly_detection import (
     detect_distribution_anomalies,
     detect_sequence_anomalies,
 )
+
+
+def _reimport_with_blocked_import(module_name, blocked_name):
+    """Force a fresh import of `module_name` with `import blocked_name`
+    made to raise ImportError, to exercise the module's own `except
+    ImportError: HAS_X = False` fallback branch at definition time --
+    not just testing behavior with the flag pre-set to False (which
+    other tests in this file already do via monkeypatch.setattr), since
+    that never actually executes the except block itself. Returns the
+    freshly imported module; caller is responsible for restoring
+    sys.modules afterward."""
+    real_import = builtins.__import__
+
+    def fake_import(name, *args, **kwargs):
+        if name == blocked_name:
+            raise ImportError(f"simulated: {blocked_name} unavailable")
+        return real_import(name, *args, **kwargs)
+
+    if module_name in sys.modules:
+        del sys.modules[module_name]
+
+    builtins.__import__ = fake_import
+    try:
+        import importlib
+
+        return importlib.import_module(module_name)
+    finally:
+        builtins.__import__ = real_import
 
 
 class TestDetectSequenceAnomaliesStatistical:
@@ -210,3 +241,29 @@ class TestDetectAllAnomalies:
             is_primitive=False,
         )
         assert set(result.keys()) == {"sequence_anomalies", "distribution_anomalies"}
+
+
+class TestImportFallbacks:
+    """Regression coverage for the module-level `except ImportError:
+    HAS_NUMPY/HAS_SKLEARN = False` branches themselves (lines ~19-20,
+    25-26), as opposed to just testing behavior with the flag
+    pre-set to False (covered above via monkeypatch.setattr)."""
+
+    def test_numpy_import_error_sets_has_numpy_false(self):
+        try:
+            fresh = _reimport_with_blocked_import("lfsr.ml.anomaly_detection", "numpy")
+            assert fresh.HAS_NUMPY is False
+        finally:
+            # Restore the normal module for the rest of the test session.
+            del sys.modules["lfsr.ml.anomaly_detection"]
+            import lfsr.ml.anomaly_detection  # noqa: F401
+
+    def test_sklearn_import_error_sets_has_sklearn_false(self):
+        try:
+            fresh = _reimport_with_blocked_import(
+                "lfsr.ml.anomaly_detection", "sklearn.ensemble"
+            )
+            assert fresh.HAS_SKLEARN is False
+        finally:
+            del sys.modules["lfsr.ml.anomaly_detection"]
+            import lfsr.ml.anomaly_detection  # noqa: F401
