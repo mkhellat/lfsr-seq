@@ -99,6 +99,13 @@ Manual Installation
 
       pip install -e ".[dev]"
 
+   To also run the visualization test suite (``tests/test_visualization_*.py``),
+   which needs matplotlib/plotly/networkx/scikit-learn:
+
+   .. code-block:: bash
+
+      pip install -e ".[dev,visualization]"
+
 Using Make
 ~~~~~~~~~~
 

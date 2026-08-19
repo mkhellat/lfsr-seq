@@ -81,7 +81,7 @@ install-dev: venv
 	@if [ -d ".venv" ]; then \
 		echo "  Using virtual environment at .venv"; \
 		.venv/bin/pip install --upgrade pip setuptools wheel >/dev/null 2>&1 || true; \
-		.venv/bin/pip install -e ".[dev]"; \
+		.venv/bin/pip install -e ".[dev,visualization]"; \
 	else \
 		echo "  ✗ ERROR: Virtual environment not found"; \
 		echo "  This should not happen - venv target should have created it"; \
