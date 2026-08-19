@@ -1339,6 +1339,78 @@ class TestLfsrSequenceMapperParallelExtra:
         assert periods_sum == 4
         assert sorted(period_dict.values()) == [1, 3]
 
+    def test_empty_state_space_returns_empty_result(self):
+        """Covers line 1585: `if not chunks: return {}, {}, 0, 0` when
+        _partition_state_space returns no chunks for an empty state
+        space."""
+        C, V, d = make_matrix([1, 1], 2)
+
+        class EmptySpace:
+            def __iter__(self):
+                return iter([])
+
+        with tempfile.TemporaryFile(mode="w+") as f:
+            result = lfsr_sequence_mapper_parallel(
+                C, EmptySpace(), 2, output_file=f, no_progress=True, period_only=True, num_workers=2
+            )
+        assert result == ({}, {}, 0, 0)
+
+    def test_spawn_mode_uses_120s_timeout(self, monkeypatch):
+        """Covers line 1674: when the pool's context reports
+        get_start_method() == 'spawn' (fork unavailable on this
+        platform), the longer 120s timeout branch is selected instead of
+        fork's 40s. Uses a real ctx.Pool()-compatible fake that succeeds
+        immediately (no actual 120s wait -- only the branch selection is
+        under test, the real .get(timeout=120) call returns right away
+        since FakeAsyncResult.get() doesn't block)."""
+        C, V, d = make_matrix([1, 1], 2)
+
+        class FakeAsyncResult:
+            def get(self, timeout=None):
+                assert timeout == 120  # confirms the spawn branch was taken
+                return [
+                    {
+                        "sequences": [
+                            {"states": ((0, 0),), "period": 1, "start_state": (0, 0), "period_only": True},
+                            {"states": ((0, 1),), "period": 3, "start_state": (1, 0), "period_only": True},
+                        ],
+                        "max_period": 3,
+                        "errors": [],
+                        "work_metrics": {"states_processed": 2},
+                    },
+                    {
+                        "sequences": [],
+                        "max_period": 0,
+                        "errors": [],
+                        "work_metrics": {"states_processed": 0},
+                    },
+                ]
+
+        class FakePool:
+            def map_async(self, func, iterable):
+                return FakeAsyncResult()
+
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *args):
+                return False
+
+        class FakeCtx:
+            def Pool(self, processes):
+                return FakePool()
+
+            def get_start_method(self):
+                return "spawn"
+
+        monkeypatch.setattr(multiprocessing, "get_context", lambda method: FakeCtx())
+
+        with tempfile.TemporaryFile(mode="w+") as f:
+            seq_dict, period_dict, max_period, periods_sum = lfsr_sequence_mapper_parallel(
+                C, V, 2, output_file=f, no_progress=True, period_only=True, num_workers=2
+            )
+        assert periods_sum == 4
+
     def test_pool_creation_exception_falls_back_to_sequential(self, monkeypatch):
         """A generic exception anywhere in the parallel-setup try block
         (lines 1696-1711) must trigger the fallback to
@@ -1515,6 +1587,44 @@ class TestProcessTaskBatchDynamicExtra:
         assert result["work_metrics"]["batches_processed"] == 2
         manager.shutdown()
 
+    def test_batch_aggregation_hits_empty_queue_before_sentinel(self):
+        """Covers analysis.py lines 2119-2121: the inner `except
+        queue_module.Empty: break` hit when get_nowait() finds the queue
+        genuinely drained (not a sentinel) partway through an aggregation
+        round. Achieved deterministically by queuing only 1 real batch
+        with batch_aggregation_count=4 (so the 2nd get_nowait() call in
+        the same round empties out) and delivering the sentinel from a
+        background thread shortly after, so the worker's *next* outer
+        while-True iteration (this time seeing an empty queue on its
+        very first get_nowait()) picks up the sentinel instead of
+        spinning forever. Bounded by a join(timeout=...) below to avoid
+        any risk of hanging the test suite if this assumption were ever
+        wrong."""
+        import threading as threading_mod
+        import time as time_mod
+
+        coeffs = [1, 1]
+        gf_order, d = 2, 2
+        manager = multiprocessing.Manager()
+        shared_cycles = manager.dict()
+        cycle_lock = manager.Lock()
+        task_queue = manager.Queue()
+        task_queue.put([((0, 0), 0)])  # only 1 batch -> next get_nowait() raises Empty
+
+        def delayed_sentinel():
+            time_mod.sleep(0.3)
+            task_queue.put(None)
+
+        sentinel_thread = threading_mod.Thread(target=delayed_sentinel, daemon=True)
+        sentinel_thread.start()
+
+        worker_data = (task_queue, coeffs, gf_order, d, "auto", True, 0, shared_cycles, cycle_lock, 4)
+        result = _process_task_batch_dynamic(worker_data)
+        sentinel_thread.join(timeout=5.0)
+        assert result["errors"] == []
+        assert result["processed_count"] == 1
+        manager.shutdown()
+
     def test_large_period_hits_periodic_hang_detection_check(self):
         """Mirrors TestProcessStateChunkExtra's equivalent test: a
         maximal-length 12-bit LFSR (period 4095, hand-verified) forces the
@@ -1655,3 +1765,510 @@ class TestLfsrSequenceMapperParallelDynamicExtra:
         captured = capsys.readouterr()
         assert "Using work stealing with 2 per-worker queues" in captured.out
         assert "Using lazy task generation" in captured.out
+
+
+# ---------------------------------------------------------------------------
+# Additional coverage-closing tests (round 2): module-level debug-logging
+# branches, small safety-limit branches, and further parallel-path edges.
+# ---------------------------------------------------------------------------
+
+
+class TestFindSequenceCycleEnumerationDebugLogging:
+    """Covers analysis.py lines 478 and 513: the DEBUG_PARALLEL-gated
+    debug_log() branches inside _find_sequence_cycle_enumeration, which
+    are only exercised when the function is called directly with
+    DEBUG_PARALLEL=1 (the higher-level mappers don't set that env var
+    themselves, and no existing test called this function directly under
+    the fixture)."""
+
+    def test_debug_logging_short_cycle(self, _debug_parallel_env, capsys):
+        """Line 478 (debug_log inside debug_log's own print) fires for any
+        call under DEBUG_PARALLEL=1; a short 3-cycle is enough."""
+        coeffs = [1, 1]
+        C, V, d = make_matrix(coeffs, 2)
+        s0 = V([1, 0])
+        seq, period = _find_sequence_cycle_enumeration(s0, C, set())
+        assert period == 3
+        captured = capsys.readouterr()
+        assert "_find_sequence_cycle_enumeration PID" in captured.err
+
+    def test_debug_logging_iteration_over_100_hits_periodic_log(self, _debug_parallel_env, capsys):
+        """Line 513 (`if iteration % 100 == 0: debug_log(...)`) requires a
+        cycle of length > 100. A maximal-length primitive degree-8 LFSR
+        gives period 255 (2**8 - 1), confirmed to be the standard maximal
+        period for a primitive polynomial of that degree."""
+        # Primitive degree-8 polynomial coefficients (hand-picked, matches
+        # a well-known maximal-length tap set: x^8+x^6+x^5+x^4+1).
+        coeffs = [1, 0, 0, 0, 1, 1, 1, 0]
+        C, V, d = make_matrix(coeffs, 2)
+        s0 = V([1, 0, 0, 0, 0, 0, 0, 0])
+        seq, period = _find_sequence_cycle_enumeration(s0, C, set())
+        assert period > 100
+        captured = capsys.readouterr()
+        assert "Iteration 100" in captured.err
+
+
+class TestFindSequenceCycleDebugLogging:
+    """Covers analysis.py lines 558 and 561: the DEBUG_PARALLEL debug_log
+    branches at the very top of _find_sequence_cycle (the dispatcher),
+    which are distinct from the ones inside the enumeration helper it
+    calls."""
+
+    def test_debug_logging_full_mode(self, _debug_parallel_env, capsys):
+        coeffs = [1, 1]
+        C, V, d = make_matrix(coeffs, 2)
+        s0 = V([1, 0])
+        seq, period = _find_sequence_cycle(
+            s0, C, set(), algorithm="enumeration", period_only=False
+        )
+        assert period == 3
+        captured = capsys.readouterr()
+        assert "_find_sequence_cycle PID" in captured.err
+        assert "_find_sequence_cycle called: period_only=False" in captured.err
+
+    def test_debug_logging_period_only_mode(self, _debug_parallel_env, capsys):
+        coeffs = [1, 1]
+        C, V, d = make_matrix(coeffs, 2)
+        s0 = V([1, 0])
+        seq, period = _find_sequence_cycle(
+            s0, C, set(), algorithm="auto", period_only=True
+        )
+        assert period == 3
+        captured = capsys.readouterr()
+        assert "_find_sequence_cycle called: period_only=True" in captured.err
+
+
+class TestPartitionStateSpaceExtra2:
+    def test_zero_total_states_on_fast_path_returns_empty_list(self):
+        """Covers line 1038: the `if total_states == 0: return []` guard
+        on the FAST path (object has working .basis()/.base_ring().order()
+        so the try succeeds), as opposed to the already-covered fallback
+        path in TestPartitionStateSpaceExtra. A real SageMath VectorSpace
+        can never report gf_order**d == 0 for any real field, so this is
+        only reachable via a fake object whose base_ring().order() is 0."""
+
+        class FakeRing:
+            def order(self):
+                return 0  # gf_order=0, d=1 -> total_states = 0**1 = 0
+
+        class FakeSpace:
+            def basis(self):
+                return [0]  # len() == 1 -> d = 1
+
+            def base_ring(self):
+                return FakeRing()
+
+        chunks = _partition_state_space(FakeSpace(), 3)
+        assert chunks == []
+
+
+class TestProcessStateChunkExtra2:
+    def test_sagemath_isolation_exception_fallback_branch(self, monkeypatch):
+        """Covers lines 1235-1239: the sibling isolation-exception fallback
+        inside _process_state_chunk (mirrors the equivalent branch in
+        _process_task_batch_dynamic covered by
+        TestProcessTaskBatchDynamicExtra2). The function does
+        `from lfsr.sage_imports import GF, VectorSpace, vector` locally
+        (analysis.py line 1152), so patching `lfsr.sage_imports.vector`
+        is what's visible to it."""
+        import lfsr.sage_imports as sage_imports_mod
+
+        real_vector = sage_imports_mod.vector
+        call_count = {"n": 0}
+
+        def flaky_vector(*args, **kwargs):
+            call_count["n"] += 1
+            # _process_state_chunk calls vector() once earlier (the
+            # "SageMath initialization test", line 1159) before reaching
+            # the isolation-test call this test targets (line 1233), so
+            # the SECOND call is the one that must raise.
+            if call_count["n"] == 2:
+                raise RuntimeError("simulated isolation failure")
+            return real_vector(*args, **kwargs)
+
+        monkeypatch.setattr(sage_imports_mod, "vector", flaky_vector)
+
+        coeffs = [1, 1]
+        gf_order, d = 2, 2
+        chunk = [((0, 0), 0)]
+        manager = multiprocessing.Manager()
+        shared_cycles = manager.dict()
+        cycle_lock = manager.Lock()
+        chunk_data = (chunk, coeffs, gf_order, d, "auto", True, 0, shared_cycles, cycle_lock)
+        result = _process_state_chunk(chunk_data)
+        # Worker must still function (fallback F/V created) rather than
+        # crashing; the fixed-point state (0,0) has period 1.
+        assert result["errors"] == []
+        assert result["max_period"] == 1
+        manager.shutdown()
+
+    def test_debug_env_isolation_exception_fallback_prints_warning(self, monkeypatch, _debug_parallel_env, capsys):
+        """Same as above but with DEBUG_PARALLEL=1 to also cover the
+        debug_log(f'Warning: SageMath isolation test failed...') message
+        text at line 1236."""
+        import lfsr.sage_imports as sage_imports_mod
+
+        real_vector = sage_imports_mod.vector
+        call_count = {"n": 0}
+
+        def flaky_vector(*args, **kwargs):
+            call_count["n"] += 1
+            # _process_state_chunk calls vector() once earlier (the
+            # "SageMath initialization test", line 1159) before reaching
+            # the isolation-test call this test targets (line 1233), so
+            # the SECOND call is the one that must raise.
+            if call_count["n"] == 2:
+                raise RuntimeError("simulated isolation failure")
+            return real_vector(*args, **kwargs)
+
+        monkeypatch.setattr(sage_imports_mod, "vector", flaky_vector)
+
+        coeffs = [1, 1]
+        gf_order, d = 2, 2
+        chunk = [((0, 0), 0)]
+        manager = multiprocessing.Manager()
+        shared_cycles = manager.dict()
+        cycle_lock = manager.Lock()
+        chunk_data = (chunk, coeffs, gf_order, d, "auto", True, 0, shared_cycles, cycle_lock)
+        result = _process_state_chunk(chunk_data)
+        assert result["errors"] == []
+        captured = capsys.readouterr()
+        assert "Warning: SageMath isolation test failed" in captured.err
+        manager.shutdown()
+
+
+class TestProcessTaskBatchDynamicExtra2:
+    def test_generic_exception_in_worker_loop_is_caught_and_logged(self, _debug_parallel_env, capsys):
+        """Covers analysis.py lines 2143-2147: the outer
+        `except Exception as e` around the main pull-batches loop, which
+        is distinct from the inner `except queue_module.Empty` handling
+        (already covered elsewhere). A fake queue-like object whose
+        get_nowait() raises a generic (non-Empty) exception on its first
+        call, then behaves like a normal queue (delivering one real
+        batch, then a sentinel) afterwards, deterministically forces this
+        branch without any timing dependency or hang risk."""
+        import queue as queue_module_for_test
+
+        class FlakyQueue:
+            def __init__(self):
+                self._items = [RuntimeError("simulated queue failure"), [((0, 0), 0)], None]
+                self._idx = 0
+
+            def get_nowait(self):
+                if self._idx >= len(self._items):
+                    raise queue_module_for_test.Empty()
+                item = self._items[self._idx]
+                self._idx += 1
+                if isinstance(item, Exception):
+                    raise item
+                return item
+
+        coeffs = [1, 1]
+        gf_order, d = 2, 2
+        manager = multiprocessing.Manager()
+        shared_cycles = manager.dict()
+        cycle_lock = manager.Lock()
+        worker_data = (FlakyQueue(), coeffs, gf_order, d, "auto", True, 0, shared_cycles, cycle_lock, 1)
+        result = _process_task_batch_dynamic(worker_data)
+        assert "Worker loop error: simulated queue failure" in result["errors"]
+        assert result["processed_count"] == 1  # the real batch was still processed afterwards
+        captured = capsys.readouterr()
+        assert "Error in worker loop" in captured.err
+        manager.shutdown()
+
+    def test_sagemath_isolation_exception_fallback_branch(self, monkeypatch, capsys):
+        """Covers lines 1936-1939: if the isolated `vector(F, [0]*degree)`
+        sanity check raises inside _process_task_batch_dynamic, the
+        except branch must log a warning and continue by re-creating F/V
+        rather than propagating. The function does
+        `from lfsr.sage_imports import GF, VectorSpace, vector` locally,
+        so patching the name on lfsr.sage_imports itself (not the
+        analysis module) is what's actually visible to that import."""
+        import lfsr.sage_imports as sage_imports_mod
+
+        real_vector = sage_imports_mod.vector
+        call_count = {"n": 0}
+
+        def flaky_vector(*args, **kwargs):
+            call_count["n"] += 1
+            if call_count["n"] == 1:
+                raise RuntimeError("simulated isolation failure")
+            return real_vector(*args, **kwargs)
+
+        monkeypatch.setattr(sage_imports_mod, "vector", flaky_vector)
+
+        coeffs = [1, 1]
+        gf_order, d = 2, 2
+        manager = multiprocessing.Manager()
+        shared_cycles = manager.dict()
+        cycle_lock = manager.Lock()
+        task_queue = manager.Queue()
+        task_queue.put([((0, 0), 0)])
+        task_queue.put(None)
+        worker_data = (task_queue, coeffs, gf_order, d, "auto", True, 0, shared_cycles, cycle_lock, 1)
+        result = _process_task_batch_dynamic(worker_data)
+        # The worker must still function (fallback F/V created), and the
+        # warning debug_log call (gated by DEBUG_PARALLEL, off by
+        # default here) doesn't need to print -- what matters is that
+        # execution didn't crash on the exception.
+        assert "errors" in result
+        manager.shutdown()
+
+    def test_debug_env_isolation_exception_fallback_prints_warning(self, monkeypatch, _debug_parallel_env, capsys):
+        """Same as above but with DEBUG_PARALLEL=1, to also cover the
+        debug_log(f'Warning: SageMath isolation test failed...') message
+        text itself, not just the code path around it."""
+        import lfsr.sage_imports as sage_imports_mod
+
+        real_vector = sage_imports_mod.vector
+        call_count = {"n": 0}
+
+        def flaky_vector(*args, **kwargs):
+            call_count["n"] += 1
+            if call_count["n"] == 1:
+                raise RuntimeError("simulated isolation failure")
+            return real_vector(*args, **kwargs)
+
+        monkeypatch.setattr(sage_imports_mod, "vector", flaky_vector)
+
+        coeffs = [1, 1]
+        gf_order, d = 2, 2
+        manager = multiprocessing.Manager()
+        shared_cycles = manager.dict()
+        cycle_lock = manager.Lock()
+        task_queue = manager.Queue()
+        task_queue.put([((0, 0), 0)])
+        task_queue.put(None)
+        worker_data = (task_queue, coeffs, gf_order, d, "auto", True, 0, shared_cycles, cycle_lock, 1)
+        result = _process_task_batch_dynamic(worker_data)
+        assert "errors" in result
+        captured = capsys.readouterr()
+        assert "Warning: SageMath isolation test failed" in captured.err
+
+
+class TestLfsrSequenceMapperParallelDynamicExtra2:
+    def test_num_workers_none_defaults_to_cpu_count(self, monkeypatch):
+        """Covers line 2224: num_workers=None auto-fills from
+        multiprocessing.cpu_count()."""
+        monkeypatch.setattr(multiprocessing, "cpu_count", lambda: 2)
+        C, V, d = make_matrix([1, 1], 2)
+        with tempfile.TemporaryFile(mode="w+") as f:
+            seq_dict, period_dict, max_period, periods_sum = lfsr_sequence_mapper_parallel_dynamic(
+                C, V, 2, output_file=f, no_progress=True, period_only=True, num_workers=None
+            )
+        assert periods_sum == 4
+
+    def test_stale_dead_pool_is_recreated(self, monkeypatch):
+        """Covers lines 2587-2594: when a module-level persistent pool
+        exists with a matching worker count but its `_state` is not RUN
+        (i.e. it was already closed/terminated elsewhere), get_or_create_pool
+        must discard it and create a fresh one rather than trying to
+        reuse a dead pool."""
+        shutdown_worker_pool()
+
+        class DeadPool:
+            _state = "CLOSE"  # anything other than multiprocessing.pool.RUN
+
+        monkeypatch.setattr(analysis_mod, "_worker_pool", DeadPool())
+        monkeypatch.setattr(analysis_mod, "_worker_pool_context", object())
+        monkeypatch.setattr(analysis_mod, "_worker_pool_size", 1)
+
+        C, V, d = make_matrix([1, 1], 2)
+        with tempfile.TemporaryFile(mode="w+") as f:
+            seq_dict, period_dict, max_period, periods_sum = lfsr_sequence_mapper_parallel_dynamic(
+                C, V, 2, output_file=f, no_progress=True, period_only=True, num_workers=1
+            )
+        assert periods_sum == 4
+        assert sorted(period_dict.values()) == [1, 3]
+
+    def test_stale_pool_state_check_raises_attributeerror_is_recreated(self, monkeypatch):
+        """Covers lines 2590-2594: if checking `_worker_pool._state`
+        itself raises AttributeError/ValueError (e.g. a genuinely
+        malformed/torn-down pool object), the except branch must also
+        discard and recreate rather than propagating."""
+        shutdown_worker_pool()
+
+        class BrokenStateAttr:
+            @property
+            def _state(self):
+                raise ValueError("simulated: pool object is in a bad state")
+
+        monkeypatch.setattr(analysis_mod, "_worker_pool", BrokenStateAttr())
+        monkeypatch.setattr(analysis_mod, "_worker_pool_context", object())
+        monkeypatch.setattr(analysis_mod, "_worker_pool_size", 1)
+
+        C, V, d = make_matrix([1, 1], 2)
+        with tempfile.TemporaryFile(mode="w+") as f:
+            seq_dict, period_dict, max_period, periods_sum = lfsr_sequence_mapper_parallel_dynamic(
+                C, V, 2, output_file=f, no_progress=True, period_only=True, num_workers=1
+            )
+        assert periods_sum == 4
+        assert sorted(period_dict.values()) == [1, 3]
+
+    def test_gf3_state_index_to_tuple_non_binary_branch(self):
+        """Covers lines 2341-2346: the `else` (non-GF(2)) branch of the
+        local state_index_to_tuple() closure used by batch_generator(),
+        only reached when gf_order != 2. All prior dynamic-parallel tests
+        used GF(2). Verifies correctness end-to-end against the
+        hand-verified GF(3) result already established elsewhere in this
+        file (coeffs=[1,2,1] over GF(3), periods_sum == 27)."""
+        C, V, d = make_matrix([1, 2, 1], 3)
+        with tempfile.TemporaryFile(mode="w+") as f:
+            seq_dict, period_dict, max_period, periods_sum = lfsr_sequence_mapper_parallel_dynamic(
+                C, V, 3, output_file=f, no_progress=True, period_only=True, num_workers=1
+            )
+        assert periods_sum == 27  # 3^3, matches TestLfsrSequenceMapperSerial's GF(3) case
+
+    def test_persistent_pool_reuse_prints_reused_message(self, capsys):
+        """Covers line 2624: calling lfsr_sequence_mapper_parallel_dynamic
+        twice in a row with the same num_workers reuses the module-level
+        persistent pool on the second call (get_or_create_pool's
+        `_worker_pool is not None and _worker_pool_size == num_workers`
+        branch), printing "Using persistent pool (reused)" when
+        no_progress=False."""
+        shutdown_worker_pool()
+        C, V, d = make_matrix([1, 1], 2)
+        with tempfile.TemporaryFile(mode="w+") as f:
+            lfsr_sequence_mapper_parallel_dynamic(
+                C, V, 2, output_file=f, no_progress=True, period_only=True, num_workers=1
+            )
+            capsys.readouterr()  # discard first-call output
+            lfsr_sequence_mapper_parallel_dynamic(
+                C, V, 2, output_file=f, no_progress=False, period_only=True, num_workers=1
+            )
+        captured = capsys.readouterr()
+        assert "Using persistent pool (reused)" in captured.out
+
+    def test_hybrid_mode_no_progress_false_prints_setup_messages(self, capsys):
+        """Covers lines 2292-2294 and 2311-2313: the hybrid-mode print
+        statements only fire when no_progress=False AND the state space
+        size auto-selects hybrid mode (8192 <= size < 65536). Uses the
+        same 13-bit/8192-state LFSR as the existing hang-regression test
+        but with no_progress=False this time."""
+        coeffs = [1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1]  # degree 13 -> 8192 states
+        gf_order, d = 2, 13
+        C, V, _ = make_matrix(coeffs, gf_order)
+        with tempfile.TemporaryFile(mode="w+") as f:
+            seq_dict, period_dict, max_period, periods_sum = lfsr_sequence_mapper_parallel_dynamic(
+                C, V, gf_order, output_file=f, no_progress=False, period_only=True, num_workers=2
+            )
+        assert periods_sum == 8192
+        captured = capsys.readouterr()
+        assert "Auto-selected hybrid mode" in captured.out
+        assert "Hybrid mode:" in captured.out
+
+    def test_get_context_valueerror_falls_back_to_spawn_for_new_pool(self, monkeypatch, capsys):
+        """Covers lines 2601-2604: when creating a brand-new persistent
+        pool, if multiprocessing.get_context('fork') raises ValueError,
+        the except branch must fall back to 'spawn' and print the
+        spawn-specific message (when no_progress=False). Ensures the
+        module-level persistent pool is empty first so a NEW pool is
+        actually created (not reused) by this test."""
+        shutdown_worker_pool()
+
+        real_get_context = multiprocessing.get_context
+
+        def picky_get_context(method):
+            if method == "fork":
+                raise ValueError("simulated: fork unavailable")
+            return real_get_context(method)
+
+        monkeypatch.setattr(multiprocessing, "get_context", picky_get_context)
+
+        C, V, d = make_matrix([1, 1], 2)
+        with tempfile.TemporaryFile(mode="w+") as f:
+            seq_dict, period_dict, max_period, periods_sum = lfsr_sequence_mapper_parallel_dynamic(
+                C, V, 2, output_file=f, no_progress=False, period_only=True, num_workers=1
+            )
+        assert periods_sum == 4
+        captured = capsys.readouterr()
+        assert "spawn mode" in captured.out
+
+    def test_worker_pool_exception_falls_back_to_sequential(self, monkeypatch, capsys):
+        """Covers the outer except-Exception fallback (lines 2666-2691):
+        making `_process_task_batch_dynamic` (the function `pool.map`
+        invokes per worker) raise is caught by the try/except around the
+        whole worker-invocation block and must fall back to the
+        sequential lfsr_sequence_mapper with an identical, known-correct
+        result, printing the ERROR/"Falling back" messages to stderr."""
+        shutdown_worker_pool()
+
+        def broken_process_task_batch_dynamic(worker_data):
+            raise RuntimeError("simulated worker crash")
+
+        monkeypatch.setattr(analysis_mod, "_process_task_batch_dynamic", broken_process_task_batch_dynamic)
+
+        C, V, d = make_matrix([1, 1], 2)
+        with tempfile.TemporaryFile(mode="w+") as f:
+            seq_dict, period_dict, max_period, periods_sum = lfsr_sequence_mapper_parallel_dynamic(
+                C, V, 2, output_file=f, no_progress=True, period_only=True, num_workers=1
+            )
+        # Falls back to sequential lfsr_sequence_mapper (known-correct).
+        assert periods_sum == 4
+        assert sorted(period_dict.values()) == [1, 3]
+        captured = capsys.readouterr()
+        assert "ERROR: Dynamic parallel processing failed" in captured.err
+        assert "Falling back to sequential processing" in captured.err
+
+    def test_period_sum_mismatch_warning_printed(self, monkeypatch, capsys):
+        """Covers lines 2751-2752: WARNING printed when periods_sum
+        doesn't match the true state-space size, mirroring the analogous
+        static-mode test in TestLfsrSequenceMapperParallelExtra."""
+        C, V, d = make_matrix([1, 1], 2)
+
+        def fake_merge(worker_results, gf_order, lfsr_degree, shared_cycles=None):
+            return {1: []}, {1: 1}, 1, 999  # wrong periods_sum on purpose
+
+        monkeypatch.setattr(analysis_mod, "_merge_parallel_results", fake_merge)
+        with tempfile.TemporaryFile(mode="w+") as f:
+            lfsr_sequence_mapper_parallel_dynamic(
+                C, V, 2, output_file=f, no_progress=True, period_only=True, num_workers=1
+            )
+        captured = capsys.readouterr()
+        assert "WARNING: Period sum" in captured.err
+
+    def test_full_mode_display_path_covers_sequence_dump_lines(self):
+        """Covers lines 2712-2713 (load imbalance debug branch, exercised
+        via _debug_parallel_env fixture below) and 2728-2737 (the
+        period_only=False display branch calling _format_sequence_entry
+        and dump_seq_row for the dynamic-parallel path, which no
+        existing test exercised -- all prior dynamic-parallel tests used
+        period_only=True)."""
+        C, V, d = make_matrix([1, 1], 2)
+        with tempfile.TemporaryFile(mode="w+") as f:
+            seq_dict, period_dict, max_period, periods_sum = lfsr_sequence_mapper_parallel_dynamic(
+                C, V, 2, output_file=f, no_progress=True, period_only=False, num_workers=1
+            )
+        assert periods_sum == 4
+        assert sorted(period_dict.values()) == [1, 3]
+        # Full mode: sequences must be non-empty (unlike period_only=True).
+        assert any(len(seq) > 0 for seq in seq_dict.values())
+
+    def test_load_imbalance_debug_branch(self, _debug_parallel_env, capsys):
+        """Covers lines 2712-2713: the DEBUG_PARALLEL-gated load-imbalance
+        print statement in the dynamic-parallel path."""
+        C, V, d = make_matrix([1, 1, 0, 1], 2)  # 16 states, 2 workers
+        with tempfile.TemporaryFile(mode="w+") as f:
+            lfsr_sequence_mapper_parallel_dynamic(
+                C, V, 2, output_file=f, no_progress=True, period_only=True, num_workers=2
+            )
+        captured = capsys.readouterr()
+        assert "[Load Imbalance]" in captured.err
+
+
+class TestDisplayPeriodDistributionExtra:
+    def test_error_key_short_circuits_display(self):
+        """Covers lines 2788-2789: display_period_distribution must print
+        the error and return early when compute_period_distribution
+        yields a dict containing an 'error' key (e.g. an empty
+        period_dict, which compute_period_distribution treats as an
+        error condition rather than crashing on empty statistics)."""
+        with tempfile.TemporaryFile(mode="w+") as f:
+            display_period_distribution(
+                {}, gf_order=2, lfsr_degree=2, is_primitive=False, output_file=f
+            )
+            f.seek(0)
+            content = f.read()
+        assert "Error:" in content
+        # None of the later sections should have been reached.
+        assert "Total Sequences" not in content
