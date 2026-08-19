@@ -87,6 +87,42 @@ class TestExampleFunctionsRunCleanly:
             tae.example_database_comparison()
         out = buf.getvalue()
         assert "Found in database" in out
+        # get_database() auto-populates standard primitive polynomials
+        # (including [1, 0, 0, 1] over GF(2), degree 4 -- see
+        # theoretical_db.py's get_database()/populate_standard_primitives())
+        # whenever the underlying db['primitive_polynomials'] dict is
+        # empty, which it always is here (fresh isolated tmp_path DB per
+        # test). So this example's own hardcoded [1, 0, 0, 1] coefficients
+        # ALWAYS match, hitting the "found" branch, not the "else: No
+        # matching results" branch (line ~141) -- see
+        # test_database_comparison_not_found_branch below for that one,
+        # using coefficients deliberately absent from the seeded set.
+        assert "Found in database: True" in out
+
+    def test_database_comparison_not_found_branch(self, monkeypatch):
+        """Covers the `else: print("No matching results found in
+        database")` branch (line ~141), which
+        test_example_database_comparison above cannot reach (see its
+        comment): the example's own hardcoded [1, 0, 0, 1] coefficients
+        always match get_database()'s auto-seeded standard primitives.
+        Monkeypatch tae.get_database (called by example_database_comparison
+        via module-global name, with no args) to return a fake db object
+        whose compare_with_known() always reports not-found, letting the
+        example function's own real print/branch logic execute
+        unmodified against that result."""
+
+        class _FakeDB:
+            def compare_with_known(self, **kwargs):
+                return {"found_in_database": False}
+
+        monkeypatch.setattr(tae, "get_database", lambda: _FakeDB())
+
+        buf = io.StringIO()
+        with redirect_stdout(buf):
+            tae.example_database_comparison()
+        out = buf.getvalue()
+        assert "Found in database: False" in out
+        assert "No matching results found in database" in out
 
     def test_example_benchmarking(self):
         buf = io.StringIO()
@@ -115,3 +151,22 @@ class TestMainEndToEnd:
         assert "Examples Complete!" in out
         assert "Example 1: Irreducible Polynomial Analysis" in out
         assert "Example 6: Reproducibility Report" in out
+
+    def test_main_except_block_on_unexpected_error(self, monkeypatch):
+        """Covers main()'s except block (lines ~219-223), unreachable
+        with the script's own well-formed calls."""
+        def raiser():
+            raise RuntimeError("simulated failure for coverage")
+
+        monkeypatch.setattr(tae, "example_irreducible_analysis", raiser)
+
+        buf_out = io.StringIO()
+        buf_err = io.StringIO()
+        from contextlib import redirect_stderr
+
+        with redirect_stdout(buf_out):
+            with redirect_stderr(buf_err):
+                with pytest.raises(SystemExit) as exc_info:
+                    tae.main()
+        assert exc_info.value.code == 1
+        assert "ERROR: simulated failure for coverage" in buf_err.getvalue()

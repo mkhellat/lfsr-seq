@@ -118,6 +118,21 @@ class TestPlot3DStateSpaceInteractive:
         plot_3d_state_space(SEQUENCES_3D, PERIODS_3D, config=config, output_file=str(out))
         assert out.exists()
 
+    def test_saves_non_html_output_file_via_write_image(self, tmp_path, monkeypatch):
+        """Covers the `else: fig.write_image(output_file)` branch (line
+        ~141), taken when output_file doesn't end in '.html'. Real
+        static image export requires the optional "kaleido" package
+        (not installed in this venv), so monkeypatch go.Figure.write_image
+        with a stub that records the call."""
+        calls = []
+        monkeypatch.setattr(
+            go.Figure, "write_image", lambda self, path: calls.append(path)
+        )
+        out = tmp_path / "3d.png"
+        config = VisualizationConfig(interactive=True)
+        plot_3d_state_space(SEQUENCES_3D, PERIODS_3D, config=config, output_file=str(out))
+        assert calls == [str(out)]
+
 
 class TestPlotStateSpaceProjectionPCA:
     def test_returns_matplotlib_figure(self):

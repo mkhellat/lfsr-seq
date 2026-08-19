@@ -177,3 +177,72 @@ class TestPerformAlgebraicAttackCli:
         assert "Coefficients: [1, 1, 0]" in out
         assert "Degree: 3" in out
         assert "Field order: 2" in out
+
+    def test_groebner_basis_attack_failed_prints_failure_line(self, monkeypatch):
+        """Covers the `else: print('  ✗ Attack failed')` branch (line
+        ~130) for method="groebner_basis", which normal small-LFSR runs
+        never hit because the toy example above always succeeds.
+        Monkeypatches lfsr.cli_algebraic.groebner_basis_attack (imported
+        by name into cli_algebraic's namespace) to force
+        attack_successful=False, isolating the CLI's dispatch/print logic
+        from the underlying attack algorithm's actual success/failure
+        behavior (already covered independently in test_attacks.py)."""
+        import lfsr.cli_algebraic as cli_algebraic
+        from lfsr.attacks import AlgebraicAttackResult
+
+        def fake_groebner_basis_attack(**kwargs):
+            return AlgebraicAttackResult(
+                attack_successful=False,
+                recovered_state=None,
+                algebraic_immunity=2,
+                equations_solved=0,
+                complexity_estimate=123.0,
+                method_used="groebner_basis",
+                details={},
+            )
+
+        monkeypatch.setattr(
+            cli_algebraic, "groebner_basis_attack", fake_groebner_basis_attack
+        )
+
+        buf = io.StringIO()
+        cli_algebraic.perform_algebraic_attack_cli(
+            lfsr_coefficients=COEFFS,
+            field_order=2,
+            keystream=KEYSTREAM,
+            method="groebner_basis",
+            output_file=buf,
+        )
+        out = buf.getvalue()
+        assert "✗ Attack failed" in out
+
+    def test_cube_attack_failed_prints_failure_line(self, monkeypatch):
+        """Covers the `else: print('  ✗ Attack failed')` branch
+        (lines ~151-152) for method="cube_attack" -- same rationale as
+        test_groebner_basis_attack_failed_prints_failure_line above."""
+        import lfsr.cli_algebraic as cli_algebraic
+        from lfsr.attacks import CubeAttackResult
+
+        def fake_cube_attack(**kwargs):
+            return CubeAttackResult(
+                attack_successful=False,
+                cubes_found=0,
+                superpolies_computed=0,
+                recovered_bits=0,
+                complexity_estimate=42.0,
+                details={},
+            )
+
+        monkeypatch.setattr(cli_algebraic, "cube_attack", fake_cube_attack)
+
+        buf = io.StringIO()
+        cli_algebraic.perform_algebraic_attack_cli(
+            lfsr_coefficients=COEFFS,
+            field_order=2,
+            keystream=KEYSTREAM,
+            method="cube_attack",
+            max_cube_size=3,
+            output_file=buf,
+        )
+        out = buf.getvalue()
+        assert "✗ Attack failed" in out

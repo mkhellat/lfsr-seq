@@ -7,6 +7,9 @@ detection, statistical-anomaly windows, periodicity indicators
 detect_all_patterns dispatcher. Complements the existing light coverage
 in test_ml.py."""
 
+import builtins
+import sys
+
 import pytest
 
 import lfsr.ml.pattern_detection as patdet
@@ -17,6 +20,31 @@ from lfsr.ml.pattern_detection import (
     detect_repeating_subsequences,
     detect_statistical_anomalies,
 )
+
+
+def _reimport_with_blocked_import(module_name, blocked_name):
+    """Force a fresh import of `module_name` with `import blocked_name`
+    made to raise ImportError, to exercise the module's own `except
+    ImportError: HAS_NUMPY = False` fallback branch at definition time.
+    Mirrors the identical helper in test_ml_anomaly_detection.py /
+    test_ml_period_prediction.py."""
+    real_import = builtins.__import__
+
+    def fake_import(name, *args, **kwargs):
+        if name == blocked_name:
+            raise ImportError(f"simulated: {blocked_name} unavailable")
+        return real_import(name, *args, **kwargs)
+
+    if module_name in sys.modules:
+        del sys.modules[module_name]
+
+    builtins.__import__ = fake_import
+    try:
+        import importlib
+
+        return importlib.import_module(module_name)
+    finally:
+        builtins.__import__ = real_import
 
 
 class TestPatternDescription:
@@ -160,3 +188,20 @@ class TestDetectAllPatterns:
             seq, include_repeating=False, include_anomalies=False, include_periodicity=False
         )
         assert result == {}
+
+
+class TestImportFallback:
+    """Regression coverage for the module-level `except ImportError:
+    HAS_NUMPY = False` branch itself (lines ~19-20), as opposed to just
+    testing behavior with the flag pre-set to False. Mirrors the
+    equivalent test class in test_ml_anomaly_detection.py."""
+
+    def test_numpy_import_error_sets_has_numpy_false(self):
+        try:
+            fresh = _reimport_with_blocked_import(
+                "lfsr.ml.pattern_detection", "numpy"
+            )
+            assert fresh.HAS_NUMPY is False
+        finally:
+            del sys.modules["lfsr.ml.pattern_detection"]
+            import lfsr.ml.pattern_detection  # noqa: F401

@@ -77,3 +77,19 @@ class TestMain:
         assert "Parallel State Enumeration Examples" in captured.out
         assert "Examples Complete!" in captured.out
         assert "ERROR" not in captured.err
+
+    def test_main_except_block_on_unexpected_error(self, capsys, monkeypatch):
+        """Covers main()'s except block (lines ~211-215), unreachable
+        with the script's own well-formed calls."""
+        import pytest
+
+        def raiser():
+            raise RuntimeError("simulated failure for coverage")
+
+        monkeypatch.setattr(m, "example_basic_parallel", raiser)
+
+        with pytest.raises(SystemExit) as exc_info:
+            m.main()
+        assert exc_info.value.code == 1
+        err = capsys.readouterr().err
+        assert "ERROR: simulated failure for coverage" in err

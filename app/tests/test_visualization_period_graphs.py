@@ -17,6 +17,7 @@ import matplotlib.pyplot as plt
 import plotly.graph_objects as go
 import pytest
 
+from lfsr.visualization import period_graphs as pg
 from lfsr.visualization.base import VisualizationConfig
 from lfsr.visualization.period_graphs import (
     plot_period_distribution,
@@ -139,6 +140,34 @@ class TestPlotPeriodDistributionInteractive:
         assert out.exists()
         assert "plotly" in out.read_text().lower()
 
+    def test_saves_non_html_output_file_via_write_image(self, tmp_path, monkeypatch):
+        """Covers the `else: fig.write_image(output_file)` branch (line
+        ~187), taken when output_file doesn't end in '.html'. Real
+        static image export requires the optional "kaleido" package
+        (not installed in this venv), so monkeypatch go.Figure.write_image
+        with a stub that records the call, isolating this
+        branch-selection logic from kaleido's actual availability."""
+        calls = []
+        monkeypatch.setattr(
+            go.Figure, "write_image", lambda self, path: calls.append(path)
+        )
+        out = tmp_path / "dist.png"
+        config = VisualizationConfig(interactive=True)
+        plot_period_distribution({1: 1, 3: 2}, config=config, output_file=str(out))
+        assert calls == [str(out)]
+
+
+class TestPlotPeriodDistributionDispatch:
+    """Covers plot_period_distribution's top-level backend-selection
+    else branch (line ~80): `raise ImportError(...)` when neither
+    plotly nor matplotlib is available."""
+
+    def test_raises_when_neither_backend_available(self, monkeypatch):
+        monkeypatch.setattr(pg, "HAS_PLOTLY", False)
+        monkeypatch.setattr(pg, "HAS_MATPLOTLIB", False)
+        with pytest.raises(ImportError, match="matplotlib or plotly"):
+            plot_period_distribution({1: 1, 3: 2})
+
 
 class TestPlotPeriodVsStateStatic:
     def test_returns_matplotlib_figure(self):
@@ -199,3 +228,29 @@ class TestPlotPeriodVsStateInteractive:
         config = VisualizationConfig(interactive=True)
         with pytest.raises(ValueError):
             plot_period_vs_state([], config=config)
+
+    def test_saves_non_html_output_file_via_write_image(self, tmp_path, monkeypatch):
+        """Covers the `else: fig.write_image(output_file)` branch (line
+        ~294) for plot_period_vs_state's interactive backend, mirroring
+        the equivalent test for plot_period_distribution above."""
+        calls = []
+        monkeypatch.setattr(
+            go.Figure, "write_image", lambda self, path: calls.append(path)
+        )
+        out = tmp_path / "scatter.png"
+        config = VisualizationConfig(interactive=True)
+        pairs = [([1, 0], 3), ([0, 1], 5)]
+        plot_period_vs_state(pairs, config=config, output_file=str(out))
+        assert calls == [str(out)]
+
+
+class TestPlotPeriodVsStateDispatch:
+    """Covers plot_period_vs_state's top-level backend-selection else
+    branch (line ~225): `raise ImportError(...)` when neither plotly
+    nor matplotlib is available."""
+
+    def test_raises_when_neither_backend_available(self, monkeypatch):
+        monkeypatch.setattr(pg, "HAS_PLOTLY", False)
+        monkeypatch.setattr(pg, "HAS_MATPLOTLIB", False)
+        with pytest.raises(ImportError, match="matplotlib or plotly"):
+            plot_period_vs_state([([1, 0], 3), ([0, 1], 5)])

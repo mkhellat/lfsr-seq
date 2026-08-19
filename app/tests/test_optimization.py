@@ -164,6 +164,26 @@ class TestInMemoryCacheBehavior:
         assert stats["sets"] == 0
         assert stats["loads"] == 0
 
+    def test_clear_swallows_os_remove_failure(self, tmp_path, monkeypatch):
+        """Covers the `except (IOError, OSError): pass` branch (lines
+        ~220-221) in ResultCache.clear(): if removing the persistent
+        cache file fails (permissions, race with another process,
+        etc.), clear() must not propagate the exception -- the
+        in-memory cache is still cleared regardless."""
+        cache_file = tmp_path / "cache.json"
+        cache = ResultCache(cache_file=str(cache_file))
+        cache.set("k", "v")
+        assert cache_file.exists()
+
+        def raising_remove(path):
+            raise OSError("simulated removal failure")
+
+        monkeypatch.setattr(os, "remove", raising_remove)
+
+        cache.clear()  # must not raise
+
+        assert len(cache) == 0
+
     def test_get_stats_hit_rate_computation(self):
         cache = ResultCache()
         cache.set("k", "v")

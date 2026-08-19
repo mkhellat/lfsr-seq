@@ -152,6 +152,30 @@ class TestPeriodPredictionModel:
         assert isinstance(prediction, float)
 
 
+class TestGenerateTrainingData:
+    def test_analyze_lfsr_exception_is_skipped(self, monkeypatch):
+        """Covers the `except Exception: continue` branch in
+        generate_training_data (lines ~108-110): if analyze_lfsr raises
+        for a given candidate, that sample is silently skipped rather
+        than propagating, and the function still returns whatever
+        samples succeeded. Monkeypatches lfsr.ml.training.analyze_lfsr
+        (imported by name into training's namespace) to always raise,
+        isolating this behavior from analyze_lfsr's real success/failure
+        conditions (covered elsewhere)."""
+        import lfsr.ml.training as training
+
+        def always_raises(coefficients, field_order):
+            raise RuntimeError("simulated analyze_lfsr failure")
+
+        monkeypatch.setattr(training, "analyze_lfsr", always_raises)
+
+        X, y = training.generate_training_data(
+            num_samples=5, max_degree=4, field_order=2
+        )
+        assert X == []
+        assert y == []
+
+
 class TestTrainingPipeline:
     @pytest.mark.slow
     def test_train_period_prediction_model(self):

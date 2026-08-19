@@ -141,6 +141,25 @@ class TestVisualizeCorrelationAttackInteractive:
         visualize_correlation_attack(FULL_RESULTS, config=config, output_file=str(out))
         assert out.exists()
 
+    def test_saves_non_html_output_file_via_write_image(self, tmp_path, monkeypatch):
+        """Covers the `else: fig.write_image(output_file)` branch (line
+        ~178), taken when output_file doesn't end in '.html'. Real
+        static image export requires the optional "kaleido" package
+        (confirmed not installed in this venv: fig.write_image() raises
+        ValueError pointing at "pip install -U kaleido" otherwise), so
+        monkeypatch go.Figure.write_image with a stub that just records
+        the call -- isolating this branch-selection logic from whether
+        kaleido happens to be installed."""
+        calls = []
+        monkeypatch.setattr(
+            go.Figure, "write_image", lambda self, path: calls.append(path)
+        )
+
+        out = tmp_path / "corr.png"
+        config = VisualizationConfig(interactive=True)
+        visualize_correlation_attack(FULL_RESULTS, config=config, output_file=str(out))
+        assert calls == [str(out)]
+
 
 ATTACK_RESULTS_LIST = [
     {"method_name": "Correlation", "success_rate": 0.8, "execution_time": 1.5, "memory_usage": 100},

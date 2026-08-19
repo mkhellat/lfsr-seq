@@ -127,6 +127,35 @@ class TestPolynomialOrderHelper:
         assert p.is_irreducible()
         assert reference_polynomial_order(p, 2, 2) == 3
 
+    def test_t_divisible_polynomial_order_is_infinite(self, gf2_ring):
+        """t (the bare generator) has zero constant term, so t^j mod t
+        is always 0, never 1 -- no finite j in range satisfies r == 1.
+        Covers both the `elif j == state_vector_space_size - 1: return
+        oo` early-return (line ~321) and the final fallback `return oo`
+        (line ~323) after the loop exhausts, for two different degrees
+        (state_vector_dim=1 hits the elif on the loop's only iteration;
+        degree=2 needs the loop to run to completion first)."""
+        t = gf2_ring.gen()
+        assert _polynomial_order_helper(t, 1, 2) == oo
+        assert _polynomial_order_helper(t, 2, 2) == oo
+        # NOTE: deliberately NOT cross-checking against
+        # lfsr.polynomial.polynomial_order(t, 1, 2) here (unlike the
+        # other tests in this class): degree=1 with state_vector_dim=1
+        # takes that function's "fast path" (degree ==
+        # state_vector_dim), which calls is_primitive_polynomial ->
+        # polynomial_order again on the SAME object, and t's
+        # is_primitive() apparently never resolves in a way that
+        # terminates this mutual recursion -- observed to raise
+        # RecursionError (maximum recursion depth exceeded) rather than
+        # returning oo or crashing cleanly. This looks like a separate,
+        # pre-existing edge case in lfsr.polynomial's fast-path/
+        # mutual-recursion design (degree-1 t-divisible polynomials
+        # specifically), outside this test file's scope (theoretical.py's
+        # own _polynomial_order_helper has no such recursion and is
+        # unaffected, as asserted above). Left as an observation, not
+        # investigated further here since it doesn't affect this
+        # module's own correctness.
+
 
 # ---------------------------------------------------------------------------
 # analyze_irreducible_properties -- real behavioral tests, cross-checked
@@ -166,6 +195,36 @@ class TestAnalyzeIrreducibleProperties:
         assert result.has_primitive_factors is True
         assert result.degree_distribution == {1: 2, 2: 1}
         assert result.theoretical_period == 15  # q^d - 1 = 2^4 - 1
+
+    def test_composite_polynomial_with_t_factor_has_infinite_order(self, gf2_ring):
+        """t^3 + t^2 + t = t * (t^2+t+1) over GF(2): the `t` factor has
+        no finite multiplicative order (it's divisible by t), so
+        factor_order == oo for that factor. Covers the `else:
+        factor_orders_list.append(None)` branch (line ~165) in the
+        composite-polynomial loop, distinct from the finite-order
+        `factor_orders_list.append(int(...))` branch already exercised
+        by test_composite_polynomial above."""
+        poly = gf2_ring("t^3 + t^2 + t")
+        result = analyze_irreducible_properties(poly, 2)
+        assert result.is_irreducible is False
+        # factor order for `t` is None (infinite); for t^2+t+1 it's 3.
+        assert None in result.factor_orders
+        assert 3 in result.factor_orders
+        # lcm_of_orders is computed only from the finite (non-None)
+        # orders, so it must be 3, not affected by the infinite one.
+        assert result.lcm_of_orders == 3
+
+    def test_composite_polynomial_all_infinite_orders_gives_none_lcm(self, gf2_ring):
+        """t^2 (= t * t) over GF(2) factors entirely into copies of `t`,
+        every one of which has infinite order -- so valid_orders is
+        empty and lcm_of_orders must be None (line ~187), the branch
+        test_composite_polynomial_with_t_factor_has_infinite_order above
+        can't reach since it always has one finite-order factor too."""
+        poly = gf2_ring("t^2")
+        result = analyze_irreducible_properties(poly, 2)
+        assert result.is_irreducible is False
+        assert all(o is None for o in result.factor_orders)
+        assert result.lcm_of_orders is None
 
     def test_dataclass_itself_is_constructible_independent_of_the_bug(self):
         """The IrreduciblePolynomialAnalysis dataclass itself is fine --

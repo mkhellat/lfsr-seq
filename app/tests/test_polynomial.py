@@ -63,6 +63,62 @@ class TestPolynomialOrder:
         assert order is not None
         assert order >= 3
 
+    def test_degree_1_t_divisible_polynomial_recurses_infinitely(self):
+        """SUSPECTED REAL BUG, independently confirmed via a standalone
+        repro (not from memory): polynomial_order(t, 1, 2) -- the bare
+        ring generator, degree 1, zero constant term -- raises
+        RecursionError (maximum recursion depth exceeded) instead of
+        returning oo.
+
+        Trace of the actual mechanism, verified step by step outside
+        pytest:
+          1. polynomial_order(t, 1, 2) has degree == state_vector_dim
+             (1 == 1), so it takes the "fast path" (lines 43-50):
+             `if is_primitive_polynomial(polynomial, gf_order): ...`.
+          2. is_primitive_polynomial(t, 2) tries the built-in fast path
+             first: `t.is_primitive()` -- confirmed via direct call to
+             raise `ValueError: The order of P(=0) does not divide 1`
+             (Sage's own message), which IS one of the caught exception
+             types (line 115's `except (..., ValueError): pass`), so
+             execution falls through to the manual check.
+          3. Manual check: `t.is_irreducible()` -- confirmed via direct
+             call to return `True` (trivially true for any degree-1
+             polynomial), so is_primitive_polynomial proceeds to call
+             `polynomial_order(t, 1, 2)` AGAIN (line 129), with the
+             exact same arguments as the original outer call.
+          4. That recursive call again has degree == state_vector_dim,
+             takes the fast path again, calls is_primitive_polynomial
+             again -> unbounded mutual recursion between
+             polynomial_order and is_primitive_polynomial for this
+             specific (degree-1, t-divisible-polynomial) input, never
+             reaching the `poly_order == oo` fallback that a t-divisible
+             polynomial should hit (as it correctly does at higher
+             degrees -- see test_polynomial_order_returns_infinity_for_t_divisible_poly
+             above, which uses a degree-3 t-divisible polynomial and
+             passes fine, because THAT one takes the non-fast-path
+             linear-search branch directly rather than round-tripping
+             through is_primitive_polynomial's manual fallback).
+
+        Root cause: the fast-path optimization at lines 43-50 assumes
+        is_primitive_polynomial's manual fallback (when the built-in
+        is_primitive() raises) will terminate via its own internal
+        polynomial_order call, but for a degree-1 polynomial that
+        recursive call re-enters the exact same fast path with
+        unchanged arguments, so there is no base case. Not fixed here
+        per instructions (test-writing only, no src/ edits) -- this
+        test documents and asserts the actual (broken) behavior.
+        Discovered while cross-checking
+        lfsr.theoretical._polynomial_order_helper against this
+        function in test_theoretical.py (that helper is NOT affected --
+        it uses a plain non-recursive linear search with no fast-path
+        shortcut, and correctly returns oo for the same t/degree-1
+        input, confirming this is specific to polynomial.py's
+        recursive optimization, not an inherent property of the math)."""
+        R = PolynomialRing(GF(2), "t")
+        t = R.gen()
+        with pytest.raises(RecursionError):
+            polynomial_order(t, 1, 2)
+
 
 class TestCharacteristicPolynomial:
     """Tests for characteristic_polynomial function."""
@@ -382,6 +438,46 @@ class TestComputePeriodViaFactorization:
         period = compute_period_via_factorization([0, 1, 1], 2)
         assert period == 3
 
+    def test_int_conversion_failure_on_factor_order_is_skipped(self, monkeypatch):
+        """Covers the `except (TypeError, ValueError): continue` branch
+        (lines ~343-345): if polynomial_order returns a value that is
+        not oo but also can't be converted via int() (e.g. some
+        non-numeric/malformed object -- not something real Sage
+        polynomial_order calls produce in practice, but the code
+        defends against it anyway), that factor's contribution must be
+        skipped rather than crashing the whole computation. Monkeypatch
+        lfsr.polynomial.polynomial_order (called by module-level name
+        inside compute_period_via_factorization) to return a sentinel
+        for one factor and a normal int for another, verifying only the
+        int-convertible factor contributes to the final period."""
+        import lfsr.polynomial as polynomial_mod
+
+        class _NotIntConvertible:
+            def __eq__(self, other):
+                return False  # never equal to oo
+
+            def __int__(self):
+                raise ValueError("cannot convert")
+
+        real_polynomial_order = polynomial_mod.polynomial_order
+        call_count = {"n": 0}
+
+        def fake_polynomial_order(poly, d, field_order):
+            call_count["n"] += 1
+            if call_count["n"] == 1:
+                return _NotIntConvertible()
+            return real_polynomial_order(poly, d, field_order)
+
+        monkeypatch.setattr(polynomial_mod, "polynomial_order", fake_polynomial_order)
+
+        # coefficients=[0, 1, 1] over GF(2) factors into `t` and
+        # `t^2+t+1` (order 3), matching test_t_divisible_factor_order_infinity_is_skipped
+        # above -- but this time the FIRST factor hits our fake
+        # (non-int-convertible) branch instead of the real oo branch.
+        period = polynomial_mod.compute_period_via_factorization([0, 1, 1], 2)
+        assert period == 3
+        assert call_count["n"] >= 2
+
     def test_invalid_field_order_hits_outer_exception_handler(self):
         """GF(field_order) raises ValueError immediately when field_order
         isn't a prime power (e.g. 6 = 2*3, not a prime power), before any
@@ -530,6 +626,21 @@ class TestDetectMathematicalShortcuts:
         # Execution must have continued past the swallowed exception into
         # the irreducibility check (not short-circuited/crashed).
         assert result["is_irreducible"] in (True, False)
+
+    # NOTE: lines 465-466 (the `except (AttributeError, NotImplementedError,
+    # TypeError, ValueError): pass` around `char_poly.is_irreducible()`)
+    # could not be covered with a real trigger, for the same reason
+    # documented in TestIsPrimitivePolynomialFallbackPath below re: lines
+    # 134/136-139. char_poly is built internally by
+    # detect_mathematical_shortcuts (not caller-injectable), so the only
+    # way to force is_irreducible() to raise would be monkeypatching it
+    # on the real Sage polynomial's type -- confirmed impossible:
+    # `type(char_poly).is_irreducible = ...` raises "cannot set
+    # 'is_irreducible' attribute of immutable type" for both
+    # Polynomial_GF2X (GF(2)) and Polynomial_zmod_flint (GF(3)), Sage's
+    # Cython extension types for these rings. Real Sage polynomials never
+    # raise from is_irreducible() in practice, so this is defensive code
+    # with no realistic trigger.
 
 
 class TestIsPrimitivePolynomialFallbackPath:

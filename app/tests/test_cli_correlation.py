@@ -103,6 +103,26 @@ class TestLoadCombinationGeneratorFromJson:
         assert gen.combining_function(1, 0) == 1
         assert gen.combining_function(1, 1) == 0
 
+    def test_custom_function_without_f_falls_back_to_any_callable(self, tmp_path):
+        """Covers the `else: combining_function = next(v for v in
+        namespace.values() if callable(v))` fallback (line ~135), which
+        fires when the custom code defines a function under a name other
+        than 'f'. test_custom_function above always defines 'f', so it
+        never reaches this branch."""
+        config = two_lfsr_xor_config()
+        config["combining_function"] = {
+            "type": "custom",
+            "num_inputs": 2,
+            "code": "def my_combiner(a, b):\n    return 1 if a != b else 0\n",
+        }
+        cfg_file = tmp_path / "cfg.json"
+        cfg_file.write_text(json.dumps(config))
+
+        gen = load_combination_generator_from_json(str(cfg_file))
+        assert gen.function_name == "custom"
+        assert gen.combining_function(1, 0) == 1
+        assert gen.combining_function(1, 1) == 0
+
     def test_custom_function_missing_code_raises(self, tmp_path):
         config = two_lfsr_xor_config()
         config["combining_function"] = {"type": "custom", "num_inputs": 2}

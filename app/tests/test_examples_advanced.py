@@ -58,3 +58,19 @@ class TestMain:
         example_module.main()
         out = capsys.readouterr().out
         assert "Examples Complete!" in out
+
+    def test_main_except_block_on_unexpected_error(self, capsys, monkeypatch):
+        """Covers main()'s except block (lines ~241-245), unreachable
+        with the script's own well-formed calls."""
+        def raiser():
+            raise RuntimeError("simulated failure for coverage")
+
+        monkeypatch.setattr(example_module, "example_nfsr", raiser)
+
+        import pytest
+
+        with pytest.raises(SystemExit) as exc_info:
+            example_module.main()
+        assert exc_info.value.code == 1
+        err = capsys.readouterr().err
+        assert "ERROR: simulated failure for coverage" in err

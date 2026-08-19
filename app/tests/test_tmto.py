@@ -389,6 +389,55 @@ class TestHellmanTableLookup:
 
         assert table.lookup(end, REFERENCE_CONFIG) == start
 
+    def test_lookup_finds_endpoint_reached_only_at_final_step_via_reduction_fallback(self):
+        """Same off-by-one fix as test_lookup_finds_endpoint_reached_only_at_final_step
+        above, but for the SEPARATE final-position check inside the
+        reduction-function fallback branch (lfsr/tmto.py line ~289,
+        distinct from line ~271's direct-match branch already covered
+        by that other test and by test_lookup_succeeds_via_reduction_function_fallback_path,
+        whose target is found mid-chain rather than at the final
+        position). With seed=43, chain_count=10, chain_length=8,
+        distinguished_bits=1: target [1, 0, 1, 1] is not itself any
+        chain's end_state, its reduction is [0, 1, 1, 1] which IS
+        chain 9's unique (non-duplicated) end_state ([0, 0, 0, 1] ->
+        [0, 1, 1, 1]), and walking chain 9's start only reaches the
+        target at the full chain_length-th (final) state-update step --
+        independently verified below before asserting lookup()'s
+        result."""
+        random.seed(43)
+        chain_length = 8
+        table = HellmanTable(
+            chain_count=10, chain_length=chain_length, distinguished_bits=1
+        )
+        table.generate(REFERENCE_CONFIG)
+
+        start, end = table.chains[9]
+        assert start == [0, 0, 0, 1]
+        assert end == [0, 1, 1, 1]
+        assert sum(1 for _s, e in table.chains if e == end) == 1, (
+            "precondition: end_state must be unique, not the "
+            "duplicate-endpoint case covered by other tests"
+        )
+
+        target = [1, 0, 1, 1]
+        ends = [e for _s, e in table.chains]
+        assert target not in ends, "precondition: not a direct endpoint"
+        reduced = table._reduction_function(target, REFERENCE_CONFIG.field_order)
+        assert reduced == end, "precondition: reduction must land on chain 9's end_state"
+
+        C, _CS = build_state_update_matrix(
+            REFERENCE_CONFIG.coefficients, REFERENCE_CONFIG.field_order
+        )
+        F = GF(REFERENCE_CONFIG.field_order)
+        trail = _walk_chain(C, F, start, chain_length)
+        assert trail.index(target) == chain_length, (
+            "precondition: target must be reached exactly at the final "
+            "step for this to demonstrate the fallback branch's "
+            "off-by-one fix"
+        )
+
+        assert table.lookup(target, REFERENCE_CONFIG) == start
+
     def test_lookup_fails_for_state_provably_outside_all_coverage(self):
         """A state whose value is not any chain's end_state, and whose
         reduction-function image is also not any chain's end_state, is

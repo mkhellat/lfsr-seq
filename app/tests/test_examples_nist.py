@@ -63,3 +63,36 @@ class TestMain:
         example_module.main()
         out = capsys.readouterr().out
         assert "Examples Complete!" in out
+
+
+class TestBranchesUnreachableViaRealCalls:
+    def test_example_all_tests_prints_error_line_on_sub_test_exception(
+        self, capsys, monkeypatch
+    ):
+        """Covers the `except Exception as e: print(... 'ERROR' ...)`
+        branch (lines ~147-148) inside example_all_tests()'s per-test
+        loop -- never taken with the script's own well-formed 1000-bit
+        demo sequence (see module docstring: verified no "ERROR" line
+        appears). Monkeypatch frequency_test (referenced by module-
+        global name inside example_all_tests()'s own `tests` list of
+        lambdas) to raise, forcing the except branch deterministically."""
+        def raiser(seq):
+            raise RuntimeError("simulated failure for coverage")
+
+        monkeypatch.setattr(example_module, "frequency_test", raiser)
+        example_module.example_all_tests()
+        out = capsys.readouterr().out
+        assert "ERROR" in out
+
+    def test_main_except_block_on_unexpected_error(self, capsys, monkeypatch):
+        def raiser():
+            raise RuntimeError("simulated failure for coverage")
+
+        monkeypatch.setattr(example_module, "example_single_test", raiser)
+        import pytest
+
+        with pytest.raises(SystemExit) as exc_info:
+            example_module.main()
+        assert exc_info.value.code == 1
+        err = capsys.readouterr().err
+        assert "ERROR: simulated failure for coverage" in err

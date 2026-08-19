@@ -15,7 +15,7 @@ Confirmed via manual run this executes in ~3.5s total, well under the
 """
 
 import io
-from contextlib import redirect_stdout
+from contextlib import redirect_stderr, redirect_stdout
 
 import pytest
 
@@ -68,6 +68,69 @@ class TestExampleFunctionsRunCleanly:
         assert "Hellman vs Rainbow Comparison" in out
         assert "Hellman Table:" in out
         assert "Rainbow Table:" in out
+
+
+class TestBranchesUnreachableViaRealCalls:
+    """Covers branches this script's own hardcoded demo parameters
+    (100 chains x 50 length against a 16-state degree-4 LFSR -- a table
+    far larger than the state space) don't reliably trigger with the
+    real (non-mocked) HellmanTable/RainbowTable.lookup(), whose result
+    depends on random table generation: the "not found" branches below."""
+
+    def test_hellman_table_not_found_branch(self):
+        buf = io.StringIO()
+        from lfsr.tmto import HellmanTable
+
+        class _AlwaysMissTable(HellmanTable):
+            def lookup(self, target_state, lfsr_config):
+                return None
+
+        original = tae.HellmanTable
+        tae.HellmanTable = _AlwaysMissTable
+        try:
+            with redirect_stdout(buf):
+                tae.example_hellman_table()
+        finally:
+            tae.HellmanTable = original
+        out = buf.getvalue()
+        assert "State not found in table" in out
+        assert "May need larger table or different target" in out
+
+    def test_rainbow_table_not_found_branch(self):
+        buf = io.StringIO()
+        from lfsr.tmto import RainbowTable
+
+        class _AlwaysMissTable(RainbowTable):
+            def lookup(self, target_state, lfsr_config):
+                return None
+
+        original = tae.RainbowTable
+        tae.RainbowTable = _AlwaysMissTable
+        try:
+            with redirect_stdout(buf):
+                tae.example_rainbow_table()
+        finally:
+            tae.RainbowTable = original
+        out = buf.getvalue()
+        assert "State not found in table" in out
+
+    def test_main_except_block_on_unexpected_error(self):
+        def raiser():
+            raise RuntimeError("simulated failure for coverage")
+
+        original = tae.example_hellman_table
+        tae.example_hellman_table = raiser
+        buf_out = io.StringIO()
+        buf_err = io.StringIO()
+        try:
+            with redirect_stdout(buf_out):
+                with pytest.raises(SystemExit) as exc_info:
+                    with redirect_stderr(buf_err):
+                        tae.main()
+        finally:
+            tae.example_hellman_table = original
+        assert exc_info.value.code == 1
+        assert "ERROR: simulated failure for coverage" in buf_err.getvalue()
 
 
 class TestMainEndToEnd:

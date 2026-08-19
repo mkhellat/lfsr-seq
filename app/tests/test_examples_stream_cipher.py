@@ -93,3 +93,22 @@ class TestMainEndToEnd:
         # sanity: every example section actually ran, in order
         assert "Example 1: A5/1" in out
         assert "Example 7: Comprehensive Analysis" in out
+
+    def test_main_except_block_on_unexpected_error(self, monkeypatch):
+        """Covers main()'s except block (lines ~228-232), unreachable
+        with the script's own well-formed calls."""
+        def raiser():
+            raise RuntimeError("simulated failure for coverage")
+
+        monkeypatch.setattr(sce, "example_a5_1", raiser)
+
+        buf_out = io.StringIO()
+        buf_err = io.StringIO()
+        from contextlib import redirect_stderr
+
+        with redirect_stdout(buf_out):
+            with redirect_stderr(buf_err):
+                with pytest.raises(SystemExit) as exc_info:
+                    sce.main()
+        assert exc_info.value.code == 1
+        assert "ERROR: simulated failure for coverage" in buf_err.getvalue()

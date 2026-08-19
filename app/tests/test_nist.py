@@ -74,7 +74,9 @@ The tests below now assert the corrected behavior (regression tests
 for the fixes) rather than documenting the prior buggy behavior.
 """
 
+import builtins
 import math
+import sys
 
 import pytest
 
@@ -1261,3 +1263,96 @@ class TestRunNistTestSuite:
         )
         assert result.pass_rate < 0.5
         assert result.overall_assessment == "FAILED"
+
+    def test_large_sequence_selects_10000_bit_longest_run_block_size(self, monkeypatch):
+        """Covers the `if n >= 750000: longest_run_block_size = 10000`
+        branch (line ~2100), which the 6272-bit SUITE_N above can never
+        reach. A real 750,000+ bit run of the full suite is far too slow
+        (discrete_fourier_transform_test alone is a naive O(n^2) double
+        loop -- ~24s at n=10000, which would be minutes at n=750000), so
+        this test monkeypatches lfsr.nist.discrete_fourier_transform_test
+        (called by run_nist_test_suite via its own module's global
+        namespace) with a trivial stub, isolating just the block-size
+        selection arithmetic under test from that one expensive,
+        already-independently-tested sub-test (see
+        TestDiscreteFourierTransformTest)."""
+        import lfsr.nist as nist_mod
+
+        def fast_dft_stub(seq):
+            return NISTTestResult(
+                test_name="Discrete Fourier Transform (Spectral) Test",
+                p_value=0.5,
+                passed=True,
+                statistic=0.0,
+                details={},
+            )
+
+        monkeypatch.setattr(
+            nist_mod, "discrete_fourier_transform_test", fast_dft_stub
+        )
+
+        seq = ([1, 0] * 375001)[:750000]
+        assert len(seq) == 750000
+        result = nist_mod.run_nist_test_suite(seq, matrix_rows=8, matrix_cols=8)
+        assert result.total_tests == 15
+        # longest_run_of_ones_test's own details/behavior for
+        # block_size=10000 is independently covered in
+        # TestLongestRunOfOnesTest; here we only need confirmation the
+        # suite ran the correct code path without crashing/hanging.
+        lr_result = next(
+            r for r in result.results if "Longest-Run" in r.test_name
+            or "Longest Run" in r.test_name
+        )
+        assert lr_result is not None
+
+
+class TestScipyImportFallback:
+    """Regression coverage for the module-level `except ImportError:
+    SCIPY_AVAILABLE = False` branch itself (lines ~95-125) in
+    lfsr.nist. As documented in this module's own docstring, scipy IS
+    importable in this test environment (bundled via SageMath's system
+    site-packages), so `_Chi2Fallback`/`_NormFallback` are never
+    exercised by normal test runs; real scipy.stats is used instead.
+    Force a fresh import of lfsr.nist with `import scipy.stats` blocked
+    to actually execute the except branch and both fallback classes'
+    bodies. Unlike lfsr.attacks's equivalent fallback (see
+    test_attacks.py::TestScipyImportFallback, which documents a
+    SUSPECTED REAL BUG: a nonexistent `math.erfinv` call), nist.py's
+    fallbacks only use `math.erf`/`math.exp`/`math.sqrt`/`math.log`,
+    all of which are real stdlib functions -- independently confirmed
+    below to actually work, not just imported without error."""
+
+    def test_scipy_import_error_sets_scipy_available_false(self):
+        real_import = builtins.__import__
+
+        def fake_import(name, *args, **kwargs):
+            if name == "scipy.stats":
+                raise ImportError("simulated: scipy.stats unavailable")
+            return real_import(name, *args, **kwargs)
+
+        if "lfsr.nist" in sys.modules:
+            del sys.modules["lfsr.nist"]
+
+        builtins.__import__ = fake_import
+        try:
+            import importlib
+
+            fresh = importlib.import_module("lfsr.nist")
+        finally:
+            builtins.__import__ = real_import
+
+        try:
+            assert fresh.SCIPY_AVAILABLE is False
+
+            # _NormFallback: both cdf() and sf() actually compute.
+            assert fresh.norm.cdf(0.0) == pytest.approx(0.5)
+            assert fresh.norm.sf(0.0) == pytest.approx(0.5)
+            assert fresh.norm.sf(10.0) < 0.001
+
+            # _Chi2Fallback.sf(): both the df>30 (normal-approximation)
+            # and df<=30 branches actually compute.
+            assert 0.0 <= fresh.chi2.sf(35.0, df=40) <= 1.0
+            assert 0.0 <= fresh.chi2.sf(10.0, df=5) <= 1.0
+        finally:
+            del sys.modules["lfsr.nist"]
+            import lfsr.nist  # noqa: F401

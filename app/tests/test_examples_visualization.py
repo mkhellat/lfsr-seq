@@ -21,8 +21,10 @@ before that import as defense in depth in case the source ever adds a real
 plotting call, and asserts no stray image files land in the cwd afterward.
 """
 
+import builtins
 import io
 import os
+import sys
 from contextlib import redirect_stdout
 
 import pytest
@@ -97,17 +99,80 @@ class TestExampleFunctionsRunCleanly:
         assert _stray_image_files(tmp_path) == []
 
 
+class TestImportGuards:
+    """Regression coverage for the module-level `except ImportError:
+    HAS_MATPLOTLIB/HAS_PLOTLY = False` branches themselves (lines
+    ~27-29, ~34-36), as opposed to just testing behavior with the flags
+    pre-set to False (covered below via monkeypatch.setattr). The
+    sage.all import guard (lines 19-21) is NOT covered here: blocking
+    `sage.all` itself would break every downstream import this test
+    module and the wider test session depend on, unlike
+    matplotlib/plotly which are optional, independently-blockable
+    imports."""
+
+    def test_matplotlib_import_error_sets_has_matplotlib_false(self, capsys):
+        real_import = builtins.__import__
+
+        def fake_import(name, *args, **kwargs):
+            if name == "matplotlib":
+                raise ImportError("simulated: matplotlib unavailable")
+            return real_import(name, *args, **kwargs)
+
+        module_name = "lfsr.examples.visualization_example"
+        if module_name in sys.modules:
+            del sys.modules[module_name]
+
+        builtins.__import__ = fake_import
+        try:
+            import importlib
+
+            fresh = importlib.import_module(module_name)
+        finally:
+            builtins.__import__ = real_import
+
+        try:
+            assert fresh.HAS_MATPLOTLIB is False
+            captured = capsys.readouterr()
+            assert "matplotlib not available" in (captured.err + captured.out)
+        finally:
+            del sys.modules[module_name]
+            importlib.import_module(module_name)
+
+    def test_plotly_import_error_sets_has_plotly_false(self, capsys):
+        real_import = builtins.__import__
+
+        def fake_import(name, *args, **kwargs):
+            if name == "plotly":
+                raise ImportError("simulated: plotly unavailable")
+            return real_import(name, *args, **kwargs)
+
+        module_name = "lfsr.examples.visualization_example"
+        if module_name in sys.modules:
+            del sys.modules[module_name]
+
+        builtins.__import__ = fake_import
+        try:
+            import importlib
+
+            fresh = importlib.import_module(module_name)
+        finally:
+            builtins.__import__ = real_import
+
+        try:
+            assert fresh.HAS_PLOTLY is False
+            captured = capsys.readouterr()
+            assert "plotly not available" in (captured.err + captured.out)
+        finally:
+            del sys.modules[module_name]
+            importlib.import_module(module_name)
+
+
 class TestFlagGatedElseBranches:
     """matplotlib and plotly are both actually installed in this
     environment, so HAS_MATPLOTLIB/HAS_PLOTLY are True at import time and
     the "not available, skipping" else-branches in each example_*()
     function are never naturally exercised. Monkeypatch the module-level
-    flags to False to hit those branches directly -- this doesn't touch
-    the import-guard except blocks themselves (lines 19-21/27-29/34-36,
-    genuinely unreachable without actually uninstalling sage/matplotlib/
-    plotly from this environment), only the downstream `if
-    HAS_MATPLOTLIB:` / `if HAS_PLOTLY:` checks that read those flags.
-    """
+    flags to False to hit those branches directly."""
 
     def test_period_distribution_skips_without_matplotlib(self, monkeypatch):
         monkeypatch.setattr(ve, "HAS_MATPLOTLIB", False)

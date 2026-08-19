@@ -7,7 +7,9 @@ paths, save/load round trips (including the pickle fallback branch),
 and create_period_prediction_model. Complements the round-trip tests
 already in test_ml.py."""
 
+import builtins
 import json
+import sys
 
 import pytest
 
@@ -17,6 +19,30 @@ from lfsr.ml.period_prediction import (
     PeriodPredictionModel,
     create_period_prediction_model,
 )
+
+
+def _reimport_with_blocked_import(module_name, blocked_name):
+    """Force a fresh import of `module_name` with `import blocked_name`
+    made to raise ImportError, to exercise the module's own `except
+    ImportError: HAS_X = False` fallback branch at definition time.
+    Mirrors the identical helper in test_ml_anomaly_detection.py."""
+    real_import = builtins.__import__
+
+    def fake_import(name, *args, **kwargs):
+        if name == blocked_name:
+            raise ImportError(f"simulated: {blocked_name} unavailable")
+        return real_import(name, *args, **kwargs)
+
+    if module_name in sys.modules:
+        del sys.modules[module_name]
+
+    builtins.__import__ = fake_import
+    try:
+        import importlib
+
+        return importlib.import_module(module_name)
+    finally:
+        builtins.__import__ = real_import
 
 
 def _sample_xy():
@@ -201,3 +227,31 @@ class TestCreatePeriodPredictionModel:
     def test_explicit_type(self):
         model = create_period_prediction_model(model_type="gradient_boosting")
         assert model.model_type == "gradient_boosting"
+
+
+class TestImportFallbacks:
+    """Regression coverage for the module-level `except ImportError:
+    HAS_NUMPY/HAS_SKLEARN = False` branches themselves (lines ~20-21,
+    26-27), as opposed to just testing behavior with the flag pre-set
+    to False (covered above via monkeypatch.setattr). Mirrors the
+    equivalent test class in test_ml_anomaly_detection.py."""
+
+    def test_numpy_import_error_sets_has_numpy_false(self):
+        try:
+            fresh = _reimport_with_blocked_import(
+                "lfsr.ml.period_prediction", "numpy"
+            )
+            assert fresh.HAS_NUMPY is False
+        finally:
+            del sys.modules["lfsr.ml.period_prediction"]
+            import lfsr.ml.period_prediction  # noqa: F401
+
+    def test_sklearn_import_error_sets_has_sklearn_false(self):
+        try:
+            fresh = _reimport_with_blocked_import(
+                "lfsr.ml.period_prediction", "sklearn.ensemble"
+            )
+            assert fresh.HAS_SKLEARN is False
+        finally:
+            del sys.modules["lfsr.ml.period_prediction"]
+            import lfsr.ml.period_prediction  # noqa: F401

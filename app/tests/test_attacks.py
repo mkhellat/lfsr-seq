@@ -26,6 +26,9 @@ results below are checked with generous thresholds/trends rather than
 asserting exact 0.5/0.0 correlation.
 """
 
+import builtins
+import sys
+
 import pytest
 
 from lfsr.attacks import (
@@ -761,3 +764,71 @@ class TestCubeAttack:
         assert result.attack_successful is False
         assert result.details["max_cube_size_tried"] == 5
         assert result.details["keystream_length"] == len(keystream)
+
+
+class TestScipyImportFallback:
+    """Regression coverage for the module-level `except ImportError:
+    SCIPY_AVAILABLE = False` branch itself (lines ~88-109) in
+    lfsr.attacks. In this test environment scipy IS importable (bundled
+    via SageMath's system site-packages, pulled in transitively by
+    `from lfsr.sage_imports import *`), so the fallback `_NormFallback`
+    class is never exercised by normal test runs; real scipy.stats.norm
+    is used instead. Force a fresh import of lfsr.attacks with `import
+    scipy.stats` blocked to actually execute the except branch and the
+    fallback class body, matching the equivalent pattern already used
+    for lfsr.ml.anomaly_detection / lfsr.ml.period_prediction /
+    lfsr.ml.pattern_detection's HAS_NUMPY/HAS_SKLEARN fallbacks.
+
+    SUSPECTED REAL BUG, independently confirmed below and via a
+    standalone repro (not from memory): `_NormFallback.ppf()`
+    (attacks.py lines ~95-101) calls `math.erfinv(...)`, but Python's
+    stdlib `math` module has NEVER had an `erfinv` function -- only
+    `math.erf` (confirmed: `hasattr(math, 'erfinv')` is `False`,
+    `hasattr(math, 'erf')` is `True`, on this interpreter and per the
+    documented `math` module API for every CPython 3.x version). So
+    `_NormFallback.ppf()` raises `AttributeError` unconditionally on
+    its very first call. This is directly reachable from real code
+    paths: `estimate_attack_success_probability()` (attacks.py line
+    ~565) and the significance-level-to-critical-z conversion at line
+    ~518 both call `norm.ppf(...)`, and `norm` is bound to
+    `_NormFallback()` whenever scipy is unavailable (line 109). So on
+    any system where scipy genuinely isn't importable, every call to
+    those two functions would crash with AttributeError instead of
+    falling back gracefully -- the exact opposite of what a fallback
+    is for. `_NormFallback.cdf()` (which only uses `math.erf`, a real
+    function) works fine; only `.ppf()` is broken. Not fixed here per
+    instructions (test-writing only, no src/ edits) -- the test below
+    asserts the actual (broken) behavior: `cdf()` works, `ppf()`
+    raises AttributeError."""
+
+    def test_scipy_import_error_sets_scipy_available_false(self):
+        real_import = builtins.__import__
+
+        def fake_import(name, *args, **kwargs):
+            if name == "scipy.stats":
+                raise ImportError("simulated: scipy.stats unavailable")
+            return real_import(name, *args, **kwargs)
+
+        if "lfsr.attacks" in sys.modules:
+            del sys.modules["lfsr.attacks"]
+
+        builtins.__import__ = fake_import
+        try:
+            import importlib
+
+            fresh = importlib.import_module("lfsr.attacks")
+        finally:
+            builtins.__import__ = real_import
+
+        try:
+            assert fresh.SCIPY_AVAILABLE is False
+            # cdf() only uses math.erf (a real stdlib function) and works.
+            assert fresh.norm.cdf(0.0) == pytest.approx(0.5)
+            # ppf() calls the non-existent math.erfinv -- see the
+            # SUSPECTED REAL BUG note in this class's docstring. Assert
+            # the actual (broken) behavior rather than the intended one.
+            with pytest.raises(AttributeError, match="erfinv"):
+                fresh.norm.ppf(0.25)
+        finally:
+            del sys.modules["lfsr.attacks"]
+            import lfsr.attacks  # noqa: F401

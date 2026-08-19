@@ -17,8 +17,10 @@ prediction / model training examples ran too). No bugs were found in
 this module.
 """
 
+import builtins
 import io
 import contextlib
+import sys
 
 import pytest
 
@@ -100,13 +102,49 @@ class TestMain:
         assert "RuntimeError" in captured.err
 
 
+class TestSklearnImportGuard:
+    """Regression coverage for the module-level `except ImportError:
+    HAS_SKLEARN = False` branch itself (lines ~25-27), as opposed to
+    just testing behavior with the flag pre-set to False (covered below
+    via monkeypatch.setattr). Forces a fresh import of the module with
+    `import sklearn` blocked, mirroring the pattern already used for
+    lfsr.ml.anomaly_detection / lfsr.ml.period_prediction /
+    lfsr.ml.pattern_detection's HAS_NUMPY/HAS_SKLEARN fallbacks."""
+
+    def test_sklearn_import_error_sets_has_sklearn_false(self, capsys):
+        real_import = builtins.__import__
+
+        def fake_import(name, *args, **kwargs):
+            if name == "sklearn":
+                raise ImportError("simulated: sklearn unavailable")
+            return real_import(name, *args, **kwargs)
+
+        module_name = "lfsr.examples.ml_integration_example"
+        if module_name in sys.modules:
+            del sys.modules[module_name]
+
+        builtins.__import__ = fake_import
+        try:
+            import importlib
+
+            fresh = importlib.import_module(module_name)
+        finally:
+            builtins.__import__ = real_import
+
+        try:
+            assert fresh.HAS_SKLEARN is False
+            err = capsys.readouterr().err
+            assert "scikit-learn not available" in err
+        finally:
+            del sys.modules[module_name]
+            importlib.import_module(module_name)
+
+
 class TestSklearnUnavailableBranches:
     """scikit-learn is actually installed in this environment, so
     HAS_SKLEARN is True at import time. Monkeypatch the module-level
     flag to False to hit the "scikit-learn not available"/"required"
-    early-return and skip branches -- doesn't touch the import-guard
-    except block itself (lines 25-27, genuinely unreachable without
-    uninstalling scikit-learn from this environment)."""
+    early-return and skip branches."""
 
     def test_period_prediction_early_returns_without_sklearn(self, monkeypatch):
         monkeypatch.setattr(m, "HAS_SKLEARN", False)
