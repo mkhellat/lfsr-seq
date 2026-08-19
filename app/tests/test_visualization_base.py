@@ -15,6 +15,9 @@ the module-level HAS_* flags rather than actually uninstalling packages,
 since that's the only way to exercise those branches deterministically.
 """
 
+import builtins
+import importlib
+
 import matplotlib
 matplotlib.use("Agg")
 
@@ -27,6 +30,74 @@ from lfsr.visualization.base import (
     VisualizationConfig,
     check_visualization_dependencies,
 )
+
+
+class TestOptionalDependencyImportFallbacks:
+    """Covers the module-level `except ImportError:` fallback blocks for
+    matplotlib (lines 20-22), plotly (28-31), and networkx (36-38).
+
+    matplotlib/plotly/networkx are all genuinely pip-installed in this
+    dev venv (see module docstring), so these branches never execute
+    during a normal test run -- the only way to exercise them
+    deterministically is to force the underlying `import` statements to
+    raise ImportError and reload the module, exactly as
+    test_reproducibility.py's TestPkgResourcesImportFallback does for
+    the analogous pkg_resources case. The module is reloaded back to
+    its real, correctly-imported state afterwards so it doesn't leak a
+    broken state into other test files that also import
+    lfsr.visualization.base.
+    """
+
+    def test_all_three_missing_sets_all_flags_false_and_none_placeholders(self):
+        """NOTE: importlib.reload() re-executes the module body into the
+        *same* module __dict__/object rather than creating a fresh one,
+        so classes already imported elsewhere (e.g. this test file's own
+        `BaseVisualization`/`ConcreteVisualization`, which close over
+        that same dict for their global lookups) observe the mutated
+        HAS_MATPLOTLIB/HAS_PLOTLY/HAS_NETWORKX values too -- there is no
+        way to reload in true isolation without a fresh module object
+        (importlib.util.module_from_spec under a throwaway sys.modules
+        key), which is what this test does instead, so it cannot leak
+        into any other test in this file regardless of ordering."""
+        import importlib.util
+
+        real_import = builtins.__import__
+        blocked = {
+            "matplotlib",
+            "matplotlib.pyplot",
+            "plotly.express",
+            "plotly.graph_objects",
+            "networkx",
+        }
+
+        def fake_import(name, *args, **kwargs):
+            if name in blocked:
+                raise ImportError(f"simulated missing {name}")
+            return real_import(name, *args, **kwargs)
+
+        spec = importlib.util.find_spec("lfsr.visualization.base")
+        fresh_module = importlib.util.module_from_spec(spec)
+
+        builtins.__import__ = fake_import
+        try:
+            spec.loader.exec_module(fresh_module)
+        finally:
+            builtins.__import__ = real_import
+
+        assert fresh_module.HAS_MATPLOTLIB is False
+        assert fresh_module.HAS_PLOTLY is False
+        assert fresh_module.HAS_NETWORKX is False
+        assert fresh_module.plt is None
+        assert fresh_module.go is None
+        assert fresh_module.px is None
+        assert fresh_module.nx is None
+
+        # The real, already-imported viz_base module (and this file's
+        # BaseVisualization/ConcreteVisualization classes) are entirely
+        # untouched since we never reloaded into their shared __dict__.
+        assert viz_base.HAS_MATPLOTLIB is True
+        assert viz_base.HAS_PLOTLY is True
+        assert viz_base.HAS_NETWORKX is True
 
 
 class TestOutputFormat:

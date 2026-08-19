@@ -19,9 +19,11 @@ exactly what the string-returning versions would produce.
 import io
 import json
 import sys
+import types
 
 import pytest
 
+import lfsr.reproducibility as repro
 from lfsr.reproducibility import (
     capture_environment,
     export_configuration,
@@ -43,6 +45,54 @@ class TestGenerateSeed:
         collide 20 times in a row if truly random)."""
         seeds = {generate_seed() for _ in range(20)}
         assert len(seeds) > 1
+
+
+class TestPkgResourcesImportFallback:
+    def test_module_level_import_error_sets_has_pkg_resources_false(self, monkeypatch):
+        """Directly exercises the actual `except ImportError:` statement
+        (lines 20-21) by forcing `import pkg_resources` to fail while
+        executing a *fresh* module object for lfsr.reproducibility,
+        rather than only monkeypatching the resulting flag afterwards.
+
+        Uses importlib.util.module_from_spec + exec_module into a
+        throwaway module object instead of importlib.reload(): reload()
+        re-executes the module body into the *same* module __dict__
+        already bound to (e.g.) this test file's own `repro` reference
+        and any function closures over its globals, so a reload-based
+        version would leave the real module mutated for the rest of the
+        test session depending on ordering/fixture scope, whereas a
+        fresh module object cannot leak into anything already imported.
+
+        Whether HAS_PKG_RESOURCES ends up True or False during a normal
+        test run is import-order-dependent (see the note on
+        test_packages_populated_when_pkg_resources_available: SageMath's
+        own import machinery adds the system site-packages -- where
+        pkg_resources lives via system setuptools -- to sys.path as a
+        side effect), so this test pins the ImportError branch
+        deterministically instead of relying on that ordering."""
+        import builtins
+        import importlib.util
+
+        real_import = builtins.__import__
+
+        def fake_import(name, *args, **kwargs):
+            if name == "pkg_resources":
+                raise ImportError("simulated missing pkg_resources")
+            return real_import(name, *args, **kwargs)
+
+        spec = importlib.util.find_spec("lfsr.reproducibility")
+        fresh_module = importlib.util.module_from_spec(spec)
+
+        monkeypatch.setattr(builtins, "__import__", fake_import)
+        try:
+            spec.loader.exec_module(fresh_module)
+        finally:
+            monkeypatch.undo()
+
+        assert fresh_module.HAS_PKG_RESOURCES is False
+        # The real, already-imported repro module is untouched.
+        # (Its own HAS_PKG_RESOURCES value is legitimately
+        # import-order-dependent and not asserted here.)
 
 
 class TestCaptureEnvironment:
@@ -74,6 +124,103 @@ class TestCaptureEnvironment:
         # datetime.fromisoformat should not raise on a real isoformat() string
         parsed = datetime.fromisoformat(env["timestamp"])
         assert parsed.year >= 2024
+
+    def test_packages_populated_when_pkg_resources_available(self, monkeypatch):
+        """Covers the HAS_PKG_RESOURCES=True happy path (the try/for
+        loop body around lines 85-93): a fake pkg_resources module
+        whose get_distribution() succeeds for 'sage' should populate
+        env['packages']['sage'] with its version string.
+
+        Whether HAS_PKG_RESOURCES is True or False in this process
+        depends on import order (SageMath's own import machinery adds
+        the system site-packages -- where pkg_resources lives via
+        system setuptools -- to sys.path as a side effect; a bare
+        `python -c "import pkg_resources"` before any sage import
+        fails with ModuleNotFoundError, confirmed by direct repro, but
+        succeeds after `from lfsr.sage_imports import *`). Monkeypatch
+        both HAS_PKG_RESOURCES and pkg_resources directly on the module
+        so this test is deterministic regardless of import order."""
+        fake_pkg_resources = types.SimpleNamespace()
+
+        class FakeDistributionNotFound(Exception):
+            pass
+
+        fake_pkg_resources.DistributionNotFound = FakeDistributionNotFound
+
+        def fake_get_distribution(name):
+            if name == "sage":
+                return types.SimpleNamespace(version="9.9.9-fake")
+            raise FakeDistributionNotFound(name)
+
+        fake_pkg_resources.get_distribution = fake_get_distribution
+
+        monkeypatch.setattr(repro, "HAS_PKG_RESOURCES", True)
+        monkeypatch.setattr(repro, "pkg_resources", fake_pkg_resources, raising=False)
+
+        env = repro.capture_environment()
+        assert env["packages"]["sage"] == "9.9.9-fake"
+        # numpy/scipy raise DistributionNotFound in this fake -> skipped.
+        assert "numpy" not in env["packages"]
+        assert "scipy" not in env["packages"]
+
+    def test_distribution_not_found_for_individual_package_is_skipped(self, monkeypatch):
+        """Each package lookup is independently guarded by its own
+        try/except DistributionNotFound (line 92-93) -- one missing
+        package must not prevent others from being captured."""
+        fake_pkg_resources = types.SimpleNamespace()
+
+        class FakeDistributionNotFound(Exception):
+            pass
+
+        fake_pkg_resources.DistributionNotFound = FakeDistributionNotFound
+
+        def fake_get_distribution(name):
+            if name == "numpy":
+                return types.SimpleNamespace(version="1.2.3")
+            raise FakeDistributionNotFound(name)
+
+        fake_pkg_resources.get_distribution = fake_get_distribution
+
+        monkeypatch.setattr(repro, "HAS_PKG_RESOURCES", True)
+        monkeypatch.setattr(repro, "pkg_resources", fake_pkg_resources, raising=False)
+
+        env = repro.capture_environment()
+        assert env["packages"]["numpy"] == "1.2.3"
+        assert "sage" not in env["packages"]
+        assert "scipy" not in env["packages"]
+
+    def test_unexpected_exception_during_package_capture_is_swallowed(self, monkeypatch):
+        """Covers the outer `except Exception: pass` (lines 94-95): if
+        something other than DistributionNotFound blows up while
+        iterating packages (e.g. get_distribution itself raising a
+        totally different error), capture_environment must not
+        propagate it -- the whole packages capture is best-effort."""
+        fake_pkg_resources = types.SimpleNamespace()
+
+        class FakeDistributionNotFound(Exception):
+            pass
+
+        fake_pkg_resources.DistributionNotFound = FakeDistributionNotFound
+
+        def fake_get_distribution(name):
+            raise RuntimeError("simulated unexpected failure")
+
+        fake_pkg_resources.get_distribution = fake_get_distribution
+
+        monkeypatch.setattr(repro, "HAS_PKG_RESOURCES", True)
+        monkeypatch.setattr(repro, "pkg_resources", fake_pkg_resources, raising=False)
+
+        # Should not raise despite the RuntimeError inside the loop.
+        env = repro.capture_environment()
+        assert env["packages"] == {}
+
+    def test_has_pkg_resources_false_skips_package_capture_entirely(self, monkeypatch):
+        """When HAS_PKG_RESOURCES is False (the except ImportError branch
+        at module import time, lines 20-21), the whole `if
+        HAS_PKG_RESOURCES:` block is skipped and packages stays empty."""
+        monkeypatch.setattr(repro, "HAS_PKG_RESOURCES", False)
+        env = repro.capture_environment()
+        assert env["packages"] == {}
 
     def test_environment_is_json_serializable(self):
         """This dict gets embedded directly into export_configuration()'s

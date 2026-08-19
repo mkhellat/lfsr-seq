@@ -163,6 +163,25 @@ class TestComputeMatrixOrder:
         assert order is not None
         assert 1 <= order <= state_space_size - 1
 
+    def test_matrix_order_not_found_within_bound_returns_none(self, capsys):
+        """If state_vector_space_size is smaller than the matrix's real
+        order, the search loop exhausts range(state_vector_space_size - 1)
+        without ever hitting the identity matrix, and the function must
+        return None (line 127) rather than raising or looping forever.
+        Confirmed by direct script: this 4-bit LFSR's real order is 6,
+        so bounding the search to 2 forces the not-found path."""
+        coeffs = [1, 1, 0, 1]
+        C, _ = build_state_update_matrix(coeffs, 2)
+
+        M = MatrixSpace(GF(2), 4, 4)
+        I = M.identity_matrix()
+
+        order = compute_matrix_order(C, I, 2, None)
+        assert order is None
+        captured = capsys.readouterr()
+        # The "found" branch's subsection/dump output must not appear.
+        assert "O(C)" not in captured.out
+
     def test_matrix_order_maximum_search(self):
         """Test that order search respects maximum bound."""
         # Create a matrix that will have a large order
