@@ -666,3 +666,527 @@ class TestCliMain:
         captured = capsys.readouterr()
         assert "Unexpected error" in captured.err
         assert "synthetic failure for test" in captured.err
+
+
+# ---------------------------------------------------------------------------
+# main() -- SageMath unavailable / parallel-mode extra branches
+# ---------------------------------------------------------------------------
+
+
+class TestMainSageAndParallelBranches:
+    def test_main_sage_unavailable_raises_unboundlocalerror(
+        self, monkeypatch, tmp_path
+    ):
+        """SUSPECTED REAL BUG (cli.py lines 82-94, confirmed independently
+        with a minimal standalone repro before writing this test):
+
+        main()'s sage-unavailable branch does
+            print(..., file=sys.stderr)
+            sys.exit(1)
+        relying on the module-level `import sys` at cli.py:14. But
+        main()'s own body *also* contains `import sys` twice further down
+        (inside the `if num_lfsrs > 1 ...:` block at line 123, and inside
+        the `if should_use_parallel:` block at line 197). Because Python
+        determines a name's scope (local vs. global) by static analysis
+        of the *entire* function body -- not by control flow -- the mere
+        presence of `import sys` anywhere in main()'s body makes `sys` a
+        local variable for the *whole* function, including the
+        sage-unavailable branch that executes before either nested
+        `import sys` statement runs. The result: instead of cleanly
+        printing the "SageMath is required" message and exiting 1 (the
+        evident intent, and what a bare `sys.exit(1)` looks like it
+        should do), `sys.stderr` at line 92 raises
+        `UnboundLocalError: cannot access local variable 'sys' where it
+        is not associated with a value` -- which is an *unhandled*
+        exception in this codepath (main() is called directly here, not
+        through cli_main()'s try/except wrapper), so it propagates as a
+        raw UnboundLocalError rather than a clean SystemExit(1). This
+        test intentionally documents and asserts the ACTUAL (broken)
+        behavior; do not fix by editing src/ from a test-only task -- see
+        the task instructions this session operated under. The minimal
+        standalone repro (no LFSR/CSV/sage involved at all):
+
+            def f():
+                if True:
+                    print("x", file=sys.stderr)  # UnboundLocalError
+                import sys
+
+            f()
+
+        which raises UnboundLocalError identically, confirming this is a
+        general Python scoping hazard (re-importing an already
+        module-level name inside a function body), not something
+        specific to argparse/sage/CLI plumbing.
+        """
+        import lfsr.cli as cli_mod
+
+        monkeypatch.setattr(cli_mod, "_sage_available", False)
+
+        csv_file = tmp_path / "in.csv"
+        csv_file.write_text(SIMPLE_CSV)
+        out_file = tmp_path / "out.txt"
+
+        with open(out_file, "w") as f:
+            with pytest.raises(UnboundLocalError):
+                main(str(csv_file), "2", output_file=f, no_progress=True)
+
+    def test_main_dynamic_parallel_full_sequence_mode(self, tmp_path, capsys):
+        """Covers cli.py lines 199-209: dynamic parallel mode with
+        period_only=False prints the two INFO messages about forcing
+        period-only-friendly batch sizing and dispatches to
+        lfsr_sequence_mapper_parallel_dynamic. Uses a tiny 3-bit LFSR to
+        keep worker startup overhead low."""
+        csv_file = tmp_path / "in.csv"
+        csv_file.write_text(SIMPLE_CSV)
+        out_file = tmp_path / "out.txt"
+
+        with open(out_file, "w") as f:
+            main(
+                str(csv_file), "2", output_file=f, no_progress=True,
+                use_parallel=True, parallel_mode="dynamic", period_only=False,
+            )
+
+        captured = capsys.readouterr()
+        assert "Using dynamic parallel processing" in captured.err
+        assert "period-only mode for better performance" in captured.err
+        content = out_file.read_text()
+        assert "COEFFS SERIES 1" in content
+
+    def test_main_dynamic_parallel_period_only_mode(self, tmp_path, capsys):
+        """Dynamic parallel mode with period_only=True should skip the
+        "using period-only mode for better performance" info line (that
+        branch is only for auto-forcing period_only=True), but still hit
+        the dynamic-mode INFO banner at line 199."""
+        csv_file = tmp_path / "in.csv"
+        csv_file.write_text(SIMPLE_CSV)
+        out_file = tmp_path / "out.txt"
+
+        with open(out_file, "w") as f:
+            main(
+                str(csv_file), "2", output_file=f, no_progress=True,
+                use_parallel=True, parallel_mode="dynamic", period_only=True,
+            )
+
+        captured = capsys.readouterr()
+        assert "Using dynamic parallel processing" in captured.err
+
+    def test_main_static_parallel_full_sequence_mode_warns(self, tmp_path, capsys):
+        """Covers cli.py lines 221-222: static parallel mode with
+        period_only=False must print the WARNING about being forced into
+        period-only mode to avoid hangs."""
+        csv_file = tmp_path / "in.csv"
+        csv_file.write_text(SIMPLE_CSV)
+        out_file = tmp_path / "out.txt"
+
+        with open(out_file, "w") as f:
+            main(
+                str(csv_file), "2", output_file=f, no_progress=True,
+                use_parallel=True, parallel_mode="static", period_only=False,
+            )
+
+        captured = capsys.readouterr()
+        assert "Using static parallel processing" in captured.err
+        assert "forced to period-only mode to avoid hangs" in captured.err
+
+
+# ---------------------------------------------------------------------------
+# cli_main() -- remaining dispatch/error branches
+# ---------------------------------------------------------------------------
+
+
+class TestCliMainRemainingBranches:
+    def _run(self, monkeypatch, tmp_path, argv):
+        monkeypatch.chdir(tmp_path)
+        monkeypatch.setattr("sys.argv", ["lfsr-seq"] + argv)
+
+    # -- --tmto-attack empty-coefficients branch (lines 1019-1020) --------
+
+    def test_cli_main_tmto_attack_empty_coeffs_file_exits(self, monkeypatch, tmp_path, capsys):
+        csv_file = tmp_path / "in.csv"
+        csv_file.write_text("# only a comment\n")
+        self._run(
+            monkeypatch, tmp_path,
+            [str(csv_file), "2", "--tmto-attack"],
+        )
+
+        with pytest.raises(SystemExit) as exc_info:
+            cli_main()
+        assert exc_info.value.code != 0
+        captured = capsys.readouterr()
+        assert "no data" in captured.out or "no data" in captured.err
+
+    # -- --algebraic-attack empty-coefficients branch (lines 1048-1049) ---
+
+    def test_cli_main_algebraic_attack_empty_coeffs_file_exits(self, monkeypatch, tmp_path, capsys):
+        csv_file = tmp_path / "in.csv"
+        csv_file.write_text("# only a comment\n")
+        self._run(
+            monkeypatch, tmp_path,
+            [str(csv_file), "2", "--algebraic-attack"],
+        )
+
+        with pytest.raises(SystemExit) as exc_info:
+            cli_main()
+        assert exc_info.value.code != 0
+
+    # -- theoretical-analysis empty-coefficients branch (lines 1091-1092) -
+
+    def test_cli_main_theoretical_analysis_empty_coeffs_file_exits(self, monkeypatch, tmp_path, capsys):
+        csv_file = tmp_path / "in.csv"
+        csv_file.write_text("# only a comment\n")
+        self._run(
+            monkeypatch, tmp_path,
+            [str(csv_file), "2", "--compare-known"],
+        )
+
+        with pytest.raises(SystemExit) as exc_info:
+            cli_main()
+        assert exc_info.value.code != 0
+
+    # -- --generate-paper (lines 1141-1144) --------------------------------
+
+    def test_cli_main_generate_paper_runs(self, monkeypatch, tmp_path):
+        csv_file = tmp_path / "in.csv"
+        csv_file.write_text(SIMPLE_CSV)
+        paper_out = tmp_path / "paper.tex"
+        self._run(
+            monkeypatch, tmp_path,
+            [str(csv_file), "2", "--generate-paper", str(paper_out)],
+        )
+
+        cli_main()
+
+        assert paper_out.exists()
+        assert len(paper_out.read_text()) > 0
+        out_content = (tmp_path / (str(csv_file) + ".out")).read_text()
+        assert "Research paper saved to" in out_content
+
+    # -- --compare-known "found in database" branch (lines 1161-1165) -----
+
+    def test_cli_main_compare_known_found_in_database(self, monkeypatch, tmp_path):
+        """[1,0,1] over GF(2), degree 3, order 7 is one of the standard
+        primitive polynomials seeded by
+        theoretical_db.KnownResultDatabase.populate_standard_primitives(),
+        so --compare-known should report a database hit and print the
+        known-order/known-primitive/match detail lines (1161-1165), not
+        just the "no matching results" fallback."""
+        csv_file = tmp_path / "in.csv"
+        csv_file.write_text("1,0,1\n")
+        self._run(
+            monkeypatch, tmp_path,
+            [str(csv_file), "2", "--compare-known"],
+        )
+
+        cli_main()
+
+        out_content = (tmp_path / (str(csv_file) + ".out")).read_text()
+        assert "Found in database: True" in out_content
+        assert "Known order:" in out_content
+        assert "Known primitive:" in out_content
+        assert "Order match:" in out_content
+        assert "Primitive match:" in out_content
+        assert "Overall match:" in out_content
+
+    # -- --benchmark (lines 1172-1182) -------------------------------------
+
+    def test_cli_main_benchmark_runs(self, monkeypatch, tmp_path):
+        csv_file = tmp_path / "in.csv"
+        csv_file.write_text(SIMPLE_CSV)
+        self._run(
+            monkeypatch, tmp_path,
+            [str(csv_file), "2", "--benchmark"],
+        )
+
+        cli_main()
+
+        out_content = (tmp_path / (str(csv_file) + ".out")).read_text()
+        assert "Performance Benchmarking" in out_content
+        assert "Method:" in out_content
+        assert "Execution time:" in out_content
+
+    # -- ML features missing-input-file / empty-coeffs (1211-1213, 1217-1218) --
+
+    def test_cli_main_ml_feature_empty_coeffs_file_exits(self, monkeypatch, tmp_path, capsys):
+        csv_file = tmp_path / "in.csv"
+        csv_file.write_text("# only a comment\n")
+        self._run(
+            monkeypatch, tmp_path,
+            [str(csv_file), "2", "--detect-patterns"],
+        )
+
+        with pytest.raises(SystemExit) as exc_info:
+            cli_main()
+        assert exc_info.value.code != 0
+
+    # -- --predict-period with --ml-model-file (lines 1229-1232) ----------
+
+    def test_cli_main_predict_period_with_trained_model(self, monkeypatch, tmp_path):
+        """Trains a tiny model first (exercising --train-model, already
+        covered), then feeds it back in via --ml-model-file to exercise
+        the PeriodPredictionModel.load_model()/predict_period() branch
+        that only runs when a model file is supplied."""
+        csv_file = tmp_path / "in.csv"
+        csv_file.write_text(SIMPLE_CSV)
+        model_out = tmp_path / "model.pkl"
+        self._run(
+            monkeypatch, tmp_path,
+            [
+                str(csv_file), "2", "--train-model", str(model_out),
+                "--ml-samples", "5",
+            ],
+        )
+        cli_main()
+
+        self._run(
+            monkeypatch, tmp_path,
+            [
+                str(csv_file), "2", "--predict-period",
+                "--ml-model-file", str(model_out),
+            ],
+        )
+        cli_main()
+
+        out_content = (tmp_path / (str(csv_file) + ".out")).read_text()
+        assert "ML Period Prediction" in out_content
+        assert "Predicted period:" in out_content
+
+    # -- --evaluate-model full run (lines 1323-1333) -----------------------
+
+    def test_cli_main_evaluate_model_with_model_file_runs(self, monkeypatch, tmp_path):
+        csv_file = tmp_path / "in.csv"
+        csv_file.write_text(SIMPLE_CSV)
+        model_out = tmp_path / "model.pkl"
+        self._run(
+            monkeypatch, tmp_path,
+            [
+                str(csv_file), "2", "--train-model", str(model_out),
+                "--ml-samples", "5",
+            ],
+        )
+        cli_main()
+
+        self._run(
+            monkeypatch, tmp_path,
+            [
+                str(csv_file), "2", "--evaluate-model",
+                "--ml-model-file", str(model_out),
+                "--ml-test-samples", "5",
+            ],
+        )
+        cli_main()
+
+        out_content = (tmp_path / (str(csv_file) + ".out")).read_text()
+        assert "Evaluating ML Model" in out_content
+        assert "MSE:" in out_content
+        assert "RMSE:" in out_content
+        assert "R² Score:" in out_content
+
+    # -- pattern detection detail lines (line 1254) ------------------------
+
+    def test_cli_main_detect_patterns_prints_pattern_details(self, monkeypatch, tmp_path):
+        """The pattern-detail print loop (line 1254) only runs when at
+        least one pattern category is non-empty. A real period-7 sequence
+        from a small primitive GF(2) LFSR is too short/regular to reliably
+        trigger any of detect_all_patterns' detectors (empirically all
+        three categories come back empty), so monkeypatch
+        lfsr.cli_ciphers-style: patch detect_all_patterns itself (imported
+        into cli.py's ML-dispatch branch via
+        `from lfsr.ml.pattern_detection import detect_all_patterns`) to
+        return a fake non-empty pattern list, deterministically exercising
+        the per-pattern detail-line formatting at cli.py line 1254."""
+        import lfsr.ml.pattern_detection as pattern_detection_mod
+
+        class FakePattern:
+            description = "synthetic repeating block"
+            confidence = 0.87
+
+        monkeypatch.setattr(
+            pattern_detection_mod,
+            "detect_all_patterns",
+            lambda seq: {"repeating_subsequences": [FakePattern()]},
+        )
+
+        csv_file = tmp_path / "in.csv"
+        csv_file.write_text(SIMPLE_CSV)
+        self._run(
+            monkeypatch, tmp_path,
+            [str(csv_file), "2", "--detect-patterns"],
+        )
+
+        cli_main()
+
+        out_content = (tmp_path / (str(csv_file) + ".out")).read_text()
+        assert "Pattern Detection" in out_content
+        assert "repeating_subsequences: 1 patterns" in out_content
+        assert "Pattern 1: synthetic repeating block (confidence: 0.87)" in out_content
+
+    # -- visualization missing-input-file / empty-coeffs (1353-1354, 1358-1359) --
+
+    def test_cli_main_visualization_empty_coeffs_file_exits(self, monkeypatch, tmp_path, capsys):
+        csv_file = tmp_path / "in.csv"
+        csv_file.write_text("# only a comment\n")
+        plot_out = tmp_path / "plot.png"
+        self._run(
+            monkeypatch, tmp_path,
+            [str(csv_file), "2", "--plot-period-distribution", str(plot_out)],
+        )
+
+        with pytest.raises(SystemExit) as exc_info:
+            cli_main()
+        assert exc_info.value.code != 0
+
+    # -- --plot-state-transitions (lines 1404-1411) ------------------------
+
+    def test_cli_main_plot_state_transitions_runs(self, monkeypatch, tmp_path):
+        csv_file = tmp_path / "in.csv"
+        csv_file.write_text(SIMPLE_CSV)
+        plot_out = tmp_path / "transitions.png"
+        self._run(
+            monkeypatch, tmp_path,
+            [str(csv_file), "2", "--plot-state-transitions", str(plot_out)],
+        )
+
+        cli_main()
+
+        assert plot_out.exists()
+        out_content = (tmp_path / (str(csv_file) + ".out")).read_text()
+        assert "State transition diagram saved to" in out_content
+
+    # -- --plot-period-statistics (lines 1415-1422) -------------------------
+
+    def test_cli_main_plot_period_statistics_runs(self, monkeypatch, tmp_path):
+        csv_file = tmp_path / "in.csv"
+        csv_file.write_text(SIMPLE_CSV)
+        plot_out = tmp_path / "stats.png"
+        self._run(
+            monkeypatch, tmp_path,
+            [str(csv_file), "2", "--plot-period-statistics", str(plot_out)],
+        )
+
+        cli_main()
+
+        assert plot_out.exists()
+        out_content = (tmp_path / (str(csv_file) + ".out")).read_text()
+        assert "Period statistics plot saved to" in out_content
+
+    # -- --plot-3d-state-space (lines 1426-1433) -----------------------------
+
+    def test_cli_main_plot_3d_state_space_crashes(self, monkeypatch, tmp_path, capsys):
+        """SUSPECTED REAL BUG (confirmed independently with a minimal
+        standalone repro before writing this test, reproduced below and
+        run separately outside pytest):
+
+        lfsr.visualization.state_space_3d.plot_3d_state_space builds its
+        3D point array directly from raw LFSR state coordinates:
+            states_3d.append([state[0], state[1], state[2]])
+            ...
+            states_array = np.array(states_3d)
+        `state[i]` here is a Sage `GF(q)` finite-field element (this
+        module's states come straight from lfsr.analysis's seq_dict,
+        which stores raw Sage vector/field elements), not a Python int or
+        float. Sibling visualization modules convert before plotting --
+        e.g. lfsr.visualization.period_graphs.py:217 does
+        `str(state)` -- but state_space_3d.py never converts state[i] to
+        int()/float() anywhere. The resulting states_array has numpy
+        dtype=object holding Sage field elements. matplotlib's 3D
+        scatter path eventually calls `np.isfinite(arr)` on that array
+        during rendering (mpl_toolkits.mplot3d.art3d -> matplotlib.scale
+        .val_in_range), which raises:
+            TypeError: ufunc 'isfinite' not supported for the input
+            types, and the inputs could not be safely coerced to any
+            supported types according to the casting rule 'safe'
+        for ANY call to --plot-3d-state-space with a real (sage-backed)
+        LFSR analysis -- this is not a corner case, it is the only way
+        this CLI flag is ever invoked. cli_main()'s generic
+        `except Exception` handler catches it and exits(1) with
+        "Unexpected error: ufunc 'isfinite' ..." rather than crashing
+        uncaught, but the visualization itself never succeeds.
+
+        Minimal standalone repro (no CLI/LFSR involved), run separately
+        and confirmed to raise the identical TypeError:
+
+            from lfsr.sage_imports import GF
+            import numpy as np, matplotlib
+            matplotlib.use("Agg")
+            import matplotlib.pyplot as plt
+            F = GF(2)
+            arr = np.array([[F(1), F(0), F(1)], [F(0), F(1), F(0)]])
+            fig = plt.figure()
+            ax = fig.add_subplot(111, projection="3d")
+            ax.scatter(arr[:, 0], arr[:, 1], arr[:, 2])
+            fig.savefig("/tmp/test3d.png")  # raises TypeError here
+
+        This test intentionally documents and asserts the ACTUAL (broken)
+        behavior -- do not fix src/ from this test-writing task."""
+        csv_file = tmp_path / "in.csv"
+        csv_file.write_text(SIMPLE_CSV)
+        plot_out = tmp_path / "3d.png"
+        self._run(
+            monkeypatch, tmp_path,
+            [str(csv_file), "2", "--plot-3d-state-space", str(plot_out)],
+        )
+
+        with pytest.raises(SystemExit) as exc_info:
+            cli_main()
+        assert exc_info.value.code == 1
+        captured = capsys.readouterr()
+        assert "Unexpected error" in captured.err
+        assert "isfinite" in captured.err
+
+    # -- --visualize-attack (lines 1439-1449) --------------------------------
+
+    def test_cli_main_visualize_attack_runs(self, monkeypatch, tmp_path):
+        csv_file = tmp_path / "in.csv"
+        csv_file.write_text(SIMPLE_CSV)
+        plot_out = tmp_path / "attack.png"
+        self._run(
+            monkeypatch, tmp_path,
+            [str(csv_file), "2", "--visualize-attack", str(plot_out)],
+        )
+
+        cli_main()
+
+        assert plot_out.exists()
+        out_content = (tmp_path / (str(csv_file) + ".out")).read_text()
+        assert "Attack visualization saved to" in out_content
+
+    # -- IOError handler (lines 1497-1498) -----------------------------------
+
+    def test_cli_main_ioerror_reports_and_exits(self, monkeypatch, tmp_path, capsys):
+        """Force main() to raise IOError and confirm cli_main's dedicated
+        `except IOError` handler (distinct from the generic
+        `except Exception` handler already covered) reports and exits
+        non-zero."""
+        csv_file = tmp_path / "in.csv"
+        csv_file.write_text(SIMPLE_CSV)
+        self._run(monkeypatch, tmp_path, [str(csv_file), "2", "--no-progress"])
+
+        def boom(*args, **kwargs):
+            raise IOError("synthetic io failure for test")
+
+        monkeypatch.setattr("lfsr.cli.main", boom)
+
+        with pytest.raises(SystemExit) as exc_info:
+            cli_main()
+        assert exc_info.value.code == 1
+        captured = capsys.readouterr()
+        assert "File I/O error" in captured.err
+        assert "synthetic io failure for test" in captured.err
+
+    # -- KeyboardInterrupt handler (lines 1500-1501) -------------------------
+
+    def test_cli_main_keyboard_interrupt_reports_and_exits(self, monkeypatch, tmp_path, capsys):
+        csv_file = tmp_path / "in.csv"
+        csv_file.write_text(SIMPLE_CSV)
+        self._run(monkeypatch, tmp_path, [str(csv_file), "2", "--no-progress"])
+
+        def boom(*args, **kwargs):
+            raise KeyboardInterrupt()
+
+        monkeypatch.setattr("lfsr.cli.main", boom)
+
+        with pytest.raises(SystemExit) as exc_info:
+            cli_main()
+        assert exc_info.value.code == 1
+        captured = capsys.readouterr()
+        assert "Interrupted by user" in captured.err
