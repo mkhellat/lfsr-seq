@@ -439,6 +439,29 @@ class TestCliMain:
         captured = capsys.readouterr()
         assert "no data" in captured.out or "no data" in captured.err
 
+    def test_cli_main_advanced_structure_no_valid_coeffs_after_parsing(self, monkeypatch, tmp_path, capsys):
+        """Distinct from test_cli_main_advanced_structure_missing_coeffs_file
+        above: that test exercises read_and_validate_csv's OWN "no data"
+        guard (io.py), which fires before cli.py's own
+        `if not coeffs_list:` check (cli.py lines ~973-975) is ever
+        reached. This test instead uses a CSV row that survives
+        read_and_validate_csv (a non-blank, non-comment row) but whose
+        every value fails int() conversion inside
+        read_coefficient_vectors, so it legitimately returns [] to
+        cli.py -- reaching cli.py's own guard instead."""
+        csv_file = tmp_path / "in.csv"
+        csv_file.write_text("abc,def,ghi\n")
+        self._run(
+            monkeypatch, tmp_path,
+            [str(csv_file), "2", "--advanced-structure", "nfsr"],
+        )
+
+        with pytest.raises(SystemExit) as exc_info:
+            cli_main()
+        assert exc_info.value.code != 0
+        captured = capsys.readouterr()
+        assert "No valid coefficients found" in captured.out or "No valid coefficients found" in captured.err
+
     def test_cli_main_algebraic_attack_without_keystream_exits(self, monkeypatch, tmp_path, capsys):
         csv_file = tmp_path / "in.csv"
         csv_file.write_text(SIMPLE_CSV)
@@ -802,8 +825,16 @@ class TestCliMainRemainingBranches:
     # -- --tmto-attack empty-coefficients branch (lines 1019-1020) --------
 
     def test_cli_main_tmto_attack_empty_coeffs_file_exits(self, monkeypatch, tmp_path, capsys):
+        # Genuinely reaches cli.py's OWN `if not coeffs_list:` guard
+        # (lines ~1019-1020), unlike a comment-only file (which trips
+        # read_and_validate_csv's *own* "no data" exit first, inside
+        # io.py, before cli.py's coeffs_list check is ever reached).
+        # A row of non-numeric garbage survives read_and_validate_csv
+        # (which only rejects blank/comment rows and inconsistent
+        # lengths) but every value fails int() conversion inside
+        # read_coefficient_vectors, so it returns [] to the caller.
         csv_file = tmp_path / "in.csv"
-        csv_file.write_text("# only a comment\n")
+        csv_file.write_text("abc,def,ghi\n")
         self._run(
             monkeypatch, tmp_path,
             [str(csv_file), "2", "--tmto-attack"],
@@ -813,13 +844,16 @@ class TestCliMainRemainingBranches:
             cli_main()
         assert exc_info.value.code != 0
         captured = capsys.readouterr()
-        assert "no data" in captured.out or "no data" in captured.err
+        assert "No valid coefficients found" in captured.out or "No valid coefficients found" in captured.err
 
     # -- --algebraic-attack empty-coefficients branch (lines 1048-1049) ---
 
     def test_cli_main_algebraic_attack_empty_coeffs_file_exits(self, monkeypatch, tmp_path, capsys):
+        # See the tmto-attack test above for why a non-numeric-garbage
+        # row (not a comment-only file) is needed to actually reach
+        # cli.py's own `if not coeffs_list:` guard.
         csv_file = tmp_path / "in.csv"
-        csv_file.write_text("# only a comment\n")
+        csv_file.write_text("abc,def,ghi\n")
         self._run(
             monkeypatch, tmp_path,
             [str(csv_file), "2", "--algebraic-attack"],
@@ -828,12 +862,14 @@ class TestCliMainRemainingBranches:
         with pytest.raises(SystemExit) as exc_info:
             cli_main()
         assert exc_info.value.code != 0
+        captured = capsys.readouterr()
+        assert "No valid coefficients found" in captured.out or "No valid coefficients found" in captured.err
 
     # -- theoretical-analysis empty-coefficients branch (lines 1091-1092) -
 
     def test_cli_main_theoretical_analysis_empty_coeffs_file_exits(self, monkeypatch, tmp_path, capsys):
         csv_file = tmp_path / "in.csv"
-        csv_file.write_text("# only a comment\n")
+        csv_file.write_text("abc,def,ghi\n")
         self._run(
             monkeypatch, tmp_path,
             [str(csv_file), "2", "--compare-known"],
@@ -842,6 +878,8 @@ class TestCliMainRemainingBranches:
         with pytest.raises(SystemExit) as exc_info:
             cli_main()
         assert exc_info.value.code != 0
+        captured = capsys.readouterr()
+        assert "No valid coefficients found" in captured.out or "No valid coefficients found" in captured.err
 
     # -- --generate-paper (lines 1141-1144) --------------------------------
 
@@ -908,7 +946,7 @@ class TestCliMainRemainingBranches:
 
     def test_cli_main_ml_feature_empty_coeffs_file_exits(self, monkeypatch, tmp_path, capsys):
         csv_file = tmp_path / "in.csv"
-        csv_file.write_text("# only a comment\n")
+        csv_file.write_text("abc,def,ghi\n")
         self._run(
             monkeypatch, tmp_path,
             [str(csv_file), "2", "--detect-patterns"],
@@ -917,6 +955,8 @@ class TestCliMainRemainingBranches:
         with pytest.raises(SystemExit) as exc_info:
             cli_main()
         assert exc_info.value.code != 0
+        captured = capsys.readouterr()
+        assert "No valid coefficients found" in captured.out or "No valid coefficients found" in captured.err
 
     # -- --predict-period with --ml-model-file (lines 1229-1232) ----------
 
@@ -1024,7 +1064,7 @@ class TestCliMainRemainingBranches:
 
     def test_cli_main_visualization_empty_coeffs_file_exits(self, monkeypatch, tmp_path, capsys):
         csv_file = tmp_path / "in.csv"
-        csv_file.write_text("# only a comment\n")
+        csv_file.write_text("abc,def,ghi\n")
         plot_out = tmp_path / "plot.png"
         self._run(
             monkeypatch, tmp_path,
@@ -1034,6 +1074,8 @@ class TestCliMainRemainingBranches:
         with pytest.raises(SystemExit) as exc_info:
             cli_main()
         assert exc_info.value.code != 0
+        captured = capsys.readouterr()
+        assert "No valid coefficients found" in captured.out or "No valid coefficients found" in captured.err
 
     # -- --plot-state-transitions (lines 1404-1411) ------------------------
 
@@ -1190,3 +1232,195 @@ class TestCliMainRemainingBranches:
         assert exc_info.value.code == 1
         captured = capsys.readouterr()
         assert "Interrupted by user" in captured.err
+
+
+class TestCliMainDeadInputFileChecks:
+    """Covers cli.py's six `if not args.input_file:` guards inside
+    cli_main() (lines 967-969, 1012-1014, 1040-1042, 1085-1087,
+    1211-1213, 1352-1354).
+
+    SUSPECTED DEAD CODE (not a runtime-crashing bug, but worth flagging):
+    cli_main() already does
+        input_file_name = args.input_file
+        ...
+        if not os.path.exists(input_file_name):
+            sys.exit(1)
+    unconditionally, BEFORE reaching any of the mode-specific dispatch
+    branches below it, using the exact same `args.input_file` value with
+    no mutation in between. Since `not os.path.exists(x)` is True for
+    any falsy `x` (empty string, None), a falsy `args.input_file` can
+    never survive to reach these later `if not args.input_file:` checks
+    through the real cli_main() entry point -- they are unreachable in
+    practice. These tests demonstrate the unreachability directly by
+    monkeypatching `os.path.exists` to accept the empty-string path
+    (bypassing the earlier guard) and `parse_args` to hand back an empty
+    `input_file`, which is the only way to actually execute these lines
+    at all.
+    """
+
+    def _run(self, monkeypatch, tmp_path, argv):
+        monkeypatch.chdir(tmp_path)
+        monkeypatch.setattr("sys.argv", ["lfsr-seq"] + argv)
+
+    def _patch_empty_input_file(self, monkeypatch, mode_flag_args):
+        """Patch parse_args() to return a Namespace with input_file=""
+        (falsy) but otherwise matching real parsed args for mode_flag_args,
+        and patch os.path.exists to treat "" as existing so cli_main's
+        earlier unconditional existence check doesn't short-circuit
+        first."""
+        import lfsr.cli as cli_mod
+
+        real_parse_args = cli_mod.parse_args
+
+        def fake_parse_args(argv=None):
+            ns = real_parse_args(mode_flag_args)
+            ns.input_file = ""
+            return ns
+
+        monkeypatch.setattr(cli_mod, "parse_args", fake_parse_args)
+
+        import os as os_mod
+
+        real_exists = os_mod.path.exists
+
+        def fake_exists(path):
+            if path == "":
+                return True
+            return real_exists(path)
+
+        monkeypatch.setattr(cli_mod.os.path, "exists", fake_exists)
+
+    def test_advanced_structure_missing_input_file_dead_branch(self, monkeypatch, tmp_path, capsys):
+        self._run(monkeypatch, tmp_path, ["dummy.csv", "2", "--advanced-structure", "nfsr"])
+        self._patch_empty_input_file(monkeypatch, ["", "2", "--advanced-structure", "nfsr"])
+
+        with pytest.raises(SystemExit) as exc_info:
+            cli_main()
+        assert exc_info.value.code == 1
+        captured = capsys.readouterr()
+        assert "--advanced-structure requires input file" in captured.err
+
+    def test_tmto_attack_missing_input_file_dead_branch(self, monkeypatch, tmp_path, capsys):
+        self._run(monkeypatch, tmp_path, ["dummy.csv", "2", "--tmto-attack"])
+        self._patch_empty_input_file(monkeypatch, ["", "2", "--tmto-attack"])
+
+        with pytest.raises(SystemExit) as exc_info:
+            cli_main()
+        assert exc_info.value.code == 1
+        captured = capsys.readouterr()
+        assert "--tmto-attack requires input file" in captured.err
+
+    def test_algebraic_attack_missing_input_file_dead_branch(self, monkeypatch, tmp_path, capsys):
+        self._run(monkeypatch, tmp_path, ["dummy.csv", "2", "--algebraic-attack"])
+        self._patch_empty_input_file(monkeypatch, ["", "2", "--algebraic-attack"])
+
+        with pytest.raises(SystemExit) as exc_info:
+            cli_main()
+        assert exc_info.value.code == 1
+        captured = capsys.readouterr()
+        assert "--algebraic-attack requires input file" in captured.err
+
+    def test_theoretical_analysis_missing_input_file_dead_branch(self, monkeypatch, tmp_path, capsys):
+        self._run(monkeypatch, tmp_path, ["dummy.csv", "2", "--compare-known"])
+        self._patch_empty_input_file(monkeypatch, ["", "2", "--compare-known"])
+
+        with pytest.raises(SystemExit) as exc_info:
+            cli_main()
+        assert exc_info.value.code == 1
+        captured = capsys.readouterr()
+        assert "Theoretical analysis features require input file" in captured.err
+
+    def test_ml_features_missing_input_file_dead_branch(self, monkeypatch, tmp_path, capsys):
+        self._run(monkeypatch, tmp_path, ["dummy.csv", "2", "--predict-period"])
+        self._patch_empty_input_file(monkeypatch, ["", "2", "--predict-period"])
+
+        with pytest.raises(SystemExit) as exc_info:
+            cli_main()
+        assert exc_info.value.code == 1
+        captured = capsys.readouterr()
+        assert "ML features require input file" in captured.err
+
+    def test_visualization_missing_input_file_dead_branch(self, monkeypatch, tmp_path, capsys):
+        self._run(monkeypatch, tmp_path, ["dummy.csv", "2", "--plot-period-distribution", "out.png"])
+        self._patch_empty_input_file(
+            monkeypatch, ["", "2", "--plot-period-distribution", "out.png"]
+        )
+
+        with pytest.raises(SystemExit) as exc_info:
+            cli_main()
+        assert exc_info.value.code == 1
+        captured = capsys.readouterr()
+        assert "Visualization features require input file" in captured.err
+
+
+class TestCliMainAdditionalBranches:
+    def _run(self, monkeypatch, tmp_path, argv):
+        monkeypatch.chdir(tmp_path)
+        monkeypatch.setattr("sys.argv", ["lfsr-seq"] + argv)
+
+    # -- --detect-anomalies non-dict branch (lines 1293-1296) ---------------
+
+    def test_detect_anomalies_non_dict_branch(self, monkeypatch, tmp_path):
+        """detect_all_anomalies() (lfsr.ml.anomaly_detection) always
+        returns a Dict[str, List[Anomaly]] per its own type signature and
+        implementation (unconditionally builds and returns a `results`
+        dict). cli.py's --detect-anomalies handler nonetheless branches
+        on `isinstance(anomalies, dict)` with a non-dict `else` fallback
+        (lines 1293-1296) that real code can never reach -- dead code
+        under the current implementation of detect_all_anomalies. This
+        test exercises that fallback directly by monkeypatching
+        detect_all_anomalies to return a plain list, to get coverage of
+        the branch and document why it's unreachable in practice."""
+        import lfsr.ml.anomaly_detection as anomaly_mod
+
+        class FakeAnomaly:
+            description = "fake anomaly"
+            severity = 0.5
+
+        def fake_detect_all_anomalies(**kwargs):
+            return [FakeAnomaly(), FakeAnomaly()]
+
+        monkeypatch.setattr(anomaly_mod, "detect_all_anomalies", fake_detect_all_anomalies)
+        monkeypatch.setattr("lfsr.cli.detect_all_anomalies", fake_detect_all_anomalies, raising=False)
+
+        csv_file = tmp_path / "in.csv"
+        csv_file.write_text(SIMPLE_CSV)
+        self._run(monkeypatch, tmp_path, [str(csv_file), "2", "--detect-anomalies"])
+
+        cli_main()
+
+        out_content = (tmp_path / (str(csv_file) + ".out")).read_text()
+        assert "Anomalies detected: 2" in out_content
+        assert "fake anomaly" in out_content
+
+    # -- --plot-3d-state-space success print (line 1433) --------------------
+
+    def test_plot_3d_state_space_success_print(self, monkeypatch, tmp_path):
+        """Existing test test_cli_main_plot_3d_state_space_crashes documents
+        that plot_3d_state_space() always raises TypeError against real
+        Sage-backed state data, so the success print on line 1433 is
+        unreachable via any real invocation today. Cover it here by
+        monkeypatching plot_3d_state_space itself to a no-op, to at least
+        get coverage of the success-path print statement."""
+        import lfsr.visualization.state_space_3d as state_space_3d_mod
+
+        def fake_plot_3d(*args, **kwargs):
+            output_file = kwargs.get("output_file")
+            if output_file:
+                with open(output_file, "w") as f:
+                    f.write("fake plot")
+
+        monkeypatch.setattr(state_space_3d_mod, "plot_3d_state_space", fake_plot_3d)
+
+        csv_file = tmp_path / "in.csv"
+        csv_file.write_text(SIMPLE_CSV)
+        plot_out = tmp_path / "3d.png"
+        self._run(
+            monkeypatch, tmp_path,
+            [str(csv_file), "2", "--plot-3d-state-space", str(plot_out)],
+        )
+
+        cli_main()
+
+        out_content = (tmp_path / (str(csv_file) + ".out")).read_text()
+        assert "3D state space visualization saved to" in out_content
