@@ -74,7 +74,10 @@ def plot_3d_state_space(
 
         for state in sequence[:min(len(sequence), max_states - state_count)]:
             if len(state) >= 3:
-                states_3d.append([state[0], state[1], state[2]])
+                # Coerce Sage GF(q) field elements to plain Python ints;
+                # leaving them as-is makes np.array() infer dtype=object,
+                # which matplotlib's 3D scatter rendering cannot handle.
+                states_3d.append([int(state[0]), int(state[1]), int(state[2])])
                 periods_list.append(period)
                 state_count += 1
                 if state_count >= max_states:
@@ -242,7 +245,9 @@ def plot_state_space_projection(
         period = period_dict.get(seq_num, len(sequence))
 
         for state in sequence[:min(len(sequence), max_states - state_count)]:
-            states_list.append(list(state))
+            # Coerce Sage GF(q) field elements to plain Python ints; see
+            # the equivalent fix in plot_3d_state_space() above.
+            states_list.append([int(c) for c in state])
             periods_list.append(period)
             state_count += 1
             if state_count >= max_states:

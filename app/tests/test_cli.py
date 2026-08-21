@@ -1094,53 +1094,20 @@ class TestCliMainRemainingBranches:
 
     # -- --plot-3d-state-space (lines 1426-1433) -----------------------------
 
-    def test_cli_main_plot_3d_state_space_crashes(self, monkeypatch, tmp_path, capsys):
-        """SUSPECTED REAL BUG (confirmed independently with a minimal
-        standalone repro before writing this test, reproduced below and
-        run separately outside pytest):
-
-        lfsr.visualization.state_space_3d.plot_3d_state_space builds its
-        3D point array directly from raw LFSR state coordinates:
-            states_3d.append([state[0], state[1], state[2]])
-            ...
-            states_array = np.array(states_3d)
-        `state[i]` here is a Sage `GF(q)` finite-field element (this
-        module's states come straight from lfsr.analysis's seq_dict,
-        which stores raw Sage vector/field elements), not a Python int or
-        float. Sibling visualization modules convert before plotting --
-        e.g. lfsr.visualization.period_graphs.py:217 does
-        `str(state)` -- but state_space_3d.py never converts state[i] to
-        int()/float() anywhere. The resulting states_array has numpy
-        dtype=object holding Sage field elements. matplotlib's 3D
-        scatter path eventually calls `np.isfinite(arr)` on that array
-        during rendering (mpl_toolkits.mplot3d.art3d -> matplotlib.scale
-        .val_in_range), which raises:
+    def test_cli_main_plot_3d_state_space_succeeds(self, monkeypatch, tmp_path, capsys):
+        """Regression test for a fixed bug:
+        lfsr.visualization.state_space_3d.plot_3d_state_space used to
+        build its 3D point array directly from raw LFSR state
+        coordinates (Sage GF(q) finite-field elements, not Python
+        ints/floats) without conversion, producing a numpy dtype=object
+        array. matplotlib's 3D scatter path calls np.isfinite(arr) on
+        that array during rendering, which raised:
             TypeError: ufunc 'isfinite' not supported for the input
-            types, and the inputs could not be safely coerced to any
-            supported types according to the casting rule 'safe'
-        for ANY call to --plot-3d-state-space with a real (sage-backed)
-        LFSR analysis -- this is not a corner case, it is the only way
-        this CLI flag is ever invoked. cli_main()'s generic
-        `except Exception` handler catches it and exits(1) with
-        "Unexpected error: ufunc 'isfinite' ..." rather than crashing
-        uncaught, but the visualization itself never succeeds.
-
-        Minimal standalone repro (no CLI/LFSR involved), run separately
-        and confirmed to raise the identical TypeError:
-
-            from lfsr.sage_imports import GF
-            import numpy as np, matplotlib
-            matplotlib.use("Agg")
-            import matplotlib.pyplot as plt
-            F = GF(2)
-            arr = np.array([[F(1), F(0), F(1)], [F(0), F(1), F(0)]])
-            fig = plt.figure()
-            ax = fig.add_subplot(111, projection="3d")
-            ax.scatter(arr[:, 0], arr[:, 1], arr[:, 2])
-            fig.savefig("/tmp/test3d.png")  # raises TypeError here
-
-        This test intentionally documents and asserts the ACTUAL (broken)
-        behavior -- do not fix src/ from this test-writing task."""
+            types, ...
+        for every real (sage-backed) --plot-3d-state-space invocation.
+        Fixed by coercing each state coordinate to int() before building
+        the array. This test now asserts the real, unmocked path
+        succeeds end-to-end via the CLI."""
         csv_file = tmp_path / "in.csv"
         csv_file.write_text(SIMPLE_CSV)
         plot_out = tmp_path / "3d.png"
@@ -1149,12 +1116,10 @@ class TestCliMainRemainingBranches:
             [str(csv_file), "2", "--plot-3d-state-space", str(plot_out)],
         )
 
-        with pytest.raises(SystemExit) as exc_info:
-            cli_main()
-        assert exc_info.value.code == 1
-        captured = capsys.readouterr()
-        assert "Unexpected error" in captured.err
-        assert "isfinite" in captured.err
+        cli_main()
+        assert plot_out.exists()
+        out_content = (tmp_path / (str(csv_file) + ".out")).read_text()
+        assert "3D state space visualization saved to" in out_content
 
     # -- --visualize-attack (lines 1439-1449) --------------------------------
 
@@ -1376,23 +1341,12 @@ class TestCliMainAdditionalBranches:
 
     # -- --plot-3d-state-space success print (line 1433) --------------------
 
-    def test_plot_3d_state_space_success_print(self, monkeypatch, tmp_path):
-        """Existing test test_cli_main_plot_3d_state_space_crashes documents
-        that plot_3d_state_space() always raises TypeError against real
-        Sage-backed state data, so the success print on line 1433 is
-        unreachable via any real invocation today. Cover it here by
-        monkeypatching plot_3d_state_space itself to a no-op, to at least
-        get coverage of the success-path print statement."""
-        import lfsr.visualization.state_space_3d as state_space_3d_mod
-
-        def fake_plot_3d(*args, **kwargs):
-            output_file = kwargs.get("output_file")
-            if output_file:
-                with open(output_file, "w") as f:
-                    f.write("fake plot")
-
-        monkeypatch.setattr(state_space_3d_mod, "plot_3d_state_space", fake_plot_3d)
-
+    def test_plot_3d_state_space_success_print(self, monkeypatch, tmp_path, capsys):
+        """Covers the success-path print statement for
+        --plot-3d-state-space. Now that plot_3d_state_space() coerces
+        Sage GF(q) elements to int() (see
+        test_cli_main_plot_3d_state_space_succeeds), the real path
+        reaches this print with no mocking needed."""
         csv_file = tmp_path / "in.csv"
         csv_file.write_text(SIMPLE_CSV)
         plot_out = tmp_path / "3d.png"
@@ -1402,6 +1356,8 @@ class TestCliMainAdditionalBranches:
         )
 
         cli_main()
+        captured_out = (tmp_path / (str(csv_file) + ".out")).read_text()
+        assert "3D state space visualization saved to" in captured_out
 
         out_content = (tmp_path / (str(csv_file) + ".out")).read_text()
         assert "3D state space visualization saved to" in out_content
