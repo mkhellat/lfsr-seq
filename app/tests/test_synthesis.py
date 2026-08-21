@@ -54,6 +54,30 @@ class TestBerlekampMassey:
         with pytest.raises(ValueError, match="Sequence cannot be empty"):
             berlekamp_massey([], 2)
 
+    def test_n_zero_after_conversion_is_dead_code(self):
+        """SUSPECTED DEAD CODE: berlekamp_massey's second guard,
+        `n = len(s); if n == 0: return PolynomialRing(F, "x")(1), 0`
+        (synthesis.py line ~48-49), can never trigger for any real
+        sequence argument. It runs only after the first guard
+        (`if len(sequence) == 0: raise ValueError(...)`) already
+        confirmed the input is non-empty, and `s = [F(x) for x in
+        sequence]` is a list comprehension that always produces exactly
+        len(sequence) elements -- so `n = len(s)` can never differ from
+        the already-nonzero len(sequence). Reachable only with a
+        sequence-like object whose real iteration yields zero items
+        while still reporting nonzero len() -- demonstrated here purely
+        to document the branch is dead for genuine sequences, not to
+        claim a real-world trigger."""
+
+        class LyingLengthEmptySequence(list):
+            def __len__(self):
+                return 5  # lies: passes the first `len(sequence) == 0` guard
+
+        seq = LyingLengthEmptySequence()  # real iteration yields 0 items
+        poly, L = berlekamp_massey(seq, 2)
+        assert L == 0
+        assert poly == 1
+
     def test_all_zero_sequence_gf2(self):
         """No discrepancy is ever found, so BM returns the trivial
         polynomial 1 with linear complexity 0."""
