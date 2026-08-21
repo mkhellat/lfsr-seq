@@ -657,6 +657,29 @@ class TestRainbowTableLookup:
         assert uncovered is not None, "expected at least one provably uncovered state"
         assert table.lookup(uncovered, REFERENCE_CONFIG) is None
 
+    def test_reconstruct_returns_none_for_bogus_chain_entry(self):
+        """Covers _reconstruct's own `return None` fallback (tmto.py
+        line ~513), reached when the reconstruction walk from a chain's
+        recorded `start` exhausts chain_length steps without ever
+        producing `target_list` -- i.e. a genuine false positive where
+        `end == target_list` matches by coincidence but `start` doesn't
+        actually walk to that target. This never happens for any
+        (start, end) pair genuinely produced by generate() (the walk
+        that produced `end` from `start` is real), so the only way to
+        exercise this fallback is to inject a fabricated, inconsistent
+        chain entry directly into table.chains -- a (start, end) pair
+        where `end` does not correspond to any real walk from `start`."""
+        random.seed(1)
+        table = RainbowTable(chain_count=5, chain_length=4)
+        table.generate(REFERENCE_CONFIG)
+
+        bogus_start = [0, 0, 0, 0]
+        bogus_end = [1, 1, 1, 1]  # NOT actually reachable from bogus_start
+        table.chains = [(bogus_start, bogus_end)]
+
+        result = table.lookup(bogus_end, REFERENCE_CONFIG)
+        assert result is None
+
 
 class TestTmtoAttackDispatch:
     """Tests for tmto_attack()'s method dispatch and precomputed-table
