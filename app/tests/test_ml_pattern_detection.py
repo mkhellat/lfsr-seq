@@ -157,6 +157,38 @@ class TestDetectPeriodicityIndicators:
         patterns = detect_periodicity_indicators(seq, max_period=1000)
         assert isinstance(patterns, list)
 
+    def test_lag_ge_n_break_is_dead_code(self, monkeypatch):
+        """SUSPECTED DEAD CODE: pattern_detection.py's
+        detect_periodicity_indicators() (lines ~220-223) has
+            for lag in range(1, min(max_period + 1, n)):
+                if lag >= n:
+                    break
+        but every value `lag` can take from
+        `range(1, min(max_period + 1, n))` is by construction strictly
+        less than `min(max_period + 1, n) <= n`, so `lag >= n` can never
+        be True inside this loop -- the `break` is unreachable via any
+        real (max_period, n) combination. Cover it directly by
+        monkeypatching the module's `min` builtin to return a value
+        larger than n for this call, forcing the loop to yield a lag
+        that is >= n."""
+        import lfsr.ml.pattern_detection as patdet
+
+        real_min = min
+
+        def fake_min(*args, **kwargs):
+            if args == (11, 4):  # max_period + 1 == 11, n == 4
+                return 20  # force the range to include lag values >= n
+            return real_min(*args, **kwargs)
+
+        monkeypatch.setattr(patdet, "min", fake_min, raising=False)
+        import builtins
+
+        monkeypatch.setattr(builtins, "min", fake_min)
+
+        seq = [1, 0, 1, 0]  # n == 4
+        patterns = detect_periodicity_indicators(seq, max_period=10)
+        assert isinstance(patterns, list)
+
 
 class TestDetectAllPatterns:
     def test_all_keys_present_by_default(self):
