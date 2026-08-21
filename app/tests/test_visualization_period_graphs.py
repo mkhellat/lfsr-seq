@@ -243,6 +243,19 @@ class TestPlotPeriodVsStateInteractive:
         plot_period_vs_state(pairs, config=config, output_file=str(out))
         assert calls == [str(out)]
 
+    def test_saves_html_output_file_via_write_html(self, tmp_path):
+        """Covers the `if output_file.endswith('.html'):
+        fig.write_html(output_file)` branch (line ~292) for
+        plot_period_vs_state's interactive backend -- the sibling
+        branch to test_saves_non_html_output_file_via_write_image above,
+        which only exercises the non-html else clause."""
+        out = tmp_path / "scatter.html"
+        config = VisualizationConfig(interactive=True)
+        pairs = [([1, 0], 3), ([0, 1], 5)]
+        plot_period_vs_state(pairs, config=config, output_file=str(out))
+        assert out.exists()
+        assert out.stat().st_size > 0
+
 
 class TestPlotPeriodVsStateDispatch:
     """Covers plot_period_vs_state's top-level backend-selection else
