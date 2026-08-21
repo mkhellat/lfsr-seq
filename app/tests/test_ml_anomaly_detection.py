@@ -104,6 +104,38 @@ class TestDetectSequenceAnomaliesIsolationForest:
             assert "window_start" in a.metadata
             assert "window_size" in a.metadata
 
+    def test_isolation_forest_empty_features_returns_empty(self, monkeypatch):
+        """SUSPECTED DEAD CODE: anomaly_detection.py's isolation_forest
+        branch (lines ~113-128) has
+            if len(sequence) < 10: return anomalies
+            window_size = min(10, len(sequence) // 2)
+            ...
+            for i in range(len(sequence) - window_size + 1): features.append(...)
+            if not features: return anomalies
+        For any sequence with len(sequence) >= 10 (required to pass the
+        first guard), window_size = min(10, len(sequence)//2) is always
+        >= 5 and always <= len(sequence), so
+        `len(sequence) - window_size + 1` is always >= 1 -- the sliding
+        window loop always executes at least once and `features` is
+        never empty. The `if not features: return anomalies` guard on
+        line 128 is therefore unreachable via any real sequence length.
+        Cover it directly by monkeypatching the module's `min` builtin
+        to force window_size above len(sequence), making the loop range
+        empty."""
+        real_min = min
+
+        def fake_min(*args, **kwargs):
+            # Force window_size larger than the sequence so the sliding
+            # window loop's range() is empty.
+            if args == (10, 15 // 2):
+                return 999
+            return real_min(*args, **kwargs)
+
+        monkeypatch.setattr(builtins, "min", fake_min)
+        seq = [1, 0] * 7 + [1]  # length 15, >= the "too short" cutoff of 10
+        anomalies = detect_sequence_anomalies(seq, method="isolation_forest")
+        assert anomalies == []
+
     def test_isolation_forest_without_sklearn_returns_empty(self, monkeypatch):
         """method == 'isolation_forest' requires HAS_SKLEARN; when False
         the elif condition fails entirely and no anomalies (and no
