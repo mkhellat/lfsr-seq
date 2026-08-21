@@ -120,7 +120,6 @@ def main(
         # Multiple LFSRs: disable parallel by default to avoid worker hang issues
         use_parallel = False
         if not quiet:
-            import sys
             print(f"INFO: Processing {num_lfsrs} LFSRs - using sequential mode for reliability", file=sys.stderr)
 
     coeffs_num = 0
@@ -194,7 +193,6 @@ def main(
         # - Static mode: Fixed chunk assignment (current default)
         # - Dynamic mode: Shared task queue with dynamic load balancing (new)
         if should_use_parallel:
-            import sys
             if parallel_mode == "dynamic":
                 print("INFO: Using dynamic parallel processing (shared task queue)", file=sys.stderr)
                 from lfsr.analysis import lfsr_sequence_mapper_parallel_dynamic

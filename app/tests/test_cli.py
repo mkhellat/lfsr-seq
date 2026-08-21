@@ -697,49 +697,26 @@ class TestCliMain:
 
 
 class TestMainSageAndParallelBranches:
-    def test_main_sage_unavailable_raises_unboundlocalerror(
-        self, monkeypatch, tmp_path
-    ):
-        """SUSPECTED REAL BUG (cli.py lines 82-94, confirmed independently
-        with a minimal standalone repro before writing this test):
-
-        main()'s sage-unavailable branch does
+    def test_main_sage_unavailable_exits_cleanly(self, monkeypatch, tmp_path, capsys):
+        """Regression test for a fixed bug in cli.py's main(): the
+        sage-unavailable branch does
             print(..., file=sys.stderr)
             sys.exit(1)
-        relying on the module-level `import sys` at cli.py:14. But
-        main()'s own body *also* contains `import sys` twice further down
-        (inside the `if num_lfsrs > 1 ...:` block at line 123, and inside
-        the `if should_use_parallel:` block at line 197). Because Python
-        determines a name's scope (local vs. global) by static analysis
-        of the *entire* function body -- not by control flow -- the mere
-        presence of `import sys` anywhere in main()'s body makes `sys` a
+        relying on the module-level `import sys` at cli.py:14. main()'s
+        own body used to *also* contain `import sys` twice further down
+        (inside the `if num_lfsrs > 1 ...:` block and the
+        `if should_use_parallel:` block). Because Python determines a
+        name's scope (local vs. global) by static analysis of the
+        *entire* function body -- not by control flow -- the mere
+        presence of `import sys` anywhere in main()'s body made `sys` a
         local variable for the *whole* function, including the
         sage-unavailable branch that executes before either nested
-        `import sys` statement runs. The result: instead of cleanly
-        printing the "SageMath is required" message and exiting 1 (the
-        evident intent, and what a bare `sys.exit(1)` looks like it
-        should do), `sys.stderr` at line 92 raises
-        `UnboundLocalError: cannot access local variable 'sys' where it
-        is not associated with a value` -- which is an *unhandled*
-        exception in this codepath (main() is called directly here, not
-        through cli_main()'s try/except wrapper), so it propagates as a
-        raw UnboundLocalError rather than a clean SystemExit(1). This
-        test intentionally documents and asserts the ACTUAL (broken)
-        behavior; do not fix by editing src/ from a test-only task -- see
-        the task instructions this session operated under. The minimal
-        standalone repro (no LFSR/CSV/sage involved at all):
-
-            def f():
-                if True:
-                    print("x", file=sys.stderr)  # UnboundLocalError
-                import sys
-
-            f()
-
-        which raises UnboundLocalError identically, confirming this is a
-        general Python scoping hazard (re-importing an already
-        module-level name inside a function body), not something
-        specific to argparse/sage/CLI plumbing.
+        `import sys` statement runs, raising
+        `UnboundLocalError: cannot access local variable 'sys'` instead
+        of a clean SystemExit(1). Fixed by removing both redundant nested
+        imports (the module-level import already covers the whole
+        function). This test now asserts the correct behavior: a clean
+        SystemExit(1) with the SageMath-installation message on stderr.
         """
         import lfsr.cli as cli_mod
 
@@ -750,8 +727,12 @@ class TestMainSageAndParallelBranches:
         out_file = tmp_path / "out.txt"
 
         with open(out_file, "w") as f:
-            with pytest.raises(UnboundLocalError):
+            with pytest.raises(SystemExit) as exc_info:
                 main(str(csv_file), "2", output_file=f, no_progress=True)
+
+        assert exc_info.value.code == 1
+        captured = capsys.readouterr()
+        assert "SageMath is required" in captured.err
 
     def test_main_dynamic_parallel_full_sequence_mode(self, tmp_path, capsys):
         """Covers cli.py lines 199-209: dynamic parallel mode with
