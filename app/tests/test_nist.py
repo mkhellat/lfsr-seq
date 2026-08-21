@@ -289,6 +289,34 @@ class TestRunsTest:
         assert not result.passed
         assert "too short" in result.details["error"]
 
+    # NOTE on nist.py's uncovered `if variance <= 0:` guard (line ~407):
+    #
+    # SUSPECTED DEAD CODE, mathematically confirmed unreachable (not just
+    # "unlikely"): this branch can never trigger for any input that
+    # survives the two earlier guards. Both n0 and n1 are derived from a
+    # single cached `n = len(sequence)`: n0 = sum(...) (a real count from
+    # iterating `sequence`) and n1 = n - n0, so n0 + n1 == n always holds
+    # by construction -- there is no way to desynchronize them (tried and
+    # disproved: a __len__-lying list subclass changes n, but n1 = n - n0
+    # is *recomputed* from that same n, so the n0 + n1 == n identity
+    # survives regardless of what n0's own source data looks like).
+    #
+    # With that identity fixed, `variance <= 0` reduces to
+    # `2*n0*n1 <= n0 + n1` for n0, n1 both required > 0 by the earlier
+    # "only zeros or only ones" guard. Full sign analysis
+    # (f(x) = 2*x*(n-x)*(2*x*(n-x) - n), n = n0+n1 fixed >= 100, x = n0)
+    # is strictly positive for every real x with 0 < x < n once n is
+    # large -- verified by exhaustive numeric search over n0 in
+    # [-1000, 1000] \ {0} at n=100 (including negative/out-of-range n0
+    # values reachable only by further monkeypatching `sum()` itself,
+    # which were also checked and found to still yield variance > 0,
+    # since a negative n0 makes n1 > n, and the product of the two
+    # resulting negative factors is positive again). No input -- real or
+    # contrived via monkeypatching len()/sum() -- was found that reaches
+    # this branch while n >= 100. Left uncovered rather than writing a
+    # misleading test, per task instructions for a branch that is
+    # provably dead, not merely "hard to hit".
+
 
 # ---------------------------------------------------------------------------
 # Test 4: Longest Run of Ones in a Block
@@ -428,6 +456,29 @@ class TestBinaryMatrixRankTest:
         assert not result.passed
         assert "too short" in result.details["error"]
 
+    def test_matrix_construction_exception_counts_as_rank_other(self, monkeypatch):
+        """Covers the `except Exception: rank_other += 1` fallback
+        (nist.py lines ~672-673) inside the per-matrix rank-counting
+        loop, guarding against any unexpected failure building/ranking a
+        GF(2) matrix. Force it by monkeypatching lfsr.nist.matrix (the
+        Sage matrix constructor imported into this module's namespace)
+        to always raise."""
+        import lfsr.nist as nist_mod
+
+        def raiser(*args, **kwargs):
+            raise RuntimeError("simulated matrix construction failure")
+
+        monkeypatch.setattr(nist_mod, "matrix", raiser)
+
+        # binary_matrix_rank_test requires n >= matrix_size * 38 (its own
+        # minimum-length guard), so at least 38 full matrices' worth of
+        # bits are needed regardless of how many actually get built.
+        seq = _prng_sequence(32 * 32 * 38, seed=7)
+        result = binary_matrix_rank_test(seq, matrix_rows=32, matrix_cols=32)
+        assert result.details["rank_other"] == 38
+        assert result.details["rank_full"] == 0
+        assert result.details["rank_m1"] == 0
+
 
 # ---------------------------------------------------------------------------
 # Test 6: Discrete Fourier Transform (Spectral) Test
@@ -459,6 +510,34 @@ class TestDiscreteFourierTransformTest:
         result = discrete_fourier_transform_test([1, 0] * 400)  # 800 bits < 1000
         assert not result.passed
         assert "too short" in result.details["error"]
+
+    def test_empty_magnitudes_no_dc_is_dead_code(self):
+        """SUSPECTED DEAD CODE: discrete_fourier_transform_test's
+        `else: d = 0.0` branch (nist.py line ~811) for when
+        `magnitudes_no_dc` is empty can never trigger for any input that
+        survives the earlier `n < 1000` guard. `magnitudes_no_dc` is
+        empty only when `len(magnitudes) <= 1`, i.e. `N // 2 <= 1`
+        (N // 2 == 0 or 1), i.e. N <= 3, where N = len(X) and X is built
+        by iterating the actual `sequence` argument. But the earlier
+        guard uses `n = len(sequence)` and requires n >= 1000 before
+        this code is ever reached. The only way to reach this line is
+        for `len(sequence)` (checked at the top) to disagree with the
+        real number of items iteration actually yields when building X
+        -- exercised here directly with a sequence-like object whose
+        __len__ lies (>= 1000, passing the initial guard) while its real
+        iterable content is only 2 items (so N = len(X) = 2, N // 2 = 1,
+        magnitudes has exactly 1 item, and magnitudes[1:] i.e.
+        magnitudes_no_dc is empty)."""
+
+        class LyingLengthSequence(list):
+            def __len__(self):
+                return 1000
+
+        seq = LyingLengthSequence([1, 0])  # real iteration yields 2 items
+
+        result = discrete_fourier_transform_test(seq)
+        assert result.statistic == 0.0
+        assert result.p_value == pytest.approx(2.0 * 0.5)  # 2 * norm.sf(0) == 1.0
 
 
 # ---------------------------------------------------------------------------
@@ -691,6 +770,22 @@ class TestMaurersUniversalTest:
             min_length = L * (Q + 1000)
             K = (min_length // L) - Q
             assert K == 1000  # exactly the boundary, never below it
+
+    # NOTE on nist.py's uncovered `if len(distances) == 0:` guard
+    # (line ~1193), same rationale as test_k_below_1000_guard_is_unreachable
+    # directly above:
+    #
+    # SUSPECTED DEAD CODE, also mathematically unreachable. The
+    # `distances` list is built by `for i in range(Q, Q + K): ...
+    # distances.append(...)` (nist.py ~1179-1188), where *every* loop
+    # iteration appends exactly one item unconditionally (both the `if
+    # block in table` and `else` branches append). So len(distances)
+    # always equals exactly K after the loop. Since K >= 1000 is already
+    # proven unconditionally true above (the earlier `K < 1000` guard is
+    # itself dead code, given n >= min_length), `len(distances)` can
+    # never be less than 1000, let alone 0. No sequence -- real or
+    # contrived -- reaches this branch. Left uncovered rather than
+    # writing a misleading test.
 
 
 # ---------------------------------------------------------------------------
@@ -1106,6 +1201,45 @@ class TestRandomExcursionsTest:
             "expected mostly passes for genuinely random input"
         )
 
+    # NOTE on three uncovered defensive branches in random_excursions_test,
+    # all SUSPECTED DEAD CODE / mathematically unreachable for any real
+    # sequence with n >= 1000 (the function's own minimum-length guard):
+    #
+    # 1. `if len(cycle) == 0: continue` (nist.py line ~1811), inside
+    #    `for cycle in cycles:`. `cycles` is only ever populated via
+    #    `if current_cycle: cycles.append(current_cycle)` (both mid-loop
+    #    on a zero-crossing, and once more at the end for a trailing
+    #    partial cycle) -- both call sites are already guarded by a
+    #    non-empty check, so no empty list can ever land in `cycles`.
+    #
+    # 2. `if len(visits) == 0: continue` (nist.py line ~1839), inside
+    #    `for state in states:`. `state_visit_counts[state]` gets exactly
+    #    one `.append(cycle.count(state))` call per entry in `cycles`
+    #    (even when the count is 0), so `visits` always has
+    #    `len(cycles)` entries for every state in the fixed 8-state list.
+    #    This is empty only if `cycles` itself is empty, which requires
+    #    zero zero-crossings across the whole walk -- impossible for
+    #    n >= 1000 bits, since each step moves the cumulative sum by
+    #    exactly +-1 (X only ever takes values -1/+1, never 0), so S can
+    #    never repeat 0 without an intervening nonzero excursion, and
+    #    the trailing-partial-cycle append at the end guarantees at
+    #    least one entry in `cycles` regardless.
+    #
+    # 3. `else: min_p_value = 1.0` (nist.py line ~1871), for when
+    #    `p_values` is empty. Given #2 above, the `for state in states:`
+    #    loop's body (which populates p_values[state]) always executes
+    #    for all 8 states, so p_values always has exactly 8 entries.
+    #
+    # All three were confirmed unreachable by inspection of the
+    # surrounding invariants (not just "unlikely" -- literally no
+    # sequence of any length >= 1000 can produce an empty cycle, an
+    # empty visits list, or an empty p_values dict here). No
+    # monkeypatch-based test is written for these since there's no
+    # externally-injectable seam (states/X/cycles are all local
+    # variables built from hardcoded literals, not module-level
+    # functions or attributes) -- documented here instead of forcing a
+    # contrived/misleading test.
+
 
 # ---------------------------------------------------------------------------
 # Test 15: Random Excursions Variant Test
@@ -1158,6 +1292,32 @@ class TestRandomExcursionsVariantTest:
         result = random_excursions_variant_test(seq)
         assert result.details["state_visit_totals"][state] == totals[state]
         assert result.details["chi_square_values"][state] == pytest.approx(chi_square)
+
+    # NOTE on two uncovered defensive branches in
+    # random_excursions_variant_test, both SUSPECTED DEAD CODE /
+    # mathematically unreachable for any real sequence with n >= 1000
+    # (the function's own minimum-length guard):
+    #
+    # 1. `else: chi_square = 0.0` for `expected_visits <= 0` (nist.py
+    #    line ~1970). `expected_visits = n / (2 * abs_state *
+    #    (abs_state + 1))` where n >= 1000 (already guarded positive)
+    #    and abs_state ranges over the fixed states list
+    #    (1..9, via `abs(state)` for state in [-9..-1, 1..9]), always
+    #    >= 1. The denominator is therefore always a positive number, so
+    #    expected_visits is always strictly positive -- never <= 0.
+    #
+    # 2. `else: min_p_value = 1.0` for `p_values` empty (nist.py line
+    #    ~1981). `states` is a fixed, always-nonempty 18-element list
+    #    (`list(range(-9, 0)) + list(range(1, 10))`), and the
+    #    `for state in states:` loop unconditionally sets
+    #    `p_values[state] = chi2.sf(...)` on every iteration (there is
+    #    no `continue`/early-exit in that loop body) -- so p_values
+    #    always ends up with exactly 18 entries.
+    #
+    # No externally-injectable seam exists to force either branch
+    # (states/n are local values built from hardcoded literals), so no
+    # monkeypatch-based test is written; documented here instead of
+    # forcing a contrived/misleading test.
 
 
 # ---------------------------------------------------------------------------
@@ -1224,6 +1384,18 @@ class TestRunNistTestSuite:
         )
         expected_assessment = "PASSED" if result.pass_rate >= 0.80 else "FAILED"
         assert result.overall_assessment == expected_assessment
+
+    # NOTE on the uncovered `if total_tests < 5:` branch (nist.py line
+    # ~2154-2155). SUSPECTED DEAD CODE for the public API:
+    # run_nist_test_suite has no parameter to select a subset of tests --
+    # its body unconditionally makes exactly 15 `results.append(...)`
+    # calls in a straight-line sequence (Tests 1-15), so
+    # `total_tests = len(results)` is always 15 for any successful call,
+    # never < 5. There's no injectable seam to shrink `results` without
+    # monkeypatching `list.append` globally (too invasive/unrelated to
+    # this branch specifically) or editing src, so this is left
+    # uncovered and documented here rather than forcing a contrived
+    # test.
 
     def test_significance_level_is_applied_to_all_results(self):
         """Passing an unusually permissive significance_level should
