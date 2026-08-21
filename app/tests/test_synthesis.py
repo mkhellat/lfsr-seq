@@ -230,66 +230,53 @@ class TestSynthesizeLfsrFromSequence:
         assert coeffs == []
 
     def test_gf3_round_trip(self):
-        seq = [1, 2, 0, 1, 2, 0, 1, 2, 0]
-        coeffs, complexity = synthesize_lfsr_from_sequence(seq, 3)
+        """GF(3) exercises the sign-negation step (non-trivial since -1
+        mod 3 != -1 mod 2), which GF(2)-only regression tests cannot
+        distinguish from a plain reversal."""
+        coeffs = [2, 1]
+        C, _ = build_state_update_matrix(coeffs, 3)
+        V = VectorSpace(GF(3), 2)
+        init = V([1, 0])
+        seq = extract_sequence_from_lfsr(C, init, 9)
+
+        recovered_coeffs, complexity = synthesize_lfsr_from_sequence(seq, 3)
         assert complexity == 2
-        assert len(coeffs) == 2
+        assert recovered_coeffs == [2, 1]
 
-    def test_SUSPECTED_REAL_BUG_zero_padding_fabricates_inconsistent_coefficients(self):
-        """SUSPECTED REAL BUG in lfsr.synthesis.synthesize_lfsr_from_sequence
-        (the zero-padding loop at lines 166-167, `while len(coeffs) <
-        complexity: coeffs.append(0)`).
+    def test_short_degree_polynomial_reconstructs_correctly(self):
+        """Regression test for a fixed bug in
+        lfsr.synthesis.synthesize_lfsr_from_sequence.
 
-        For the GF(2) sequence [0, 1, 0, 0], berlekamp_massey correctly
-        computes connection polynomial `1` (the constant/trivial
-        polynomial -- Sage's own `.coefficients(sparse=False)` on it is
-        `[1]`, length 1) together with linear complexity L=2. This pairing
-        is itself internally inconsistent (a degree-2 linear complexity
-        should correspond to a degree-2 connection polynomial, not the
-        constant polynomial 1) -- found by exhaustively brute-forcing
-        every GF(2) sequence of length 1-6 through berlekamp_massey and
-        checking for `len(poly.coefficients(sparse=False)) < complexity`,
-        which should never happen for a self-consistent (poly, L) pair.
+        For the GF(2) sequence [0, 1, 0, 0], berlekamp_massey computes
+        connection polynomial `1` (Sage's `.coefficients(sparse=False)`
+        on it is `[1]`, length 1 -- Sage drops trailing zero
+        coefficients) together with linear complexity L=2; this is a
+        genuinely valid (poly, L) pair, since the polynomial's degree
+        need not equal L exactly once high-order taps are all zero.
 
-        synthesize_lfsr_from_sequence does not surface or guard against
-        this mismatch: since len(coeffs)=1 < complexity=2, it silently
-        zero-pads to `[1, 0]` and reports it as "the" degree-2 LFSR for
-        this sequence. But no degree-2 GF(2) LFSR with coefficients
-        [1, 0] (nor, checked directly via extract_sequence_from_lfsr
-        against build_state_update_matrix([1,0], 2) for all 4 possible
-        initial states, any other degree-2 LFSR reachable from this
-        polynomial) actually reproduces [0, 1, 0, 0, ...] as a prefix of
-        its output for any initial state -- the four trajectories from
-        every nonzero/zero initial state are [0,1,0,1,...],
-        [1,0,1,0,...], [1,1,1,1,...], and [0,0,0,0,...], none of which
-        start with [0, 1, 0, 0]. So the function's returned
-        "coefficients" for this input do not actually synthesize an
-        LFSR that generates the input sequence, despite that being the
-        function's entire documented purpose.
+        The old code built the returned coefficient vector as
+        `poly.coefficients(sparse=False)[:complexity]` zero-padded at
+        the end -- which conflates the connection polynomial's raw
+        low-to-high coefficient order with build_state_update_matrix's
+        expected tap order (oldest-sample-first, negated, with the
+        constant term dropped). For this input that produced [1, 0],
+        which does not reproduce [0, 1, 0, 0] from any initial state.
 
-        Root cause is upstream in berlekamp_massey's (L, connection
-        polynomial) pairing for this class of sequence, not in the
-        zero-padding line itself -- the padding just silently converts
-        an already-wrong short polynomial into a plausible-looking but
-        equally-wrong full-length coefficient vector instead of
-        surfacing the inconsistency. Documented here rather than fixed
-        (per instructions not to modify src/), asserting the actual
-        (buggy) observed behavior so this test documents rather than
-        hides the problem for future triage."""
+        Fixed by: padding the raw coefficients to length complexity + 1
+        with trailing zeros first, then dropping the constant term,
+        negating (mod gf_order) and reversing the rest. This test
+        confirms the corrected coefficients ([0, 0], the all-zero
+        length-2 LFSR) actually reproduce the sequence, and that the
+        reconstructed LFSR round-trips end-to-end via
+        build_state_update_matrix/extract_sequence_from_lfsr."""
         coeffs, complexity = synthesize_lfsr_from_sequence([0, 1, 0, 0], 2)
 
         assert complexity == 2
-        # The fabricated, zero-padded (and not sequence-generating)
-        # coefficient vector -- this is the actual, buggy output.
-        assert coeffs == [1, 0]
+        assert coeffs == [0, 0]
 
-        # Independent confirmation that [1, 0] does NOT generate a
-        # sequence starting with [0, 1, 0, 0] from any initial state.
         C, _ = build_state_update_matrix(coeffs, 2)
         V = VectorSpace(GF(2), 2)
         target_prefix = [0, 1, 0, 0]
-        for a in range(2):
-            for b in range(2):
-                init = V([a, b])
-                observed = extract_sequence_from_lfsr(C, init, 4)
-                assert observed != target_prefix
+        init = V([0, 1])
+        observed = extract_sequence_from_lfsr(C, init, 4)
+        assert observed == target_prefix

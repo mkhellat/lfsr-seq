@@ -153,21 +153,25 @@ def synthesize_lfsr_from_sequence(
     """
     poly, complexity = berlekamp_massey(sequence, gf_order)
 
-    # Extract coefficients from polynomial
-    # Polynomial is in form: x^L + c_{L-1}*x^{L-1} + ... + c_1*x + c_0
-    coeffs = poly.coefficients(sparse=False)
+    # poly.coefficients(sparse=False) returns [a_0, a_1, ..., a_complexity]
+    # (low-to-high degree), where poly = a_0 + a_1*x + ... + x^complexity.
+    # Sage drops trailing zero coefficients, so a genuinely low-degree
+    # result (e.g. poly == 1) can come back shorter than complexity + 1;
+    # pad with trailing zeros to restore the full-length representation
+    # before doing anything else.
+    raw_coeffs = poly.coefficients(sparse=False)
+    full_coeffs = list(raw_coeffs) + [0] * (complexity + 1 - len(raw_coeffs))
 
-    # Reverse to get [c_0, c_1, ..., c_{L-1}, 1]
-    # But we want [c_0, c_1, ..., c_{L-1}] (leading 1 is implicit)
-    if len(coeffs) > complexity:
-        coeffs = coeffs[:complexity]
-
-    # Pad with zeros if needed
-    while len(coeffs) < complexity:
-        coeffs.append(0)
-
-    # Convert to integers
-    coeffs_int = [int(c) for c in coeffs]
+    # The connection polynomial's recurrence is
+    # s_n = -a_1*s_{n-1} - ... - a_complexity*s_{n-complexity} (a_complexity
+    # is always 1, the monic leading term). build_state_update_matrix
+    # expects coeffs_vector[i] to be the tap weight on the i-th *oldest*
+    # retained sample (index 0 = oldest), which is -a_{complexity-i} mod
+    # gf_order -- i.e. drop a_0 (the constant term), negate the rest, and
+    # reverse their order.
+    coeffs_int = [
+        (-int(a)) % gf_order for a in reversed(full_coeffs[1:complexity + 1])
+    ]
 
     return coeffs_int, complexity
 
