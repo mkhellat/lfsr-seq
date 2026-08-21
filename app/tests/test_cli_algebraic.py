@@ -216,6 +216,42 @@ class TestPerformAlgebraicAttackCli:
         out = buf.getvalue()
         assert "✗ Attack failed" in out
 
+    def test_groebner_basis_attack_succeeded_prints_recovered_state(self, monkeypatch):
+        """Covers the `if result.attack_successful: print('  ✓ Recovered
+        state: ...')` branch (line ~130) for method="groebner_basis".
+        Same rationale as the failure-branch test above: force
+        attack_successful=True via a monkeypatched
+        groebner_basis_attack to isolate the CLI's dispatch/print logic
+        from the underlying attack's actual behavior."""
+        import lfsr.cli_algebraic as cli_algebraic
+        from lfsr.attacks import AlgebraicAttackResult
+
+        def fake_groebner_basis_attack(**kwargs):
+            return AlgebraicAttackResult(
+                attack_successful=True,
+                recovered_state=[1, 0, 1, 1],
+                algebraic_immunity=2,
+                equations_solved=4,
+                complexity_estimate=123.0,
+                method_used="groebner_basis",
+                details={},
+            )
+
+        monkeypatch.setattr(
+            cli_algebraic, "groebner_basis_attack", fake_groebner_basis_attack
+        )
+
+        buf = io.StringIO()
+        cli_algebraic.perform_algebraic_attack_cli(
+            lfsr_coefficients=COEFFS,
+            field_order=2,
+            keystream=KEYSTREAM,
+            method="groebner_basis",
+            output_file=buf,
+        )
+        out = buf.getvalue()
+        assert "✓ Recovered state: [1, 0, 1, 1]" in out
+
     def test_cube_attack_failed_prints_failure_line(self, monkeypatch):
         """Covers the `else: print('  ✗ Attack failed')` branch
         (lines ~151-152) for method="cube_attack" -- same rationale as
@@ -246,3 +282,36 @@ class TestPerformAlgebraicAttackCli:
         )
         out = buf.getvalue()
         assert "✗ Attack failed" in out
+
+    def test_cube_attack_succeeded_prints_recovered_bits(self, monkeypatch):
+        """Covers the `if result.attack_successful: print('  ✓ Attack
+        succeeded!'); print('  Recovered bits: ...')` branch (lines
+        ~151-152) for method="cube_attack" -- same rationale as the
+        failure-branch test above."""
+        import lfsr.cli_algebraic as cli_algebraic
+        from lfsr.attacks import CubeAttackResult
+
+        def fake_cube_attack(**kwargs):
+            return CubeAttackResult(
+                attack_successful=True,
+                cubes_found=3,
+                superpolies_computed=3,
+                recovered_bits=[1, 0, 1],
+                complexity_estimate=42.0,
+                details={},
+            )
+
+        monkeypatch.setattr(cli_algebraic, "cube_attack", fake_cube_attack)
+
+        buf = io.StringIO()
+        cli_algebraic.perform_algebraic_attack_cli(
+            lfsr_coefficients=COEFFS,
+            field_order=2,
+            keystream=KEYSTREAM,
+            method="cube_attack",
+            max_cube_size=3,
+            output_file=buf,
+        )
+        out = buf.getvalue()
+        assert "✓ Attack succeeded!" in out
+        assert "Recovered bits: [1, 0, 1]" in out
