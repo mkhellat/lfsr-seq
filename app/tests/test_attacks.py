@@ -813,27 +813,18 @@ class TestScipyImportFallback:
     for lfsr.ml.anomaly_detection / lfsr.ml.period_prediction /
     lfsr.ml.pattern_detection's HAS_NUMPY/HAS_SKLEARN fallbacks.
 
-    SUSPECTED REAL BUG, independently confirmed below and via a
-    standalone repro (not from memory): `_NormFallback.ppf()`
-    (attacks.py lines ~95-101) calls `math.erfinv(...)`, but Python's
-    stdlib `math` module has NEVER had an `erfinv` function -- only
-    `math.erf` (confirmed: `hasattr(math, 'erfinv')` is `False`,
-    `hasattr(math, 'erf')` is `True`, on this interpreter and per the
-    documented `math` module API for every CPython 3.x version). So
-    `_NormFallback.ppf()` raises `AttributeError` unconditionally on
-    its very first call. This is directly reachable from real code
-    paths: `estimate_attack_success_probability()` (attacks.py line
-    ~565) and the significance-level-to-critical-z conversion at line
-    ~518 both call `norm.ppf(...)`, and `norm` is bound to
-    `_NormFallback()` whenever scipy is unavailable (line 109). So on
-    any system where scipy genuinely isn't importable, every call to
-    those two functions would crash with AttributeError instead of
-    falling back gracefully -- the exact opposite of what a fallback
-    is for. `_NormFallback.cdf()` (which only uses `math.erf`, a real
-    function) works fine; only `.ppf()` is broken. Not fixed here per
-    instructions (test-writing only, no src/ edits) -- the test below
-    asserts the actual (broken) behavior: `cdf()` works, `ppf()`
-    raises AttributeError."""
+    Regression test for a fixed bug: `_NormFallback.ppf()` used to call
+    `math.erfinv(...)`, but Python's stdlib `math` module has never had
+    an `erfinv` function -- only `math.erf`. That made `.ppf()` raise
+    `AttributeError` unconditionally, directly reachable from
+    `estimate_attack_success_probability()` and the
+    significance-level-to-critical-z conversion, both of which call
+    `norm.ppf(...)` and get `_NormFallback()` bound to `norm` whenever
+    scipy is unavailable. Fixed by replacing the erfinv-based closed
+    form with Peter Acklam's rational approximation of the standard
+    normal quantile function (accurate to ~1e-9 vs. real scipy).
+    `_NormFallback.cdf()` (which only uses `math.erf`, a real function)
+    was never broken."""
 
     def test_scipy_import_error_sets_scipy_available_false(self):
         real_import = builtins.__import__
@@ -858,16 +849,19 @@ class TestScipyImportFallback:
             assert fresh.SCIPY_AVAILABLE is False
             # cdf() only uses math.erf (a real stdlib function) and works.
             assert fresh.norm.cdf(0.0) == pytest.approx(0.5)
-            # ppf() calls the non-existent math.erfinv -- see the
-            # SUSPECTED REAL BUG note in this class's docstring. Assert
-            # the actual (broken) behavior rather than the intended one.
-            with pytest.raises(AttributeError, match="erfinv"):
-                fresh.norm.ppf(0.25)
-            # Also cover the `p >= 0.5` branch (line ~101), which the
-            # p < 0.5 call above doesn't reach -- same underlying
-            # AttributeError from the non-existent math.erfinv.
-            with pytest.raises(AttributeError, match="erfinv"):
-                fresh.norm.ppf(0.75)
+            # ppf() now uses Acklam's rational approximation instead of
+            # the non-existent math.erfinv; verify it matches known
+            # standard-normal quantiles to a tight tolerance, covering
+            # both the p < 0.5 and p >= 0.5 branches plus the low-tail
+            # branch (p < 0.02425).
+            assert fresh.norm.ppf(0.5) == pytest.approx(0.0, abs=1e-8)
+            assert fresh.norm.ppf(0.975) == pytest.approx(1.959964, abs=1e-6)
+            assert fresh.norm.ppf(0.025) == pytest.approx(-1.959964, abs=1e-6)
+            assert fresh.norm.ppf(0.01) == pytest.approx(-2.326348, abs=1e-6)
+            with pytest.raises(ValueError):
+                fresh.norm.ppf(0.0)
+            with pytest.raises(ValueError):
+                fresh.norm.ppf(1.0)
         finally:
             del sys.modules["lfsr.attacks"]
             import lfsr.attacks  # noqa: F401
