@@ -412,6 +412,36 @@ class TestSiegenthalerCorrelationAttack:
         with pytest.raises(ValueError):
             siegenthaler_correlation_attack(gen, [], target_lfsr_index=0)
 
+    def test_oversized_generated_sequence_truncation_branch(self, monkeypatch):
+        """SUSPECTED DEAD CODE: attacks.py line 656-657
+        (`if len(lfsr_sequence) > n: lfsr_sequence = lfsr_sequence[:n]`)
+        can never actually trigger through real code. The sequence is
+        always generated as
+            generate_lfsr_sequence(target_lfsr_index, min(n, max_sequence_length))
+        and generate_lfsr_sequence() (attacks.py ~242-246) always returns
+        exactly `length` items via `for _ in range(length)`, so its
+        result length is always `min(n, max_sequence_length) <= n` --
+        never strictly greater than n. The `> n` truncation branch is
+        therefore unreachable via the real call chain; only the `< n`
+        extend branch (already covered by
+        test_max_sequence_length_shorter_than_keystream_extends_sequence)
+        is reachable. Cover the dead branch here directly by
+        monkeypatching generate_lfsr_sequence to return more bits than
+        requested, to document the unreachability rather than leave it
+        silently uncovered."""
+        gen = majority_generator()
+        keystream = gen.generate_keystream(length=50)
+
+        def oversized_generate(self, lfsr_index, length, initial_state=None):
+            return [0, 1] * (length + 10)
+
+        monkeypatch.setattr(
+            type(gen), "generate_lfsr_sequence", oversized_generate
+        )
+
+        result = siegenthaler_correlation_attack(gen, keystream, target_lfsr_index=0)
+        assert result.total_bits == len(keystream)
+
     def test_max_sequence_length_shorter_than_keystream_extends_sequence(self):
         """When max_sequence_length caps the generated LFSR sequence below
         the keystream length, the implementation tiles/repeats the shorter
@@ -513,14 +543,18 @@ class TestFastCorrelationAttack:
         past this test's needs) before the fix, for max_candidates as low
         as 20. Requesting more candidates than exist in the entire state
         space (max_candidates=1000, the function's own default) must
-        terminate promptly and simply yield every distinct state
-        (candidate_states_tested == 16), not hang."""
+        terminate promptly, not hang. The fill loop draws random (unseeded)
+        states capped at max(field_order**d, 100) = 100 attempts here, so
+        by the coupon-collector problem it is not guaranteed (though highly
+        likely) to sample all 16 distinct states within the cap -- assert
+        prompt termination with a near-complete state count rather than an
+        exact 16, to avoid rare flakiness on the tail of that distribution."""
         gen = majority_generator()
         keystream = gen.generate_keystream(length=200)
         result = fast_correlation_attack(
             gen, keystream, target_lfsr_index=0, max_candidates=1000
         )
-        assert result.candidate_states_tested == 16
+        assert 10 <= result.candidate_states_tested <= 16
 
 
 class TestDistinguishingAttack:
@@ -829,6 +863,11 @@ class TestScipyImportFallback:
             # the actual (broken) behavior rather than the intended one.
             with pytest.raises(AttributeError, match="erfinv"):
                 fresh.norm.ppf(0.25)
+            # Also cover the `p >= 0.5` branch (line ~101), which the
+            # p < 0.5 call above doesn't reach -- same underlying
+            # AttributeError from the non-existent math.erfinv.
+            with pytest.raises(AttributeError, match="erfinv"):
+                fresh.norm.ppf(0.75)
         finally:
             del sys.modules["lfsr.attacks"]
             import lfsr.attacks  # noqa: F401
