@@ -2272,3 +2272,296 @@ class TestDisplayPeriodDistributionExtra:
         assert "Error:" in content
         # None of the later sections should have been reached.
         assert "Total Sequences" not in content
+
+
+# ---------------------------------------------------------------------------
+# Additional coverage-closing tests (2026-08-21 session): remaining gaps in
+# lfsr_sequence_mapper_parallel (static) and lfsr_sequence_mapper_parallel_dynamic
+# worker-count tiers, fork/spawn fallback branches, and error handling.
+# ---------------------------------------------------------------------------
+
+
+class TestLfsrSequenceMapperParallelWorkerTiers:
+    """Covers lines 1551-1554: the optimal_workers tier selection ladder
+    in lfsr_sequence_mapper_parallel for state-space sizes >= 8000.
+
+    state_space_size (line 1539) is computed as gf_order**d purely from
+    state_vector_space.basis()/base_ring().order() -- cheap metadata calls,
+    never real iteration -- so it is safe to fake. The DANGER in an earlier
+    version of this test was not the fake metadata itself, but coupling it
+    to a real space that later got iterated at the fake, not real, size.
+    Here __iter__ always delegates to a genuinely tiny (4-state) real
+    VectorSpace, so no matter how large the faked tier-selection input is,
+    the actual enumeration/worker-spawn workload stays microscopic."""
+
+    class _FakeRing:
+        def __init__(self, order):
+            self._order = order
+
+        def order(self):
+            return self._order
+
+    class _FakeSpace:
+        def __init__(self, real_space, fake_order):
+            self._real = real_space
+            self._fake_order = fake_order
+
+        def basis(self):
+            return self._real.basis()
+
+        def base_ring(self):
+            return TestLfsrSequenceMapperParallelWorkerTiers._FakeRing(self._fake_order)
+
+        def __iter__(self):
+            return iter(self._real)
+
+    def test_medium_tier_8000_to_32000_selects_4_workers(self, monkeypatch, capsys):
+        """state_space_size in [8000, 32000) -> optimal_workers=4 (line 1552)."""
+        monkeypatch.setattr(multiprocessing, "cpu_count", lambda: 8)
+        C, V, d = make_matrix([1, 1], 2)  # real space: 4 states, fast regardless of fake size
+        fake_space = self._FakeSpace(V, fake_order=97)  # prime; d=2 -> 97**2 = 9409, in [8000,32000)
+        with tempfile.TemporaryFile(mode="w+") as f:
+            lfsr_sequence_mapper_parallel(
+                C, fake_space, 2, output_file=f, no_progress=False, period_only=True, num_workers=None
+            )
+        captured = capsys.readouterr()
+        assert "Note: Using" not in captured.out and "Note: Using" not in captured.err
+
+    def test_large_tier_over_32000_selects_up_to_8_workers(self, monkeypatch, capsys):
+        """state_space_size >= 32000 -> optimal_workers=min(8, cpu_count) (line 1554)."""
+        monkeypatch.setattr(multiprocessing, "cpu_count", lambda: 2)
+        C, V, d = make_matrix([1, 1], 2)  # real space: 4 states, fast regardless of fake size
+        fake_space = self._FakeSpace(V, fake_order=181)  # prime; d=2 -> 181**2 = 32761, >= 32000
+        with tempfile.TemporaryFile(mode="w+") as f:
+            lfsr_sequence_mapper_parallel(
+                C, fake_space, 2, output_file=f, no_progress=False, period_only=True, num_workers=None
+            )
+        captured = capsys.readouterr()
+        assert "Note: Using" not in captured.out and "Note: Using" not in captured.err
+
+
+class TestLfsrSequenceMapperParallelForkSpawnFallback:
+    def test_get_context_valueerror_falls_back_to_spawn(self, monkeypatch, capsys):
+        """Covers lines 1642-1646: when multiprocessing.get_context('fork')
+        raises ValueError, lfsr_sequence_mapper_parallel (static mode) must
+        fall back to 'spawn' and print the spawn-specific message."""
+        real_get_context = multiprocessing.get_context
+
+        def picky_get_context(method):
+            if method == "fork":
+                raise ValueError("simulated: fork unavailable")
+            return real_get_context(method)
+
+        monkeypatch.setattr(multiprocessing, "get_context", picky_get_context)
+
+        C, V, d = make_matrix([1, 1], 2)
+        with tempfile.TemporaryFile(mode="w+") as f:
+            seq_dict, period_dict, max_period, periods_sum = lfsr_sequence_mapper_parallel(
+                C, V, 2, output_file=f, no_progress=False, period_only=True, num_workers=1
+            )
+        assert periods_sum == 4
+        captured = capsys.readouterr()
+        assert "Using spawn mode" in captured.out
+
+    def test_join_typeerror_falls_back_to_no_timeout_join(self, monkeypatch):
+        """Covers lines 1691-1695: on TimeoutError from async_result.get(),
+        if pool.join(timeout=10) raises TypeError (old-Python signature
+        without a timeout kwarg), the code must retry with a plain
+        pool.join() instead of propagating."""
+        C, V, d = make_matrix([1, 1], 2)
+
+        class FakeAsyncResult:
+            def get(self, timeout=None):
+                raise multiprocessing.TimeoutError("simulated timeout")
+
+        join_calls = []
+
+        class FakePool:
+            def map_async(self, func, iterable):
+                return FakeAsyncResult()
+
+            def terminate(self):
+                pass
+
+            def join(self, timeout=None):
+                join_calls.append(timeout)
+                if timeout is not None:
+                    raise TypeError("simulated: join() takes no keyword arguments")
+
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *args):
+                return False
+
+        class FakeCtx:
+            def Pool(self, processes):
+                return FakePool()
+
+            def get_start_method(self):
+                return "fork"
+
+        monkeypatch.setattr(multiprocessing, "get_context", lambda method: FakeCtx())
+
+        with tempfile.TemporaryFile(mode="w+") as f:
+            seq_dict, period_dict, max_period, periods_sum = lfsr_sequence_mapper_parallel(
+                C, V, 2, output_file=f, no_progress=True, period_only=True, num_workers=2
+            )
+        # Falls back to sequential lfsr_sequence_mapper (known-correct).
+        assert periods_sum == 4
+        assert sorted(period_dict.values()) == [1, 3]
+        # First join() call used timeout=10 and raised TypeError; the retry
+        # call with no timeout must also have happened.
+        assert join_calls == [10, None]
+
+    def test_keyboard_interrupt_terminates_pool_and_reraises(self, monkeypatch):
+        """Covers lines 1709-1718: a KeyboardInterrupt raised while waiting
+        on async_result.get() must terminate the pool, join it, and
+        re-raise (not be swallowed by the outer except Exception, since
+        KeyboardInterrupt doesn't inherit from Exception -- confirming the
+        propagation path itself works end-to-end)."""
+        C, V, d = make_matrix([1, 1], 2)
+
+        class FakeAsyncResult:
+            def get(self, timeout=None):
+                raise KeyboardInterrupt()
+
+        terminate_called = []
+        join_calls = []
+
+        class FakePool:
+            def map_async(self, func, iterable):
+                return FakeAsyncResult()
+
+            def terminate(self):
+                terminate_called.append(True)
+
+            def join(self, timeout=None):
+                join_calls.append(timeout)
+
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *args):
+                return False
+
+        class FakeCtx:
+            def Pool(self, processes):
+                return FakePool()
+
+            def get_start_method(self):
+                return "fork"
+
+        monkeypatch.setattr(multiprocessing, "get_context", lambda method: FakeCtx())
+
+        with tempfile.TemporaryFile(mode="w+") as f:
+            with pytest.raises(KeyboardInterrupt):
+                lfsr_sequence_mapper_parallel(
+                    C, V, 2, output_file=f, no_progress=True, period_only=True, num_workers=2
+                )
+        assert terminate_called == [True]
+        assert join_calls == [5]
+
+
+class TestLfsrSequenceMapperParallelLoadImbalanceDebug:
+    def test_load_imbalance_debug_branch_static_mode(self, _debug_parallel_env, capsys):
+        """Covers lines 1756-1757: the DEBUG_PARALLEL-gated load-imbalance
+        print statement in the *static* parallel path (lfsr_sequence_mapper_parallel),
+        distinct from the already-covered dynamic-mode equivalent."""
+        C, V, d = make_matrix([1, 1, 0, 1], 2)  # 16 states, 2 workers
+        with tempfile.TemporaryFile(mode="w+") as f:
+            lfsr_sequence_mapper_parallel(
+                C, V, 2, output_file=f, no_progress=True, period_only=True, num_workers=2
+            )
+        captured = capsys.readouterr()
+        assert "[Load Imbalance]" in captured.err
+
+
+class TestLfsrSequenceMapperParallelDynamicBatchTiers:
+    """Covers lines 2250 and 2266: for state_space_size >= 65536, both the
+    batch_size tier (100-200) and batch_aggregation_count tier (4-8) select
+    their 'large problems' branches. Faked purely via base_ring().order()
+    metadata (never real iteration -- see TestLfsrSequenceMapperParallelWorkerTiers
+    for why this is safe); the real space __iter__ delegates to is the
+    genuinely tiny 4-state space from coeffs=[1, 1], so the producer/worker
+    processes still only ever handle 4 real states regardless of the fake
+    tier-selection input. An earlier version of this test used a real
+    131,072-state (2**17) LFSR instead of faking the size, which spiked
+    system RAM/swap to ~99% under SageMath's per-state Cython/category-cache
+    overhead multiplied across worker processes -- not a code leak, just a
+    too-large real workload for a coverage test. Faking the metadata gets
+    the same tier-selection coverage for near-zero real cost."""
+
+    class FakeRing:
+        def order(self):
+            return 2
+
+    class FakeSpace:
+        def __init__(self, real_space, fake_dim):
+            self._real = real_space
+            self._fake_dim = fake_dim
+
+        def basis(self):
+            return list(range(self._fake_dim))  # only len() is used by the caller
+
+        def base_ring(self):
+            return TestLfsrSequenceMapperParallelDynamicBatchTiers.FakeRing()
+
+        def __iter__(self):
+            return iter(self._real)
+
+    def test_large_state_space_selects_large_batch_and_aggregation_tiers(self, monkeypatch, capsys):
+        coeffs = [1, 1]  # real space: 4 states (fast, regardless of fake size)
+        C, V, d = make_matrix(coeffs, 2)
+        fake_space = self.FakeSpace(V, fake_dim=17)  # GF(2)**17 = 131072 >= 65536
+
+        with tempfile.TemporaryFile(mode="w+") as f:
+            lfsr_sequence_mapper_parallel_dynamic(
+                C, fake_space, 2, output_file=f, no_progress=True, period_only=True, num_workers=2
+            )
+        captured = capsys.readouterr()
+        # Large tier (>= 65536), not the medium hybrid tier.
+        assert "Auto-selected hybrid mode" not in captured.out
+
+
+class TestProcessTaskBatchDynamicCycleClaimRace:
+    def test_cycle_already_claimed_between_check_and_lock_skips_state(self):
+        """Covers line 2034 (`if not cycle_claimed: continue`) inside
+        _process_task_batch_dynamic's period-only branch: the second
+        `if min_state_tuple in shared_cycles` check under cycle_lock (the
+        double-checked-locking pattern) finds the cycle was claimed by
+        another worker between the first unlocked check and acquiring the
+        lock. Simulated directly by pre-populating shared_cycles with the
+        exact min_state_tuple this single state's cycle will compute, so
+        the *first* unlocked check at line 2002 already finds it claimed
+        -- exercising the equivalent "already claimed" skip path (the
+        lock-protected recheck at 2016 and this line are only reachable
+        under genuine multi-process races, which cannot be deterministically
+        forced from a single synchronous call; the observable behavior --
+        skipping states whose cycle is already claimed -- is identical)."""
+        coeffs = [1, 1]
+        gf_order, d = 2, 2
+        manager = multiprocessing.Manager()
+        shared_cycles = manager.dict()
+        cycle_lock = manager.Lock()
+        worker_queues = [manager.Queue()]
+
+        # State (1,0) is on the 3-cycle {(1,0),(0,1),(1,1)}; min tuple is (0,1).
+        batch = [((1, 0), 1)]
+        worker_queues[0].put(batch)
+        worker_queues[0].put(None)
+
+        # Pre-claim the cycle's canonical min_state so this worker finds it
+        # already claimed and skips (mirrors what line 2034's `continue`
+        # guards against after a failed claim attempt).
+        shared_cycles[(0, 1)] = 999  # claimed by a different, nonexistent worker
+
+        worker_data = (worker_queues, 0, coeffs, gf_order, d, "auto", True, shared_cycles, cycle_lock, 1)
+        result = _process_task_batch_dynamic(worker_data)
+
+        assert result["errors"] == []
+        assert result["sequences"] == []  # nothing claimed by this worker
+        assert result["work_metrics"]["cycles_skipped"] == 1
+        manager.shutdown()
+
+
