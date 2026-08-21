@@ -170,3 +170,49 @@ class TestMainEndToEnd:
                     tae.main()
         assert exc_info.value.code == 1
         assert "ERROR: simulated failure for coverage" in buf_err.getvalue()
+
+import sys
+
+
+class TestSageImportGuardTheoretical:
+    """Regression coverage for the module-level
+    `try: from sage.all import * / except ImportError: print(...);
+    sys.exit(1)` guard in lfsr.examples.theoretical_analysis_example (source lines near the
+    top of the file). SageMath IS importable in this environment, so
+    this branch is never hit by a normal import; force it by blocking
+    only `sage.all` imports whose caller is this specific example
+    module (a plain global block on "sage.all" would also break
+    lfsr.cli/lfsr.sage_imports, which import it eagerly at package-init
+    time via `import lfsr`)."""
+
+    def test_missing_sage_all_prints_error_and_exits(self, capsys):
+        import builtins
+        import importlib
+
+        import pytest
+
+        real_import = builtins.__import__
+        modname = "lfsr.examples.theoretical_analysis_example"
+
+        def fake_import(name, globals=None, locals=None, fromlist=(), level=0):
+            caller = (globals or {}).get("__name__", "")
+            if name == "sage.all" and caller == modname:
+                raise ImportError("simulated: sage.all unavailable")
+            return real_import(name, globals, locals, fromlist, level)
+
+        if modname in sys.modules:
+            del sys.modules[modname]
+
+        builtins.__import__ = fake_import
+        try:
+            with pytest.raises(SystemExit) as exc_info:
+                importlib.import_module(modname)
+            assert exc_info.value.code == 1
+        finally:
+            builtins.__import__ = real_import
+            if modname in sys.modules:
+                del sys.modules[modname]
+            importlib.import_module(modname)
+
+        captured = capsys.readouterr()
+        assert "SageMath is required" in captured.err
