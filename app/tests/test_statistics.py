@@ -77,6 +77,30 @@ class TestPeriodDistribution:
         stats = compute_period_distribution({}, 2, 4, False)
         assert "error" in stats
 
+    def test_no_periods_found_branch_is_dead_code(self):
+        """SUSPECTED DEAD CODE: compute_period_distribution's second
+        guard, `if total_sequences == 0: return {"error": "No periods
+        found"}` (statistics.py line ~302), can never trigger for any
+        real dict argument. It runs only after the first guard
+        (`if not period_dict: return {"error": "Empty period
+        dictionary"}`) already confirmed period_dict is non-empty (has
+        at least one key), and total_sequences is computed as
+        `len(list(period_dict.values()))` -- for any real dict, the
+        number of values always equals the number of keys, so a
+        non-empty dict can never produce zero values. Reachable only
+        with a dict-like object whose `.values()` disagrees with its own
+        truthiness/key count, which real dicts cannot do -- demonstrated
+        here with such an object purely to document the branch is dead
+        for genuine dict inputs, not to claim a real-world trigger."""
+
+        class LyingValuesDict(dict):
+            def values(self):
+                return []
+
+        period_dict = LyingValuesDict({1: 7})  # non-empty (truthy), but .values() lies
+        stats = compute_period_distribution(period_dict, 2, 4, False)
+        assert stats == {"error": "No periods found"}
+
     def test_period_distribution_theoretical_bounds(self):
         """Test theoretical bounds computation."""
         period_dict = {1: 7, 2: 7, 3: 1}
