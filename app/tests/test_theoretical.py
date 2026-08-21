@@ -156,6 +156,21 @@ class TestPolynomialOrderHelper:
         # investigated further here since it doesn't affect this
         # module's own correctness.
 
+    def test_empty_search_range_hits_final_fallback_return(self, gf2_ring):
+        """Covers the final `return oo` after the loop (line ~323), as
+        opposed to the `elif j == state_vector_space_size - 1: return oo`
+        early-return inside the loop body (already covered by
+        test_t_divisible_polynomial_order_is_infinite above). These are
+        genuinely different lines: the elif only fires while the loop is
+        running, so it can never cover the line that executes after the
+        loop finishes normally. That line is only reached when
+        `range(bi, ei)` is empty, i.e. bi >= ei -- here, a degree-3
+        polynomial (bi=3) against state_vector_dim=1 with gf_order=2
+        (ei = 2**1 = 2), so the loop body never executes at all."""
+        p = gf2_ring("t^3 + t + 1")
+        assert p.degree() == 3
+        assert _polynomial_order_helper(p, 1, 2) == oo
+
 
 # ---------------------------------------------------------------------------
 # analyze_irreducible_properties -- real behavioral tests, cross-checked
