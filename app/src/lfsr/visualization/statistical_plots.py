@@ -86,7 +86,7 @@ def plot_period_statistics(
     period_data = []
     for period, count in zip(periods, counts):
         period_data.extend([period] * count)
-    ax2.boxplot(period_data, vert=True)
+    ax2.boxplot(period_data, orientation='vertical')
     if theoretical_max_period:
         ax2.axhline(theoretical_max_period, color='red', linestyle='--', linewidth=2, label='Theoretical Max')
     ax2.set_ylabel("Period", fontsize=10)
