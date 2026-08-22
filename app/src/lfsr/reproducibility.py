@@ -12,13 +12,8 @@ import json
 import platform
 import sys
 from datetime import datetime
+from importlib import metadata as importlib_metadata
 from typing import Any, Dict, Optional, TextIO
-
-try:
-    import pkg_resources
-    HAS_PKG_RESOURCES = True
-except ImportError:
-    HAS_PKG_RESOURCES = False
 
 
 def generate_seed() -> int:
@@ -82,17 +77,15 @@ def capture_environment() -> Dict[str, Any]:
     }
 
     # Capture package versions
-    if HAS_PKG_RESOURCES:
-        try:
-            packages = ['sage', 'numpy', 'scipy']
-            for pkg_name in packages:
-                try:
-                    pkg = pkg_resources.get_distribution(pkg_name)
-                    env['packages'][pkg_name] = pkg.version
-                except pkg_resources.DistributionNotFound:
-                    pass
-        except Exception:
-            pass
+    try:
+        packages = ['sage', 'numpy', 'scipy']
+        for pkg_name in packages:
+            try:
+                env['packages'][pkg_name] = importlib_metadata.version(pkg_name)
+            except importlib_metadata.PackageNotFoundError:
+                pass
+    except Exception:
+        pass
 
     return env
 
