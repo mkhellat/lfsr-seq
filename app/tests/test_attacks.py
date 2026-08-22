@@ -858,6 +858,11 @@ class TestScipyImportFallback:
             assert fresh.norm.ppf(0.975) == pytest.approx(1.959964, abs=1e-6)
             assert fresh.norm.ppf(0.025) == pytest.approx(-1.959964, abs=1e-6)
             assert fresh.norm.ppf(0.01) == pytest.approx(-2.326348, abs=1e-6)
+            # p=0.975 sits below p_high (1 - 0.02425 = 0.97575), so it
+            # still takes the middle branch; p=0.99 is genuinely above
+            # p_high and exercises the high-tail `else` branch (lines
+            # ~129-130) that mirrors the low-tail branch above it.
+            assert fresh.norm.ppf(0.99) == pytest.approx(2.326348, abs=1e-6)
             with pytest.raises(ValueError):
                 fresh.norm.ppf(0.0)
             with pytest.raises(ValueError):
