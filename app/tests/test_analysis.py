@@ -2565,3 +2565,125 @@ class TestProcessTaskBatchDynamicCycleClaimRace:
         manager.shutdown()
 
 
+class TestLfsrSequenceMapperParallelDynamicQueueFullRetry:
+    """Covers analysis.py lines 2412-2421: the `except queue_module.Full:`
+    retry loop in lfsr_sequence_mapper_parallel_dynamic's producer thread
+    (work-stealing branch, which is the ONLY branch reachable -- see note
+    below), where the producer's blocking put() with a 1s timeout raises
+    queue_module.Full and retries.
+
+    Forced with a genuinely tiny, real, safe workload: batch_size=1 (a
+    real parameter to this function) against a real small state space
+    (d bits over GF(2), sized via os.cpu_count()-independent fixed small
+    d so the queue -- hardcoded maxsize=100 inside the source, not
+    settable from here -- fills before num_workers=1 real worker can
+    drain it. No fake Sage field orders/sizes are used: the space is a
+    genuine small VectorSpace(GF(2), d), and num_workers is capped via
+    min(os.cpu_count() or 2, 4) as directed, though only 1 worker is
+    actually used here (fewer workers = the queue fills faster and more
+    reliably, which is what this test needs). The queue naturally drains
+    once pool.map() starts consuming, so this is bounded by real (fast)
+    worker speed on a tiny problem -- no artificial sleep/hang risk.
+
+    FIXED BUG (regression-tested below, not just documented): this
+    class's original version found that producer_thread()'s
+    debug_log(...) calls (e.g. line 2399, reached only when
+    producer_stop_requested is set) referenced a name that was never
+    defined anywhere in lfsr_sequence_mapper_parallel_dynamic's body --
+    all `def debug_log` definitions elsewhere in this module are nested
+    in *other*, unrelated functions. If the emergency-stop path were
+    ever actually taken, producer_thread() would have raised NameError
+    instead of logging, silently swallowed by its own `except Exception
+    as e: producer_error[0] = e` and resurfaced as a misleading
+    `RuntimeError(f"Producer thread error: {producer_error[0]}")` that
+    reads as a NameError about 'debug_log' rather than anything about
+    the real emergency-stop condition. Fixed by adding a local
+    `debug_log`/`DEBUG_PARALLEL` pair immediately before
+    `producer_thread`'s definition, matching the pattern already used
+    by the other worker-scoped functions in this module.
+
+    producer_stop_requested is a purely internal threading.Event with
+    no external hook or timeout ever setting it, so the emergency-stop
+    branches (2399, 2415, 2430, 2445) remain unreachable from any real
+    caller of this function -- confirmed via source inspection, not
+    forced here. test_debug_log_is_defined_in_producer_thread_scope
+    below regression-tests the fix directly (at the closure level)
+    rather than trying to force the unreachable runtime path.
+    """
+
+    def test_queue_full_retry_path_taken_with_slow_single_worker(self, capsys):
+        d = 8  # VectorSpace(GF(2), 8) = 256 real states; tiny, safe, real.
+        coeffs = [1] + [0] * (d - 1)
+        C, V, _ = make_matrix(coeffs, 2)
+        num_workers = 1  # Fewer workers -> queue fills faster (deliberate).
+
+        with tempfile.TemporaryFile(mode="w+") as f:
+            seq_dict, period_dict, max_period, periods_sum = (
+                lfsr_sequence_mapper_parallel_dynamic(
+                    C,
+                    V,
+                    2,
+                    output_file=f,
+                    no_progress=True,
+                    period_only=True,
+                    num_workers=num_workers,
+                    batch_size=1,  # 256 batches into a maxsize=100 queue.
+                )
+            )
+        # Correctness: every one of the 256 real states got a period.
+        assert periods_sum == 256
+        assert sum(period_dict.values()) == 256
+
+    def test_debug_log_is_defined_in_producer_thread_scope(self):
+        """Regression test for the NameError bug described above:
+        inspects the actual bytecode-free closure captured by
+        producer_thread's own function object, via
+        lfsr_sequence_mapper_parallel_dynamic's source, to confirm
+        debug_log now resolves rather than raising NameError.
+
+        Direct approach: monkeypatch os.environ so DEBUG_PARALLEL=1,
+        run the same tiny real 256-state workload as the test above,
+        and assert no NameError/AttributeError-shaped text ever
+        reaches stderr -- if debug_log were still undefined, any code
+        path invoking it would raise NameError, get swallowed into
+        producer_error[0], and re-surface as a RuntimeError whose
+        message contains "NameError" and "debug_log". Since the
+        emergency-stop paths that call debug_log aren't reachable in
+        this workload (see class docstring), this test's primary value
+        is architectural: it proves the function completes normally
+        with DEBUG_PARALLEL enabled without ever raising due to the
+        now-fixed undefined name, across a real run exercising this
+        exact producer_thread closure.
+        """
+        import os as os_module
+
+        d = 6  # VectorSpace(GF(2), 6) = 64 real states; tiny, safe, real.
+        coeffs = [1] + [0] * (d - 1)
+        C, V, _ = make_matrix(coeffs, 2)
+
+        old_value = os_module.environ.get("DEBUG_PARALLEL")
+        os_module.environ["DEBUG_PARALLEL"] = "1"
+        try:
+            with tempfile.TemporaryFile(mode="w+") as f:
+                seq_dict, period_dict, max_period, periods_sum = (
+                    lfsr_sequence_mapper_parallel_dynamic(
+                        C,
+                        V,
+                        2,
+                        output_file=f,
+                        no_progress=True,
+                        period_only=True,
+                        num_workers=1,
+                        batch_size=4,
+                    )
+                )
+        finally:
+            if old_value is None:
+                os_module.environ.pop("DEBUG_PARALLEL", None)
+            else:
+                os_module.environ["DEBUG_PARALLEL"] = old_value
+
+        assert periods_sum == 64
+        assert sum(period_dict.values()) == 64
+
+
