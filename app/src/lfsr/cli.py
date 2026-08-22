@@ -25,6 +25,14 @@ if _sage_available:
         # Try using our curated imports first (avoids deprecation warnings)
         from lfsr.sage_imports import *
     except ImportError:
+        # Not reachable in this repo's own test suite (a single fixed Sage
+        # install either makes sage_imports succeed every time, or nothing
+        # here runs at all) -- kept for real-world installs where it can
+        # fire: a corrupted/incomplete package install missing
+        # sage_imports.py, or a SageMath version whose internal submodule
+        # paths (sage.rings.finite_rings.finite_field_constructor, etc.)
+        # moved since sage_imports.py was written, while the more
+        # permissive sage.all still resolves them.
         # Fallback to sage.all if our helper module isn't available
         from sage.all import *
 
