@@ -2379,6 +2379,15 @@ def lfsr_sequence_mapper_parallel_dynamic(
     producer_error = [None]  # Use list to allow modification from nested function
     producer_stop_requested = threading.Event()  # Emergency stop flag
 
+    import os
+    import sys
+
+    DEBUG_PARALLEL = os.environ.get('DEBUG_PARALLEL', '0') == '1'
+
+    def debug_log(msg):
+        if DEBUG_PARALLEL:
+            print(f'[Producer PID {os.getpid()}] {msg}', file=sys.stderr, flush=True)
+
     def producer_thread():
         """Background thread that generates batches and populates queues."""
         nonlocal batches_created
