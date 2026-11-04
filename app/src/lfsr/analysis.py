@@ -8,6 +8,7 @@ This module provides functions for analyzing LFSR sequences, computing
 periods, and categorizing state vectors.
 """
 
+import contextlib
 import multiprocessing
 import textwrap
 import threading
@@ -1130,6 +1131,15 @@ def _process_state_chunk(
         cycle_lock,
     ) = chunk_data
 
+    # shared_cycles/cycle_lock are per-worker-local (plain dict, no IPC) rather than a
+    # Manager().dict()/Manager().Lock() -- see _process_task_batch_dynamic's matching
+    # normalization for why this doesn't affect correctness (final dedup happens in
+    # _merge_parallel_results, keyed by min_state, independent of in-run claim tracking).
+    if shared_cycles is None:
+        shared_cycles = {}
+    if cycle_lock is None:
+        cycle_lock = contextlib.nullcontext()
+
     # Import SageMath in worker
     # With 'fork' method (Linux default), workers inherit parent's memory
     # so SageMath should already be imported. Just import what we need.
@@ -1584,11 +1594,18 @@ def lfsr_sequence_mapper_parallel(
         # Empty state space
         return {}, {}, 0, 0
 
-    # Create shared cycle registry to prevent redundancy
-    # Workers will check this before processing cycles to avoid duplicate work
-    manager = multiprocessing.Manager()
-    shared_cycles = manager.dict()  # min_state_tuple -> worker_id (who claimed it)
-    cycle_lock = manager.Lock()  # Lock for atomic check-and-set
+    # Cycle-claim tracking is per-worker-local (None here, normalized to a plain dict
+    # inside _process_state_chunk) rather than a multiprocessing.Manager().dict()/Lock().
+    # Each static chunk is already disjoint across workers for *state assignment*, but
+    # cycles can still span chunk boundaries; cross-worker real-time dedup was previously
+    # done via a Manager() round-trip per state, which added IPC overhead (and a whole
+    # extra manager process) for a check that _merge_parallel_results redoes correctly
+    # anyway after all workers finish, keyed by min_state. Dropping the Manager() entirely
+    # here (this path has no shared Queue that would otherwise need one) removes that cost;
+    # the trade-off is the same accepted one already documented for this code path: a cycle
+    # spanning multiple workers' chunks may be computed more than once before being merged.
+    shared_cycles = None
+    cycle_lock = None
 
     # Prepare chunk data for workers
     chunk_data_list = []
@@ -1879,6 +1896,19 @@ def _process_task_batch_dynamic(
         assigned_chunk = None
         use_hybrid_mode = False
         use_work_stealing = False
+
+    # shared_cycles/cycle_lock are per-worker-local (plain dict, no IPC) rather than a
+    # Manager().dict()/Manager().Lock(): every claim check/write used to round-trip through
+    # the manager process, and _merge_parallel_results already deduplicates cycles across
+    # workers by min_state after the run, so cross-worker real-time synchronization here was
+    # pure overhead, not a correctness requirement. Workers can still redundantly re-walk a
+    # cycle another worker already claimed (same accepted trade-off as the static-partition
+    # path), but without the per-state IPC tax that was making every claim check pay for a
+    # round-trip to a separate process.
+    if shared_cycles is None:
+        shared_cycles = {}
+    if cycle_lock is None:
+        cycle_lock = contextlib.nullcontext()
 
     # Import SageMath in worker (same setup as _process_state_chunk)
     import os
@@ -2328,8 +2358,11 @@ def lfsr_sequence_mapper_parallel_dynamic(
             import sys
             sys.stdout.flush()
 
-    shared_cycles = manager.dict()
-    cycle_lock = manager.Lock()
+    # Each worker tracks cycle claims in its own local dict instead of a Manager().dict()/
+    # Manager().Lock(): see _process_task_batch_dynamic's normalization of shared_cycles=None
+    # for why this doesn't affect correctness (final dedup happens in _merge_parallel_results).
+    shared_cycles = None
+    cycle_lock = None
 
     # Populate queue with batches of states
     # Use same state_index_to_tuple function from _partition_state_space
