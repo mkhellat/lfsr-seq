@@ -2168,7 +2168,14 @@ def _process_task_batch_dynamic(
             # This prevents workers from blocking indefinitely if producer fails
             # Note: producer_done and producer_stop_requested are not accessible here
             # (they're in outer scope), so we rely on sentinel mechanism
-            # Workers will exit when they receive sentinel (None) from queue
+            # Workers will exit when they receive sentinel (None) from queue.
+            # Sentinel delivery is now guaranteed (see producer_thread's
+            # _deliver_sentinel), so this should be unreachable in practice --
+            # the inner get_nowait() loop above already handles Empty itself
+            # and breaks out to process whatever was pulled. Kept as a safety
+            # net with a brief sleep (not a tight spin) in case some other
+            # path ever raises Empty here.
+            time.sleep(0.01)
             continue
         except Exception as e:
             debug_log(f'Error in worker loop: {e}')
@@ -2496,28 +2503,47 @@ def lfsr_sequence_mapper_parallel_dynamic(
         finally:
             # Signal completion and add sentinels
             producer_done.set()
-            # Add sentinel values (None) to signal workers to stop
+
+            # Add sentinel values (None) to signal workers to stop.
+            #
+            # BUG FIX: a sentinel used to be sent with put(None, block=False)
+            # wrapped in a bare `except Exception: pass` -- if a worker's
+            # bounded queue (maxsize=max_queue_size) happened to be full at
+            # that exact moment, queue.Full was silently swallowed and that
+            # worker's sentinel was lost forever. The worker's own poll loop
+            # (`while True: get_nowait() ... except Empty: continue`) has no
+            # other way to learn the producer is done, so a dropped sentinel
+            # made the worker spin forever even after all real work was
+            # drained -- the confirmed cause of lfsr_sequence_mapper_parallel_dynamic
+            # hanging indefinitely at larger register sizes (e.g. 16-bit),
+            # contradicting the ~1.21x speedup CLAUDE.md previously documented
+            # for this exact configuration.
+            #
+            # Fixed by retrying with a timeout until the sentinel is actually
+            # delivered, instead of dropping it on the first Full. By this
+            # point the producer has finished queuing all real batches, so
+            # each queue can only shrink (workers keep draining it) -- it is
+            # guaranteed to have room again shortly, never a true deadlock.
+            def _deliver_sentinel(q):
+                while True:
+                    try:
+                        q.put(None, block=True, timeout=1.0)
+                        return
+                    except queue_module.Full:
+                        continue
+
             if use_hybrid_mode:
                 # Hybrid mode: One sentinel per worker queue (for work stealing)
                 for worker_queue in worker_queues:
-                    try:
-                        worker_queue.put(None, block=False)  # Non-blocking for sentinel
-                    except Exception:
-                        pass
+                    _deliver_sentinel(worker_queue)
             elif use_work_stealing:
                 # Phase 3.1: One sentinel per worker queue
                 for worker_queue in worker_queues:
-                    try:
-                        worker_queue.put(None, block=False)  # Non-blocking for sentinel
-                    except Exception:
-                        pass
+                    _deliver_sentinel(worker_queue)
             else:
                 # Original: One sentinel per worker in shared queue
                 for _ in range(num_workers):
-                    try:
-                        task_queue.put(None, block=False)  # Non-blocking for sentinel
-                    except Exception:
-                        pass
+                    _deliver_sentinel(task_queue)
 
     # Start producer thread (not needed for hybrid mode)
     # CRITICAL: Producer thread is daemon=True so it terminates with main thread

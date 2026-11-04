@@ -2686,4 +2686,89 @@ class TestLfsrSequenceMapperParallelDynamicQueueFullRetry:
         assert periods_sum == 64
         assert sum(period_dict.values()) == 64
 
+    def test_sentinel_delivery_retries_on_full_queue_instead_of_hanging(self):
+        """Regression test for a confirmed hang bug (found 2026-10-21 while
+        independently re-verifying CLAUDE.md's documented ~1.21x parallel
+        speedup claim, which turned out not to hold): producer_thread's
+        `finally` block used to deliver each worker's sentinel (None) via
+        `queue.put(None, block=False)` wrapped in a bare `except Exception:
+        pass`. If a worker's bounded queue (maxsize=100, hardcoded in
+        source) was still full at that exact moment, the sentinel was
+        silently dropped -- and the worker's own poll loop
+        (`while True: get_nowait() ... except Empty: continue`) has no
+        other way to learn the producer finished, so it spun forever even
+        after draining every real batch. Directly reproduced before the
+        fix: a real 16-bit GF(2) LFSR (65,536 states) at num_workers=2
+        processed its full state space in ~20s and then hung indefinitely
+        (confirmed via external process inspection, not just a timeout).
+
+        Fixed by retrying the sentinel `put()` with a blocking timeout
+        until it actually succeeds (see `_deliver_sentinel` inside
+        `producer_thread`), instead of giving up on the first `Full`.
+
+        A first version of this test tried to reproduce the race
+        naturally via real queue backpressure at a small, safe problem
+        size -- it passed even against the pre-fix code, i.e. it didn't
+        reliably trigger `queue.Full` at sentinel-delivery time (the race
+        is timing-dependent; it only reliably showed up at the full
+        16-bit/65,536-state case, too slow/large for a unit test).
+        Replaced with a deterministic approach: monkeypatch
+        `multiprocessing.managers.AutoProxy[Queue].put` (the real proxy
+        class `manager.Queue()` returns -- verified via `type(real_queue)`)
+        so a `None` (sentinel) value raises `queue.Full` a fixed number of
+        times before passing through to the real `put()`, while every
+        real (non-sentinel) batch is forwarded unchanged. This directly
+        exercises `_deliver_sentinel`'s retry-until-success loop rather
+        than hoping to statistically recreate the original race, and runs
+        against a tiny, genuinely safe 64-state workload (no large/slow
+        repro needed, no faked Sage field/size values). The patch is
+        process-local and restored in `finally`; it affects only the
+        orchestrator process's own `put()` calls (sentinel delivery
+        happens in a thread there), never a worker process's `get_nowait()`.
+        """
+        import multiprocessing as mp_module
+        import queue as queue_module
+
+        d = 6  # VectorSpace(GF(2), 6) = 64 real states; tiny, safe, real.
+        coeffs = [1] + [0] * (d - 1)
+        C, V, _ = make_matrix(coeffs, 2)
+
+        manager = mp_module.Manager()
+        probe_queue = manager.Queue()
+        ProxyClass = type(probe_queue)
+        original_put = ProxyClass.put
+        forced_full_count = {"n": 0}
+
+        def flaky_put(self, obj, block=True, timeout=None):
+            if obj is None and forced_full_count["n"] < 3:
+                forced_full_count["n"] += 1
+                raise queue_module.Full()
+            return original_put(self, obj, block=block, timeout=timeout)
+
+        ProxyClass.put = flaky_put
+        try:
+            with tempfile.TemporaryFile(mode="w+") as f:
+                seq_dict, period_dict, max_period, periods_sum = (
+                    lfsr_sequence_mapper_parallel_dynamic(
+                        C,
+                        V,
+                        2,
+                        output_file=f,
+                        no_progress=True,
+                        period_only=True,
+                        num_workers=2,
+                        batch_size=4,
+                    )
+                )
+        finally:
+            ProxyClass.put = original_put
+
+        # The forced Full exceptions were actually hit (proves the retry
+        # path, not just the happy path, ran) and the run still completed
+        # with correct results -- the old bug would have dropped at least
+        # one sentinel here and hung forever instead of returning.
+        assert forced_full_count["n"] == 3
+        assert periods_sum == 64
+        assert sum(period_dict.values()) == 64
+
 
