@@ -2402,6 +2402,48 @@ def lfsr_sequence_mapper_parallel_dynamic(
     import threading
     import time
 
+    def _deliver_sentinel(q):
+        """Deliver a stop sentinel (None) to a worker queue, retrying on
+        queue.Full instead of giving up on the first attempt.
+
+        BUG FIX: a sentinel used to be sent with put(None, block=False)
+        wrapped in a bare `except Exception: pass` -- if a worker's bounded
+        queue (maxsize=max_queue_size) happened to be full at that exact
+        moment, queue.Full was silently swallowed and that worker's
+        sentinel was lost forever. The worker's own poll loop (`while True:
+        get_nowait() ... except Empty: continue`) has no other way to
+        learn the producer is done, so a dropped sentinel made the worker
+        spin forever even after all real work was drained -- the confirmed
+        cause of lfsr_sequence_mapper_parallel_dynamic hanging indefinitely
+        at larger register sizes (e.g. 16-bit), contradicting the ~1.21x
+        speedup CLAUDE.md previously documented for this exact
+        configuration.
+
+        Fixed by retrying with a timeout until the sentinel is actually
+        delivered, instead of dropping it on the first Full. By the time
+        sentinels are sent (whether from producer_thread's own shutdown or
+        from hybrid mode's immediate-dispatch path below, which never runs
+        producer_thread at all), all real batches are already queued, so
+        each queue can only shrink from here -- it is guaranteed to have
+        room again shortly, never a true deadlock.
+
+        Defined here (not nested inside producer_thread) so hybrid mode's
+        own sentinel-delivery path can reuse it too: hybrid mode skips
+        producer_thread entirely (see the `if not use_hybrid_mode:` guard
+        below that only starts the producer thread when hybrid mode is
+        off), so a copy of this logic nested inside producer_thread alone
+        would never run for hybrid-mode calls -- confirmed by a coverage
+        gap that caught this: hybrid mode's own, separate sentinel
+        dispatch below had this exact same originally-fixed bug, since it
+        was never touched by the earlier producer_thread-only fix.
+        """
+        while True:
+            try:
+                q.put(None, block=True, timeout=1.0)
+                return
+            except queue_module.Full:
+                continue
+
     if not no_progress:
         print(f"  Using lazy task generation (batches of {batch_size} states)...")
         import sys
@@ -2512,36 +2554,11 @@ def lfsr_sequence_mapper_parallel_dynamic(
         except Exception as e:
             producer_error[0] = e
         finally:
-            # Signal completion and add sentinels
+            # Signal completion and add sentinels.
+            # _deliver_sentinel (defined above, before this function) retries
+            # on queue.Full instead of dropping the sentinel -- see its
+            # docstring for the bug this fixes.
             producer_done.set()
-
-            # Add sentinel values (None) to signal workers to stop.
-            #
-            # BUG FIX: a sentinel used to be sent with put(None, block=False)
-            # wrapped in a bare `except Exception: pass` -- if a worker's
-            # bounded queue (maxsize=max_queue_size) happened to be full at
-            # that exact moment, queue.Full was silently swallowed and that
-            # worker's sentinel was lost forever. The worker's own poll loop
-            # (`while True: get_nowait() ... except Empty: continue`) has no
-            # other way to learn the producer is done, so a dropped sentinel
-            # made the worker spin forever even after all real work was
-            # drained -- the confirmed cause of lfsr_sequence_mapper_parallel_dynamic
-            # hanging indefinitely at larger register sizes (e.g. 16-bit),
-            # contradicting the ~1.21x speedup CLAUDE.md previously documented
-            # for this exact configuration.
-            #
-            # Fixed by retrying with a timeout until the sentinel is actually
-            # delivered, instead of dropping it on the first Full. By this
-            # point the producer has finished queuing all real batches, so
-            # each queue can only shrink (workers keep draining it) -- it is
-            # guaranteed to have room again shortly, never a true deadlock.
-            def _deliver_sentinel(q):
-                while True:
-                    try:
-                        q.put(None, block=True, timeout=1.0)
-                        return
-                    except queue_module.Full:
-                        continue
 
             if use_hybrid_mode:
                 # Hybrid mode: One sentinel per worker queue (for work stealing)
@@ -2573,13 +2590,19 @@ def lfsr_sequence_mapper_parallel_dynamic(
         # mode -- queue them here instead so each worker's own_queue poll
         # loop can terminate once it drains its static chunk and any
         # work-stolen overflow.
+        #
+        # BUG FIX: this used to deliver each sentinel via
+        # put(None, block=False) wrapped in a bare `except Exception: pass`
+        # -- the same silently-dropped-sentinel flaw that was fixed in
+        # producer_thread's shutdown path, but producer_thread is never
+        # invoked in hybrid mode, so that earlier fix never reached this
+        # separate dispatch site. Fixed the same way: reuse the shared
+        # _deliver_sentinel helper (defined above), which retries on
+        # queue.Full until the sentinel is actually delivered.
         producer = None
         producer_done.set()  # Mark as done immediately
         for worker_queue in worker_queues:
-            try:
-                worker_queue.put(None, block=False)
-            except Exception:
-                pass
+            _deliver_sentinel(worker_queue)
         if not no_progress:
             print("  Hybrid mode: Static chunks assigned, work stealing ready")
             sys.stdout.flush()
