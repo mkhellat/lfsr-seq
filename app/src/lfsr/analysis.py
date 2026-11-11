@@ -1311,45 +1311,58 @@ def _process_state_chunk(
             # only for small periods (<= 100) to avoid hangs. For larger periods,
             # use simplified deduplication based on start_state+period.
             if period_only:
-                # CRITICAL DISCOVERY: Floyd's algorithm is MUCH slower than enumeration for large periods!
-                # Floyd does ~3x period matrix multiplications (tortoise + 2*hare per step)
-                # For period 3255: ~10,000 matrix multiplications vs enumeration's 3255
-                # Enumeration is actually FASTER and SAFER in fork mode when used correctly
-                debug_log(f'State {idx+1}: Period-only mode - computing period first...')
-                from lfsr.analysis import _find_period
-                # Use enumeration (faster) - it's safe in fork mode when used in period-only mode
-                # The hang issue was from computing full sequences, not period computation
-                worker_algorithm = "enumeration" if algorithm in ["auto", "enumeration"] else algorithm
+                # PERFORMANCE FIX: this used to make 3 separate full O(period)
+                # passes over the cycle with real Sage matrix multiplies --
+                # one via _find_period() to get the period, one to find
+                # min_state (the dedup key), and one more (on whichever of
+                # the skip/claim paths below was taken) to mark every state
+                # in the cycle as locally visited. Measured (standalone
+                # prototype, alternated/repeated/warm-up-discarded to rule
+                # out measurement artifacts -- an early single-shot
+                # comparison was itself fooled by run-ordering/warm-up
+                # effects and had to be redone) at ~1.8x slower than a single
+                # fused pass doing all three at once. That 2-3x redundant
+                # per-cycle compute, not cross-worker collision
+                # (states_skipped_claimed was observed to be 0 in real runs
+                # -- this path's "already claimed" branches are rarely/never
+                # actually taken at the sizes tested), was the main reason
+                # parallel enumeration failed to beat serial even after the
+                # Manager()-IPC-overhead and sentinel-hang fixes in the
+                # dynamic-mode sibling of this function.
+                #
+                # Fixed by walking the cycle exactly once, tracking the
+                # period count, the running min_state, and the full list of
+                # every state tuple visited (needed either way: the full
+                # cycle must still be marked as locally visited on both the
+                # skip-as-claimed and claim-and-process paths below) in that
+                # single pass.
+                debug_log(f'State {idx+1}: Period-only mode - computing period and canonical cycle key in one pass...')
                 try:
-                    seq_period = _find_period(state, state_update_matrix, algorithm=worker_algorithm)
-                    debug_log(f'State {idx+1}: Period computed: {seq_period} (using {worker_algorithm})')
+                    cycle_states_in_order = [state_tuple]
+                    min_state = state_tuple
+                    current = state
+                    current_tuple = state_tuple
+                    seq_period = 1
+                    while True:
+                        current = current * state_update_matrix
+                        current_tuple = tuple(current)
+                        if current_tuple == state_tuple:
+                            break
+                        cycle_states_in_order.append(current_tuple)
+                        if current_tuple < min_state:
+                            min_state = current_tuple
+                        seq_period += 1
+                        # Periodic check every 1000 iterations for very large cycles
+                        if seq_period % 1000 == 0:
+                            _ = len(str(current))  # Force evaluation to detect hangs
+                    debug_log(f'State {idx+1}: Period computed: {seq_period}')
                 except Exception as e:
                     debug_log(f'State {idx+1}: Error computing period: {e}')
                     # If period computation fails, skip this state
                     errors.append(f'Error computing period for state {state_tuple}: {str(e)}')
                     continue
-
-                # CRITICAL FIX: For proper deduplication, we need a canonical cycle representation.
-                # The min_state approach requires iterating through the cycle, which can be slow
-                # for large periods, but it's necessary for correct deduplication.
-                # We limit the iteration to avoid hangs, but still get a good canonical key.
-                debug_log(f'State {idx+1}: Period-only mode - computing canonical cycle key...')
-                # Find minimum state in cycle as canonical key
-                # CRITICAL: Must check ALL states in cycle to get true minimum
-                # Otherwise, different workers starting from different states might compute different min_states
-                min_state = state_tuple
-                current = state
-                # Check entire cycle (not just first 1000) to ensure consistent min_state
-                for i in range(seq_period - 1):
-                    current = current * state_update_matrix
-                    current_tuple = tuple(current)
-                    if current_tuple < min_state:
-                        min_state = current_tuple
-                    # Periodic check every 1000 iterations for very large cycles
-                    if i > 0 and i % 1000 == 0:
-                        _ = len(str(current))  # Force evaluation to detect hangs
                 # Use min_state as canonical key for deduplication
-                min_state_tuple = tuple(min_state) if not isinstance(min_state, tuple) else min_state
+                min_state_tuple = min_state
 
                 # REDUNDANCY FIX: Check if this cycle is already being processed by another worker
                 # Fast check (no lock) - if already claimed, skip immediately
@@ -1357,12 +1370,7 @@ def _process_state_chunk(
                     claimed_by = shared_cycles[min_state_tuple]
                     debug_log(f'State {idx+1}: Cycle with min_state {min_state_tuple[:5]}... already claimed by worker {claimed_by}, skipping')
                     # Mark all states in cycle as visited locally to skip in this worker
-                    local_visited.add(state_tuple)
-                    current = state
-                    for _ in range(seq_period - 1):
-                        current = current * state_update_matrix
-                        current_tuple = tuple(current)
-                        local_visited.add(current_tuple)
+                    local_visited.update(cycle_states_in_order)
                     states_skipped_claimed += seq_period
                     cycles_skipped += 1
                     continue
@@ -1373,12 +1381,7 @@ def _process_state_chunk(
                     if min_state_tuple in shared_cycles:
                         claimed_by = shared_cycles[min_state_tuple]
                         debug_log(f'State {idx+1}: Cycle with min_state {min_state_tuple[:5]}... claimed by worker {claimed_by} (between check and lock), skipping')
-                        local_visited.add(state_tuple)
-                        current = state
-                        for _ in range(seq_period - 1):
-                            current = current * state_update_matrix
-                            current_tuple = tuple(current)
-                            local_visited.add(current_tuple)
+                        local_visited.update(cycle_states_in_order)
                         continue
                     else:
                         # Claim this cycle for this worker
@@ -1391,12 +1394,7 @@ def _process_state_chunk(
                 # CRITICAL FIX: Mark ALL states in the cycle as visited (not just start state)
                 # This prevents workers from processing the same cycle multiple times
                 # Even though cycles can span chunks, marking all states prevents redundant work
-                local_visited.add(state_tuple)
-                current = state
-                for _ in range(seq_period - 1):
-                    current = current * state_update_matrix
-                    current_tuple = tuple(current)
-                    local_visited.add(current_tuple)
+                local_visited.update(cycle_states_in_order)
                 debug_log(f'State {idx+1}: Marked {seq_period} states as visited in cycle')
                 states_processed += 1  # Count the start state we processed
                 cycles_found += 1
@@ -2005,37 +2003,60 @@ def _process_task_batch_dynamic(
 
                     # Process state (same logic as _process_state_chunk)
                     if period_only:
-                        # Period-only mode
-                        worker_algorithm = "enumeration" if algorithm in ["auto", "enumeration"] else algorithm
+                        # Period-only mode.
+                        #
+                        # PERFORMANCE FIX: this used to make 3 separate full
+                        # O(period) passes over the cycle with real Sage
+                        # matrix multiplies -- one via _find_period() to get
+                        # the period, one to find min_state (the dedup key),
+                        # and one more (on whichever of the skip/claim paths
+                        # below was taken) to mark every state in the cycle
+                        # as locally visited. Measured (standalone prototype,
+                        # alternated/repeated/warm-up-discarded to rule out
+                        # measurement artifacts -- an early single-shot
+                        # comparison was itself fooled by run-ordering/warm-up
+                        # effects and had to be redone) at ~1.8x slower than
+                        # a single fused pass doing all three at once. That
+                        # 2-3x redundant per-cycle compute, not cross-worker
+                        # collision (states_skipped_claimed was observed to
+                        # be 0 in real runs -- this path's "already claimed"
+                        # branches are rarely/never actually taken at the
+                        # sizes tested), was the main reason parallel
+                        # enumeration failed to beat serial even after the
+                        # Manager()-IPC-overhead and sentinel-hang fixes.
+                        #
+                        # Fixed by walking the cycle exactly once, tracking
+                        # the period count, the running min_state, and the
+                        # full list of every state tuple visited (needed
+                        # either way: the full cycle must still be marked as
+                        # locally visited on both the skip-as-claimed and
+                        # claim-and-process paths below) in that single pass.
                         try:
-                            seq_period = _find_period(state, state_update_matrix, algorithm=worker_algorithm)
+                            cycle_states_in_order = [state_tuple]
+                            min_state = state_tuple
+                            current = state
+                            current_tuple = state_tuple
+                            seq_period = 1
+                            while True:
+                                current = current * state_update_matrix
+                                current_tuple = tuple(current)
+                                if current_tuple == state_tuple:
+                                    break
+                                cycle_states_in_order.append(current_tuple)
+                                if current_tuple < min_state:
+                                    min_state = current_tuple
+                                seq_period += 1
+                                # Periodic check every 1000 iterations for very large cycles
+                                if seq_period % 1000 == 0:
+                                    _ = len(str(current))  # Force evaluation to detect hangs
                         except Exception as e:
                             errors.append(f'Error computing period for state {state_tuple}: {str(e)}')
                             continue
-
-                        # Find min_state for deduplication (limited to first 1000 states)
-                        min_state = state_tuple
-                        current = state
-                        # CRITICAL: Must check ALL states in cycle to get true minimum
-                        # Otherwise, different workers starting from different states might compute different min_states
-                        for i in range(seq_period - 1):
-                            current = current * state_update_matrix
-                            current_tuple = tuple(current)
-                            if current_tuple < min_state:
-                                min_state = current_tuple
-                            # Periodic check every 1000 iterations for very large cycles
-                            if i > 0 and i % 1000 == 0:
-                                _ = len(str(current))  # Force evaluation to detect hangs
-                        min_state_tuple = tuple(min_state) if not isinstance(min_state, tuple) else min_state
+                        min_state_tuple = min_state
 
                         # Check if cycle already claimed
                         if min_state_tuple in shared_cycles:
-                            local_visited.add(state_tuple)
-                            current = state
-                            for _ in range(seq_period - 1):
-                                current = current * state_update_matrix
-                                current_tuple = tuple(current)
-                                local_visited.add(current_tuple)
+                            local_visited.update(cycle_states_in_order)
                             states_skipped_claimed += seq_period
                             cycles_skipped += 1
                             continue
@@ -2045,12 +2066,7 @@ def _process_task_batch_dynamic(
                         with cycle_lock:
                             if min_state_tuple in shared_cycles:
                                 # Already claimed by another worker
-                                local_visited.add(state_tuple)
-                                current = state
-                                for _ in range(seq_period - 1):
-                                    current = current * state_update_matrix
-                                    current_tuple = tuple(current)
-                                    local_visited.add(current_tuple)
+                                local_visited.update(cycle_states_in_order)
                                 states_skipped_claimed += seq_period
                                 cycles_skipped += 1
                                 continue
@@ -2065,12 +2081,7 @@ def _process_task_batch_dynamic(
 
                         # Process cycle (we've successfully claimed it)
                         states_tuples = (min_state,)
-                        local_visited.add(state_tuple)
-                        current = state
-                        for _ in range(seq_period - 1):
-                            current = current * state_update_matrix
-                            current_tuple = tuple(current)
-                            local_visited.add(current_tuple)
+                        local_visited.update(cycle_states_in_order)
                         states_processed += 1
                         cycles_found += 1
                         cycles_claimed += 1

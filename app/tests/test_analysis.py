@@ -1645,16 +1645,36 @@ class TestProcessTaskBatchDynamicExtra:
         manager.shutdown()
 
     def test_period_computation_exception_is_caught(self, monkeypatch):
-        """Force _find_period to raise inside the dynamic worker's
-        period-only branch (line 1959-1961) by monkeypatching it at the
-        module level (the worker does `from lfsr.analysis import
-        _find_period` inside process_single_batch's enclosing function, so
-        patching analysis_mod._find_period is visible to it)."""
+        """Force an exception inside the dynamic worker's period-only
+        branch's cycle walk (the single fused pass that tracks period,
+        min_state, and visited states together -- see the PERFORMANCE FIX
+        comment above that branch in analysis.py). This used to call the
+        module-level _find_period() as a separate first pass and could be
+        forced to fail by monkeypatching that name directly; the fused
+        implementation computes the period inline via repeated
+        `current * state_update_matrix`, with no separate _find_period()
+        call in this branch, so that seam no longer exists.
 
-        def broken_find_period(*args, **kwargs):
-            raise RuntimeError("simulated period computation failure")
+        Forced instead by monkeypatching lfsr.core.build_state_update_matrix
+        (imported fresh inside the worker function body via a local
+        `from lfsr.core import build_state_update_matrix`, so this is
+        resolved at call time, not at worker-module-load time) to return a
+        matrix-like stand-in whose multiplication always raises -- this
+        fires on the very first `current * state_update_matrix` inside the
+        fused loop, exercising the same `except Exception as e:` branch the
+        original test targeted, just via the operation that now actually
+        runs there.
+        """
+        import lfsr.core as core_mod
 
-        monkeypatch.setattr(analysis_mod, "_find_period", broken_find_period)
+        class _RaisingMatrix:
+            def __rmul__(self, other):
+                raise RuntimeError("simulated period computation failure")
+
+        def broken_build_state_update_matrix(*args, **kwargs):
+            return _RaisingMatrix(), None
+
+        monkeypatch.setattr(core_mod, "build_state_update_matrix", broken_build_state_update_matrix)
         coeffs = [1, 1]
         gf_order, d = 2, 2
         manager = multiprocessing.Manager()
