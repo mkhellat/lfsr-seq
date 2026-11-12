@@ -75,7 +75,7 @@ class TestLazyGetattr:
         with pytest.raises(
             AttributeError, match="has no attribute 'totally_bogus_name'"
         ):
-            lfsr.totally_bogus_name
+            lfsr.totally_bogus_name  # noqa: B018 -- the access itself is the test
 
 
 class TestVersionFallback:

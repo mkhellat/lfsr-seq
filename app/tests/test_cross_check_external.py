@@ -218,7 +218,7 @@ def test_berlekamp_massey_recovers_lfsr_tools_connection_polynomial(coeffs):
     observed_seq = [s[-1] for s in full_trace]
 
     bm = lfsr_tools.BerlekampMassey(observed_seq)
-    recovered = list(int(x) for x in bm.estimate_polynomial())
+    recovered = [int(x) for x in bm.estimate_polynomial()]
     expected = (coeffs + [1])[::-1]
 
     assert recovered == expected, (
