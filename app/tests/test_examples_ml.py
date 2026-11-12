@@ -18,8 +18,8 @@ this module.
 """
 
 import builtins
-import io
 import contextlib
+import io
 import sys
 
 import pytest

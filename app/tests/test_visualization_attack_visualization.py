@@ -17,11 +17,11 @@ import plotly.graph_objects as go
 import pytest
 
 from lfsr.visualization import attack_visualization as av
-from lfsr.visualization.base import VisualizationConfig
 from lfsr.visualization.attack_visualization import (
     visualize_attack_comparison,
     visualize_correlation_attack,
 )
+from lfsr.visualization.base import VisualizationConfig
 
 
 @pytest.fixture(autouse=True)

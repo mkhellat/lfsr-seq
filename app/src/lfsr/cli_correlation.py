@@ -16,10 +16,10 @@ from lfsr.attacks import (
     CombinationGenerator,
     LFSRConfig,
     analyze_combining_function,
-    distinguishing_attack as run_distinguishing_attack,
-    fast_correlation_attack as run_fast_correlation_attack,
     siegenthaler_correlation_attack,
 )
+from lfsr.attacks import distinguishing_attack as run_distinguishing_attack
+from lfsr.attacks import fast_correlation_attack as run_fast_correlation_attack
 from lfsr.sage_imports import *
 
 

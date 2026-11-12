@@ -89,8 +89,12 @@ lfsr_tools = pytest.importorskip(
     "lfsr_tools", reason="lfsr-tools not installed (pip install lfsr-seq[cross-check])"
 )
 
-from lfsr.analysis import lfsr_sequence_mapper
-from lfsr.core import build_state_update_matrix
+# These must stay below the Sage-availability guard and the importorskip
+# calls above: lfsr.analysis does `from lfsr.sage_imports import *` at
+# its own top level, which would raise ImportError (crashing collection
+# instead of cleanly skipping) if moved above the guard.
+from lfsr.analysis import lfsr_sequence_mapper  # noqa: E402
+from lfsr.core import build_state_update_matrix  # noqa: E402
 
 
 def _coeffs_to_pylfsr_fpoly(coeffs):
@@ -214,7 +218,7 @@ def test_berlekamp_massey_recovers_lfsr_tools_connection_polynomial(coeffs):
     observed_seq = [s[-1] for s in full_trace]
 
     bm = lfsr_tools.BerlekampMassey(observed_seq)
-    recovered = list(int(x) for x in bm.estimate_polynomial())
+    recovered = [int(x) for x in bm.estimate_polynomial()]
     expected = (coeffs + [1])[::-1]
 
     assert recovered == expected, (

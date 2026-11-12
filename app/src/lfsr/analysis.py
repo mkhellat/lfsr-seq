@@ -8,6 +8,7 @@ This module provides functions for analyzing LFSR sequences, computing
 periods, and categorizing state vectors.
 """
 
+import atexit
 import contextlib
 import multiprocessing
 import textwrap
@@ -41,8 +42,6 @@ def shutdown_worker_pool():
 
 
 # Register cleanup handler for program exit
-import atexit
-
 atexit.register(shutdown_worker_pool)
 
 # Multiprocessing setup for compatibility
@@ -1346,9 +1345,7 @@ def _process_state_chunk(
         debug_log(f"Warning: SageMath isolation test failed: {e}, continuing anyway...")
         # Fallback: create objects anyway (might still work)
         F = GF(gf_order)
-        V = VectorSpace(
-            F, lfsr_degree
-        )  # noqa: F841 (sanity check that sage isolation works)
+        V = VectorSpace(F, lfsr_degree)  # noqa: F841 -- sanity check only
 
     # Local visited set for this worker (to avoid processing same cycle multiple times in this chunk)
     local_visited = set()
@@ -2211,9 +2208,7 @@ def _process_task_batch_dynamic(
     except Exception as e:
         debug_log(f"Warning: SageMath isolation test failed: {e}, continuing anyway...")
         F = GF(gf_order)
-        V = VectorSpace(
-            F, lfsr_degree
-        )  # noqa: F841 (sanity check that sage isolation works)
+        V = VectorSpace(F, lfsr_degree)  # noqa: F841 -- sanity check only
 
     # Local visited set for this worker
     local_visited = set()
@@ -2228,7 +2223,7 @@ def _process_task_batch_dynamic(
     batches_processed = 0
 
     # Import cycle detection functions
-    from lfsr.analysis import _find_period, _find_sequence_cycle
+    from lfsr.analysis import _find_sequence_cycle
 
     # Helper function to process a single batch
     def process_single_batch(batch):

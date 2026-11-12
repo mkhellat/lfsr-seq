@@ -27,6 +27,8 @@ distinguishing_attack against a majority-combined generator), verified
 by running the full script end-to-end (exit code 0, ~3.5s).
 """
 
+import sys
+
 import pytest
 
 import lfsr.examples.correlation_attack_example as example_module
@@ -94,8 +96,8 @@ class TestBranchesUnreachableViaRealCalls:
         asserts the union of both outcomes across 2 LFSRs). Monkeypatch
         fast_correlation_attack to force attack_successful=False
         deterministically, isolating this script's print/branch logic."""
-        from dataclasses import dataclass, field
-        from typing import Any, Dict, List, Optional
+        from dataclasses import dataclass
+        from typing import List, Optional
 
         @dataclass
         class _FakeResult:
@@ -159,9 +161,6 @@ class TestMain:
         assert "Distinguishing Attack" in captured.out
         assert "Examples Complete!" in captured.out
         assert captured.err == ""
-
-
-import sys
 
 
 class TestSageImportGuardCorrelation:

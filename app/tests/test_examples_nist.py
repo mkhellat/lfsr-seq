@@ -24,6 +24,8 @@ for any "ERROR" line before writing the test below; none was found --
 all 15 sub-tests in that function's demo sequence genuinely passed.
 """
 
+import sys
+
 import lfsr.examples.nist_test_example as example_module
 
 
@@ -97,9 +99,6 @@ class TestBranchesUnreachableViaRealCalls:
         assert exc_info.value.code == 1
         err = capsys.readouterr().err
         assert "ERROR: simulated failure for coverage" in err
-
-
-import sys
 
 
 class TestSageImportGuardNist:

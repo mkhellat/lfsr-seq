@@ -44,7 +44,6 @@ from lfsr.attacks import (
     groebner_basis_attack,
     siegenthaler_correlation_attack,
 )
-from lfsr.sage_imports import GF, vector
 
 
 def majority(a, b, c):

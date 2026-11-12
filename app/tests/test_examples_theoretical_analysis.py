@@ -14,6 +14,7 @@ raising -- it does not assume "just a demo" implies bug-free.
 """
 
 import io
+import sys
 from contextlib import redirect_stdout
 
 import pytest
@@ -23,8 +24,8 @@ try:
 except ImportError:
     pytest.skip("SageMath not available", allow_module_level=True)
 
-from lfsr.examples import theoretical_analysis_example as tae
 import lfsr.theoretical_db as theoretical_db
+from lfsr.examples import theoretical_analysis_example as tae
 
 
 @pytest.fixture(autouse=True)
@@ -171,9 +172,6 @@ class TestMainEndToEnd:
                     tae.main()
         assert exc_info.value.code == 1
         assert "ERROR: simulated failure for coverage" in buf_err.getvalue()
-
-
-import sys
 
 
 class TestSageImportGuardTheoretical:

@@ -231,7 +231,6 @@ class TestPlotStateSpaceProjectionTSNE:
         assert isinstance(fig, plt.Figure)
 
     def test_tsne_missing_sklearn_raises_import_error(self, monkeypatch):
-        import sys
         import builtins
 
         real_import = builtins.__import__

@@ -21,7 +21,6 @@ lfsr.analysis before writing any assertions against it.
 """
 
 import multiprocessing
-import os
 import tempfile
 import threading
 
@@ -32,7 +31,7 @@ try:
 except ImportError:
     pytest.skip("SageMath not available", allow_module_level=True)
 
-from lfsr.core import build_state_update_matrix
+import lfsr.analysis as analysis_mod
 from lfsr.analysis import (
     _find_period,
     _find_period_brent,
@@ -54,7 +53,7 @@ from lfsr.analysis import (
     lfsr_sequence_mapper_parallel_dynamic,
     shutdown_worker_pool,
 )
-import lfsr.analysis as analysis_mod
+from lfsr.core import build_state_update_matrix
 
 
 @pytest.fixture
@@ -499,7 +498,6 @@ class TestPartitionStateSpace:
         chunks = _partition_state_space(V, 1)
         flat = chunks[0]
         # index 5 = binary 101 (LSB-first per state_index_to_tuple) -> (1,0,1)
-        tuple_for_5 = dict(flat)
         # dict keyed by tuple->idx is wrong direction; rebuild idx->tuple
         idx_to_tuple = {idx: t for (t, idx) in flat}
         assert idx_to_tuple[0] == (0, 0, 0)
@@ -1131,8 +1129,6 @@ class TestMergeParallelResultsExtra:
         """If `from lfsr.sage_imports import GF, vector` raises ImportError,
         the function must log to stderr and return the all-empty tuple
         rather than propagating."""
-        import lfsr.sage_imports as sage_imports_mod
-
         real_import = __import__
 
         def fake_import(name, *args, **kwargs):
@@ -2369,7 +2365,7 @@ class TestLfsrSequenceMapperParallelDynamicExtra:
         input that auto-selects hybrid mode) and must complete quickly;
         it hung indefinitely before the fix (verified independently)."""
         coeffs = [1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1]  # degree 13 -> 8192 states
-        gf_order, d = 2, 13
+        gf_order = 2
         C, V, _ = make_matrix(coeffs, gf_order)
         with tempfile.TemporaryFile(mode="w+") as f:
             (
@@ -2920,7 +2916,7 @@ class TestLfsrSequenceMapperParallelDynamicExtra2:
         same 13-bit/8192-state LFSR as the existing hang-regression test
         but with no_progress=False this time."""
         coeffs = [1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1]  # degree 13 -> 8192 states
-        gf_order, d = 2, 13
+        gf_order = 2
         C, V, _ = make_matrix(coeffs, gf_order)
         with tempfile.TemporaryFile(mode="w+") as f:
             (

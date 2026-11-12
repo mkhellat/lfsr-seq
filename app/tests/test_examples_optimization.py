@@ -36,14 +36,15 @@ writing any assertion; none raised and none took longer than ~1s. No
 bugs were found in this module.
 """
 
-import io
 import contextlib
+import io
+import sys
 from unittest import mock
 
 import pytest
 
-from lfsr.examples import optimization_example as m
 import lfsr.optimization as optimization
+from lfsr.examples import optimization_example as m
 
 
 @pytest.fixture
@@ -274,9 +275,6 @@ class TestMain:
         captured = capsys.readouterr()
         assert "ERROR: forced failure for coverage" in captured.err
         assert "RuntimeError" in captured.err
-
-
-import sys
 
 
 class TestSageImportGuardOptimization:

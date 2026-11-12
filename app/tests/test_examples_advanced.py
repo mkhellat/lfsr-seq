@@ -16,6 +16,8 @@ repo's SageMath install before writing any assertion below; all
 completed without raising (verified 2026-08-14).
 """
 
+import sys
+
 import lfsr.examples.advanced_lfsr_example as example_module
 
 
@@ -75,9 +77,6 @@ class TestMain:
         assert exc_info.value.code == 1
         err = capsys.readouterr().err
         assert "ERROR: simulated failure for coverage" in err
-
-
-import sys
 
 
 class TestSageImportGuardAdvanced:

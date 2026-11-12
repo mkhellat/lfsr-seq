@@ -16,7 +16,6 @@ since that's the only way to exercise those branches deterministically.
 """
 
 import builtins
-import importlib
 
 import matplotlib
 
