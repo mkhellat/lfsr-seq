@@ -76,6 +76,7 @@ class TestBranchesUnreachableViaRealCalls:
         appears). Monkeypatch frequency_test (referenced by module-
         global name inside example_all_tests()'s own `tests` list of
         lambdas) to raise, forcing the except branch deterministically."""
+
         def raiser(seq):
             raise RuntimeError("simulated failure for coverage")
 
@@ -96,6 +97,7 @@ class TestBranchesUnreachableViaRealCalls:
         assert exc_info.value.code == 1
         err = capsys.readouterr().err
         assert "ERROR: simulated failure for coverage" in err
+
 
 import sys
 

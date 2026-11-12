@@ -47,7 +47,9 @@ IMAGE_EXTENSIONS = (".png", ".svg", ".html", ".pdf", ".jpg", ".jpeg")
 def _stray_image_files(directory):
     """List image/output files directly in `directory` (non-recursive)."""
     try:
-        return [f for f in os.listdir(directory) if f.lower().endswith(IMAGE_EXTENSIONS)]
+        return [
+            f for f in os.listdir(directory) if f.lower().endswith(IMAGE_EXTENSIONS)
+        ]
     except OSError:
         return []
 

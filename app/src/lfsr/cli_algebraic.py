@@ -58,16 +58,22 @@ def perform_algebraic_attack_cli(
         print("Loading LFSR configuration from file...", file=output_file)
         # For now, require coefficients directly
         if not lfsr_coefficients:
-            print("ERROR: LFSR coefficients required (config file loading not yet implemented)", file=sys.stderr)
+            print(
+                "ERROR: LFSR coefficients required (config file loading not yet implemented)",
+                file=sys.stderr,
+            )
             sys.exit(1)
     elif not lfsr_coefficients:
-        print("ERROR: LFSR configuration required (coefficients or config file)", file=sys.stderr)
+        print(
+            "ERROR: LFSR configuration required (coefficients or config file)",
+            file=sys.stderr,
+        )
         sys.exit(1)
 
     lfsr_config = LFSRConfig(
         coefficients=lfsr_coefficients,
         field_order=field_order,
-        degree=len(lfsr_coefficients)
+        degree=len(lfsr_coefficients),
     )
 
     print("LFSR Configuration:", file=output_file)
@@ -82,7 +88,9 @@ def perform_algebraic_attack_cli(
         keystream = load_keystream_from_file(keystream_file)
         print(f"  Loaded {len(keystream)} bits", file=output_file)
     elif not keystream:
-        print("ERROR: Keystream required (keystream or keystream_file)", file=sys.stderr)
+        print(
+            "ERROR: Keystream required (keystream or keystream_file)", file=sys.stderr
+        )
         sys.exit(1)
 
     print(file=output_file)
@@ -96,24 +104,33 @@ def perform_algebraic_attack_cli(
     if method == "algebraic_immunity":
         # Compute algebraic immunity of filtering function
         if not filtering_function:
-            print("ERROR: Filtering function required for algebraic immunity computation", file=sys.stderr)
+            print(
+                "ERROR: Filtering function required for algebraic immunity computation",
+                file=sys.stderr,
+            )
             sys.exit(1)
 
         print("Computing algebraic immunity...", file=output_file)
         result = compute_algebraic_immunity(
             function=filtering_function,
             num_inputs=lfsr_config.degree,
-            field_order=field_order
+            field_order=field_order,
         )
 
         print(f"  Algebraic immunity: {result['algebraic_immunity']}", file=output_file)
         print(f"  Maximum possible: {result['max_possible']}", file=output_file)
         print(f"  Optimal: {result['optimal']}", file=output_file)
-        if result['optimal']:
+        if result["optimal"]:
             print("  ✓ Function achieves maximum algebraic immunity!", file=output_file)
         else:
-            print("  ⚠ Function does not achieve maximum algebraic immunity", file=output_file)
-            print(f"    (Vulnerable to algebraic attacks of degree {result['algebraic_immunity']})", file=output_file)
+            print(
+                "  ⚠ Function does not achieve maximum algebraic immunity",
+                file=output_file,
+            )
+            print(
+                f"    (Vulnerable to algebraic attacks of degree {result['algebraic_immunity']})",
+                file=output_file,
+            )
 
     elif method == "groebner_basis":
         print("Performing Gröbner basis attack...", file=output_file)
@@ -121,7 +138,7 @@ def perform_algebraic_attack_cli(
             lfsr_config=lfsr_config,
             keystream=keystream,
             filtering_function=filtering_function,
-            max_equations=max_equations
+            max_equations=max_equations,
         )
 
         print("  Method: Gröbner Basis Attack", file=output_file)
@@ -131,7 +148,10 @@ def perform_algebraic_attack_cli(
         else:
             print("  ✗ Attack failed", file=output_file)
         print(f"  Equations solved: {result.equations_solved}", file=output_file)
-        print(f"  Complexity estimate: {result.complexity_estimate:.0f} operations", file=output_file)
+        print(
+            f"  Complexity estimate: {result.complexity_estimate:.0f} operations",
+            file=output_file,
+        )
         print(f"  Algebraic immunity: {result.algebraic_immunity}", file=output_file)
         if result.details:
             print(f"  Details: {result.details}", file=output_file)
@@ -142,7 +162,7 @@ def perform_algebraic_attack_cli(
             lfsr_config=lfsr_config,
             keystream=keystream,
             filtering_function=filtering_function,
-            max_cube_size=max_cube_size
+            max_cube_size=max_cube_size,
         )
 
         print("  Method: Cube Attack", file=output_file)
@@ -153,8 +173,13 @@ def perform_algebraic_attack_cli(
         else:
             print("  ✗ Attack failed", file=output_file)
         print(f"  Cubes found: {result.cubes_found}", file=output_file)
-        print(f"  Superpolies computed: {result.superpolies_computed}", file=output_file)
-        print(f"  Complexity estimate: {result.complexity_estimate:.0f} operations", file=output_file)
+        print(
+            f"  Superpolies computed: {result.superpolies_computed}", file=output_file
+        )
+        print(
+            f"  Complexity estimate: {result.complexity_estimate:.0f} operations",
+            file=output_file,
+        )
         if result.details:
             print(f"  Details: {result.details}", file=output_file)
 

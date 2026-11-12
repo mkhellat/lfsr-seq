@@ -339,7 +339,9 @@ class TestPerformCorrelationAttackCli:
         assert "Distinguishing Attack Results" in out
         assert "Distinguishable:" in out
 
-    def test_majority_combiner_shows_vulnerable_output_for_all_attack_types(self, tmp_path):
+    def test_majority_combiner_shows_vulnerable_output_for_all_attack_types(
+        self, tmp_path
+    ):
         """The xor-combiner tests above never reach the "Attack
         successful: True" / "VULNERABLE" branches in
         perform_correlation_attack_cli's output formatting, since xor

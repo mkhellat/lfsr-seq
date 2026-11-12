@@ -111,7 +111,7 @@ class NFSR(AdvancedLFSR):
     def __init__(
         self,
         base_lfsr_config: LFSRConfig,
-        feedback_function: Callable[[List[int]], int]
+        feedback_function: Callable[[List[int]], int],
     ):
         """
         Initialize NFSR.
@@ -135,9 +135,9 @@ class NFSR(AdvancedLFSR):
             structure_type="nonlinear",
             base_lfsr_config=self.base_lfsr_config,
             parameters={
-                'state_size': self.state_size,
-                'field_order': self.base_lfsr_config.field_order
-            }
+                "state_size": self.state_size,
+                "field_order": self.base_lfsr_config.field_order,
+            },
         )
 
     def _clock_nfsr(self, state: List[int]) -> List[int]:
@@ -157,11 +157,7 @@ class NFSR(AdvancedLFSR):
         new_state = [feedback] + state[:-1]
         return new_state
 
-    def generate_sequence(
-        self,
-        initial_state: List[int],
-        length: int
-    ) -> List[int]:
+    def generate_sequence(self, initial_state: List[int], length: int) -> List[int]:
         """
         Generate sequence from initial state.
 
@@ -199,35 +195,31 @@ class NFSR(AdvancedLFSR):
             Dictionary of structure properties
         """
         return {
-            'structure_type': 'NFSR',
-            'base_lfsr_degree': self.base_lfsr_config.degree,
-            'base_lfsr_field_order': self.base_lfsr_config.field_order,
-            'state_size': self.state_size,
-            'has_nonlinear_feedback': True,
-            'note': 'NFSR uses non-linear feedback function (not pure LFSR)'
+            "structure_type": "NFSR",
+            "base_lfsr_degree": self.base_lfsr_config.degree,
+            "base_lfsr_field_order": self.base_lfsr_config.field_order,
+            "state_size": self.state_size,
+            "has_nonlinear_feedback": True,
+            "note": "NFSR uses non-linear feedback function (not pure LFSR)",
         }
 
-    def _assess_security(
-        self,
-        structure_properties: dict
-    ) -> dict:
+    def _assess_security(self, structure_properties: dict) -> dict:
         """Assess NFSR security."""
         return {
-            'nonlinearity': 'Non-linear feedback provides resistance to linear attacks',
-            'known_vulnerabilities': [
-                'Algebraic attacks (if non-linearity is low)',
-                'Correlation attacks (if correlations exist)'
+            "nonlinearity": "Non-linear feedback provides resistance to linear attacks",
+            "known_vulnerabilities": [
+                "Algebraic attacks (if non-linearity is low)",
+                "Correlation attacks (if correlations exist)",
             ],
-            'recommendations': [
-                'Ensure sufficient non-linearity in feedback',
-                'Consider filtered output for additional security'
-            ]
+            "recommendations": [
+                "Ensure sufficient non-linearity in feedback",
+                "Consider filtered output for additional security",
+            ],
         }
 
 
 def create_simple_nfsr(
-    base_lfsr_config: LFSRConfig,
-    nonlinear_terms: Optional[List[tuple]] = None
+    base_lfsr_config: LFSRConfig, nonlinear_terms: Optional[List[tuple]] = None
 ) -> NFSR:
     """
     Create a simple NFSR with specified non-linear terms.
@@ -265,7 +257,7 @@ def create_simple_nfsr(
         if nonlinear_terms:
             for i, j in nonlinear_terms:
                 if 0 <= i < degree and 0 <= j < degree:
-                    nonlinear ^= (state[i] & state[j])
+                    nonlinear ^= state[i] & state[j]
 
         return linear ^ nonlinear
 

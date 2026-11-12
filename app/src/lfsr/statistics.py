@@ -132,7 +132,9 @@ def autocorrelation(sequence: List[int], lag: int = 1) -> float:
     mean = sum(seq_binary) / n
 
     # Calculate autocorrelation
-    numerator = sum((seq_binary[i] - mean) * (seq_binary[i + lag] - mean) for i in range(n - lag))
+    numerator = sum(
+        (seq_binary[i] - mean) * (seq_binary[i + lag] - mean) for i in range(n - lag)
+    )
     denominator = sum((seq_binary[i] - mean) ** 2 for i in range(n))
 
     if denominator == 0:
@@ -141,7 +143,9 @@ def autocorrelation(sequence: List[int], lag: int = 1) -> float:
     return numerator / denominator
 
 
-def periodicity_test(sequence: List[int], max_period: Optional[int] = None) -> Dict[str, any]:
+def periodicity_test(
+    sequence: List[int], max_period: Optional[int] = None
+) -> Dict[str, any]:
     """
     Test for periodicity in a sequence.
 
@@ -342,7 +346,9 @@ def compute_period_distribution(
     # Comparison with theoretical bounds
     comparison = {
         "max_period_equals_theoretical": max_period == max_theoretical_period,
-        "max_period_ratio": max_period / max_theoretical_period if max_theoretical_period > 0 else 0.0,
+        "max_period_ratio": max_period / max_theoretical_period
+        if max_theoretical_period > 0
+        else 0.0,
     }
 
     if is_primitive:
@@ -351,13 +357,17 @@ def compute_period_distribution(
         comparison["all_periods_maximum"] = all_max_period
         comparison["expected_period"] = expected_period
         comparison["expected_sequences"] = expected_sequences
-        comparison["actual_sequences_with_max_period"] = period_frequency.get(max_theoretical_period, 0)
+        comparison["actual_sequences_with_max_period"] = period_frequency.get(
+            max_theoretical_period, 0
+        )
 
     # Period distribution characteristics
     unique_periods = len(period_frequency)
     distribution_info = {
         "unique_periods": unique_periods,
-        "period_diversity": unique_periods / total_sequences if total_sequences > 0 else 0.0,
+        "period_diversity": unique_periods / total_sequences
+        if total_sequences > 0
+        else 0.0,
     }
 
     return {
@@ -374,4 +384,3 @@ def compute_period_distribution(
         "comparison": comparison,
         "distribution_info": distribution_info,
     }
-

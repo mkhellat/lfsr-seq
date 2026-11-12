@@ -88,11 +88,13 @@ def example_shortcut_detection():
         print(f"  Recommended method: {shortcuts['recommended_method']}")
         print(f"  Complexity estimate: {shortcuts['complexity_estimate']}")
 
-        if shortcuts['expected_period']:
+        if shortcuts["expected_period"]:
             print(f"  Expected period: {shortcuts['expected_period']}")
 
-        if shortcuts['shortcuts_available']:
-            print(f"  Shortcuts available: {', '.join(shortcuts['shortcuts_available'])}")
+        if shortcuts["shortcuts_available"]:
+            print(
+                f"  Shortcuts available: {', '.join(shortcuts['shortcuts_available'])}"
+            )
 
 
 def example_result_caching():
@@ -146,7 +148,6 @@ def example_global_cache():
     print("Example 4: Global Cache")
     print("=" * 70)
 
-
     # Get global cache (persistent by default)
     cache = get_global_cache()
 
@@ -192,6 +193,7 @@ def main():
     except Exception as e:
         print(f"\nERROR: {e}", file=sys.stderr)
         import traceback
+
         traceback.print_exc()
         sys.exit(1)
 

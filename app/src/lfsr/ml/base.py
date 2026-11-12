@@ -14,12 +14,14 @@ from typing import Any, Dict, List, Optional
 
 try:
     import numpy as np
+
     HAS_NUMPY = True
 except ImportError:
     HAS_NUMPY = False
 
 try:
     from sklearn.metrics import mean_squared_error, r2_score
+
     HAS_SKLEARN = True
 except ImportError:
     HAS_SKLEARN = False
@@ -36,6 +38,7 @@ class MLModelConfig:
         feature_names: Names of features used
         model_version: Version of the model
     """
+
     model_type: str
     model_params: Dict[str, Any]
     feature_names: List[str]
@@ -152,32 +155,26 @@ class BaseMLModel(ABC):
             r2 = r2_score(y_array, pred_array)
 
             return {
-                'mse': float(mse),
-                'rmse': float(np.sqrt(mse)),
-                'r2_score': float(r2)
+                "mse": float(mse),
+                "rmse": float(np.sqrt(mse)),
+                "r2_score": float(r2),
             }
         else:
             # Fallback calculation without sklearn
             n = len(y)
             mse = sum((y[i] - predictions[i]) ** 2 for i in range(n)) / n
-            rmse = mse ** 0.5
+            rmse = mse**0.5
 
             y_mean = sum(y) / n
             ss_tot = sum((y[i] - y_mean) ** 2 for i in range(n))
             ss_res = sum((y[i] - predictions[i]) ** 2 for i in range(n))
             r2 = 1 - (ss_res / ss_tot) if ss_tot > 0 else 0.0
 
-            return {
-                'mse': mse,
-                'rmse': rmse,
-                'r2_score': r2
-            }
+            return {"mse": mse, "rmse": rmse, "r2_score": r2}
 
 
 def extract_polynomial_features(
-    coefficients: List[int],
-    field_order: int,
-    degree: Optional[int] = None
+    coefficients: List[int], field_order: int, degree: Optional[int] = None
 ) -> List[float]:
     """
     Extract features from polynomial structure for ML models.
@@ -219,11 +216,7 @@ def extract_polynomial_features(
         degree = len(coefficients)
 
     # Basic features
-    features = [
-        float(degree),
-        float(field_order),
-        float(len(coefficients))
-    ]
+    features = [float(degree), float(field_order), float(len(coefficients))]
 
     # Coefficient pattern features
     nonzero_count = sum(1 for c in coefficients if c != 0)
@@ -233,8 +226,8 @@ def extract_polynomial_features(
     features.append(sparsity)
 
     # Pattern detection
-    is_trinomial = (nonzero_count == 3)
-    is_pentanomial = (nonzero_count == 5)
+    is_trinomial = nonzero_count == 3
+    is_pentanomial = nonzero_count == 5
 
     features.append(1.0 if is_trinomial else 0.0)
     features.append(1.0 if is_pentanomial else 0.0)
@@ -274,7 +267,9 @@ def extract_polynomial_features(
             char_poly = ring([(-c) % field_order for c in coefficients] + [1])
 
             is_irreducible = 1.0 if char_poly.is_irreducible() else 0.0
-            is_primitive = 1.0 if is_primitive_polynomial(char_poly, field_order) else 0.0
+            is_primitive = (
+                1.0 if is_primitive_polynomial(char_poly, field_order) else 0.0
+            )
         except Exception:
             pass
 
@@ -285,8 +280,7 @@ def extract_polynomial_features(
 
 
 def extract_sequence_features(
-    sequence: List[int],
-    max_length: int = 1000
+    sequence: List[int], max_length: int = 1000
 ) -> List[float]:
     """
     Extract features from sequence for ML models.
@@ -303,35 +297,47 @@ def extract_sequence_features(
     if not seq:
         return [0.0] * 10
 
-    features = [
-        float(len(seq)),
-        float(len(set(seq)))  # Unique values
-    ]
+    features = [float(len(seq)), float(len(set(seq)))]  # Unique values
 
     # Statistical features
     if HAS_NUMPY:
         seq_array = np.array(seq)
-        features.extend([
-            float(np.mean(seq_array)),
-            float(np.std(seq_array)) if len(seq_array) > 1 else 0.0,
-            float(np.min(seq_array)),
-            float(np.max(seq_array))
-        ])
+        features.extend(
+            [
+                float(np.mean(seq_array)),
+                float(np.std(seq_array)) if len(seq_array) > 1 else 0.0,
+                float(np.min(seq_array)),
+                float(np.max(seq_array)),
+            ]
+        )
     else:
         # Fallback without numpy
-        features.extend([
-            float(sum(seq) / len(seq)),
-            float((sum((x - sum(seq)/len(seq))**2 for x in seq) / len(seq))**0.5) if len(seq) > 1 else 0.0,
-            float(min(seq)),
-            float(max(seq))
-        ])
+        features.extend(
+            [
+                float(sum(seq) / len(seq)),
+                float(
+                    (sum((x - sum(seq) / len(seq)) ** 2 for x in seq) / len(seq)) ** 0.5
+                )
+                if len(seq) > 1
+                else 0.0,
+                float(min(seq)),
+                float(max(seq)),
+            ]
+        )
 
     # Pattern features
     if len(seq) >= 2:
         # Autocorrelation at lag 1
         mean_val = sum(seq) / len(seq)
-        autocorr = sum((seq[i] - mean_val) * (seq[i+1] - mean_val)
-                      for i in range(len(seq)-1)) / (len(seq) - 1) if len(seq) > 1 else 0.0
+        autocorr = (
+            sum(
+                (seq[i] - mean_val) * (seq[i + 1] - mean_val)
+                for i in range(len(seq) - 1)
+            )
+            / (len(seq) - 1)
+            if len(seq) > 1
+            else 0.0
+        )
         features.append(autocorr)
     else:
         features.append(0.0)

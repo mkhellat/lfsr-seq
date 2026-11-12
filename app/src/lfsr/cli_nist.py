@@ -33,11 +33,11 @@ def load_sequence_from_file(sequence_file: str) -> List[int]:
         FileNotFoundError: If file doesn't exist
     """
     try:
-        with open(sequence_file, 'r') as f:
+        with open(sequence_file, "r") as f:
             content = f.read().strip()
 
         # Try space-separated first
-        if ' ' in content or '\t' in content:
+        if " " in content or "\t" in content:
             bits = content.split()
         else:
             # One per line
@@ -51,12 +51,16 @@ def load_sequence_from_file(sequence_file: str) -> List[int]:
                 try:
                     bit_val = int(bit)
                     if bit_val not in [0, 1]:
-                        raise ValueError(f"Invalid bit value: {bit_val} (must be 0 or 1)")
+                        raise ValueError(
+                            f"Invalid bit value: {bit_val} (must be 0 or 1)"
+                        )
                     sequence.append(bit_val)
                 except ValueError as e:
                     if "Invalid bit value" in str(e):
                         raise
-                    raise ValueError(f"Invalid bit value: {bit} (must be 0 or 1)") from e
+                    raise ValueError(
+                        f"Invalid bit value: {bit} (must be 0 or 1)"
+                    ) from e
 
         return sequence
     except FileNotFoundError as e:
@@ -68,7 +72,7 @@ def perform_nist_test_cli(
     output_file: Optional[TextIO] = None,
     significance_level: float = 0.01,
     block_size: int = 128,
-    output_format: str = "text"
+    output_format: str = "text",
 ) -> None:
     """
     Perform NIST SP 800-22 test suite from CLI.
@@ -89,17 +93,21 @@ def perform_nist_test_cli(
 
     print("Sequence Information:", file=output_file)
     print(f"  Length: {len(sequence)} bits", file=output_file)
-    print(f"  Ones: {sum(sequence)} ({sum(sequence)/len(sequence)*100:.2f}%)", file=output_file)
-    print(f"  Zeros: {len(sequence) - sum(sequence)} ({(len(sequence) - sum(sequence))/len(sequence)*100:.2f}%)", file=output_file)
+    print(
+        f"  Ones: {sum(sequence)} ({sum(sequence)/len(sequence)*100:.2f}%)",
+        file=output_file,
+    )
+    print(
+        f"  Zeros: {len(sequence) - sum(sequence)} ({(len(sequence) - sum(sequence))/len(sequence)*100:.2f}%)",
+        file=output_file,
+    )
     print(f"  Significance Level: {significance_level}", file=output_file)
     print(file=output_file)
 
     # Run test suite
     print("Running NIST SP 800-22 test suite...", file=output_file)
     suite_result = run_nist_test_suite(
-        sequence,
-        significance_level=significance_level,
-        block_size=block_size
+        sequence, significance_level=significance_level, block_size=block_size
     )
 
     print(file=output_file)
@@ -108,7 +116,10 @@ def perform_nist_test_cli(
     print("=" * 70, file=output_file)
     print(file=output_file)
 
-    print(f"Tests Passed: {suite_result.tests_passed}/{suite_result.total_tests}", file=output_file)
+    print(
+        f"Tests Passed: {suite_result.tests_passed}/{suite_result.total_tests}",
+        file=output_file,
+    )
     print(f"Tests Failed: {suite_result.tests_failed}", file=output_file)
     print(f"Pass Rate: {suite_result.pass_rate:.2%}", file=output_file)
     print(f"Overall Assessment: {suite_result.overall_assessment}", file=output_file)
@@ -123,7 +134,10 @@ def perform_nist_test_cli(
 
     for result in suite_result.results:
         status = "✓ PASS" if result.passed else "✗ FAIL"
-        print(f"{result.test_name:<50} {result.p_value:>10.6f}  {status:<10}", file=output_file)
+        print(
+            f"{result.test_name:<50} {result.p_value:>10.6f}  {status:<10}",
+            file=output_file,
+        )
 
     print(file=output_file)
     print("=" * 70, file=output_file)
@@ -150,31 +164,46 @@ def perform_nist_test_cli(
 
     if suite_result.overall_assessment == "PASSED":
         print("✓ The sequence PASSED the NIST test suite.", file=output_file)
-        print("  The sequence appears to exhibit properties expected of", file=output_file)
+        print(
+            "  The sequence appears to exhibit properties expected of", file=output_file
+        )
         print("  a random sequence. This is a positive indicator for", file=output_file)
         print("  cryptographic applications.", file=output_file)
     else:
         print("✗ The sequence FAILED the NIST test suite.", file=output_file)
-        print("  The sequence shows deviations from randomness. This may", file=output_file)
-        print("  indicate non-randomness or insufficient sequence length.", file=output_file)
+        print(
+            "  The sequence shows deviations from randomness. This may",
+            file=output_file,
+        )
+        print(
+            "  indicate non-randomness or insufficient sequence length.",
+            file=output_file,
+        )
         print("  Review individual test results for specific issues.", file=output_file)
 
     print(file=output_file)
     print("Note: A single test failure does not necessarily mean the", file=output_file)
-    print("      sequence is non-random. Consider the overall pattern", file=output_file)
+    print(
+        "      sequence is non-random. Consider the overall pattern", file=output_file
+    )
     print("      of results and sequence length requirements.", file=output_file)
 
     # Export in requested format if not text
     if output_format != "text":
         from lfsr.export import get_nist_export_function
+
         try:
             export_func = get_nist_export_function(output_format)
             # Create a new file for the export format
-            if hasattr(output_file, 'name') and output_file.name:
+            if hasattr(output_file, "name") and output_file.name:
                 # If output_file has a name, create export file with appropriate extension
-                base_name = output_file.name.rsplit('.', 1)[0] if '.' in output_file.name else output_file.name
+                base_name = (
+                    output_file.name.rsplit(".", 1)[0]
+                    if "." in output_file.name
+                    else output_file.name
+                )
                 export_filename = f"{base_name}.{output_format}"
-                with open(export_filename, 'w', encoding='utf-8') as export_file:
+                with open(export_filename, "w", encoding="utf-8") as export_file:
                     export_func(suite_result, export_file)
                 print(f"\n{'='*70}", file=output_file)
                 print(f"Results exported to: {export_filename}", file=output_file)
@@ -182,7 +211,13 @@ def perform_nist_test_cli(
                 # If no filename, write to the same file (for stdout, this won't work well)
                 # In this case, we'll just note that export format was requested
                 print(f"\n{'='*70}", file=output_file)
-                print(f"Note: Export format '{output_format}' requested but no output file specified.", file=output_file)
-                print("      Please use --output to specify a file for export.", file=output_file)
+                print(
+                    f"Note: Export format '{output_format}' requested but no output file specified.",
+                    file=output_file,
+                )
+                print(
+                    "      Please use --output to specify a file for export.",
+                    file=output_file,
+                )
         except ValueError as e:
             print(f"\nWARNING: Export failed: {e}", file=output_file)

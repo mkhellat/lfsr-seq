@@ -102,13 +102,13 @@ class A5_2(StreamCipher):
             iv_size=22,
             description="A5/2 GSM stream cipher (weaker variant, 4 LFSRs)",
             parameters={
-                'lfsr1_size': self.LFSR1_SIZE,
-                'lfsr2_size': self.LFSR2_SIZE,
-                'lfsr3_size': self.LFSR3_SIZE,
-                'lfsr4_size': self.LFSR4_SIZE,
-                'warmup_steps': self.WARMUP_STEPS,
-                'security_warning': 'A5/2 is completely insecure'
-            }
+                "lfsr1_size": self.LFSR1_SIZE,
+                "lfsr2_size": self.LFSR2_SIZE,
+                "lfsr3_size": self.LFSR3_SIZE,
+                "lfsr4_size": self.LFSR4_SIZE,
+                "warmup_steps": self.WARMUP_STEPS,
+                "security_warning": "A5/2 is completely insecure",
+            },
         )
 
     def _majority(self, a: int, b: int, c: int) -> int:
@@ -202,10 +202,7 @@ class A5_2(StreamCipher):
             self._clock_controlled()
 
     def generate_keystream(
-        self,
-        key: List[int],
-        iv: Optional[List[int]],
-        length: int
+        self, key: List[int], iv: Optional[List[int]], length: int
     ) -> List[int]:
         """
         Generate A5/2 keystream.
@@ -270,26 +267,24 @@ class A5_2(StreamCipher):
             combiner="XOR of four LFSR output bits",
             state_size=81,  # 19 + 22 + 23 + 17
             details={
-                'lfsr1_size': 19,
-                'lfsr2_size': 22,
-                'lfsr3_size': 23,
-                'lfsr4_size': 17,
-                'warmup_steps': self.WARMUP_STEPS,
-                'security_warning': 'A5/2 is completely insecure'
-            }
+                "lfsr1_size": 19,
+                "lfsr2_size": 22,
+                "lfsr3_size": 23,
+                "lfsr4_size": 17,
+                "warmup_steps": self.WARMUP_STEPS,
+                "security_warning": "A5/2 is completely insecure",
+            },
         )
 
     def apply_attacks(
-        self,
-        keystream: List[int],
-        attack_types: Optional[List[str]] = None
+        self, keystream: List[int], attack_types: Optional[List[str]] = None
     ) -> dict:
         """Apply attacks to A5/2 keystream."""
         return {
-            'note': 'A5/2 is completely broken',
-            'known_vulnerabilities': [
-                'Complete break (Barkan et al., 2003)',
-                'Real-time key recovery',
-                'Deliberately weakened design'
-            ]
+            "note": "A5/2 is completely broken",
+            "known_vulnerabilities": [
+                "Complete break (Barkan et al., 2003)",
+                "Real-time key recovery",
+                "Deliberately weakened design",
+            ],
         }

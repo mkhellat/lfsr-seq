@@ -18,7 +18,7 @@ def generate_state_transition_diagram(
     period_dict: Dict[int, int],
     max_states: int = 50,
     config: Optional[VisualizationConfig] = None,
-    output_file: Optional[str] = None
+    output_file: Optional[str] = None,
 ) -> Any:
     """
     Generate state transition diagram.
@@ -77,7 +77,7 @@ def _generate_diagram_networkx(
     period_dict: Dict[int, int],
     max_states: int,
     config: VisualizationConfig,
-    output_file: Optional[str]
+    output_file: Optional[str],
 ) -> Any:
     """Generate state transition diagram using NetworkX."""
     import matplotlib.pyplot as plt
@@ -117,17 +117,23 @@ def _generate_diagram_networkx(
     pos = nx.spring_layout(G, k=1, iterations=50)
 
     # Draw nodes and edges
-    nx.draw_networkx_nodes(G, pos, ax=ax, node_color='lightblue', node_size=500, alpha=0.7)
-    nx.draw_networkx_edges(G, pos, ax=ax, edge_color='gray', alpha=0.5, arrows=True, arrowsize=20)
+    nx.draw_networkx_nodes(
+        G, pos, ax=ax, node_color="lightblue", node_size=500, alpha=0.7
+    )
+    nx.draw_networkx_edges(
+        G, pos, ax=ax, edge_color="gray", alpha=0.5, arrows=True, arrowsize=20
+    )
     nx.draw_networkx_labels(G, pos, ax=ax, font_size=8)
 
-    ax.set_title(config.title or "State Transition Diagram", fontsize=14, fontweight='bold')
-    ax.axis('off')
+    ax.set_title(
+        config.title or "State Transition Diagram", fontsize=14, fontweight="bold"
+    )
+    ax.axis("off")
 
     plt.tight_layout()
 
     if output_file:
-        fig.savefig(output_file, dpi=config.dpi, bbox_inches='tight')
+        fig.savefig(output_file, dpi=config.dpi, bbox_inches="tight")
 
     return fig
 
@@ -137,7 +143,7 @@ def _generate_diagram_matplotlib(
     period_dict: Dict[int, int],
     max_states: int,
     config: VisualizationConfig,
-    output_file: Optional[str]
+    output_file: Optional[str],
 ) -> Any:
     """Generate simplified state transition diagram using matplotlib."""
     import matplotlib.pyplot as plt
@@ -164,9 +170,9 @@ def _generate_diagram_matplotlib(
                 x = 0.5 + 0.3 * np.cos(angle)
                 y = 0.5 + y_offset + 0.3 * np.sin(angle)
 
-                circle = plt.Circle((x, y), 0.05, color='lightblue', alpha=0.7)
+                circle = plt.Circle((x, y), 0.05, color="lightblue", alpha=0.7)
                 ax.add_patch(circle)
-                ax.text(x, y, str(state)[:3], ha='center', va='center', fontsize=6)
+                ax.text(x, y, str(state)[:3], ha="center", va="center", fontsize=6)
 
             y_offset += 0.8
             state_count += period
@@ -176,13 +182,17 @@ def _generate_diagram_matplotlib(
 
     ax.set_xlim(0, 1)
     ax.set_ylim(0, y_offset + 0.5)
-    ax.set_title(config.title or "State Transition Diagram (Simplified)", fontsize=14, fontweight='bold')
-    ax.axis('off')
+    ax.set_title(
+        config.title or "State Transition Diagram (Simplified)",
+        fontsize=14,
+        fontweight="bold",
+    )
+    ax.axis("off")
 
     plt.tight_layout()
 
     if output_file:
-        fig.savefig(output_file, dpi=config.dpi, bbox_inches='tight')
+        fig.savefig(output_file, dpi=config.dpi, bbox_inches="tight")
 
     return fig
 
@@ -191,7 +201,7 @@ def export_to_graphviz(
     state_sequences: Dict[int, List[Any]],
     period_dict: Dict[int, int],
     output_file: str,
-    max_states: int = 50
+    max_states: int = 50,
 ) -> None:
     """
     Export state transition diagram to Graphviz DOT format.
@@ -226,7 +236,7 @@ def export_to_graphviz(
                 break
 
     # Write DOT file
-    with open(output_file, 'w') as f:
+    with open(output_file, "w") as f:
         f.write("digraph StateTransitions {\n")
         f.write("  rankdir=LR;\n")
         f.write("  node [shape=circle];\n")

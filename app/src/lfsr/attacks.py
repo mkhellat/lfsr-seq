@@ -83,14 +83,17 @@ from lfsr.sage_imports import *
 # Import norm after sage imports to avoid conflicts
 try:
     from scipy.stats import norm as scipy_norm
+
     norm = scipy_norm
     SCIPY_AVAILABLE = True
 except ImportError:
     SCIPY_AVAILABLE = False
+
     # Fallback: simple normal approximation using class to match scipy interface
     class _NormFallback:
         """Fallback normal distribution functions when scipy is not
         available."""
+
         @staticmethod
         def ppf(p):
             """Approximation of the standard normal quantile function
@@ -101,39 +104,66 @@ except ImportError:
                 raise ValueError("p must be in the open interval (0, 1)")
 
             # Coefficients for the rational approximations (Acklam, 2003).
-            a = [-3.969683028665376e+01, 2.209460984245205e+02,
-                 -2.759285104469687e+02, 1.383577518672690e+02,
-                 -3.066479806614716e+01, 2.506628277459239e+00]
-            b = [-5.447609879822406e+01, 1.615858368580409e+02,
-                 -1.556989798598866e+02, 6.680131188771972e+01,
-                 -1.328068155288572e+01]
-            c = [-7.784894002430293e-03, -3.223964580411365e-01,
-                 -2.400758277161838e+00, -2.549732539343734e+00,
-                 4.374664141464968e+00, 2.938163982698783e+00]
-            d = [7.784695709041462e-03, 3.224671290700398e-01,
-                 2.445134137142996e+00, 3.754408661907416e+00]
+            a = [
+                -3.969683028665376e01,
+                2.209460984245205e02,
+                -2.759285104469687e02,
+                1.383577518672690e02,
+                -3.066479806614716e01,
+                2.506628277459239e00,
+            ]
+            b = [
+                -5.447609879822406e01,
+                1.615858368580409e02,
+                -1.556989798598866e02,
+                6.680131188771972e01,
+                -1.328068155288572e01,
+            ]
+            c = [
+                -7.784894002430293e-03,
+                -3.223964580411365e-01,
+                -2.400758277161838e00,
+                -2.549732539343734e00,
+                4.374664141464968e00,
+                2.938163982698783e00,
+            ]
+            d = [
+                7.784695709041462e-03,
+                3.224671290700398e-01,
+                2.445134137142996e00,
+                3.754408661907416e00,
+            ]
 
             p_low = 0.02425
             p_high = 1 - p_low
 
             if p < p_low:
                 q = math.sqrt(-2 * math.log(p))
-                return (((((c[0] * q + c[1]) * q + c[2]) * q + c[3]) * q + c[4]) * q + c[5]) / \
-                       ((((d[0] * q + d[1]) * q + d[2]) * q + d[3]) * q + 1)
+                return (
+                    ((((c[0] * q + c[1]) * q + c[2]) * q + c[3]) * q + c[4]) * q + c[5]
+                ) / ((((d[0] * q + d[1]) * q + d[2]) * q + d[3]) * q + 1)
             elif p <= p_high:
                 q = p - 0.5
                 r = q * q
-                return (((((a[0] * r + a[1]) * r + a[2]) * r + a[3]) * r + a[4]) * r + a[5]) * q / \
-                       (((((b[0] * r + b[1]) * r + b[2]) * r + b[3]) * r + b[4]) * r + 1)
+                return (
+                    (
+                        ((((a[0] * r + a[1]) * r + a[2]) * r + a[3]) * r + a[4]) * r
+                        + a[5]
+                    )
+                    * q
+                    / (((((b[0] * r + b[1]) * r + b[2]) * r + b[3]) * r + b[4]) * r + 1)
+                )
             else:
                 q = math.sqrt(-2 * math.log(1 - p))
-                return -(((((c[0] * q + c[1]) * q + c[2]) * q + c[3]) * q + c[4]) * q + c[5]) / \
-                        ((((d[0] * q + d[1]) * q + d[2]) * q + d[3]) * q + 1)
+                return -(
+                    ((((c[0] * q + c[1]) * q + c[2]) * q + c[3]) * q + c[4]) * q + c[5]
+                ) / ((((d[0] * q + d[1]) * q + d[2]) * q + d[3]) * q + 1)
 
         @staticmethod
         def cdf(x):
             """Simple approximation of normal CDF."""
             import math
+
             return 0.5 * (1 + math.erf(x / math.sqrt(2)))
 
     norm = _NormFallback()
@@ -159,6 +189,7 @@ class LFSRConfig:
         ...     degree=4
         ... )
     """
+
     coefficients: List[int]
     field_order: int
     degree: int
@@ -192,11 +223,14 @@ class CombinationGenerator:
         ...     function_name='xor'
         ... )
     """
+
     lfsrs: List[LFSRConfig]
     combining_function: Callable
     function_name: str
 
-    def generate_keystream(self, length: int, initial_states: Optional[List[List[int]]] = None) -> List[int]:
+    def generate_keystream(
+        self, length: int, initial_states: Optional[List[List[int]]] = None
+    ) -> List[int]:
         """
         Generate keystream from the combination generator.
 
@@ -214,7 +248,9 @@ class CombinationGenerator:
         matrices = []
 
         for idx, lfsr_config in enumerate(self.lfsrs):
-            C, CS = build_state_update_matrix(lfsr_config.coefficients, lfsr_config.field_order)
+            C, CS = build_state_update_matrix(
+                lfsr_config.coefficients, lfsr_config.field_order
+            )
             matrices.append((C, CS))
 
             if initial_states and idx < len(initial_states):
@@ -223,7 +259,9 @@ class CombinationGenerator:
                 state = vector(GF(lfsr_config.field_order), lfsr_config.initial_state)
             else:
                 # Default: [1, 0, 0, ..., 0]
-                state = vector(GF(lfsr_config.field_order), [1] + [0] * (lfsr_config.degree - 1))
+                state = vector(
+                    GF(lfsr_config.field_order), [1] + [0] * (lfsr_config.degree - 1)
+                )
 
             states.append(state)
 
@@ -246,7 +284,9 @@ class CombinationGenerator:
 
         return keystream
 
-    def generate_lfsr_sequence(self, lfsr_index: int, length: int, initial_state: Optional[List[int]] = None) -> List[int]:
+    def generate_lfsr_sequence(
+        self, lfsr_index: int, length: int, initial_state: Optional[List[int]] = None
+    ) -> List[int]:
         """
         Generate sequence from a single LFSR (for correlation analysis).
 
@@ -261,14 +301,18 @@ class CombinationGenerator:
         from lfsr.core import build_state_update_matrix
 
         lfsr_config = self.lfsrs[lfsr_index]
-        C, CS = build_state_update_matrix(lfsr_config.coefficients, lfsr_config.field_order)
+        C, CS = build_state_update_matrix(
+            lfsr_config.coefficients, lfsr_config.field_order
+        )
 
         if initial_state:
             state = vector(GF(lfsr_config.field_order), initial_state)
         elif lfsr_config.initial_state:
             state = vector(GF(lfsr_config.field_order), lfsr_config.initial_state)
         else:
-            state = vector(GF(lfsr_config.field_order), [1] + [0] * (lfsr_config.degree - 1))
+            state = vector(
+                GF(lfsr_config.field_order), [1] + [0] * (lfsr_config.degree - 1)
+            )
 
         sequence = []
         for _ in range(length):
@@ -303,6 +347,7 @@ class CorrelationAttackResult:
         total_bits: Total number of bits compared
         match_ratio: Ratio of matches to total bits
     """
+
     target_lfsr_index: int
     correlation_coefficient: float
     p_value: float
@@ -332,6 +377,7 @@ class FastCorrelationAttackResult:
         complexity_estimate: Estimated computational complexity
         keystream_length: Length of keystream used
     """
+
     target_lfsr_index: int
     recovered_state: Optional[List[int]]
     correlation_coefficient: float
@@ -358,6 +404,7 @@ class DistinguishingAttackResult:
           "correlation", "statistical")
         details: Additional details about the attack
     """
+
     distinguishable: bool
     distinguishing_statistic: float
     p_value: float
@@ -367,8 +414,7 @@ class DistinguishingAttackResult:
 
 
 def compute_correlation_coefficient(
-    sequence1: List[int],
-    sequence2: List[int]
+    sequence1: List[int], sequence2: List[int]
 ) -> Tuple[float, float, Dict[str, Any]]:
     """
     Compute correlation coefficient between two binary sequences.
@@ -405,7 +451,9 @@ def compute_correlation_coefficient(
         >>> print(f"Correlation: {rho:.3f}, p-value: {p:.3f}")
     """
     if len(sequence1) != len(sequence2):
-        raise ValueError(f"Sequences must have same length: {len(sequence1)} != {len(sequence2)}")
+        raise ValueError(
+            f"Sequences must have same length: {len(sequence1)} != {len(sequence2)}"
+        )
 
     n = len(sequence1)
     if n == 0:
@@ -459,7 +507,7 @@ def estimate_attack_success_probability(
     lfsr_degree: int,
     field_order: int = 2,
     significance_level: float = 0.05,
-    target_success_probability: float = 0.95
+    target_success_probability: float = 0.95,
 ) -> Dict[str, Any]:
     """
     Estimate the probability that a correlation attack will succeed.
@@ -535,7 +583,7 @@ def estimate_attack_success_probability(
     abs_correlation = abs(correlation_coefficient)
 
     # State space size
-    state_space_size = field_order ** lfsr_degree
+    state_space_size = field_order**lfsr_degree
 
     # Detection probability using normal approximation
     # For binary sequences, under null hypothesis: E[matches] = n/2, Var = n/4
@@ -565,7 +613,7 @@ def estimate_attack_success_probability(
     # 2. Correlation is strong enough
 
     # Rough feasibility threshold: state space < 2^40
-    max_feasible_state_space = 2 ** 40
+    max_feasible_state_space = 2**40
 
     if state_space_size > max_feasible_state_space:
         recovery_prob = 0.0
@@ -593,17 +641,21 @@ def estimate_attack_success_probability(
         # P_detect = 1 - Φ(z_critical - |rho|√n / se)
         # Solving for n:
         z_target = abs(norm.ppf((1 - target_success_probability) / 2))
-        required_bits = int((z_target / abs_correlation) ** 2) if abs_correlation > 0.001 else 1000000
+        required_bits = (
+            int((z_target / abs_correlation) ** 2)
+            if abs_correlation > 0.001
+            else 1000000
+        )
     else:
         required_bits = 1000000  # Very large if no correlation
 
     return {
-        'detection_probability': detection_prob,
-        'recovery_probability': recovery_prob,
-        'overall_success_probability': overall_success_prob,
-        'required_keystream_bits': required_bits,
-        'feasible': feasible,
-        'state_space_size': state_space_size
+        "detection_probability": detection_prob,
+        "recovery_probability": recovery_prob,
+        "overall_success_probability": overall_success_prob,
+        "required_keystream_bits": required_bits,
+        "feasible": feasible,
+        "state_space_size": state_space_size,
     }
 
 
@@ -612,7 +664,7 @@ def siegenthaler_correlation_attack(
     keystream: List[int],
     target_lfsr_index: int,
     significance_level: float = 0.05,
-    max_sequence_length: int = 10000
+    max_sequence_length: int = 10000,
 ) -> CorrelationAttackResult:
     """
     Perform Siegenthaler's basic correlation attack.
@@ -678,8 +730,7 @@ def siegenthaler_correlation_attack(
     # Try different initial states to find best correlation
     # For now, use default initial state
     lfsr_sequence = combination_generator.generate_lfsr_sequence(
-        target_lfsr_index,
-        min(n, max_sequence_length)
+        target_lfsr_index, min(n, max_sequence_length)
     )
 
     # Truncate to match keystream length
@@ -691,7 +742,9 @@ def siegenthaler_correlation_attack(
         lfsr_sequence = lfsr_sequence[:n]
 
     # Compute correlation
-    correlation, p_value, stats = compute_correlation_coefficient(keystream, lfsr_sequence)
+    correlation, p_value, stats = compute_correlation_coefficient(
+        keystream, lfsr_sequence
+    )
 
     # Determine if attack is successful
     # Attack succeeds if correlation is significantly different from 0
@@ -702,14 +755,16 @@ def siegenthaler_correlation_attack(
     # This is a simplified estimate
     if abs(correlation) > 0:
         # Rough estimate based on correlation strength
-        required_bits = int(100 / (correlation ** 2)) if abs(correlation) > 0.01 else 10000
+        required_bits = (
+            int(100 / (correlation**2)) if abs(correlation) > 0.01 else 10000
+        )
     else:
         required_bits = 10000
 
     # Estimate complexity
     # Complexity is roughly O(2^d) where d is LFSR degree (brute force state recovery)
     lfsr_config = combination_generator.lfsrs[target_lfsr_index]
-    state_space_size = lfsr_config.field_order ** lfsr_config.degree
+    state_space_size = lfsr_config.field_order**lfsr_config.degree
     complexity_estimate = float(state_space_size)
 
     # Estimate attack success probability
@@ -718,31 +773,29 @@ def siegenthaler_correlation_attack(
         keystream_length=n,
         lfsr_degree=lfsr_config.degree,
         field_order=lfsr_config.field_order,
-        significance_level=significance_level
+        significance_level=significance_level,
     )
 
     # Use more accurate required bits from probability estimation if available
-    if prob_estimate['required_keystream_bits'] < required_bits:
-        required_bits = prob_estimate['required_keystream_bits']
+    if prob_estimate["required_keystream_bits"] < required_bits:
+        required_bits = prob_estimate["required_keystream_bits"]
 
     return CorrelationAttackResult(
         target_lfsr_index=target_lfsr_index,
         correlation_coefficient=correlation,
         p_value=p_value,
         attack_successful=attack_successful,
-        success_probability=prob_estimate['overall_success_probability'],
+        success_probability=prob_estimate["overall_success_probability"],
         required_keystream_bits=required_bits,
         complexity_estimate=complexity_estimate,
         matches=stats["matches"],
         total_bits=stats["total_bits"],
-        match_ratio=stats["match_ratio"]
+        match_ratio=stats["match_ratio"],
     )
 
 
 def analyze_combining_function(
-    function: Callable,
-    num_inputs: int,
-    field_order: int = 2
+    function: Callable, num_inputs: int, field_order: int = 2
 ) -> Dict[str, Any]:
     """
     Analyze correlation properties of a combining function.
@@ -776,7 +829,7 @@ def analyze_combining_function(
     output_counts = Counter()
 
     # Enumerate all possible inputs
-    num_combinations = field_order ** num_inputs
+    num_combinations = field_order**num_inputs
 
     for i in range(num_combinations):
         # Convert i to base-field_order representation
@@ -798,7 +851,10 @@ def analyze_combining_function(
 
     # Compute bias (deviation from uniform)
     expected_count = num_combinations / field_order
-    bias = max(abs(count - expected_count) for count in output_counts.values()) / num_combinations
+    bias = (
+        max(abs(count - expected_count) for count in output_counts.values())
+        / num_combinations
+    )
 
     # Correlation immunity analysis (simplified)
     # For full analysis, would need to check all subsets of inputs
@@ -812,7 +868,7 @@ def analyze_combining_function(
         "truth_table": truth_table,
         "output_distribution": dict(output_counts),
         "num_inputs": num_inputs,
-        "field_order": field_order
+        "field_order": field_order,
     }
 
 
@@ -831,6 +887,7 @@ class AlgebraicAttackResult:
         method_used: Method used (e.g., "groebner_basis", "cube_attack")
         details: Additional details about the attack
     """
+
     attack_successful: bool
     recovered_state: Optional[List[int]]
     algebraic_immunity: int
@@ -854,6 +911,7 @@ class CubeAttackResult:
         complexity_estimate: Estimated computational complexity
         details: Additional details about the attack
     """
+
     attack_successful: bool
     cubes_found: int
     superpolies_computed: int
@@ -863,9 +921,7 @@ class CubeAttackResult:
 
 
 def compute_algebraic_immunity(
-    function: Callable,
-    num_inputs: int,
-    field_order: int = 2
+    function: Callable, num_inputs: int, field_order: int = 2
 ) -> Dict[str, Any]:
     """
     Compute the algebraic immunity of a Boolean function.
@@ -959,16 +1015,16 @@ def compute_algebraic_immunity(
     if field_order != 2:
         # For now, only support binary functions
         return {
-            'algebraic_immunity': 0,
-            'annihilators_found': [],
-            'optimal': False,
-            'max_possible': 0,
-            'error': 'Only binary functions (field_order=2) are currently supported'
+            "algebraic_immunity": 0,
+            "annihilators_found": [],
+            "optimal": False,
+            "max_possible": 0,
+            "error": "Only binary functions (field_order=2) are currently supported",
         }
 
     # Generate truth table
     truth_table = []
-    for i in range(2 ** num_inputs):
+    for i in range(2**num_inputs):
         # Convert i to binary representation
         inputs = [(i >> j) & 1 for j in range(num_inputs)]
         output = function(*inputs)
@@ -1024,14 +1080,14 @@ def compute_algebraic_immunity(
     if min_degree is None:
         min_degree = max_possible
 
-    optimal = (min_degree == max_possible)
+    optimal = min_degree == max_possible
 
     return {
-        'algebraic_immunity': min_degree,
-        'annihilators_found': annihilators_found,
-        'optimal': optimal,
-        'max_possible': max_possible,
-        'num_inputs': num_inputs
+        "algebraic_immunity": min_degree,
+        "annihilators_found": annihilators_found,
+        "optimal": optimal,
+        "max_possible": max_possible,
+        "num_inputs": num_inputs,
     }
 
 
@@ -1039,7 +1095,7 @@ def groebner_basis_attack(
     lfsr_config: LFSRConfig,
     keystream: List[int],
     filtering_function: Optional[Callable] = None,
-    max_equations: int = 1000
+    max_equations: int = 1000,
 ) -> AlgebraicAttackResult:
     """
     Perform Gröbner basis attack on an LFSR.
@@ -1136,12 +1192,12 @@ def groebner_basis_attack(
             equations_solved=0,
             complexity_estimate=0.0,
             method_used="groebner_basis",
-            details={'error': f'Insufficient keystream: {n} < {d}'}
+            details={"error": f"Insufficient keystream: {n} < {d}"},
         )
 
     try:
         F = GF(field_order)
-        R = PolynomialRing(F, ['x%d' % i for i in range(d)])
+        R = PolynomialRing(F, ["x%d" % i for i in range(d)])
 
         # Build state update matrix
         C, CS = build_state_update_matrix(lfsr_config.coefficients, field_order)
@@ -1183,10 +1239,10 @@ def groebner_basis_attack(
             complexity_estimate=complexity,
             method_used="groebner_basis",
             details={
-                'groebner_basis_size': len(G),
-                'equations_used': len(equations),
-                'keystream_length': n
-            }
+                "groebner_basis_size": len(G),
+                "equations_used": len(equations),
+                "keystream_length": n,
+            },
         )
 
     except (TypeError, ValueError, AttributeError, ArithmeticError) as e:
@@ -1197,7 +1253,7 @@ def groebner_basis_attack(
             equations_solved=0,
             complexity_estimate=0.0,
             method_used="groebner_basis",
-            details={'error': str(e)}
+            details={"error": str(e)},
         )
 
 
@@ -1205,7 +1261,7 @@ def cube_attack(
     lfsr_config: LFSRConfig,
     keystream: List[int],
     filtering_function: Optional[Callable] = None,
-    max_cube_size: int = 10
+    max_cube_size: int = 10,
 ) -> CubeAttackResult:
     """
     Perform cube attack on an LFSR.
@@ -1301,14 +1357,14 @@ def cube_attack(
     n = len(keystream)
     d = lfsr_config.degree
 
-    if n < 2 ** max_cube_size:
+    if n < 2**max_cube_size:
         return CubeAttackResult(
             attack_successful=False,
             cubes_found=0,
             superpolies_computed=0,
             recovered_bits=0,
             complexity_estimate=0.0,
-            details={'error': f'Insufficient keystream for cube size {max_cube_size}'}
+            details={"error": f"Insufficient keystream for cube size {max_cube_size}"},
         )
 
     # This is a simplified placeholder implementation
@@ -1329,19 +1385,19 @@ def cube_attack(
         # select cubes based on ANF analysis
 
         # Estimate complexity
-        complexity = 2 ** cube_size * n
+        complexity = 2**cube_size * n
 
     return CubeAttackResult(
         attack_successful=attack_successful,
         cubes_found=cubes_found,
         superpolies_computed=superpolies_computed,
         recovered_bits=recovered_bits,
-        complexity_estimate=complexity if 'complexity' in locals() else 0.0,
+        complexity_estimate=complexity if "complexity" in locals() else 0.0,
         details={
-            'max_cube_size_tried': max_cube_size,
-            'keystream_length': n,
-            'lfsr_degree': d
-        }
+            "max_cube_size_tried": max_cube_size,
+            "keystream_length": n,
+            "lfsr_degree": d,
+        },
     )
 
 
@@ -1352,7 +1408,7 @@ def fast_correlation_attack(
     max_candidates: int = 1000,
     max_iterations: int = 10,
     correlation_threshold: float = 0.1,
-    significance_level: float = 0.05
+    significance_level: float = 0.05,
 ) -> FastCorrelationAttackResult:
     """
     Perform Meier-Staffelbach fast correlation attack.
@@ -1416,7 +1472,7 @@ def fast_correlation_attack(
             candidate_states_tested=0,
             best_correlation=0.0,
             complexity_estimate=0.0,
-            keystream_length=n
+            keystream_length=n,
         )
 
     target_lfsr = combination_generator.lfsrs[target_lfsr_index]
@@ -1471,7 +1527,8 @@ def fast_correlation_attack(
     # max_candidates candidates is fine, the caller only ever iterates
     # over however many were actually produced.
     import random
-    max_attempts = max(field_order ** d, 100)
+
+    max_attempts = max(field_order**d, 100)
     attempts = 0
     while len(candidates) < max_candidates and attempts < max_attempts:
         state = [F(random.randint(0, field_order - 1)) for _ in range(d)]
@@ -1489,6 +1546,7 @@ def fast_correlation_attack(
     for candidate_state in candidates:
         # Generate sequence from this candidate
         from lfsr.sage_imports import vector as sage_vector
+
         state_vec = sage_vector(F, candidate_state)
         sequence = []
         current_state = state_vec
@@ -1520,10 +1578,15 @@ def fast_correlation_attack(
             for i in range(d):
                 # Try flipping bit i
                 test_state = best_state.copy()
-                test_state[i] = 1 - test_state[i] if field_order == 2 else (test_state[i] + 1) % field_order
+                test_state[i] = (
+                    1 - test_state[i]
+                    if field_order == 2
+                    else (test_state[i] + 1) % field_order
+                )
 
                 # Generate sequence and test
                 from lfsr.sage_imports import vector as sage_vector
+
                 state_vec = sage_vector(F, test_state)
                 sequence = []
                 current_state = state_vec
@@ -1549,8 +1612,7 @@ def fast_correlation_attack(
 
     # Determine if attack was successful
     attack_successful = (
-        refined_correlation >= correlation_threshold and
-        refined_state is not None
+        refined_correlation >= correlation_threshold and refined_state is not None
     )
 
     # Compute complexity estimate
@@ -1567,7 +1629,7 @@ def fast_correlation_attack(
         candidate_states_tested=len(candidates),
         best_correlation=refined_correlation,
         complexity_estimate=complexity,
-        keystream_length=n
+        keystream_length=n,
     )
 
 
@@ -1575,7 +1637,7 @@ def distinguishing_attack(
     combination_generator: CombinationGenerator,
     keystream: List[int],
     method: str = "correlation",
-    significance_level: float = 0.05
+    significance_level: float = 0.05,
 ) -> DistinguishingAttackResult:
     """
     Perform a distinguishing attack on a combination generator.
@@ -1626,7 +1688,7 @@ def distinguishing_attack(
             p_value=1.0,
             attack_successful=False,
             method_used=method,
-            details={"error": f"Keystream too short: {n} bits (minimum: 100)"}
+            details={"error": f"Keystream too short: {n} bits (minimum: 100)"},
         )
 
     if method == "correlation":
@@ -1671,8 +1733,8 @@ def distinguishing_attack(
                 "max_correlation": max_correlation,
                 "best_lfsr_index": best_lfsr_index,
                 "all_correlations": correlations,
-                "keystream_length": n
-            }
+                "keystream_length": n,
+            },
         )
 
     elif method == "statistical":
@@ -1692,9 +1754,9 @@ def distinguishing_attack(
         keystream_runs = 0
         expected_runs = 0
         for i in range(1, n):
-            if keystream[i] != keystream[i-1]:
+            if keystream[i] != keystream[i - 1]:
                 keystream_runs += 1
-            if expected_sequence[i] != expected_sequence[i-1]:
+            if expected_sequence[i] != expected_sequence[i - 1]:
                 expected_runs += 1
         runs_diff = abs(keystream_runs - expected_runs) / n
 
@@ -1720,8 +1782,8 @@ def distinguishing_attack(
                 "runs_difference": runs_diff,
                 "keystream_ones": keystream_ones,
                 "expected_ones": expected_ones,
-                "keystream_length": n
-            }
+                "keystream_length": n,
+            },
         )
 
     else:
@@ -1731,5 +1793,5 @@ def distinguishing_attack(
             p_value=1.0,
             attack_successful=False,
             method_used=method,
-            details={"error": f"Unknown method: {method}"}
+            details={"error": f"Unknown method: {method}"},
         )

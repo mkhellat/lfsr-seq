@@ -122,12 +122,18 @@ def example_all_tests():
         ("Longest Run Test", lambda s: longest_run_of_ones_test(s, block_size=8)),
         ("Matrix Rank Test", lambda s: binary_matrix_rank_test(s)),
         ("DFT (Spectral) Test", lambda s: discrete_fourier_transform_test(s)),
-        ("Non-overlapping Template Test", lambda s: non_overlapping_template_matching_test(s)),
+        (
+            "Non-overlapping Template Test",
+            lambda s: non_overlapping_template_matching_test(s),
+        ),
         ("Overlapping Template Test", lambda s: overlapping_template_matching_test(s)),
         ("Maurer's Universal Test", lambda s: maurers_universal_test(s)),
         ("Linear Complexity Test", lambda s: linear_complexity_test(s, block_size=500)),
         ("Serial Test", lambda s: serial_test(s, block_size=2)),
-        ("Approximate Entropy Test", lambda s: approximate_entropy_test(s, block_size=2)),
+        (
+            "Approximate Entropy Test",
+            lambda s: approximate_entropy_test(s, block_size=2),
+        ),
         ("Cumulative Sums Test", lambda s: cumulative_sums_test(s, mode="forward")),
         ("Random Excursions Test", lambda s: random_excursions_test(s)),
         ("Random Excursions Variant Test", lambda s: random_excursions_variant_test(s)),
@@ -162,7 +168,7 @@ def example_interpretation():
     sequences = [
         ("Balanced", balanced),
         ("Biased (80% ones)", biased),
-        ("Periodic", periodic)
+        ("Periodic", periodic),
     ]
 
     print(f"\n{'─'*70}")
@@ -207,7 +213,9 @@ def example_significance_levels():
 
     for alpha in significance_levels:
         suite_result = run_nist_test_suite(sequence, significance_level=alpha)
-        print(f"{alpha:<20.2f} {suite_result.tests_passed:<15}/{suite_result.total_tests:<4} {suite_result.overall_assessment:<15}")
+        print(
+            f"{alpha:<20.2f} {suite_result.tests_passed:<15}/{suite_result.total_tests:<4} {suite_result.overall_assessment:<15}"
+        )
 
     print("\nNote: Lower significance level (e.g., 0.01) is stricter -")
     print("      fewer random sequences will pass, but fewer false positives.")
@@ -239,6 +247,7 @@ def main():
     except Exception as e:
         print(f"\nERROR: {e}", file=sys.stderr)
         import traceback
+
         traceback.print_exc()
         sys.exit(1)
 

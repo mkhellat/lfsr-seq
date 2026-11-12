@@ -155,6 +155,7 @@ class TestMainEndToEnd:
     def test_main_except_block_on_unexpected_error(self, monkeypatch):
         """Covers main()'s except block (lines ~219-223), unreachable
         with the script's own well-formed calls."""
+
         def raiser():
             raise RuntimeError("simulated failure for coverage")
 
@@ -170,6 +171,7 @@ class TestMainEndToEnd:
                     tae.main()
         assert exc_info.value.code == 1
         assert "ERROR: simulated failure for coverage" in buf_err.getvalue()
+
 
 import sys
 

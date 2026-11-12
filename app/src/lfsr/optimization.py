@@ -103,29 +103,21 @@ class ResultCache:
                 os.makedirs(cache_dir, exist_ok=True)
 
         self.in_memory_cache: Dict[str, Any] = {}
-        self.cache_stats = {
-            'hits': 0,
-            'misses': 0,
-            'sets': 0,
-            'loads': 0
-        }
+        self.cache_stats = {"hits": 0, "misses": 0, "sets": 0, "loads": 0}
 
         # Load persistent cache if it exists
         if self.cache_file and os.path.exists(self.cache_file):
             try:
-                with open(self.cache_file, 'r') as f:
+                with open(self.cache_file, "r") as f:
                     persistent_cache = json.load(f)
                     self.in_memory_cache.update(persistent_cache)
-                    self.cache_stats['loads'] = len(persistent_cache)
+                    self.cache_stats["loads"] = len(persistent_cache)
             except (json.JSONDecodeError, IOError, OSError):
                 # If cache file is corrupted, start fresh
                 self.in_memory_cache = {}
 
     def generate_key(
-        self,
-        coefficients: List[int],
-        field_order: int,
-        analysis_type: str = "period"
+        self, coefficients: List[int], field_order: int, analysis_type: str = "period"
     ) -> str:
         """
         Generate a cache key from LFSR configuration.
@@ -147,14 +139,17 @@ class ResultCache:
             normalized_coeffs.pop()
 
         # Create hashable representation
-        config_str = json.dumps({
-            'coefficients': normalized_coeffs,
-            'field_order': field_order,
-            'analysis_type': analysis_type
-        }, sort_keys=True)
+        config_str = json.dumps(
+            {
+                "coefficients": normalized_coeffs,
+                "field_order": field_order,
+                "analysis_type": analysis_type,
+            },
+            sort_keys=True,
+        )
 
         # Generate hash
-        hash_obj = hashlib.sha256(config_str.encode('utf-8'))
+        hash_obj = hashlib.sha256(config_str.encode("utf-8"))
         return hash_obj.hexdigest()
 
     def get(self, key: str) -> Optional[Any]:
@@ -170,10 +165,10 @@ class ResultCache:
             Cached result if found, None otherwise
         """
         if key in self.in_memory_cache:
-            self.cache_stats['hits'] += 1
+            self.cache_stats["hits"] += 1
             return self.in_memory_cache[key]
 
-        self.cache_stats['misses'] += 1
+        self.cache_stats["misses"] += 1
         return None
 
     def set(self, key: str, value: Any) -> None:
@@ -188,12 +183,12 @@ class ResultCache:
             value: Result to cache (must be JSON-serializable)
         """
         self.in_memory_cache[key] = value
-        self.cache_stats['sets'] += 1
+        self.cache_stats["sets"] += 1
 
         # Save to persistent cache if configured
         if self.cache_file:
             try:
-                with open(self.cache_file, 'w') as f:
+                with open(self.cache_file, "w") as f:
                     json.dump(self.in_memory_cache, f, indent=2)
             except (IOError, OSError):
                 # If write fails, continue with in-memory cache only
@@ -206,12 +201,7 @@ class ResultCache:
         Clears both in-memory and persistent cache. Resets statistics.
         """
         self.in_memory_cache.clear()
-        self.cache_stats = {
-            'hits': 0,
-            'misses': 0,
-            'sets': 0,
-            'loads': 0
-        }
+        self.cache_stats = {"hits": 0, "misses": 0, "sets": 0, "loads": 0}
 
         # Remove persistent cache file if it exists
         if self.cache_file and os.path.exists(self.cache_file):
@@ -233,11 +223,11 @@ class ResultCache:
             - 'hit_rate': Cache hit rate (hits / (hits + misses))
         """
         stats = self.cache_stats.copy()
-        total_requests = stats['hits'] + stats['misses']
+        total_requests = stats["hits"] + stats["misses"]
         if total_requests > 0:
-            stats['hit_rate'] = stats['hits'] / total_requests
+            stats["hit_rate"] = stats["hits"] / total_requests
         else:
-            stats['hit_rate'] = 0.0
+            stats["hit_rate"] = 0.0
         return stats
 
     def __contains__(self, key: str) -> bool:

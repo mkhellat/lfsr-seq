@@ -44,7 +44,7 @@ class TestPolynomialOrder:
         poly = R("t^4 + t^3 + t + 1")
         order = polynomial_order(poly, 4, 2)
         assert order is not None
-        assert 1 <= order <= (2 ** 4) - 1
+        assert 1 <= order <= (2**4) - 1
 
     def test_polynomial_order_gf3(self):
         """Test computing polynomial order over GF(3)."""
@@ -52,7 +52,7 @@ class TestPolynomialOrder:
         poly = R("t^2 + 2*t + 1")
         order = polynomial_order(poly, 2, 3)
         assert order is not None
-        assert 1 <= order <= (3 ** 2) - 1
+        assert 1 <= order <= (3**2) - 1
 
     def test_polynomial_order_degree_bound(self):
         """Test that order search starts from polynomial degree."""
@@ -282,7 +282,7 @@ class TestPrimitivePolynomial:
 
         # If primitive, order should be 2^4 - 1 = 15
         degree = poly.degree()
-        max_order = 2 ** degree - 1
+        max_order = 2**degree - 1
         order = polynomial_order(poly, degree, 2)
 
         if is_primitive_polynomial(poly, 2):
@@ -391,7 +391,9 @@ class TestComputePeriodViaFactorization:
 
         assert polynomial_order(poly, 3, 3) == oo
 
-    def test_compute_period_via_factorization_matches_true_char_poly_gf2_nonpalindromic(self):
+    def test_compute_period_via_factorization_matches_true_char_poly_gf2_nonpalindromic(
+        self,
+    ):
         """Same BUG #1 regression, reproduced over GF(2) with a
         non-palindromic coefficient list (isolates the pure
         coefficient-ordering fix from the sign-negation part, a no-op
@@ -823,4 +825,3 @@ class TestPolynomialOrderFastPathExceptionFallback:
         bad_gf_order = self._RaisingOnInt()
         with pytest.raises(ValueError):
             polynomial_order(wrapped, 3, bad_gf_order)
-

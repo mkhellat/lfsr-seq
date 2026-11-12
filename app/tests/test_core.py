@@ -126,7 +126,7 @@ class TestComputeMatrixOrder:
 
         M = MatrixSpace(GF(2), 4, 4)
         I = M.identity_matrix()
-        state_space_size = 2 ** 4  # 16
+        state_space_size = 2**4  # 16
 
         order = compute_matrix_order(C, I, state_space_size, None)
         # Order should be found and should be <= state_space_size - 1
@@ -140,7 +140,7 @@ class TestComputeMatrixOrder:
 
         M = MatrixSpace(GF(2), 3, 3)
         I = M.identity_matrix()
-        state_space_size = 2 ** 3  # 8
+        state_space_size = 2**3  # 8
 
         output_file = tmp_path / "test_output.txt"
         with open(output_file, "w") as f:
@@ -157,7 +157,7 @@ class TestComputeMatrixOrder:
 
         M = MatrixSpace(GF(3), 3, 3)
         I = M.identity_matrix()
-        state_space_size = 3 ** 3  # 27
+        state_space_size = 3**3  # 27
 
         order = compute_matrix_order(C, I, state_space_size, None)
         assert order is not None
@@ -190,10 +190,9 @@ class TestComputeMatrixOrder:
 
         M = MatrixSpace(GF(2), 5, 5)
         I = M.identity_matrix()
-        state_space_size = 2 ** 5  # 32
+        state_space_size = 2**5  # 32
 
         order = compute_matrix_order(C, I, state_space_size, None)
         # Order should be found within the search space
         assert order is not None
         assert order <= state_space_size - 1
-

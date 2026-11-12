@@ -14,8 +14,10 @@ from typing import Dict, Optional
 
 try:
     import matplotlib
-    matplotlib.use('Agg')  # Non-interactive backend
+
+    matplotlib.use("Agg")  # Non-interactive backend
     import matplotlib.pyplot as plt
+
     HAS_MATPLOTLIB = True
 except ImportError:
     HAS_MATPLOTLIB = False
@@ -24,6 +26,7 @@ except ImportError:
 try:
     import plotly.express as px
     import plotly.graph_objects as go
+
     HAS_PLOTLY = True
 except ImportError:
     HAS_PLOTLY = False
@@ -32,6 +35,7 @@ except ImportError:
 
 try:
     import networkx as nx
+
     HAS_NETWORKX = True
 except ImportError:
     HAS_NETWORKX = False
@@ -40,6 +44,7 @@ except ImportError:
 
 class OutputFormat(Enum):
     """Supported output formats for visualizations."""
+
     PNG = "png"
     SVG = "svg"
     PDF = "pdf"
@@ -65,6 +70,7 @@ class VisualizationConfig:
         show_grid: Whether to show grid
         show_legend: Whether to show legend
     """
+
     width: float = 10.0
     height: float = 6.0
     dpi: int = 300
@@ -156,7 +162,7 @@ def check_visualization_dependencies() -> Dict[str, bool]:
         Dictionary mapping library names to availability status
     """
     return {
-        'matplotlib': HAS_MATPLOTLIB,
-        'plotly': HAS_PLOTLY,
-        'networkx': HAS_NETWORKX
+        "matplotlib": HAS_MATPLOTLIB,
+        "plotly": HAS_PLOTLY,
+        "networkx": HAS_NETWORKX,
     }

@@ -49,7 +49,12 @@ def example_basic_parallel():
     print("Sequential Processing:")
     print(f"{'─'*70}")
     start_time = time.perf_counter()
-    seq_dict_seq, period_dict_seq, max_period_seq, periods_sum_seq = lfsr_sequence_mapper(
+    (
+        seq_dict_seq,
+        period_dict_seq,
+        max_period_seq,
+        periods_sum_seq,
+    ) = lfsr_sequence_mapper(
         C, V, 2, output_file=None, no_progress=True, period_only=True
     )
     seq_time = time.perf_counter() - start_time
@@ -64,7 +69,12 @@ def example_basic_parallel():
     print("Parallel Processing (2 workers):")
     print(f"{'─'*70}")
     start_time = time.perf_counter()
-    seq_dict_par, period_dict_par, max_period_par, periods_sum_par = lfsr_sequence_mapper_parallel(
+    (
+        seq_dict_par,
+        period_dict_par,
+        max_period_par,
+        periods_sum_par,
+    ) = lfsr_sequence_mapper_parallel(
         C, V, 2, output_file=None, no_progress=True, period_only=True, num_workers=2
     )
     par_time = time.perf_counter() - start_time
@@ -102,6 +112,7 @@ def example_worker_scaling():
     print(f"  State Space Size: {2**6} = 64")
 
     import multiprocessing
+
     cpu_count = multiprocessing.cpu_count()
     worker_counts = [1, 2, min(4, cpu_count)]
 
@@ -124,14 +135,22 @@ def example_worker_scaling():
     for num_workers in worker_counts:
         start_time = time.perf_counter()
         seq_dict_par, _, _, _ = lfsr_sequence_mapper_parallel(
-            C, V, 2, output_file=None, no_progress=True, period_only=True, num_workers=num_workers
+            C,
+            V,
+            2,
+            output_file=None,
+            no_progress=True,
+            period_only=True,
+            num_workers=num_workers,
         )
         par_time = time.perf_counter() - start_time
 
         speedup = seq_time / par_time if par_time > 0 else 0
         efficiency = (speedup / num_workers * 100) if num_workers > 0 else 0
 
-        print(f"{num_workers:<10} {par_time:<15.3f} {speedup:<15.2f} {efficiency:<15.1f}%")
+        print(
+            f"{num_workers:<10} {par_time:<15.3f} {speedup:<15.2f} {efficiency:<15.1f}%"
+        )
 
 
 def example_period_only_mode():
@@ -181,6 +200,7 @@ def example_auto_detection():
     print("  --num-workers N  : Set number of workers")
 
     import multiprocessing
+
     cpu_count = multiprocessing.cpu_count()
     print(f"\n  Available CPU cores: {cpu_count}")
     print(f"  Default workers: {cpu_count} (when parallel enabled)")
@@ -211,6 +231,7 @@ def main():
     except Exception as e:
         print(f"\nERROR: {e}", file=sys.stderr)
         import traceback
+
         traceback.print_exc()
         sys.exit(1)
 

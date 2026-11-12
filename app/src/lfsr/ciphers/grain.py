@@ -111,11 +111,11 @@ class Grain128(StreamCipher):
             iv_size=96,
             description="Grain-128 eSTREAM finalist with LFSR and NFSR",
             parameters={
-                'lfsr_size': self.LFSR_SIZE,
-                'nfsr_size': self.NFSR_SIZE,
-                'total_size': self.TOTAL_SIZE,
-                'warmup_steps': self.WARMUP_STEPS
-            }
+                "lfsr_size": self.LFSR_SIZE,
+                "nfsr_size": self.NFSR_SIZE,
+                "total_size": self.TOTAL_SIZE,
+                "warmup_steps": self.WARMUP_STEPS,
+            },
         )
 
     def _clock_lfsr(self, warmup_feedback: int = 0) -> int:
@@ -130,10 +130,15 @@ class Grain128(StreamCipher):
                 it is shifted in (per the Grain-128a spec). Zero outside
                 of warmup.
         """
-        feedback = (self.lfsr_state[127] ^ self.lfsr_state[120] ^
-                   self.lfsr_state[89] ^ self.lfsr_state[57] ^
-                   self.lfsr_state[46] ^ self.lfsr_state[31] ^
-                   warmup_feedback)
+        feedback = (
+            self.lfsr_state[127]
+            ^ self.lfsr_state[120]
+            ^ self.lfsr_state[89]
+            ^ self.lfsr_state[57]
+            ^ self.lfsr_state[46]
+            ^ self.lfsr_state[31]
+            ^ warmup_feedback
+        )
         self.lfsr_state = [feedback] + self.lfsr_state[:-1]
         return feedback
 
@@ -153,21 +158,30 @@ class Grain128(StreamCipher):
                 before it is shifted in (per the Grain-128a spec). Zero
                 outside of warmup.
         """
-        feedback = (self.lfsr_state[127] ^
-                   self.nfsr_state[127] ^ self.nfsr_state[101] ^
-                   self.nfsr_state[71] ^ self.nfsr_state[36] ^
-                   self.nfsr_state[31] ^
-                   (self.nfsr_state[124] & self.nfsr_state[60]) ^
-                   (self.nfsr_state[116] & self.nfsr_state[114]) ^
-                   (self.nfsr_state[110] & self.nfsr_state[109]) ^
-                   (self.nfsr_state[100] & self.nfsr_state[68]) ^
-                   (self.nfsr_state[87] & self.nfsr_state[79]) ^
-                   (self.nfsr_state[66] & self.nfsr_state[62]) ^
-                   (self.nfsr_state[59] & self.nfsr_state[43]) ^
-                   (self.nfsr_state[105] & self.nfsr_state[103] & self.nfsr_state[102]) ^
-                   (self.nfsr_state[57] & self.nfsr_state[49] & self.nfsr_state[45]) ^
-                   (self.nfsr_state[39] & self.nfsr_state[35] & self.nfsr_state[34] & self.nfsr_state[32]) ^
-                   warmup_feedback)
+        feedback = (
+            self.lfsr_state[127]
+            ^ self.nfsr_state[127]
+            ^ self.nfsr_state[101]
+            ^ self.nfsr_state[71]
+            ^ self.nfsr_state[36]
+            ^ self.nfsr_state[31]
+            ^ (self.nfsr_state[124] & self.nfsr_state[60])
+            ^ (self.nfsr_state[116] & self.nfsr_state[114])
+            ^ (self.nfsr_state[110] & self.nfsr_state[109])
+            ^ (self.nfsr_state[100] & self.nfsr_state[68])
+            ^ (self.nfsr_state[87] & self.nfsr_state[79])
+            ^ (self.nfsr_state[66] & self.nfsr_state[62])
+            ^ (self.nfsr_state[59] & self.nfsr_state[43])
+            ^ (self.nfsr_state[105] & self.nfsr_state[103] & self.nfsr_state[102])
+            ^ (self.nfsr_state[57] & self.nfsr_state[49] & self.nfsr_state[45])
+            ^ (
+                self.nfsr_state[39]
+                & self.nfsr_state[35]
+                & self.nfsr_state[34]
+                & self.nfsr_state[32]
+            )
+            ^ warmup_feedback
+        )
         self.nfsr_state = [feedback] + self.nfsr_state[:-1]
         return feedback
 
@@ -195,10 +209,15 @@ class Grain128(StreamCipher):
         y_t = h(x) + s_93 + sum(b_j for j in {2,15,36,45,64,73,89}),
         with spec offsets mapped to array indices via 127 - offset.
         """
-        linear_terms = (self.nfsr_state[125] ^ self.nfsr_state[112] ^
-                        self.nfsr_state[91] ^ self.nfsr_state[82] ^
-                        self.nfsr_state[63] ^ self.nfsr_state[54] ^
-                        self.nfsr_state[38])
+        linear_terms = (
+            self.nfsr_state[125]
+            ^ self.nfsr_state[112]
+            ^ self.nfsr_state[91]
+            ^ self.nfsr_state[82]
+            ^ self.nfsr_state[63]
+            ^ self.nfsr_state[54]
+            ^ self.nfsr_state[38]
+        )
         return self.lfsr_state[34] ^ linear_terms ^ self._filter_function()
 
     def _initialize(self, key: List[int], iv: Optional[List[int]]):
@@ -227,10 +246,7 @@ class Grain128(StreamCipher):
             self._clock_nfsr(warmup_feedback=outbit)
 
     def generate_keystream(
-        self,
-        key: List[int],
-        iv: Optional[List[int]],
-        length: int
+        self, key: List[int], iv: Optional[List[int]], length: int
     ) -> List[int]:
         """
         Generate Grain-128 keystream.
@@ -273,25 +289,25 @@ class Grain128(StreamCipher):
             combiner="Non-linear filter function combining LFSR and NFSR outputs",
             state_size=256,  # 128 + 128
             details={
-                'lfsr_size': 128,
-                'nfsr_size': 128,
-                'total_size': 256,
-                'warmup_steps': self.WARMUP_STEPS,
-                'note': 'Grain uses one LFSR and one NFSR with non-linear filter function'
-            }
+                "lfsr_size": 128,
+                "nfsr_size": 128,
+                "total_size": 256,
+                "warmup_steps": self.WARMUP_STEPS,
+                "note": "Grain uses one LFSR and one NFSR with non-linear filter function",
+            },
         )
 
     def apply_attacks(
-        self,
-        keystream: List[int],
-        attack_types: Optional[List[str]] = None
+        self, keystream: List[int], attack_types: Optional[List[str]] = None
     ) -> dict:
         """Apply attacks to Grain-128 keystream."""
         return {
-            'note': 'Original (2006) Grain-128 is considered broken and superseded '
-                    'by Grain-128a/Grain-128AEAD; see module docstring.',
-            'known_vulnerabilities': ['Reduced-round cryptanalysis of the initialization phase'],
-            'security_status': 'Deprecated; do not use for real-world security'
+            "note": "Original (2006) Grain-128 is considered broken and superseded "
+            "by Grain-128a/Grain-128AEAD; see module docstring.",
+            "known_vulnerabilities": [
+                "Reduced-round cryptanalysis of the initialization phase"
+            ],
+            "security_status": "Deprecated; do not use for real-world security",
         }
 
 
@@ -311,10 +327,10 @@ class Grain128a(Grain128):
             iv_size=96,
             description="Grain-128a eSTREAM finalist with authenticated encryption",
             parameters={
-                'lfsr_size': self.LFSR_SIZE,
-                'nfsr_size': self.NFSR_SIZE,
-                'total_size': self.TOTAL_SIZE,
-                'warmup_steps': self.WARMUP_STEPS,
-                'authenticated_encryption': True
-            }
+                "lfsr_size": self.LFSR_SIZE,
+                "nfsr_size": self.NFSR_SIZE,
+                "total_size": self.TOTAL_SIZE,
+                "warmup_steps": self.WARMUP_STEPS,
+                "authenticated_encryption": True,
+            },
         )

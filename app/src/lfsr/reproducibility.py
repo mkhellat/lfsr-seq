@@ -37,6 +37,7 @@ def generate_seed() -> int:
         Random seed value
     """
     import random
+
     return random.randint(0, 2**31 - 1)
 
 
@@ -60,28 +61,28 @@ def capture_environment() -> Dict[str, Any]:
         Dictionary with environment information
     """
     env = {
-        'timestamp': datetime.now().isoformat(),
-        'platform': {
-            'system': platform.system(),
-            'release': platform.release(),
-            'version': platform.version(),
-            'machine': platform.machine(),
-            'processor': platform.processor()
+        "timestamp": datetime.now().isoformat(),
+        "platform": {
+            "system": platform.system(),
+            "release": platform.release(),
+            "version": platform.version(),
+            "machine": platform.machine(),
+            "processor": platform.processor(),
         },
-        'python': {
-            'version': sys.version,
-            'executable': sys.executable,
-            'path': sys.path
+        "python": {
+            "version": sys.version,
+            "executable": sys.executable,
+            "path": sys.path,
         },
-        'packages': {}
+        "packages": {},
     }
 
     # Capture package versions
     try:
-        packages = ['sage', 'numpy', 'scipy']
+        packages = ["sage", "numpy", "scipy"]
         for pkg_name in packages:
             try:
-                env['packages'][pkg_name] = importlib_metadata.version(pkg_name)
+                env["packages"][pkg_name] = importlib_metadata.version(pkg_name)
             except importlib_metadata.PackageNotFoundError:
                 pass
     except Exception:
@@ -91,8 +92,7 @@ def capture_environment() -> Dict[str, Any]:
 
 
 def export_configuration(
-    analysis_config: Dict[str, Any],
-    output_file: Optional[TextIO] = None
+    analysis_config: Dict[str, Any], output_file: Optional[TextIO] = None
 ) -> str:
     """
     Export analysis configuration for reproducibility.
@@ -118,9 +118,9 @@ def export_configuration(
         JSON string with configuration
     """
     config = {
-        'analysis_config': analysis_config,
-        'environment': capture_environment(),
-        'export_timestamp': datetime.now().isoformat()
+        "analysis_config": analysis_config,
+        "environment": capture_environment(),
+        "export_timestamp": datetime.now().isoformat(),
     }
 
     config_json = json.dumps(config, indent=2, ensure_ascii=False)
@@ -136,7 +136,7 @@ def generate_reproducibility_report(
     analysis_results: Dict[str, Any],
     analysis_config: Dict[str, Any],
     seed: Optional[int] = None,
-    output_file: Optional[TextIO] = None
+    output_file: Optional[TextIO] = None,
 ) -> str:
     """
     Generate comprehensive reproducibility report.
@@ -168,24 +168,24 @@ def generate_reproducibility_report(
         Reproducibility report as string
     """
     report = {
-        'report_type': 'reproducibility_report',
-        'generated': datetime.now().isoformat(),
-        'seed': seed,
-        'configuration': analysis_config,
-        'environment': capture_environment(),
-        'results_summary': {
-            'field_order': analysis_results.get('field_order'),
-            'lfsr_degree': analysis_results.get('lfsr_degree'),
-            'max_period': analysis_results.get('max_period'),
-            'is_primitive': analysis_results.get('is_primitive')
+        "report_type": "reproducibility_report",
+        "generated": datetime.now().isoformat(),
+        "seed": seed,
+        "configuration": analysis_config,
+        "environment": capture_environment(),
+        "results_summary": {
+            "field_order": analysis_results.get("field_order"),
+            "lfsr_degree": analysis_results.get("lfsr_degree"),
+            "max_period": analysis_results.get("max_period"),
+            "is_primitive": analysis_results.get("is_primitive"),
         },
-        'reproducibility_instructions': {
-            'step1': 'Install required packages with versions specified in environment section',
-            'step2': 'Load configuration from configuration section',
-            'step3': 'Set random seed if provided',
-            'step4': 'Run analysis with specified parameters',
-            'step5': 'Compare results with results_summary section'
-        }
+        "reproducibility_instructions": {
+            "step1": "Install required packages with versions specified in environment section",
+            "step2": "Load configuration from configuration section",
+            "step3": "Set random seed if provided",
+            "step4": "Run analysis with specified parameters",
+            "step5": "Compare results with results_summary section",
+        },
     }
 
     report_json = json.dumps(report, indent=2, ensure_ascii=False)
@@ -201,7 +201,7 @@ def save_reproducibility_report(
     analysis_results: Dict[str, Any],
     analysis_config: Dict[str, Any],
     filename: str,
-    seed: Optional[int] = None
+    seed: Optional[int] = None,
 ) -> None:
     """
     Save reproducibility report to file.
@@ -214,10 +214,7 @@ def save_reproducibility_report(
         filename: Output filename
         seed: Optional random seed used
     """
-    with open(filename, 'w', encoding='utf-8') as f:
+    with open(filename, "w", encoding="utf-8") as f:
         generate_reproducibility_report(
-            analysis_results,
-            analysis_config,
-            seed,
-            output_file=f
+            analysis_results, analysis_config, seed, output_file=f
         )

@@ -15,6 +15,7 @@ from typing import Any, Dict, List
 
 try:
     import numpy as np
+
     HAS_NUMPY = True
 except ImportError:
     HAS_NUMPY = False
@@ -32,6 +33,7 @@ class Pattern:
         end_position: End position in sequence
         confidence: Confidence score (0.0 to 1.0)
     """
+
     pattern_type: str
     pattern_data: Any
     start_position: int
@@ -44,9 +46,7 @@ class Pattern:
 
 
 def detect_repeating_subsequences(
-    sequence: List[int],
-    min_length: int = 2,
-    max_length: int = 10
+    sequence: List[int], min_length: int = 2, max_length: int = 10
 ) -> List[Pattern]:
     """
     Detect repeating subsequences in a sequence.
@@ -80,7 +80,7 @@ def detect_repeating_subsequences(
 
         # Find all subsequences of this length
         for i in range(n - length + 1):
-            subseq = tuple(sequence[i:i+length])
+            subseq = tuple(sequence[i : i + length])
             subsequence_counts[subseq].append(i)
 
         # Find repeating subsequences
@@ -91,11 +91,11 @@ def detect_repeating_subsequences(
                 confidence = min(frequency * 2, 1.0)  # Normalize to [0, 1]
 
                 pattern = Pattern(
-                    pattern_type='repeating_subsequence',
+                    pattern_type="repeating_subsequence",
                     pattern_data=list(subseq),
                     start_position=positions[0],
                     end_position=positions[0] + length - 1,
-                    confidence=confidence
+                    confidence=confidence,
                 )
                 patterns.append(pattern)
 
@@ -106,9 +106,7 @@ def detect_repeating_subsequences(
 
 
 def detect_statistical_anomalies(
-    sequence: List[int],
-    window_size: int = 100,
-    threshold: float = 2.0
+    sequence: List[int], window_size: int = 100, threshold: float = 2.0
 ) -> List[Pattern]:
     """
     Detect statistical anomalies in a sequence.
@@ -147,14 +145,14 @@ def detect_statistical_anomalies(
     else:
         overall_mean = sum(sequence) / len(sequence)
         variance = sum((x - overall_mean) ** 2 for x in sequence) / len(sequence)
-        overall_std = variance ** 0.5 if variance > 0 else 1.0
+        overall_std = variance**0.5 if variance > 0 else 1.0
 
     if overall_std == 0:
         return patterns  # No variation, no anomalies
 
     # Slide window and detect anomalies
     for i in range(n - window_size + 1):
-        window = sequence[i:i+window_size]
+        window = sequence[i : i + window_size]
 
         if HAS_NUMPY:
             window_array = np.array(window)
@@ -163,21 +161,23 @@ def detect_statistical_anomalies(
             window_mean = sum(window) / len(window)
 
         # Calculate z-score for mean deviation
-        z_score = abs(window_mean - overall_mean) / overall_std if overall_std > 0 else 0.0
+        z_score = (
+            abs(window_mean - overall_mean) / overall_std if overall_std > 0 else 0.0
+        )
 
         if z_score > threshold:
             confidence = min(z_score / (threshold * 2), 1.0)
 
             pattern = Pattern(
-                pattern_type='statistical_anomaly',
+                pattern_type="statistical_anomaly",
                 pattern_data={
-                    'window_mean': window_mean,
-                    'overall_mean': overall_mean,
-                    'z_score': z_score
+                    "window_mean": window_mean,
+                    "overall_mean": overall_mean,
+                    "z_score": z_score,
                 },
                 start_position=i,
                 end_position=i + window_size - 1,
-                confidence=confidence
+                confidence=confidence,
             )
             patterns.append(pattern)
 
@@ -185,8 +185,7 @@ def detect_statistical_anomalies(
 
 
 def detect_periodicity_indicators(
-    sequence: List[int],
-    max_period: int = 100
+    sequence: List[int], max_period: int = 100
 ) -> List[Pattern]:
     """
     Detect periodicity indicators in a sequence.
@@ -231,14 +230,11 @@ def detect_periodicity_indicators(
             confidence = autocorr
 
             pattern = Pattern(
-                pattern_type='periodicity_indicator',
-                pattern_data={
-                    'suggested_period': lag,
-                    'autocorrelation': autocorr
-                },
+                pattern_type="periodicity_indicator",
+                pattern_data={"suggested_period": lag, "autocorrelation": autocorr},
                 start_position=0,
                 end_position=n - 1,
-                confidence=confidence
+                confidence=confidence,
             )
             patterns.append(pattern)
 
@@ -252,7 +248,7 @@ def detect_all_patterns(
     sequence: List[int],
     include_repeating: bool = True,
     include_anomalies: bool = True,
-    include_periodicity: bool = True
+    include_periodicity: bool = True,
 ) -> Dict[str, List[Pattern]]:
     """
     Detect all types of patterns in a sequence.
@@ -271,12 +267,12 @@ def detect_all_patterns(
     results = {}
 
     if include_repeating:
-        results['repeating_subsequences'] = detect_repeating_subsequences(sequence)
+        results["repeating_subsequences"] = detect_repeating_subsequences(sequence)
 
     if include_anomalies:
-        results['statistical_anomalies'] = detect_statistical_anomalies(sequence)
+        results["statistical_anomalies"] = detect_statistical_anomalies(sequence)
 
     if include_periodicity:
-        results['periodicity_indicators'] = detect_periodicity_indicators(sequence)
+        results["periodicity_indicators"] = detect_periodicity_indicators(sequence)
 
     return results

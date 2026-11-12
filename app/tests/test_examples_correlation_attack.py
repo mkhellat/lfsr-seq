@@ -133,9 +133,7 @@ class TestBranchesUnreachableViaRealCalls:
         def raiser():
             raise RuntimeError("simulated failure for coverage")
 
-        monkeypatch.setattr(
-            example_module, "example_basic_correlation_attack", raiser
-        )
+        monkeypatch.setattr(example_module, "example_basic_correlation_attack", raiser)
         with pytest.raises(SystemExit) as exc_info:
             example_module.main()
         assert exc_info.value.code == 1
@@ -161,6 +159,7 @@ class TestMain:
         assert "Distinguishing Attack" in captured.out
         assert "Examples Complete!" in captured.out
         assert captured.err == ""
+
 
 import sys
 

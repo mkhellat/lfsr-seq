@@ -62,6 +62,7 @@ class TestMain:
     def test_main_except_block_on_unexpected_error(self, capsys, monkeypatch):
         """Covers main()'s except block (lines ~241-245), unreachable
         with the script's own well-formed calls."""
+
         def raiser():
             raise RuntimeError("simulated failure for coverage")
 
@@ -74,6 +75,7 @@ class TestMain:
         assert exc_info.value.code == 1
         err = capsys.readouterr().err
         assert "ERROR: simulated failure for coverage" in err
+
 
 import sys
 

@@ -64,7 +64,7 @@ def export_polynomial_analysis_to_latex(
     factors: Optional[List[Tuple[Any, int]]] = None,
     factor_orders: Optional[List[int]] = None,
     field_order: int = 2,
-    output_file: Optional[TextIO] = None
+    output_file: Optional[TextIO] = None,
 ) -> str:
     """
     Export polynomial analysis results to LaTeX format.
@@ -174,7 +174,7 @@ def export_period_distribution_to_latex(
     lfsr_degree: int,
     is_primitive: bool,
     theoretical_max_period: Optional[int] = None,
-    output_file: Optional[TextIO] = None
+    output_file: Optional[TextIO] = None,
 ) -> str:
     """
     Export period distribution to LaTeX format.
@@ -233,7 +233,9 @@ def export_period_distribution_to_latex(
         latex_code.append("\\hline")
 
     if len(sorted_periods) > 10:
-        latex_code.append("\\multicolumn{3}{|c|}{\\textit{(showing top 10 periods)}} \\\\")
+        latex_code.append(
+            "\\multicolumn{3}{|c|}{\\textit{(showing top 10 periods)}} \\\\"
+        )
         latex_code.append("\\hline")
 
     latex_code.append("\\end{tabular}")
@@ -273,7 +275,7 @@ def export_period_distribution_to_latex(
 def export_complete_analysis_to_latex(
     analysis_results: Dict[str, Any],
     output_file: Optional[TextIO] = None,
-    include_preamble: bool = True
+    include_preamble: bool = True,
 ) -> str:
     """
     Export complete analysis results to LaTeX document.
@@ -321,32 +323,32 @@ def export_complete_analysis_to_latex(
         latex_code.append("")
 
     # Add sections based on available results
-    if 'polynomial' in analysis_results:
+    if "polynomial" in analysis_results:
         latex_code.append("\\section{Characteristic Polynomial Analysis}")
         latex_code.append("")
-        poly_result = analysis_results['polynomial']
+        poly_result = analysis_results["polynomial"]
         poly_latex = export_polynomial_analysis_to_latex(
-            polynomial=poly_result.get('polynomial'),
-            polynomial_order=poly_result.get('order'),
-            is_primitive=poly_result.get('is_primitive', False),
-            is_irreducible=poly_result.get('is_irreducible', False),
-            factors=poly_result.get('factors'),
-            factor_orders=poly_result.get('factor_orders'),
-            field_order=poly_result.get('field_order', 2)
+            polynomial=poly_result.get("polynomial"),
+            polynomial_order=poly_result.get("order"),
+            is_primitive=poly_result.get("is_primitive", False),
+            is_irreducible=poly_result.get("is_irreducible", False),
+            factors=poly_result.get("factors"),
+            factor_orders=poly_result.get("factor_orders"),
+            field_order=poly_result.get("field_order", 2),
         )
         latex_code.append(poly_latex)
         latex_code.append("")
 
-    if 'period_distribution' in analysis_results:
+    if "period_distribution" in analysis_results:
         latex_code.append("\\section{Period Distribution}")
         latex_code.append("")
-        period_result = analysis_results['period_distribution']
+        period_result = analysis_results["period_distribution"]
         period_latex = export_period_distribution_to_latex(
-            period_dict=period_result.get('period_dict', {}),
-            field_order=period_result.get('field_order', 2),
-            lfsr_degree=period_result.get('lfsr_degree', 0),
-            is_primitive=period_result.get('is_primitive', False),
-            theoretical_max_period=period_result.get('theoretical_max_period')
+            period_dict=period_result.get("period_dict", {}),
+            field_order=period_result.get("field_order", 2),
+            lfsr_degree=period_result.get("lfsr_degree", 0),
+            is_primitive=period_result.get("is_primitive", False),
+            theoretical_max_period=period_result.get("theoretical_max_period"),
         )
         latex_code.append(period_latex)
         latex_code.append("")
@@ -364,9 +366,7 @@ def export_complete_analysis_to_latex(
 
 
 def export_to_latex_file(
-    analysis_results: Dict[str, Any],
-    filename: str,
-    include_preamble: bool = True
+    analysis_results: Dict[str, Any], filename: str, include_preamble: bool = True
 ) -> None:
     """
     Export analysis results to a LaTeX file.
@@ -378,9 +378,7 @@ def export_to_latex_file(
         filename: Output filename (should have .tex extension)
         include_preamble: Whether to include LaTeX document preamble
     """
-    with open(filename, 'w', encoding='utf-8') as f:
+    with open(filename, "w", encoding="utf-8") as f:
         export_complete_analysis_to_latex(
-            analysis_results,
-            output_file=f,
-            include_preamble=include_preamble
+            analysis_results, output_file=f, include_preamble=include_preamble
         )

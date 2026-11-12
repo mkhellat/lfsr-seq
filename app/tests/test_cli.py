@@ -130,7 +130,15 @@ class TestParseArgs:
         assert args.significance_level == 0.05
 
     def test_cipher_choices(self):
-        for cipher in ["a5_1", "a5_2", "e0", "trivium", "grain128", "grain128a", "lili128"]:
+        for cipher in [
+            "a5_1",
+            "a5_2",
+            "e0",
+            "trivium",
+            "grain128",
+            "grain128a",
+            "lili128",
+        ]:
             args = parse_args(["input.csv", "2", "--cipher", cipher])
             assert args.cipher == cipher
 
@@ -139,7 +147,13 @@ class TestParseArgs:
             parse_args(["input.csv", "2", "--cipher", "des"])
 
     def test_advanced_structure_choices(self):
-        for structure in ["nfsr", "filtered", "clock_controlled", "multi_output", "irregular"]:
+        for structure in [
+            "nfsr",
+            "filtered",
+            "clock_controlled",
+            "multi_output",
+            "irregular",
+        ]:
             args = parse_args(["input.csv", "2", "--advanced-structure", structure])
             assert args.advanced_structure == structure
 
@@ -207,13 +221,20 @@ class TestMainCoreAnalysis:
 
         with open(out_file, "w") as f:
             with pytest.raises(SystemExit):
-                main(str(csv_file), "6", output_file=f, no_progress=True)  # 6 not prime power
+                main(
+                    str(csv_file), "6", output_file=f, no_progress=True
+                )  # 6 not prime power
 
     def test_main_missing_input_file_exits(self, tmp_path):
         out_file = tmp_path / "out.txt"
         with open(out_file, "w") as f:
             with pytest.raises(SystemExit):
-                main(str(tmp_path / "does_not_exist.csv"), "2", output_file=f, no_progress=True)
+                main(
+                    str(tmp_path / "does_not_exist.csv"),
+                    "2",
+                    output_file=f,
+                    no_progress=True,
+                )
 
     def test_main_multiple_lfsrs_forces_sequential(self, tmp_path, capsys):
         csv_file = tmp_path / "in.csv"
@@ -236,7 +257,13 @@ class TestMainCoreAnalysis:
         out_file = tmp_path / "out.json"
 
         with open(out_file, "w") as f:
-            main(str(csv_file), "2", output_file=f, no_progress=True, output_format="json")
+            main(
+                str(csv_file),
+                "2",
+                output_file=f,
+                no_progress=True,
+                output_format="json",
+            )
 
         content = out_file.read_text()
         # Text-mode content is written first, then JSON is appended by the
@@ -266,7 +293,9 @@ class TestCliMain:
         monkeypatch.chdir(tmp_path)
         monkeypatch.setattr("sys.argv", ["lfsr-seq"] + argv)
 
-    def test_cli_main_basic_run_creates_default_output_file(self, monkeypatch, tmp_path, capsys):
+    def test_cli_main_basic_run_creates_default_output_file(
+        self, monkeypatch, tmp_path, capsys
+    ):
         csv_file = tmp_path / "in.csv"
         csv_file.write_text(SIMPLE_CSV)
         self._run(monkeypatch, tmp_path, [str(csv_file), "2", "--no-progress"])
@@ -283,7 +312,8 @@ class TestCliMain:
         csv_file.write_text(SIMPLE_CSV)
         out_file = tmp_path / "results.txt"
         self._run(
-            monkeypatch, tmp_path,
+            monkeypatch,
+            tmp_path,
             [str(csv_file), "2", "-o", str(out_file), "--no-progress"],
         )
 
@@ -292,7 +322,9 @@ class TestCliMain:
         assert out_file.exists()
         assert "COEFFS SERIES 1" in out_file.read_text()
 
-    def test_cli_main_missing_input_file_exits_nonzero(self, monkeypatch, tmp_path, capsys):
+    def test_cli_main_missing_input_file_exits_nonzero(
+        self, monkeypatch, tmp_path, capsys
+    ):
         self._run(monkeypatch, tmp_path, [str(tmp_path / "nope.csv"), "2"])
 
         with pytest.raises(SystemExit) as exc_info:
@@ -301,7 +333,9 @@ class TestCliMain:
         captured = capsys.readouterr()
         assert "not found" in captured.err
 
-    def test_cli_main_quiet_suppresses_completion_message(self, monkeypatch, tmp_path, capsys):
+    def test_cli_main_quiet_suppresses_completion_message(
+        self, monkeypatch, tmp_path, capsys
+    ):
         csv_file = tmp_path / "in.csv"
         csv_file.write_text(SIMPLE_CSV)
         self._run(monkeypatch, tmp_path, [str(csv_file), "2", "-q", "--no-progress"])
@@ -322,7 +356,9 @@ class TestCliMain:
         assert "Input file:" in captured.out
         assert "GF order: 2" in captured.out
 
-    def test_cli_main_invalid_gf_order_reports_error(self, monkeypatch, tmp_path, capsys):
+    def test_cli_main_invalid_gf_order_reports_error(
+        self, monkeypatch, tmp_path, capsys
+    ):
         csv_file = tmp_path / "in.csv"
         csv_file.write_text(SIMPLE_CSV)
         self._run(monkeypatch, tmp_path, [str(csv_file), "6", "--no-progress"])
@@ -330,7 +366,9 @@ class TestCliMain:
         with pytest.raises(SystemExit):
             cli_main()
 
-    def test_cli_main_nist_test_without_sequence_file_exits(self, monkeypatch, tmp_path, capsys):
+    def test_cli_main_nist_test_without_sequence_file_exits(
+        self, monkeypatch, tmp_path, capsys
+    ):
         csv_file = tmp_path / "in.csv"
         csv_file.write_text(SIMPLE_CSV)
         self._run(monkeypatch, tmp_path, [str(csv_file), "2", "--nist-test"])
@@ -348,7 +386,8 @@ class TestCliMain:
         # 100 bits, roughly balanced pseudo-random-looking sequence
         seq_file.write_text("\n".join(str(i % 2) for i in range(100)))
         self._run(
-            monkeypatch, tmp_path,
+            monkeypatch,
+            tmp_path,
             [str(csv_file), "2", "--nist-test", "--sequence-file", str(seq_file)],
         )
 
@@ -357,7 +396,9 @@ class TestCliMain:
         out_content = (tmp_path / (str(csv_file) + ".out")).read_text()
         assert "NIST SP 800-22" in out_content
 
-    def test_cli_main_correlation_attack_without_config_exits(self, monkeypatch, tmp_path, capsys):
+    def test_cli_main_correlation_attack_without_config_exits(
+        self, monkeypatch, tmp_path, capsys
+    ):
         csv_file = tmp_path / "in.csv"
         csv_file.write_text(SIMPLE_CSV)
         self._run(monkeypatch, tmp_path, [str(csv_file), "2", "--correlation-attack"])
@@ -368,7 +409,9 @@ class TestCliMain:
         captured = capsys.readouterr()
         assert "requires --lfsr-configs" in captured.err
 
-    def test_cli_main_tmto_attack_runs_with_string_gf_order(self, monkeypatch, tmp_path):
+    def test_cli_main_tmto_attack_runs_with_string_gf_order(
+        self, monkeypatch, tmp_path
+    ):
         """Regression test (bug fixed 2026-08-12, see commit history):
         cli.py's --tmto-attack dispatch used to pass the raw argparse
         string args.gf_order straight through as field_order instead of
@@ -380,8 +423,17 @@ class TestCliMain:
         csv_file = tmp_path / "in.csv"
         csv_file.write_text(SIMPLE_CSV)
         self._run(
-            monkeypatch, tmp_path,
-            [str(csv_file), "2", "--tmto-attack", "--chain-count", "10", "--chain-length", "5"],
+            monkeypatch,
+            tmp_path,
+            [
+                str(csv_file),
+                "2",
+                "--tmto-attack",
+                "--chain-count",
+                "10",
+                "--chain-length",
+                "5",
+            ],
         )
 
         cli_main()
@@ -413,7 +465,8 @@ class TestCliMain:
         csv_file = tmp_path / "in.csv"
         csv_file.write_text(SIMPLE_CSV)
         self._run(
-            monkeypatch, tmp_path,
+            monkeypatch,
+            tmp_path,
             [str(csv_file), "2", "--advanced-structure", "nfsr"],
         )
 
@@ -423,13 +476,16 @@ class TestCliMain:
         assert "Advanced LFSR Structure Analysis" in out_content
         assert "nonlinear" in out_content.lower()
 
-    def test_cli_main_advanced_structure_missing_coeffs_file(self, monkeypatch, tmp_path, capsys):
+    def test_cli_main_advanced_structure_missing_coeffs_file(
+        self, monkeypatch, tmp_path, capsys
+    ):
         # input file exists but has no data at all -- read_coefficient_vectors
         # rejects it before the (separately buggy) LFSRConfig line is reached.
         csv_file = tmp_path / "in.csv"
         csv_file.write_text("# only a comment\n")
         self._run(
-            monkeypatch, tmp_path,
+            monkeypatch,
+            tmp_path,
             [str(csv_file), "2", "--advanced-structure", "nfsr"],
         )
 
@@ -439,7 +495,9 @@ class TestCliMain:
         captured = capsys.readouterr()
         assert "no data" in captured.out or "no data" in captured.err
 
-    def test_cli_main_advanced_structure_no_valid_coeffs_after_parsing(self, monkeypatch, tmp_path, capsys):
+    def test_cli_main_advanced_structure_no_valid_coeffs_after_parsing(
+        self, monkeypatch, tmp_path, capsys
+    ):
         """Distinct from test_cli_main_advanced_structure_missing_coeffs_file
         above: that test exercises read_and_validate_csv's OWN "no data"
         guard (io.py), which fires before cli.py's own
@@ -452,7 +510,8 @@ class TestCliMain:
         csv_file = tmp_path / "in.csv"
         csv_file.write_text("abc,def,ghi\n")
         self._run(
-            monkeypatch, tmp_path,
+            monkeypatch,
+            tmp_path,
             [str(csv_file), "2", "--advanced-structure", "nfsr"],
         )
 
@@ -460,13 +519,19 @@ class TestCliMain:
             cli_main()
         assert exc_info.value.code != 0
         captured = capsys.readouterr()
-        assert "No valid coefficients found" in captured.out or "No valid coefficients found" in captured.err
+        assert (
+            "No valid coefficients found" in captured.out
+            or "No valid coefficients found" in captured.err
+        )
 
-    def test_cli_main_algebraic_attack_without_keystream_exits(self, monkeypatch, tmp_path, capsys):
+    def test_cli_main_algebraic_attack_without_keystream_exits(
+        self, monkeypatch, tmp_path, capsys
+    ):
         csv_file = tmp_path / "in.csv"
         csv_file.write_text(SIMPLE_CSV)
         self._run(
-            monkeypatch, tmp_path,
+            monkeypatch,
+            tmp_path,
             [str(csv_file), "2", "--algebraic-attack"],
         )
 
@@ -480,11 +545,16 @@ class TestCliMain:
         keystream_file = tmp_path / "ks.txt"
         keystream_file.write_text("1 0 1 1 0 1 0 0 1 1\n")
         self._run(
-            monkeypatch, tmp_path,
+            monkeypatch,
+            tmp_path,
             [
-                str(csv_file), "2", "--algebraic-attack",
-                "--keystream-file", str(keystream_file),
-                "--algebraic-method", "algebraic_immunity",
+                str(csv_file),
+                "2",
+                "--algebraic-attack",
+                "--keystream-file",
+                str(keystream_file),
+                "--algebraic-method",
+                "algebraic_immunity",
             ],
         )
 
@@ -494,11 +564,14 @@ class TestCliMain:
             cli_main()
         assert exc_info.value.code == 1
 
-    def test_cli_main_ml_predict_period_without_model_warns(self, monkeypatch, tmp_path):
+    def test_cli_main_ml_predict_period_without_model_warns(
+        self, monkeypatch, tmp_path
+    ):
         csv_file = tmp_path / "in.csv"
         csv_file.write_text(SIMPLE_CSV)
         self._run(
-            monkeypatch, tmp_path,
+            monkeypatch,
+            tmp_path,
             [str(csv_file), "2", "--predict-period"],
         )
 
@@ -528,7 +601,8 @@ class TestCliMain:
         csv_file = tmp_path / "in.csv"
         csv_file.write_text(SIMPLE_CSV)
         self._run(
-            monkeypatch, tmp_path,
+            monkeypatch,
+            tmp_path,
             [str(csv_file), "2", "--compare-known"],
         )
 
@@ -546,7 +620,8 @@ class TestCliMain:
         csv_file.write_text(SIMPLE_CSV)
         latex_out = tmp_path / "out.tex"
         self._run(
-            monkeypatch, tmp_path,
+            monkeypatch,
+            tmp_path,
             [str(csv_file), "2", "--export-latex", str(latex_out)],
         )
 
@@ -567,7 +642,8 @@ class TestCliMain:
         csv_file.write_text(SIMPLE_CSV)
         plot_out = tmp_path / "plot.png"
         self._run(
-            monkeypatch, tmp_path,
+            monkeypatch,
+            tmp_path,
             [str(csv_file), "2", "--plot-period-distribution", str(plot_out)],
         )
 
@@ -579,7 +655,8 @@ class TestCliMain:
         csv_file = tmp_path / "in.csv"
         csv_file.write_text(SIMPLE_CSV)
         self._run(
-            monkeypatch, tmp_path,
+            monkeypatch,
+            tmp_path,
             [str(csv_file), "2", "--detect-patterns"],
         )
 
@@ -592,7 +669,8 @@ class TestCliMain:
         csv_file = tmp_path / "in.csv"
         csv_file.write_text(SIMPLE_CSV)
         self._run(
-            monkeypatch, tmp_path,
+            monkeypatch,
+            tmp_path,
             [str(csv_file), "2", "--detect-anomalies"],
         )
 
@@ -601,11 +679,14 @@ class TestCliMain:
         out_content = (tmp_path / (str(csv_file) + ".out")).read_text()
         assert "Anomaly Detection" in out_content
 
-    def test_cli_main_evaluate_model_without_model_file_exits(self, monkeypatch, tmp_path, capsys):
+    def test_cli_main_evaluate_model_without_model_file_exits(
+        self, monkeypatch, tmp_path, capsys
+    ):
         csv_file = tmp_path / "in.csv"
         csv_file.write_text(SIMPLE_CSV)
         self._run(
-            monkeypatch, tmp_path,
+            monkeypatch,
+            tmp_path,
             [str(csv_file), "2", "--evaluate-model"],
         )
 
@@ -620,10 +701,15 @@ class TestCliMain:
         csv_file.write_text(SIMPLE_CSV)
         model_out = tmp_path / "model.pkl"
         self._run(
-            monkeypatch, tmp_path,
+            monkeypatch,
+            tmp_path,
             [
-                str(csv_file), "2", "--train-model", str(model_out),
-                "--ml-samples", "5",
+                str(csv_file),
+                "2",
+                "--train-model",
+                str(model_out),
+                "--ml-samples",
+                "5",
             ],
         )
 
@@ -638,7 +724,8 @@ class TestCliMain:
         csv_file.write_text(SIMPLE_CSV)
         report_out = tmp_path / "report.json"
         self._run(
-            monkeypatch, tmp_path,
+            monkeypatch,
+            tmp_path,
             [str(csv_file), "2", "--reproducibility-report", str(report_out)],
         )
 
@@ -653,16 +740,27 @@ class TestCliMain:
         csv_file = tmp_path / "in.csv"
         csv_file.write_text(SIMPLE_CSV)
         cfg_file = tmp_path / "cfg.json"
-        cfg_file.write_text(json.dumps({
-            "lfsrs": [
-                {"coefficients": [1, 1, 0], "field_order": 2, "degree": 3},
-                {"coefficients": [1, 0, 0, 1], "field_order": 2, "degree": 4},
-            ],
-            "combining_function": {"type": "xor", "num_inputs": 2},
-        }))
+        cfg_file.write_text(
+            json.dumps(
+                {
+                    "lfsrs": [
+                        {"coefficients": [1, 1, 0], "field_order": 2, "degree": 3},
+                        {"coefficients": [1, 0, 0, 1], "field_order": 2, "degree": 4},
+                    ],
+                    "combining_function": {"type": "xor", "num_inputs": 2},
+                }
+            )
+        )
         self._run(
-            monkeypatch, tmp_path,
-            [str(csv_file), "2", "--correlation-attack", "--lfsr-configs", str(cfg_file)],
+            monkeypatch,
+            tmp_path,
+            [
+                str(csv_file),
+                "2",
+                "--correlation-attack",
+                "--lfsr-configs",
+                str(cfg_file),
+            ],
         )
 
         cli_main()
@@ -670,7 +768,9 @@ class TestCliMain:
         out_content = (tmp_path / (str(csv_file) + ".out")).read_text()
         assert "Correlation Attack Results (Siegenthaler)" in out_content
 
-    def test_cli_main_unexpected_exception_reports_and_exits(self, monkeypatch, tmp_path, capsys):
+    def test_cli_main_unexpected_exception_reports_and_exits(
+        self, monkeypatch, tmp_path, capsys
+    ):
         """Force main() to raise something unrelated to SystemExit/IOError
         and confirm cli_main's generic except-Exception handler catches it,
         prints an error, and exits non-zero rather than propagating."""
@@ -746,8 +846,13 @@ class TestMainSageAndParallelBranches:
 
         with open(out_file, "w") as f:
             main(
-                str(csv_file), "2", output_file=f, no_progress=True,
-                use_parallel=True, parallel_mode="dynamic", period_only=False,
+                str(csv_file),
+                "2",
+                output_file=f,
+                no_progress=True,
+                use_parallel=True,
+                parallel_mode="dynamic",
+                period_only=False,
             )
 
         captured = capsys.readouterr()
@@ -767,8 +872,13 @@ class TestMainSageAndParallelBranches:
 
         with open(out_file, "w") as f:
             main(
-                str(csv_file), "2", output_file=f, no_progress=True,
-                use_parallel=True, parallel_mode="dynamic", period_only=True,
+                str(csv_file),
+                "2",
+                output_file=f,
+                no_progress=True,
+                use_parallel=True,
+                parallel_mode="dynamic",
+                period_only=True,
             )
 
         captured = capsys.readouterr()
@@ -784,8 +894,13 @@ class TestMainSageAndParallelBranches:
 
         with open(out_file, "w") as f:
             main(
-                str(csv_file), "2", output_file=f, no_progress=True,
-                use_parallel=True, parallel_mode="static", period_only=False,
+                str(csv_file),
+                "2",
+                output_file=f,
+                no_progress=True,
+                use_parallel=True,
+                parallel_mode="static",
+                period_only=False,
             )
 
         captured = capsys.readouterr()
@@ -805,7 +920,9 @@ class TestCliMainRemainingBranches:
 
     # -- --tmto-attack empty-coefficients branch (lines 1019-1020) --------
 
-    def test_cli_main_tmto_attack_empty_coeffs_file_exits(self, monkeypatch, tmp_path, capsys):
+    def test_cli_main_tmto_attack_empty_coeffs_file_exits(
+        self, monkeypatch, tmp_path, capsys
+    ):
         # Genuinely reaches cli.py's OWN `if not coeffs_list:` guard
         # (lines ~1019-1020), unlike a comment-only file (which trips
         # read_and_validate_csv's *own* "no data" exit first, inside
@@ -817,7 +934,8 @@ class TestCliMainRemainingBranches:
         csv_file = tmp_path / "in.csv"
         csv_file.write_text("abc,def,ghi\n")
         self._run(
-            monkeypatch, tmp_path,
+            monkeypatch,
+            tmp_path,
             [str(csv_file), "2", "--tmto-attack"],
         )
 
@@ -825,18 +943,24 @@ class TestCliMainRemainingBranches:
             cli_main()
         assert exc_info.value.code != 0
         captured = capsys.readouterr()
-        assert "No valid coefficients found" in captured.out or "No valid coefficients found" in captured.err
+        assert (
+            "No valid coefficients found" in captured.out
+            or "No valid coefficients found" in captured.err
+        )
 
     # -- --algebraic-attack empty-coefficients branch (lines 1048-1049) ---
 
-    def test_cli_main_algebraic_attack_empty_coeffs_file_exits(self, monkeypatch, tmp_path, capsys):
+    def test_cli_main_algebraic_attack_empty_coeffs_file_exits(
+        self, monkeypatch, tmp_path, capsys
+    ):
         # See the tmto-attack test above for why a non-numeric-garbage
         # row (not a comment-only file) is needed to actually reach
         # cli.py's own `if not coeffs_list:` guard.
         csv_file = tmp_path / "in.csv"
         csv_file.write_text("abc,def,ghi\n")
         self._run(
-            monkeypatch, tmp_path,
+            monkeypatch,
+            tmp_path,
             [str(csv_file), "2", "--algebraic-attack"],
         )
 
@@ -844,15 +968,21 @@ class TestCliMainRemainingBranches:
             cli_main()
         assert exc_info.value.code != 0
         captured = capsys.readouterr()
-        assert "No valid coefficients found" in captured.out or "No valid coefficients found" in captured.err
+        assert (
+            "No valid coefficients found" in captured.out
+            or "No valid coefficients found" in captured.err
+        )
 
     # -- theoretical-analysis empty-coefficients branch (lines 1091-1092) -
 
-    def test_cli_main_theoretical_analysis_empty_coeffs_file_exits(self, monkeypatch, tmp_path, capsys):
+    def test_cli_main_theoretical_analysis_empty_coeffs_file_exits(
+        self, monkeypatch, tmp_path, capsys
+    ):
         csv_file = tmp_path / "in.csv"
         csv_file.write_text("abc,def,ghi\n")
         self._run(
-            monkeypatch, tmp_path,
+            monkeypatch,
+            tmp_path,
             [str(csv_file), "2", "--compare-known"],
         )
 
@@ -860,7 +990,10 @@ class TestCliMainRemainingBranches:
             cli_main()
         assert exc_info.value.code != 0
         captured = capsys.readouterr()
-        assert "No valid coefficients found" in captured.out or "No valid coefficients found" in captured.err
+        assert (
+            "No valid coefficients found" in captured.out
+            or "No valid coefficients found" in captured.err
+        )
 
     # -- --generate-paper (lines 1141-1144) --------------------------------
 
@@ -869,7 +1002,8 @@ class TestCliMainRemainingBranches:
         csv_file.write_text(SIMPLE_CSV)
         paper_out = tmp_path / "paper.tex"
         self._run(
-            monkeypatch, tmp_path,
+            monkeypatch,
+            tmp_path,
             [str(csv_file), "2", "--generate-paper", str(paper_out)],
         )
 
@@ -892,7 +1026,8 @@ class TestCliMainRemainingBranches:
         csv_file = tmp_path / "in.csv"
         csv_file.write_text("1,0,1\n")
         self._run(
-            monkeypatch, tmp_path,
+            monkeypatch,
+            tmp_path,
             [str(csv_file), "2", "--compare-known"],
         )
 
@@ -912,7 +1047,8 @@ class TestCliMainRemainingBranches:
         csv_file = tmp_path / "in.csv"
         csv_file.write_text(SIMPLE_CSV)
         self._run(
-            monkeypatch, tmp_path,
+            monkeypatch,
+            tmp_path,
             [str(csv_file), "2", "--benchmark"],
         )
 
@@ -925,11 +1061,14 @@ class TestCliMainRemainingBranches:
 
     # -- ML features missing-input-file / empty-coeffs (1211-1213, 1217-1218) --
 
-    def test_cli_main_ml_feature_empty_coeffs_file_exits(self, monkeypatch, tmp_path, capsys):
+    def test_cli_main_ml_feature_empty_coeffs_file_exits(
+        self, monkeypatch, tmp_path, capsys
+    ):
         csv_file = tmp_path / "in.csv"
         csv_file.write_text("abc,def,ghi\n")
         self._run(
-            monkeypatch, tmp_path,
+            monkeypatch,
+            tmp_path,
             [str(csv_file), "2", "--detect-patterns"],
         )
 
@@ -937,7 +1076,10 @@ class TestCliMainRemainingBranches:
             cli_main()
         assert exc_info.value.code != 0
         captured = capsys.readouterr()
-        assert "No valid coefficients found" in captured.out or "No valid coefficients found" in captured.err
+        assert (
+            "No valid coefficients found" in captured.out
+            or "No valid coefficients found" in captured.err
+        )
 
     # -- --predict-period with --ml-model-file (lines 1229-1232) ----------
 
@@ -950,19 +1092,28 @@ class TestCliMainRemainingBranches:
         csv_file.write_text(SIMPLE_CSV)
         model_out = tmp_path / "model.pkl"
         self._run(
-            monkeypatch, tmp_path,
+            monkeypatch,
+            tmp_path,
             [
-                str(csv_file), "2", "--train-model", str(model_out),
-                "--ml-samples", "5",
+                str(csv_file),
+                "2",
+                "--train-model",
+                str(model_out),
+                "--ml-samples",
+                "5",
             ],
         )
         cli_main()
 
         self._run(
-            monkeypatch, tmp_path,
+            monkeypatch,
+            tmp_path,
             [
-                str(csv_file), "2", "--predict-period",
-                "--ml-model-file", str(model_out),
+                str(csv_file),
+                "2",
+                "--predict-period",
+                "--ml-model-file",
+                str(model_out),
             ],
         )
         cli_main()
@@ -978,20 +1129,30 @@ class TestCliMainRemainingBranches:
         csv_file.write_text(SIMPLE_CSV)
         model_out = tmp_path / "model.pkl"
         self._run(
-            monkeypatch, tmp_path,
+            monkeypatch,
+            tmp_path,
             [
-                str(csv_file), "2", "--train-model", str(model_out),
-                "--ml-samples", "5",
+                str(csv_file),
+                "2",
+                "--train-model",
+                str(model_out),
+                "--ml-samples",
+                "5",
             ],
         )
         cli_main()
 
         self._run(
-            monkeypatch, tmp_path,
+            monkeypatch,
+            tmp_path,
             [
-                str(csv_file), "2", "--evaluate-model",
-                "--ml-model-file", str(model_out),
-                "--ml-test-samples", "5",
+                str(csv_file),
+                "2",
+                "--evaluate-model",
+                "--ml-model-file",
+                str(model_out),
+                "--ml-test-samples",
+                "5",
             ],
         )
         cli_main()
@@ -1004,7 +1165,9 @@ class TestCliMainRemainingBranches:
 
     # -- pattern detection detail lines (line 1254) ------------------------
 
-    def test_cli_main_detect_patterns_prints_pattern_details(self, monkeypatch, tmp_path):
+    def test_cli_main_detect_patterns_prints_pattern_details(
+        self, monkeypatch, tmp_path
+    ):
         """The pattern-detail print loop (line 1254) only runs when at
         least one pattern category is non-empty. A real period-7 sequence
         from a small primitive GF(2) LFSR is too short/regular to reliably
@@ -1030,7 +1193,8 @@ class TestCliMainRemainingBranches:
         csv_file = tmp_path / "in.csv"
         csv_file.write_text(SIMPLE_CSV)
         self._run(
-            monkeypatch, tmp_path,
+            monkeypatch,
+            tmp_path,
             [str(csv_file), "2", "--detect-patterns"],
         )
 
@@ -1043,12 +1207,15 @@ class TestCliMainRemainingBranches:
 
     # -- visualization missing-input-file / empty-coeffs (1353-1354, 1358-1359) --
 
-    def test_cli_main_visualization_empty_coeffs_file_exits(self, monkeypatch, tmp_path, capsys):
+    def test_cli_main_visualization_empty_coeffs_file_exits(
+        self, monkeypatch, tmp_path, capsys
+    ):
         csv_file = tmp_path / "in.csv"
         csv_file.write_text("abc,def,ghi\n")
         plot_out = tmp_path / "plot.png"
         self._run(
-            monkeypatch, tmp_path,
+            monkeypatch,
+            tmp_path,
             [str(csv_file), "2", "--plot-period-distribution", str(plot_out)],
         )
 
@@ -1056,7 +1223,10 @@ class TestCliMainRemainingBranches:
             cli_main()
         assert exc_info.value.code != 0
         captured = capsys.readouterr()
-        assert "No valid coefficients found" in captured.out or "No valid coefficients found" in captured.err
+        assert (
+            "No valid coefficients found" in captured.out
+            or "No valid coefficients found" in captured.err
+        )
 
     # -- --plot-state-transitions (lines 1404-1411) ------------------------
 
@@ -1065,7 +1235,8 @@ class TestCliMainRemainingBranches:
         csv_file.write_text(SIMPLE_CSV)
         plot_out = tmp_path / "transitions.png"
         self._run(
-            monkeypatch, tmp_path,
+            monkeypatch,
+            tmp_path,
             [str(csv_file), "2", "--plot-state-transitions", str(plot_out)],
         )
 
@@ -1082,7 +1253,8 @@ class TestCliMainRemainingBranches:
         csv_file.write_text(SIMPLE_CSV)
         plot_out = tmp_path / "stats.png"
         self._run(
-            monkeypatch, tmp_path,
+            monkeypatch,
+            tmp_path,
             [str(csv_file), "2", "--plot-period-statistics", str(plot_out)],
         )
 
@@ -1112,7 +1284,8 @@ class TestCliMainRemainingBranches:
         csv_file.write_text(SIMPLE_CSV)
         plot_out = tmp_path / "3d.png"
         self._run(
-            monkeypatch, tmp_path,
+            monkeypatch,
+            tmp_path,
             [str(csv_file), "2", "--plot-3d-state-space", str(plot_out)],
         )
 
@@ -1128,7 +1301,8 @@ class TestCliMainRemainingBranches:
         csv_file.write_text(SIMPLE_CSV)
         plot_out = tmp_path / "attack.png"
         self._run(
-            monkeypatch, tmp_path,
+            monkeypatch,
+            tmp_path,
             [str(csv_file), "2", "--visualize-attack", str(plot_out)],
         )
 
@@ -1163,7 +1337,9 @@ class TestCliMainRemainingBranches:
 
     # -- KeyboardInterrupt handler (lines 1500-1501) -------------------------
 
-    def test_cli_main_keyboard_interrupt_reports_and_exits(self, monkeypatch, tmp_path, capsys):
+    def test_cli_main_keyboard_interrupt_reports_and_exits(
+        self, monkeypatch, tmp_path, capsys
+    ):
         csv_file = tmp_path / "in.csv"
         csv_file.write_text(SIMPLE_CSV)
         self._run(monkeypatch, tmp_path, [str(csv_file), "2", "--no-progress"])
@@ -1236,9 +1412,15 @@ class TestCliMainDeadInputFileChecks:
 
         monkeypatch.setattr(cli_mod.os.path, "exists", fake_exists)
 
-    def test_advanced_structure_missing_input_file_dead_branch(self, monkeypatch, tmp_path, capsys):
-        self._run(monkeypatch, tmp_path, ["dummy.csv", "2", "--advanced-structure", "nfsr"])
-        self._patch_empty_input_file(monkeypatch, ["", "2", "--advanced-structure", "nfsr"])
+    def test_advanced_structure_missing_input_file_dead_branch(
+        self, monkeypatch, tmp_path, capsys
+    ):
+        self._run(
+            monkeypatch, tmp_path, ["dummy.csv", "2", "--advanced-structure", "nfsr"]
+        )
+        self._patch_empty_input_file(
+            monkeypatch, ["", "2", "--advanced-structure", "nfsr"]
+        )
 
         with pytest.raises(SystemExit) as exc_info:
             cli_main()
@@ -1246,7 +1428,9 @@ class TestCliMainDeadInputFileChecks:
         captured = capsys.readouterr()
         assert "--advanced-structure requires input file" in captured.err
 
-    def test_tmto_attack_missing_input_file_dead_branch(self, monkeypatch, tmp_path, capsys):
+    def test_tmto_attack_missing_input_file_dead_branch(
+        self, monkeypatch, tmp_path, capsys
+    ):
         self._run(monkeypatch, tmp_path, ["dummy.csv", "2", "--tmto-attack"])
         self._patch_empty_input_file(monkeypatch, ["", "2", "--tmto-attack"])
 
@@ -1256,7 +1440,9 @@ class TestCliMainDeadInputFileChecks:
         captured = capsys.readouterr()
         assert "--tmto-attack requires input file" in captured.err
 
-    def test_algebraic_attack_missing_input_file_dead_branch(self, monkeypatch, tmp_path, capsys):
+    def test_algebraic_attack_missing_input_file_dead_branch(
+        self, monkeypatch, tmp_path, capsys
+    ):
         self._run(monkeypatch, tmp_path, ["dummy.csv", "2", "--algebraic-attack"])
         self._patch_empty_input_file(monkeypatch, ["", "2", "--algebraic-attack"])
 
@@ -1266,7 +1452,9 @@ class TestCliMainDeadInputFileChecks:
         captured = capsys.readouterr()
         assert "--algebraic-attack requires input file" in captured.err
 
-    def test_theoretical_analysis_missing_input_file_dead_branch(self, monkeypatch, tmp_path, capsys):
+    def test_theoretical_analysis_missing_input_file_dead_branch(
+        self, monkeypatch, tmp_path, capsys
+    ):
         self._run(monkeypatch, tmp_path, ["dummy.csv", "2", "--compare-known"])
         self._patch_empty_input_file(monkeypatch, ["", "2", "--compare-known"])
 
@@ -1276,7 +1464,9 @@ class TestCliMainDeadInputFileChecks:
         captured = capsys.readouterr()
         assert "Theoretical analysis features require input file" in captured.err
 
-    def test_ml_features_missing_input_file_dead_branch(self, monkeypatch, tmp_path, capsys):
+    def test_ml_features_missing_input_file_dead_branch(
+        self, monkeypatch, tmp_path, capsys
+    ):
         self._run(monkeypatch, tmp_path, ["dummy.csv", "2", "--predict-period"])
         self._patch_empty_input_file(monkeypatch, ["", "2", "--predict-period"])
 
@@ -1286,8 +1476,14 @@ class TestCliMainDeadInputFileChecks:
         captured = capsys.readouterr()
         assert "ML features require input file" in captured.err
 
-    def test_visualization_missing_input_file_dead_branch(self, monkeypatch, tmp_path, capsys):
-        self._run(monkeypatch, tmp_path, ["dummy.csv", "2", "--plot-period-distribution", "out.png"])
+    def test_visualization_missing_input_file_dead_branch(
+        self, monkeypatch, tmp_path, capsys
+    ):
+        self._run(
+            monkeypatch,
+            tmp_path,
+            ["dummy.csv", "2", "--plot-period-distribution", "out.png"],
+        )
         self._patch_empty_input_file(
             monkeypatch, ["", "2", "--plot-period-distribution", "out.png"]
         )
@@ -1326,8 +1522,12 @@ class TestCliMainAdditionalBranches:
         def fake_detect_all_anomalies(**kwargs):
             return [FakeAnomaly(), FakeAnomaly()]
 
-        monkeypatch.setattr(anomaly_mod, "detect_all_anomalies", fake_detect_all_anomalies)
-        monkeypatch.setattr("lfsr.cli.detect_all_anomalies", fake_detect_all_anomalies, raising=False)
+        monkeypatch.setattr(
+            anomaly_mod, "detect_all_anomalies", fake_detect_all_anomalies
+        )
+        monkeypatch.setattr(
+            "lfsr.cli.detect_all_anomalies", fake_detect_all_anomalies, raising=False
+        )
 
         csv_file = tmp_path / "in.csv"
         csv_file.write_text(SIMPLE_CSV)
@@ -1351,7 +1551,8 @@ class TestCliMainAdditionalBranches:
         csv_file.write_text(SIMPLE_CSV)
         plot_out = tmp_path / "3d.png"
         self._run(
-            monkeypatch, tmp_path,
+            monkeypatch,
+            tmp_path,
             [str(csv_file), "2", "--plot-3d-state-space", str(plot_out)],
         )
 

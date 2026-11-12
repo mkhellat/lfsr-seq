@@ -24,6 +24,7 @@ _worker_pool = None
 _worker_pool_context = None
 _worker_pool_size = 0
 
+
 def shutdown_worker_pool():
     """Explicitly shutdown persistent worker pool."""
     global _worker_pool, _worker_pool_context, _worker_pool_size
@@ -38,6 +39,7 @@ def shutdown_worker_pool():
             _worker_pool_context = None
             _worker_pool_size = 0
 
+
 # Register cleanup handler for program exit
 import atexit
 
@@ -49,7 +51,7 @@ atexit.register(shutdown_worker_pool)
 try:
     # Only set if not already set (avoids RuntimeError)
     if multiprocessing.get_start_method(allow_none=True) is None:
-        multiprocessing.set_start_method('fork', force=False)
+        multiprocessing.set_start_method("fork", force=False)
 except RuntimeError:
     # Start method already set, that's fine
     pass
@@ -82,9 +84,7 @@ def _update_progress_display(
     print(prog_t + prog_info, end="\r")
 
 
-def _find_period_floyd(
-    start_state: Any, state_update_matrix: Any
-) -> int:
+def _find_period_floyd(start_state: Any, state_update_matrix: Any) -> int:
     """
     Find the period using Floyd's cycle detection algorithm in true O(1) space.
 
@@ -158,9 +158,7 @@ def _find_period_floyd(
     return lambda_period
 
 
-def _find_period_brent(
-    start_state: Any, state_update_matrix: Any
-) -> int:
+def _find_period_brent(start_state: Any, state_update_matrix: Any) -> int:
     """
     Find the period using Brent's cycle detection algorithm in true O(1) space.
 
@@ -208,9 +206,7 @@ def _find_period_brent(
     return lambda_period
 
 
-def _find_period_enumeration(
-    start_state: Any, state_update_matrix: Any
-) -> int:
+def _find_period_enumeration(start_state: Any, state_update_matrix: Any) -> int:
     """
     Find the period by enumeration without storing the sequence.
 
@@ -318,7 +314,9 @@ def _find_sequence_cycle_floyd(
 
     # Safety check: if we hit the limit, fall back to enumeration
     if steps >= max_steps:
-        return _find_sequence_cycle_enumeration(start_state, state_update_matrix, visited_set)
+        return _find_sequence_cycle_enumeration(
+            start_state, state_update_matrix, visited_set
+        )
 
     # Phase 2: Find the period (lambda)
     # After Phase 1, tortoise and hare are at the meeting point
@@ -339,7 +337,9 @@ def _find_sequence_cycle_floyd(
 
     # Safety check
     if lambda_period >= max_steps:
-        return _find_sequence_cycle_enumeration(start_state, state_update_matrix, visited_set)
+        return _find_sequence_cycle_enumeration(
+            start_state, state_update_matrix, visited_set
+        )
 
     # NOTE: We still need to enumerate the full sequence for output
     # This means our implementation is NOT O(1) space - it's O(period) space
@@ -366,7 +366,9 @@ def _find_sequence_cycle_floyd(
 
     # If we didn't complete the cycle, something is wrong - use enumeration
     if next_state != start_state:
-        return _find_sequence_cycle_enumeration(start_state, state_update_matrix, visited_set)
+        return _find_sequence_cycle_enumeration(
+            start_state, state_update_matrix, visited_set
+        )
 
     # Use the period found by Floyd (more reliable for large periods)
     return seq_lst, lambda_period
@@ -416,7 +418,9 @@ def _find_sequence_cycle_brent(
 
     # Safety check: if we hit the limit, fall back to enumeration
     if lambda_period >= max_steps:
-        return _find_sequence_cycle_enumeration(start_state, state_update_matrix, visited_set)
+        return _find_sequence_cycle_enumeration(
+            start_state, state_update_matrix, visited_set
+        )
 
     # NOTE: We still need to enumerate the full sequence for output
     # This means our implementation is NOT O(1) space - it's O(period) space
@@ -443,7 +447,9 @@ def _find_sequence_cycle_brent(
 
     # If we didn't complete the cycle, something is wrong - use enumeration
     if next_state != start_state:
-        return _find_sequence_cycle_enumeration(start_state, state_update_matrix, visited_set)
+        return _find_sequence_cycle_enumeration(
+            start_state, state_update_matrix, visited_set
+        )
 
     # Use the period found by Brent (more reliable for large periods)
     return seq_lst, lambda_period
@@ -472,13 +478,18 @@ def _find_sequence_cycle_enumeration(
     # Debug logging (disabled by default, enable with DEBUG_PARALLEL=1)
     import os
     import sys
-    DEBUG_PARALLEL = os.environ.get('DEBUG_PARALLEL', '0') == '1'
+
+    DEBUG_PARALLEL = os.environ.get("DEBUG_PARALLEL", "0") == "1"
 
     def debug_log(msg):
         if DEBUG_PARALLEL:
-            print(f'[_find_sequence_cycle_enumeration PID {os.getpid()}] {msg}', file=sys.stderr, flush=True)
+            print(
+                f"[_find_sequence_cycle_enumeration PID {os.getpid()}] {msg}",
+                file=sys.stderr,
+                flush=True,
+            )
 
-    debug_log('Starting enumeration...')
+    debug_log("Starting enumeration...")
 
     # NOTE: this loop must terminate on re-entering ANY previously-visited
     # state, not just start_state. A degenerate LFSR (e.g. all-zero
@@ -497,13 +508,13 @@ def _find_sequence_cycle_enumeration(
     # Convert vector to tuple for hashing (SageMath vectors are mutable and unhashable)
     start_state_tuple = tuple(start_state)
     visited_set.add(start_state_tuple)
-    debug_log('Computing first state transition...')
+    debug_log("Computing first state transition...")
     next_state = start_state * state_update_matrix
-    debug_log('First transition done')
+    debug_log("First transition done")
     seq_period = 1
     iteration = 0
 
-    debug_log('Starting enumeration loop...')
+    debug_log("Starting enumeration loop...")
     next_state_tuple = tuple(next_state)
     while next_state_tuple not in visited_set:
         seq_lst.append(next_state)
@@ -511,21 +522,25 @@ def _find_sequence_cycle_enumeration(
         seq_period += 1
         iteration += 1
         if iteration % 100 == 0:
-            debug_log(f'Iteration {iteration}, period={seq_period}')
-        debug_log(f'Computing next state transition (iteration {iteration})...')
+            debug_log(f"Iteration {iteration}, period={seq_period}")
+        debug_log(f"Computing next state transition (iteration {iteration})...")
         next_state = next_state * state_update_matrix
         next_state_tuple = tuple(next_state)
-        debug_log(f'Transition {iteration} complete')
+        debug_log(f"Transition {iteration} complete")
         if iteration > 1000000:  # Safety limit
-            debug_log('Safety limit exceeded!')
+            debug_log("Safety limit exceeded!")
             break
 
-    debug_log(f'Enumeration complete: period={seq_period}, length={len(seq_lst)}')
+    debug_log(f"Enumeration complete: period={seq_period}, length={len(seq_lst)}")
     return seq_lst, seq_period
 
 
 def _find_sequence_cycle(
-    start_state: Any, state_update_matrix: Any, visited_set: set, algorithm: str = "auto", period_only: bool = False
+    start_state: Any,
+    state_update_matrix: Any,
+    visited_set: set,
+    algorithm: str = "auto",
+    period_only: bool = False,
 ) -> Tuple[List[Any], int]:
     """
     Find the complete cycle of states starting from a given state, or just the period.
@@ -552,22 +567,29 @@ def _find_sequence_cycle(
     # Debug logging (disabled by default, enable with DEBUG_PARALLEL=1)
     import os
     import sys
-    DEBUG_PARALLEL = os.environ.get('DEBUG_PARALLEL', '0') == '1'
+
+    DEBUG_PARALLEL = os.environ.get("DEBUG_PARALLEL", "0") == "1"
 
     def debug_log(msg):
         if DEBUG_PARALLEL:
-            print(f'[_find_sequence_cycle PID {os.getpid()}] {msg}', file=sys.stderr, flush=True)
+            print(
+                f"[_find_sequence_cycle PID {os.getpid()}] {msg}",
+                file=sys.stderr,
+                flush=True,
+            )
 
     if DEBUG_PARALLEL:
-        debug_log(f'_find_sequence_cycle called: period_only={period_only}, algorithm={algorithm}')
+        debug_log(
+            f"_find_sequence_cycle called: period_only={period_only}, algorithm={algorithm}"
+        )
 
     if period_only:
         # Period-only mode: use period-only functions (true O(1) space for Floyd)
         # CRITICAL FIX: We MUST mark states as visited to avoid reprocessing cycles
         # Otherwise, we'll process the same cycle multiple times, making period-only mode very slow
-        debug_log('Period-only mode: calling _find_period...')
+        debug_log("Period-only mode: calling _find_period...")
         period = _find_period(start_state, state_update_matrix, algorithm=algorithm)
-        debug_log(f'_find_period returned: period={period}')
+        debug_log(f"_find_period returned: period={period}")
         # Mark all states in the cycle as visited to avoid reprocessing
         # This is critical for performance - without this, period-only mode is much slower
         current = start_state
@@ -577,27 +599,37 @@ def _find_sequence_cycle(
             current = current * state_update_matrix
             current_tuple = tuple(current)
             visited_set.add(current_tuple)
-        debug_log(f'Marked {period} states as visited in period-only mode')
+        debug_log(f"Marked {period} states as visited in period-only mode")
         return [], period
     else:
         # Full sequence mode: store the sequence
-        debug_log('Full sequence mode')
+        debug_log("Full sequence mode")
         if algorithm == "enumeration":
-            debug_log('Calling _find_sequence_cycle_enumeration...')
-            result = _find_sequence_cycle_enumeration(start_state, state_update_matrix, visited_set)
-            debug_log(f'_find_sequence_cycle_enumeration returned: period={result[1]}, length={len(result[0])}')
+            debug_log("Calling _find_sequence_cycle_enumeration...")
+            result = _find_sequence_cycle_enumeration(
+                start_state, state_update_matrix, visited_set
+            )
+            debug_log(
+                f"_find_sequence_cycle_enumeration returned: period={result[1]}, length={len(result[0])}"
+            )
             return result
         elif algorithm == "floyd" or algorithm == "auto":
             # Use Floyd's algorithm (but still stores sequence, so O(period) space)
             # Falls back to enumeration if limits are hit or for safety
-            return _find_sequence_cycle_floyd(start_state, state_update_matrix, visited_set)
+            return _find_sequence_cycle_floyd(
+                start_state, state_update_matrix, visited_set
+            )
         elif algorithm == "brent":
             # Use Brent's algorithm (powers of 2 approach)
             # Falls back to enumeration if limits are hit or for safety
-            return _find_sequence_cycle_brent(start_state, state_update_matrix, visited_set)
+            return _find_sequence_cycle_brent(
+                start_state, state_update_matrix, visited_set
+            )
         else:
             # Invalid algorithm, default to enumeration
-            return _find_sequence_cycle_enumeration(start_state, state_update_matrix, visited_set)
+            return _find_sequence_cycle_enumeration(
+                start_state, state_update_matrix, visited_set
+            )
 
 
 def _format_sequence_entry(
@@ -702,8 +734,11 @@ def lfsr_sequence_mapper(
 
     seq_dict = {}
     period_dict = {}
-    visited_set = set()  # Use set for O(1) membership testing instead of O(n) list lookup
+    visited_set = (
+        set()
+    )  # Use set for O(1) membership testing instead of O(n) list lookup
     from datetime import datetime
+
     timer_lst = [datetime.now()]  # Initialize with first timestamp
     est_t_lst = []
     seq = 0
@@ -743,7 +778,9 @@ def lfsr_sequence_mapper(
 
             # Update progress display (unless disabled)
             if not no_progress:
-                _update_progress_display(counter, elp_t, max_t_t, state_vector_space_size)
+                _update_progress_display(
+                    counter, elp_t, max_t_t, state_vector_space_size
+                )
 
         # Find sequence cycle if not already processed
         # O(1) lookup with set instead of O(n) with list
@@ -752,7 +789,11 @@ def lfsr_sequence_mapper(
         if bra_tuple not in visited_set:
             seq += 1
             seq_lst, seq_period = _find_sequence_cycle(
-                bra, state_update_matrix, visited_set, algorithm=algorithm, period_only=period_only
+                bra,
+                state_update_matrix,
+                visited_set,
+                algorithm=algorithm,
+                period_only=period_only,
             )
             if period_only:
                 # Period-only mode: don't store sequences, only periods
@@ -774,7 +815,9 @@ def lfsr_sequence_mapper(
     if period_only:
         # Period-only mode: display only periods, not sequences
         for seq_num, period in period_dict.items():
-            seq_entry = f" | ** sequence {seq_num:3d} | T : {period:3d} | (period only)  |"
+            seq_entry = (
+                f" | ** sequence {seq_num:3d} | T : {period:3d} | (period only)  |"
+            )
             dump(seq_entry, "mode=all", output_file)
     else:
         # Full mode: display sequences
@@ -786,7 +829,12 @@ def lfsr_sequence_mapper(
 
             # Display shortened version to console, full version to file
             dump_seq_row(
-                seq_num, seq_entry, num_sequences, row_width, "mode=console", output_file
+                seq_num,
+                seq_entry,
+                num_sequences,
+                row_width,
+                "mode=console",
+                output_file,
             )
             dump_seq_row(
                 seq_num, seq_all_v, num_sequences, row_width, "mode=file", output_file
@@ -830,6 +878,7 @@ def _merge_parallel_results(
     except ImportError:
         # Fallback if sage.all not available
         import sys
+
         print("ERROR: SageMath not available for result merging", file=sys.stderr)
         return {}, {}, 0, 0
 
@@ -839,10 +888,10 @@ def _merge_parallel_results(
     all_errors = []
 
     for result in worker_results:
-        all_sequences.extend(result.get('sequences', []))
-        if result.get('max_period', 0) > max_period:
-            max_period = result.get('max_period', 0)
-        all_errors.extend(result.get('errors', []))
+        all_sequences.extend(result.get("sequences", []))
+        if result.get("max_period", 0) > max_period:
+            max_period = result.get("max_period", 0)
+        all_errors.extend(result.get("errors", []))
 
     # Deduplicate sequences
     # Two sequences are the same if they have the same set of states (same cycle)
@@ -852,14 +901,17 @@ def _merge_parallel_results(
     # Debug logging can be enabled by setting environment variable
     import os
     import sys
-    DEBUG_PARALLEL = os.environ.get('DEBUG_PARALLEL', '0') == '1'
+
+    DEBUG_PARALLEL = os.environ.get("DEBUG_PARALLEL", "0") == "1"
 
     def merge_debug(msg):
         if DEBUG_PARALLEL:
-            print(f'[Merge PID {os.getpid()}] {msg}', file=sys.stderr, flush=True)
+            print(f"[Merge PID {os.getpid()}] {msg}", file=sys.stderr, flush=True)
 
     if DEBUG_PARALLEL:
-        merge_debug(f'Deduplicating {len(all_sequences)} sequences from {len(worker_results)} workers')
+        merge_debug(
+            f"Deduplicating {len(all_sequences)} sequences from {len(worker_results)} workers"
+        )
 
     # CRITICAL FIX: Use shared_cycles registry for accurate deduplication
     # The problem: Workers may compute different min_states for the same cycle
@@ -870,15 +922,17 @@ def _merge_parallel_results(
         # Use min_state as the primary deduplication key
         # Each unique cycle has a unique min_state (canonical representation)
         # shared_cycles tracks which cycles were claimed by which workers
-        merge_debug(f'Using shared_cycles registry with {len(shared_cycles)} claimed cycles')
+        merge_debug(
+            f"Using shared_cycles registry with {len(shared_cycles)} claimed cycles"
+        )
 
         # Track cycles by min_state (canonical cycle representation)
         cycles_by_min_state = {}  # min_state_tuple -> seq_info
 
         for idx, seq_info in enumerate(all_sequences):
-            states_tuples = seq_info['states']
-            period = seq_info['period']
-            start_state = seq_info['start_state']
+            states_tuples = seq_info["states"]
+            period = seq_info["period"]
+            start_state = seq_info["start_state"]
 
             if not states_tuples or period == 0:
                 continue
@@ -891,56 +945,74 @@ def _merge_parallel_results(
             else:
                 continue
 
-            min_state_tuple = tuple(min_state) if not isinstance(min_state, tuple) else min_state
+            min_state_tuple = (
+                tuple(min_state) if not isinstance(min_state, tuple) else min_state
+            )
 
             # Deduplicate by min_state: each unique cycle has a unique min_state
             if min_state_tuple not in cycles_by_min_state:
                 # First occurrence of this cycle (by min_state) - add it
                 cycles_by_min_state[min_state_tuple] = seq_info
-                merge_debug(f'Sequence {idx+1}: Added cycle with min_state {min_state_tuple[:5] if len(min_state_tuple) > 5 else min_state_tuple}... (period {period})')
+                merge_debug(
+                    f"Sequence {idx+1}: Added cycle with min_state {min_state_tuple[:5] if len(min_state_tuple) > 5 else min_state_tuple}... (period {period})"
+                )
             else:
                 # Duplicate cycle (same min_state) - skip it
-                existing_period = cycles_by_min_state[min_state_tuple]['period']
-                merge_debug(f'Sequence {idx+1}: Duplicate cycle (min_state already seen, period {period} vs existing {existing_period}), skipping')
+                existing_period = cycles_by_min_state[min_state_tuple]["period"]
+                merge_debug(
+                    f"Sequence {idx+1}: Duplicate cycle (min_state already seen, period {period} vs existing {existing_period}), skipping"
+                )
 
         # Convert to list
         unique_sequences = list(cycles_by_min_state.values())
-        merge_debug(f'Deduplication by min_state: {len(unique_sequences)} unique cycles from {len(all_sequences)} total')
+        merge_debug(
+            f"Deduplication by min_state: {len(unique_sequences)} unique cycles from {len(all_sequences)} total"
+        )
     else:
         # Fallback: Original deduplication logic (for backward compatibility)
-        merge_debug('shared_cycles not provided, using fallback deduplication')
+        merge_debug("shared_cycles not provided, using fallback deduplication")
 
         for idx, seq_info in enumerate(all_sequences):
             # Create a canonical representation of the cycle
             # Use the sorted tuple of state tuples as the key
-            states_tuples = seq_info['states']
-            period = seq_info['period']
-            start_state = seq_info['start_state']
+            states_tuples = seq_info["states"]
+            period = seq_info["period"]
+            start_state = seq_info["start_state"]
 
             if not states_tuples:
                 # CRITICAL: In period-only mode, states_tuples is empty
                 # Use period+start_state as key (imperfect but avoids hangs)
                 cycle_key = (period, start_state)
-                merge_debug(f'Sequence {idx+1}: Empty states_tuples! Using period+start_state as key: period={period}, start_state={start_state}')
+                merge_debug(
+                    f"Sequence {idx+1}: Empty states_tuples! Using period+start_state as key: period={period}, start_state={start_state}"
+                )
             elif len(states_tuples) == 1:
                 # Period-only mode: states_tuples contains min_state tuple
                 # Use it directly as the key for deduplication
                 cycle_key = states_tuples[0]  # min_state tuple is the key
-                merge_debug(f'Sequence {idx+1}: Period-only mode, using min_state key: {cycle_key[:5] if len(cycle_key) > 5 else cycle_key}..., period={period}')
+                merge_debug(
+                    f"Sequence {idx+1}: Period-only mode, using min_state key: {cycle_key[:5] if len(cycle_key) > 5 else cycle_key}..., period={period}"
+                )
             else:
                 # Full mode: Use sorted states as key (cycles are the same regardless of starting point)
                 # Normalize by sorting to handle cycles starting at different points
                 cycle_key = tuple(sorted(states_tuples))
-                merge_debug(f'Sequence {idx+1}: Full mode, {len(states_tuples)} states, cycle_key length={len(cycle_key)}')
+                merge_debug(
+                    f"Sequence {idx+1}: Full mode, {len(states_tuples)} states, cycle_key length={len(cycle_key)}"
+                )
 
             if cycle_key not in seen_cycles:
                 seen_cycles[cycle_key] = seq_info
                 unique_sequences.append(seq_info)
-                merge_debug(f'Sequence {idx+1}: Added as unique (total unique: {len(unique_sequences)})')
+                merge_debug(
+                    f"Sequence {idx+1}: Added as unique (total unique: {len(unique_sequences)})"
+                )
             else:
-                merge_debug(f'Sequence {idx+1}: Duplicate detected, skipping')
+                merge_debug(f"Sequence {idx+1}: Duplicate detected, skipping")
 
-    merge_debug(f'Deduplication complete: {len(unique_sequences)} unique sequences from {len(all_sequences)} total')
+    merge_debug(
+        f"Deduplication complete: {len(unique_sequences)} unique sequences from {len(all_sequences)} total"
+    )
 
     # Reconstruct SageMath objects and assign sequence numbers
     seq_dict = {}
@@ -951,18 +1023,20 @@ def _merge_parallel_results(
 
     for seq_info in unique_sequences:
         seq_num += 1
-        period = seq_info['period']
+        period = seq_info["period"]
         period_dict[seq_num] = period
 
         # Reconstruct sequence states based on period_only flag
         # If period_only=True, we computed the sequence for deduplication but don't store it
-        is_period_only = seq_info.get('period_only', False)
+        is_period_only = seq_info.get("period_only", False)
         if is_period_only:
             # Period-only mode: don't store sequence (even though we have it for dedup)
             seq_dict[seq_num] = []
-        elif seq_info['states']:
+        elif seq_info["states"]:
             # Full mode: reconstruct and store sequence
-            seq_list = [vector(F, list(state_tuple)) for state_tuple in seq_info['states']]
+            seq_list = [
+                vector(F, list(state_tuple)) for state_tuple in seq_info["states"]
+            ]
             seq_dict[seq_num] = seq_list
         else:
             # Empty sequence (shouldn't happen, but handle gracefully)
@@ -973,7 +1047,11 @@ def _merge_parallel_results(
     # Log errors if any
     if all_errors:
         import sys
-        print(f"WARNING: {len(all_errors)} errors occurred during parallel processing:", file=sys.stderr)
+
+        print(
+            f"WARNING: {len(all_errors)} errors occurred during parallel processing:",
+            file=sys.stderr,
+        )
         for error in all_errors[:10]:  # Show first 10 errors
             print(f"  {error}", file=sys.stderr)
         if len(all_errors) > 10:
@@ -1029,7 +1107,8 @@ def _partition_state_space(
             this_chunk_size = base_chunk_size + (1 if chunk_idx < remainder else 0)
             end_idx = start_idx + this_chunk_size
             chunk = [
-                (tuple(states[state_idx]), state_idx) for state_idx in range(start_idx, end_idx)
+                (tuple(states[state_idx]), state_idx)
+                for state_idx in range(start_idx, end_idx)
             ]
             chunks.append(chunk)
             start_idx = end_idx
@@ -1047,7 +1126,9 @@ def _partition_state_space(
 
     # BUG FIX: Don't iterate VectorSpace! Use state indices directly.
     # For GF(q)^d, state index i can be converted to tuple without iteration.
-    def state_index_to_tuple(state_index: int, degree: int, gf_order: int) -> Tuple[int, ...]:
+    def state_index_to_tuple(
+        state_index: int, degree: int, gf_order: int
+    ) -> Tuple[int, ...]:
         """Convert state index to tuple representation without iterating VectorSpace."""
         if gf_order == 2:
             # Binary representation for GF(2) - FAST!
@@ -1148,36 +1229,42 @@ def _process_state_chunk(
     import sys
 
     # Debug logging can be enabled by setting environment variable
-    DEBUG_PARALLEL = os.environ.get('DEBUG_PARALLEL', '0') == '1'
+    DEBUG_PARALLEL = os.environ.get("DEBUG_PARALLEL", "0") == "1"
 
     def debug_log(msg):
         if DEBUG_PARALLEL:
-            print(f'[Worker {worker_id} PID {os.getpid()}] {msg}', file=sys.stderr, flush=True)
+            print(
+                f"[Worker {worker_id} PID {os.getpid()}] {msg}",
+                file=sys.stderr,
+                flush=True,
+            )
 
     if DEBUG_PARALLEL:
-        debug_log('Starting worker function...')
+        debug_log("Starting worker function...")
 
     try:
         # Try to import SageMath (works in fork mode, may need setup in spawn mode)
         from lfsr.sage_imports import GF, VectorSpace, vector
-        debug_log('SageMath import successful')
+
+        debug_log("SageMath import successful")
 
         # Test that SageMath works by creating a simple object
         try:
             _test_F = GF(gf_order)
             _test_V = VectorSpace(_test_F, 1)
             _test_vec = vector(_test_F, [0])
-            debug_log('SageMath initialization test successful')
+            debug_log("SageMath initialization test successful")
         except Exception as e:
-            debug_log(f'Warning: SageMath initialization test failed: {e}')
+            debug_log(f"Warning: SageMath initialization test failed: {e}")
             # Continue anyway - might still work
 
     except ImportError as e:
-        debug_log(f'SageMath import failed: {e}')
+        debug_log(f"SageMath import failed: {e}")
         # If import fails, try to set up SageMath path (for spawn method)
-        debug_log('Setting up SageMath path...')
+        debug_log("Setting up SageMath path...")
         try:
             import subprocess
+
             result = subprocess.run(
                 ["sage", "-c", "import sys; print('\\n'.join(sys.path))"],
                 capture_output=True,
@@ -1190,37 +1277,50 @@ def _process_state_chunk(
                     if path and path not in sys.path and os.path.isdir(path):
                         sys.path.insert(0, path)
                 from lfsr.sage_imports import GF, VectorSpace, vector
-                debug_log('SageMath import successful via path setup')
+
+                debug_log("SageMath import successful via path setup")
             else:
                 raise ImportError("SageMath not found")
-        except (subprocess.TimeoutExpired, subprocess.SubprocessError, FileNotFoundError, ImportError) as e:
-            debug_log(f'SageMath setup failed: {e}')
+        except (
+            subprocess.TimeoutExpired,
+            subprocess.SubprocessError,
+            FileNotFoundError,
+            ImportError,
+        ) as e:
+            debug_log(f"SageMath setup failed: {e}")
             return {
-                'sequences': [],
-                'max_period': 0,
-                'processed_count': 0,
-                'errors': [f'SageMath not available in worker process: {str(e)}'],
+                "sequences": [],
+                "max_period": 0,
+                "processed_count": 0,
+                "errors": [f"SageMath not available in worker process: {str(e)}"],
             }
 
     # Reconstruct state update matrix in worker
-    debug_log(f'Reconstructing state update matrix from coeffs: {coeffs_vector}, gf_order: {gf_order}, degree: {lfsr_degree}')
+    debug_log(
+        f"Reconstructing state update matrix from coeffs: {coeffs_vector}, gf_order: {gf_order}, degree: {lfsr_degree}"
+    )
     try:
         from lfsr.core import build_state_update_matrix
+
         state_update_matrix, _ = build_state_update_matrix(coeffs_vector, gf_order)
-        debug_log(f'State update matrix reconstructed: dimensions={state_update_matrix.dimensions()}')
+        debug_log(
+            f"State update matrix reconstructed: dimensions={state_update_matrix.dimensions()}"
+        )
         # Verify matrix by checking last column (where coefficients are stored)
         d = state_update_matrix.dimensions()[0]
-        last_col_coeffs = [int(state_update_matrix[i, d-1]) for i in range(d)]
-        debug_log(f'Matrix last column coefficients: {last_col_coeffs} (expected: {coeffs_vector})')
+        last_col_coeffs = [int(state_update_matrix[i, d - 1]) for i in range(d)]
+        debug_log(
+            f"Matrix last column coefficients: {last_col_coeffs} (expected: {coeffs_vector})"
+        )
         if last_col_coeffs != coeffs_vector:
-            debug_log('WARNING: Matrix reconstruction mismatch!')
+            debug_log("WARNING: Matrix reconstruction mismatch!")
     except Exception as e:
-        debug_log(f'Failed to build state update matrix: {e}')
+        debug_log(f"Failed to build state update matrix: {e}")
         return {
-            'sequences': [],
-            'max_period': 0,
-            'processed_count': 0,
-            'errors': [f'Failed to build state update matrix: {str(e)}'],
+            "sequences": [],
+            "max_period": 0,
+            "processed_count": 0,
+            "errors": [f"Failed to build state update matrix: {str(e)}"],
         }
 
     # Initialize worker-local results
@@ -1241,25 +1341,30 @@ def _process_state_chunk(
         V = VectorSpace(F, lfsr_degree)
         # Test that objects work correctly
         _test_vec = vector(F, [0] * lfsr_degree)
-        debug_log('SageMath isolated successfully in worker (fork mode compatibility)')
+        debug_log("SageMath isolated successfully in worker (fork mode compatibility)")
     except Exception as e:
-        debug_log(f'Warning: SageMath isolation test failed: {e}, continuing anyway...')
+        debug_log(f"Warning: SageMath isolation test failed: {e}, continuing anyway...")
         # Fallback: create objects anyway (might still work)
         F = GF(gf_order)
-        V = VectorSpace(F, lfsr_degree)  # noqa: F841 (sanity check that sage isolation works)
+        V = VectorSpace(
+            F, lfsr_degree
+        )  # noqa: F841 (sanity check that sage isolation works)
 
     # Local visited set for this worker (to avoid processing same cycle multiple times in this chunk)
     local_visited = set()
 
     # Process each state in chunk
-    debug_log(f'Processing {len(state_chunk)} states in chunk...')
+    debug_log(f"Processing {len(state_chunk)} states in chunk...")
     import time
+
     chunk_start_time = time.time()
 
     # Work distribution metrics
     states_processed = 0  # States we actually processed (found cycles from)
     states_skipped_visited = 0  # States skipped because already in local_visited
-    states_skipped_claimed = 0  # States skipped because cycle already claimed by another worker
+    states_skipped_claimed = (
+        0  # States skipped because cycle already claimed by another worker
+    )
     cycles_found = 0  # Total cycles found (before claiming check)
     cycles_claimed = 0  # Cycles we successfully claimed
     cycles_skipped = 0  # Cycles we skipped (already claimed)
@@ -1270,24 +1375,26 @@ def _process_state_chunk(
             if idx % 100 == 0 or (time.time() - chunk_start_time) > 5:
                 elapsed = time.time() - chunk_start_time
                 rate = idx / elapsed if elapsed > 0 else 0
-                debug_log(f'Progress: {idx}/{len(state_chunk)} states ({100*idx/len(state_chunk):.1f}%), rate: {rate:.1f} states/s')
+                debug_log(
+                    f"Progress: {idx}/{len(state_chunk)} states ({100*idx/len(state_chunk):.1f}%), rate: {rate:.1f} states/s"
+                )
                 chunk_start_time = time.time()  # Reset timer
 
-            debug_log(f'Processing state {idx+1}/{len(state_chunk)}: {state_tuple}')
+            debug_log(f"Processing state {idx+1}/{len(state_chunk)}: {state_tuple}")
 
             # Skip if already visited in this worker's processing
             if state_tuple in local_visited:
-                debug_log(f'State {idx+1} already visited, skipping')
+                debug_log(f"State {idx+1} already visited, skipping")
                 states_skipped_visited += 1
                 continue
 
             # Reconstruct state vector from tuple
             # CRITICAL: F and V are already created above - reuse them!
             # Convert tuple to list and create vector
-            debug_log(f'State {idx+1}: Converting tuple to vector...')
+            debug_log(f"State {idx+1}: Converting tuple to vector...")
             state_list = [F(x) for x in state_tuple]
             state = vector(F, state_list)
-            debug_log(f'State {idx+1}: State vector reconstructed')
+            debug_log(f"State {idx+1}: State vector reconstructed")
 
             # Find cycle for this state using local visited set
             # Note: We pass an empty set here since each worker processes independently
@@ -1300,7 +1407,7 @@ def _process_state_chunk(
             # In multiprocessing with 'fork', functions from the same module should be available
             # But to be safe, we'll import it explicitly
             # Note: This creates a reference that should work in forked processes
-            debug_log(f'State {idx+1}: Calling _find_sequence_cycle...')
+            debug_log(f"State {idx+1}: Calling _find_sequence_cycle...")
             from lfsr.analysis import _find_sequence_cycle
 
             # CRITICAL: For period-only mode, we need the full sequence for deduplication
@@ -1336,7 +1443,9 @@ def _process_state_chunk(
                 # cycle must still be marked as locally visited on both the
                 # skip-as-claimed and claim-and-process paths below) in that
                 # single pass.
-                debug_log(f'State {idx+1}: Period-only mode - computing period and canonical cycle key in one pass...')
+                debug_log(
+                    f"State {idx+1}: Period-only mode - computing period and canonical cycle key in one pass..."
+                )
                 try:
                     cycle_states_in_order = [state_tuple]
                     min_state = state_tuple
@@ -1366,12 +1475,16 @@ def _process_state_chunk(
                         # has no separate _find_period() call to inherit that
                         # limit from, so it needs its own.
                         if seq_period > 10000000:
-                            raise ValueError("Period exceeds maximum limit (possible infinite loop)")
-                    debug_log(f'State {idx+1}: Period computed: {seq_period}')
+                            raise ValueError(
+                                "Period exceeds maximum limit (possible infinite loop)"
+                            )
+                    debug_log(f"State {idx+1}: Period computed: {seq_period}")
                 except Exception as e:
-                    debug_log(f'State {idx+1}: Error computing period: {e}')
+                    debug_log(f"State {idx+1}: Error computing period: {e}")
                     # If period computation fails, skip this state
-                    errors.append(f'Error computing period for state {state_tuple}: {str(e)}')
+                    errors.append(
+                        f"Error computing period for state {state_tuple}: {str(e)}"
+                    )
                     continue
                 # Use min_state as canonical key for deduplication
                 min_state_tuple = min_state
@@ -1380,7 +1493,9 @@ def _process_state_chunk(
                 # Fast check (no lock) - if already claimed, skip immediately
                 if min_state_tuple in shared_cycles:
                     claimed_by = shared_cycles[min_state_tuple]
-                    debug_log(f'State {idx+1}: Cycle with min_state {min_state_tuple[:5]}... already claimed by worker {claimed_by}, skipping')
+                    debug_log(
+                        f"State {idx+1}: Cycle with min_state {min_state_tuple[:5]}... already claimed by worker {claimed_by}, skipping"
+                    )
                     # Mark all states in cycle as visited locally to skip in this worker
                     local_visited.update(cycle_states_in_order)
                     states_skipped_claimed += seq_period
@@ -1392,27 +1507,37 @@ def _process_state_chunk(
                     # Double-check after acquiring lock (another worker might have claimed it)
                     if min_state_tuple in shared_cycles:
                         claimed_by = shared_cycles[min_state_tuple]
-                        debug_log(f'State {idx+1}: Cycle with min_state {min_state_tuple[:5]}... claimed by worker {claimed_by} (between check and lock), skipping')
+                        debug_log(
+                            f"State {idx+1}: Cycle with min_state {min_state_tuple[:5]}... claimed by worker {claimed_by} (between check and lock), skipping"
+                        )
                         local_visited.update(cycle_states_in_order)
                         continue
                     else:
                         # Claim this cycle for this worker
                         shared_cycles[min_state_tuple] = worker_id
-                        debug_log(f'State {idx+1}: Claimed cycle with min_state {min_state_tuple[:5]}... for worker {worker_id}')
+                        debug_log(
+                            f"State {idx+1}: Claimed cycle with min_state {min_state_tuple[:5]}... for worker {worker_id}"
+                        )
 
                 # Process cycle (we've successfully claimed it)
                 states_tuples = (min_state,)  # Single-element tuple for deduplication
-                debug_log(f'State {idx+1}: Cycle signature (min_state): {min_state[:5]}... (period={seq_period})')
+                debug_log(
+                    f"State {idx+1}: Cycle signature (min_state): {min_state[:5]}... (period={seq_period})"
+                )
                 # CRITICAL FIX: Mark ALL states in the cycle as visited (not just start state)
                 # This prevents workers from processing the same cycle multiple times
                 # Even though cycles can span chunks, marking all states prevents redundant work
                 local_visited.update(cycle_states_in_order)
-                debug_log(f'State {idx+1}: Marked {seq_period} states as visited in cycle')
+                debug_log(
+                    f"State {idx+1}: Marked {seq_period} states as visited in cycle"
+                )
                 states_processed += 1  # Count the start state we processed
                 cycles_found += 1
             else:
                 # Full mode: get sequence normally
-                debug_log(f'State {idx+1}: Calling _find_sequence_cycle with period_only={period_only}, algorithm={algorithm}')
+                debug_log(
+                    f"State {idx+1}: Calling _find_sequence_cycle with period_only={period_only}, algorithm={algorithm}"
+                )
                 seq_lst, seq_period = _find_sequence_cycle(
                     state,
                     state_update_matrix,
@@ -1420,7 +1545,9 @@ def _process_state_chunk(
                     algorithm=algorithm,
                     period_only=period_only,
                 )
-                debug_log(f'State {idx+1}: _find_sequence_cycle returned: period={seq_period}, length={len(seq_lst)}')
+                debug_log(
+                    f"State {idx+1}: _find_sequence_cycle returned: period={seq_period}, length={len(seq_lst)}"
+                )
                 # Mark all states as visited
                 for seq_state in seq_lst:
                     seq_state_tuple = tuple(seq_state)
@@ -1428,22 +1555,32 @@ def _process_state_chunk(
                 # Convert to tuples for serialization
                 states_tuples = [tuple(s) for s in seq_lst]
 
-            debug_log(f'State {idx+1}: Cycle found: period={seq_period}, length={len(states_tuples)}')
+            debug_log(
+                f"State {idx+1}: Cycle found: period={seq_period}, length={len(states_tuples)}"
+            )
 
             # DEBUG: Log cycle signature for redundancy detection
-            if period_only and isinstance(states_tuples, tuple) and len(states_tuples) == 1:
+            if (
+                period_only
+                and isinstance(states_tuples, tuple)
+                and len(states_tuples) == 1
+            ):
                 min_state = states_tuples[0]
-                debug_log(f'State {idx+1}: Cycle signature (min_state) = {min_state[:min(8, len(min_state))]}... (full: {min_state})')
+                debug_log(
+                    f"State {idx+1}: Cycle signature (min_state) = {min_state[:min(8, len(min_state))]}... (full: {min_state})"
+                )
 
             # Store sequence information
             # For period-only mode, we store the full sequence tuples for deduplication
             # but mark it as period-only so merge knows not to reconstruct SageMath objects
-            sequences.append({
-                'states': states_tuples,  # Full sequence for deduplication, even in period-only mode
-                'period': seq_period,
-                'start_state': state_tuple,
-                'period_only': period_only,  # Flag to indicate if we should store sequence in final output
-            })
+            sequences.append(
+                {
+                    "states": states_tuples,  # Full sequence for deduplication, even in period-only mode
+                    "period": seq_period,
+                    "start_state": state_tuple,
+                    "period_only": period_only,  # Flag to indicate if we should store sequence in final output
+                }
+            )
 
             if seq_period > worker_max_period:
                 worker_max_period = seq_period
@@ -1453,29 +1590,31 @@ def _process_state_chunk(
 
         except Exception as e:
             if idx == 0:
-                debug_log(f'Error processing state: {e}')
-            errors.append(f'Error processing state {state_tuple}: {str(e)}')
+                debug_log(f"Error processing state: {e}")
+            errors.append(f"Error processing state {state_tuple}: {str(e)}")
             continue
 
-    debug_log(f'Worker completed: {processed_count} states processed, {len(sequences)} sequences found')
+    debug_log(
+        f"Worker completed: {processed_count} states processed, {len(sequences)} sequences found"
+    )
 
     # Work distribution metrics
     work_metrics = {
-        'states_processed': states_processed,
-        'states_skipped_visited': states_skipped_visited,
-        'states_skipped_claimed': states_skipped_claimed,
-        'cycles_found': cycles_found,
-        'cycles_claimed': cycles_claimed,
-        'cycles_skipped': cycles_skipped,
-        'total_states_in_chunk': len(state_chunk),
+        "states_processed": states_processed,
+        "states_skipped_visited": states_skipped_visited,
+        "states_skipped_claimed": states_skipped_claimed,
+        "cycles_found": cycles_found,
+        "cycles_claimed": cycles_claimed,
+        "cycles_skipped": cycles_skipped,
+        "total_states_in_chunk": len(state_chunk),
     }
 
     return {
-        'sequences': sequences,
-        'max_period': worker_max_period,
-        'processed_count': processed_count,
-        'errors': errors,
-        'work_metrics': work_metrics,  # NEW: Work distribution data
+        "sequences": sequences,
+        "max_period": worker_max_period,
+        "processed_count": processed_count,
+        "errors": errors,
+        "work_metrics": work_metrics,  # NEW: Work distribution data
     }
 
 
@@ -1571,7 +1710,9 @@ def lfsr_sequence_mapper_parallel(
     elif state_space_size < 32000:
         optimal_workers = 4  # 4 workers may help for 8K-32K states
     else:
-        optimal_workers = min(8, multiprocessing.cpu_count())  # Scale up for very large problems
+        optimal_workers = min(
+            8, multiprocessing.cpu_count()
+        )  # Scale up for very large problems
 
     # Use the optimal count, but respect user's explicit choice if provided
     # If user explicitly set num_workers, use it (they know what they want)
@@ -1583,18 +1724,29 @@ def lfsr_sequence_mapper_parallel(
         # Auto mode: use optimal
         num_workers = max(1, min(optimal_workers, multiprocessing.cpu_count()))
 
-    if not no_progress and original_num_workers is None and num_workers != optimal_workers:
+    if (
+        not no_progress
+        and original_num_workers is None
+        and num_workers != optimal_workers
+    ):
         import sys
-        print(f"  Note: Using {num_workers} workers (optimal {optimal_workers} limited by CPU count {multiprocessing.cpu_count()})", file=sys.stderr)
+
+        print(
+            f"  Note: Using {num_workers} workers (optimal {optimal_workers} limited by CPU count {multiprocessing.cpu_count()})",
+            file=sys.stderr,
+        )
 
     # Extract coefficients from matrix for worker reconstruction
     # The matrix structure: coefficients are in the LAST COLUMN (not last row)
     # Row i has coefficient coeffs[i] in the last column (column d-1)
     d = state_update_matrix.dimensions()[0]
-    coeffs_vector = [int(state_update_matrix[i, d-1]) for i in range(d)]
+    coeffs_vector = [int(state_update_matrix[i, d - 1]) for i in range(d)]
 
     subsec_name = "STATES SEQUENCES"
-    subsec_desc = "all possible state sequences " + "and their corresponding periods (parallel processing)"
+    subsec_desc = (
+        "all possible state sequences "
+        + "and their corresponding periods (parallel processing)"
+    )
     subsection(subsec_name, subsec_desc, output_file)
 
     # Partition state space
@@ -1629,7 +1781,7 @@ def lfsr_sequence_mapper_parallel(
             period_only,
             worker_id,
             shared_cycles,  # Shared cycle registry
-            cycle_lock,     # Lock for atomic claiming
+            cycle_lock,  # Lock for atomic claiming
         )
         chunk_data_list.append(chunk_data)
 
@@ -1637,6 +1789,7 @@ def lfsr_sequence_mapper_parallel(
     if not no_progress:
         print(f"  Processing {len(chunks)} chunks with {num_workers} workers...")
         import sys
+
         sys.stdout.flush()  # Ensure output is visible
 
     # Use multiprocessing.Pool with 'fork' context (preferred) or 'spawn' (fallback)
@@ -1657,18 +1810,19 @@ def lfsr_sequence_mapper_parallel(
     # Fallback to spawn only if fork is not available (Windows/Mac)
     try:
         import time
+
         start_time = time.time()
 
         # Prefer fork mode (lower process-creation overhead than spawn), fall
         # back to spawn if not available
         try:
             # Fork mode: works on Linux; SageMath isolation in workers makes this safe
-            ctx = multiprocessing.get_context('fork')
+            ctx = multiprocessing.get_context("fork")
             if not no_progress:
                 print("  Using fork mode (lower process-creation overhead than spawn)")
         except ValueError:
             # Spawn mode: Slower but works on Windows/Mac where fork isn't available
-            ctx = multiprocessing.get_context('spawn')
+            ctx = multiprocessing.get_context("spawn")
             if not no_progress:
                 print("  Using spawn mode (fork not available on this platform)")
 
@@ -1679,15 +1833,19 @@ def lfsr_sequence_mapper_parallel(
             if not no_progress:
                 print("  Pool created, starting workers...")
                 import sys
+
                 sys.stdout.flush()
 
             # Use map_async with timeout for better control
             async_result = pool.map_async(_process_state_chunk, chunk_data_list)
 
             if not no_progress:
-                timeout_msg = "120s" if ctx.get_start_method() == 'spawn' else "40s"
-                print(f"  Workers started, waiting for results (timeout: {timeout_msg} total)...")
+                timeout_msg = "120s" if ctx.get_start_method() == "spawn" else "40s"
+                print(
+                    f"  Workers started, waiting for results (timeout: {timeout_msg} total)..."
+                )
                 import sys
+
                 sys.stdout.flush()
 
             try:
@@ -1697,10 +1855,10 @@ def lfsr_sequence_mapper_parallel(
                 # shorter timeout is used for it. These are conservative
                 # engineering margins, not derived from a specific measured
                 # speedup ratio.
-                if ctx.get_start_method() == 'spawn':
+                if ctx.get_start_method() == "spawn":
                     total_timeout = 120  # Spawn needs more time for process creation
                 else:
-                    total_timeout = 40   # Fork avoids spawn's process-creation overhead
+                    total_timeout = 40  # Fork avoids spawn's process-creation overhead
                 worker_results = async_result.get(timeout=total_timeout)
 
                 elapsed = time.time() - start_time
@@ -1709,7 +1867,11 @@ def lfsr_sequence_mapper_parallel(
             except multiprocessing.TimeoutError:
                 # CRITICAL: Properly terminate hung workers
                 import sys
-                print("WARNING: Parallel processing timed out - terminating workers...", file=sys.stderr)
+
+                print(
+                    "WARNING: Parallel processing timed out - terminating workers...",
+                    file=sys.stderr,
+                )
 
                 # Terminate all workers immediately (sends SIGTERM)
                 pool.terminate()
@@ -1721,8 +1883,14 @@ def lfsr_sequence_mapper_parallel(
                     # Python < 3.7 doesn't support timeout in join()
                     pool.join()
 
-                print("ERROR: Parallel processing timed out - workers may be hung", file=sys.stderr)
-                print("  This can happen with SageMath and multiprocessing in some configurations", file=sys.stderr)
+                print(
+                    "ERROR: Parallel processing timed out - workers may be hung",
+                    file=sys.stderr,
+                )
+                print(
+                    "  This can happen with SageMath and multiprocessing in some configurations",
+                    file=sys.stderr,
+                )
                 print("  Falling back to sequential processing...", file=sys.stderr)
                 return lfsr_sequence_mapper(
                     state_update_matrix,
@@ -1736,7 +1904,11 @@ def lfsr_sequence_mapper_parallel(
             except KeyboardInterrupt:
                 # Handle Ctrl+C gracefully
                 import sys
-                print("\nWARNING: Interrupted by user - terminating workers...", file=sys.stderr)
+
+                print(
+                    "\nWARNING: Interrupted by user - terminating workers...",
+                    file=sys.stderr,
+                )
                 pool.terminate()
                 try:
                     pool.join(timeout=5)
@@ -1746,9 +1918,11 @@ def lfsr_sequence_mapper_parallel(
     except Exception as e:
         # Fallback to sequential on error
         import sys
+
         print(f"ERROR: Parallel processing failed: {e}", file=sys.stderr)
         print("  Falling back to sequential processing...", file=sys.stderr)
         import traceback
+
         traceback.print_exc()
         return lfsr_sequence_mapper(
             state_update_matrix,
@@ -1761,7 +1935,7 @@ def lfsr_sequence_mapper_parallel(
         )
 
     # Extract work metrics from worker results for load imbalance analysis
-    work_metrics_list = [result.get('work_metrics', {}) for result in worker_results]
+    work_metrics_list = [result.get("work_metrics", {}) for result in worker_results]
 
     # Merge results from all workers
     # Pass shared_cycles to merge function for accurate deduplication
@@ -1770,18 +1944,25 @@ def lfsr_sequence_mapper_parallel(
     )
 
     # Calculate load imbalance from work metrics
-    if work_metrics_list and all('states_processed' in m for m in work_metrics_list):
-        states_processed_list = [m['states_processed'] for m in work_metrics_list]
+    if work_metrics_list and all("states_processed" in m for m in work_metrics_list):
+        states_processed_list = [m["states_processed"] for m in work_metrics_list]
         total_states = sum(states_processed_list)
         if total_states > 0:
             avg_work = total_states / len(states_processed_list)
             max_work = max(states_processed_list)
-            imbalance_pct = ((max_work - avg_work) / avg_work * 100) if avg_work > 0 else 0
+            imbalance_pct = (
+                ((max_work - avg_work) / avg_work * 100) if avg_work > 0 else 0
+            )
             # Store in a way that can be accessed (for now, just log if DEBUG)
             import os
-            if os.environ.get('DEBUG_PARALLEL', '0') == '1':
+
+            if os.environ.get("DEBUG_PARALLEL", "0") == "1":
                 import sys
-                print(f"[Load Imbalance] Workers: {states_processed_list}, Avg: {avg_work:.1f}, Max: {max_work}, Imbalance: {imbalance_pct:.1f}%", file=sys.stderr)
+
+                print(
+                    f"[Load Imbalance] Workers: {states_processed_list}, Avg: {avg_work:.1f}, Max: {max_work}, Imbalance: {imbalance_pct:.1f}%",
+                    file=sys.stderr,
+                )
 
     # Display sequences (same format as sequential version)
     print("\n")
@@ -1794,7 +1975,9 @@ def lfsr_sequence_mapper_parallel(
     if period_only:
         # Period-only mode: display only periods
         for seq_num, period in period_dict.items():
-            seq_entry = f" | ** sequence {seq_num:3d} | T : {period:3d} | (period only)  |"
+            seq_entry = (
+                f" | ** sequence {seq_num:3d} | T : {period:3d} | (period only)  |"
+            )
             dump(seq_entry, "mode=all", output_file)
     else:
         # Full mode: display sequences
@@ -1805,7 +1988,12 @@ def lfsr_sequence_mapper_parallel(
             )
 
             dump_seq_row(
-                seq_num, seq_entry, num_sequences, row_width, "mode=console", output_file
+                seq_num,
+                seq_entry,
+                num_sequences,
+                row_width,
+                "mode=console",
+                output_file,
             )
             dump_seq_row(
                 seq_num, seq_all_v, num_sequences, row_width, "mode=file", output_file
@@ -1822,6 +2010,7 @@ def lfsr_sequence_mapper_parallel(
     # Verification: periods_sum should equal state_vector_space_size
     if periods_sum != state_vector_space_size:
         import sys
+
         print(
             f"WARNING: Period sum ({periods_sum}) != state space size ({state_vector_space_size})",
             file=sys.stderr,
@@ -1886,23 +2075,63 @@ def _process_task_batch_dynamic(
     # Hybrid mode: first element is list (assigned_chunk), second is list (worker_queues)
     # Work stealing mode: first element is list (worker_queues)
     # Original mode: first element is Queue (task_queue)
-    if isinstance(worker_data[0], list) and len(worker_data) > 1 and isinstance(worker_data[1], list):
+    if (
+        isinstance(worker_data[0], list)
+        and len(worker_data) > 1
+        and isinstance(worker_data[1], list)
+    ):
         # Phase 3.2: Hybrid mode - static chunk + work stealing
-        assigned_chunk, worker_queues, worker_id, coeffs_vector, gf_order, lfsr_degree, algorithm, period_only, shared_cycles, cycle_lock, batch_aggregation_count = worker_data
+        (
+            assigned_chunk,
+            worker_queues,
+            worker_id,
+            coeffs_vector,
+            gf_order,
+            lfsr_degree,
+            algorithm,
+            period_only,
+            shared_cycles,
+            cycle_lock,
+            batch_aggregation_count,
+        ) = worker_data
         task_queue = None
         use_hybrid_mode = True
         use_work_stealing = True
     elif isinstance(worker_data[0], list):
         # Phase 3.1: Work stealing mode
-        worker_queues, worker_id, coeffs_vector, gf_order, lfsr_degree, algorithm, period_only, shared_cycles, cycle_lock, batch_aggregation_count = worker_data
+        (
+            worker_queues,
+            worker_id,
+            coeffs_vector,
+            gf_order,
+            lfsr_degree,
+            algorithm,
+            period_only,
+            shared_cycles,
+            cycle_lock,
+            batch_aggregation_count,
+        ) = worker_data
         task_queue = None
         assigned_chunk = None
         use_hybrid_mode = False
         use_work_stealing = True
     else:
         # Original: Shared queue mode
-        task_queue, coeffs_vector, gf_order, lfsr_degree, algorithm, period_only, worker_id, shared_cycles, cycle_lock, batch_aggregation_count = worker_data
-        worker_queues = None  # noqa: F841 (kept for symmetry with hybrid-mode branch above)
+        (
+            task_queue,
+            coeffs_vector,
+            gf_order,
+            lfsr_degree,
+            algorithm,
+            period_only,
+            worker_id,
+            shared_cycles,
+            cycle_lock,
+            batch_aggregation_count,
+        ) = worker_data
+        worker_queues = (
+            None  # noqa: F841 (kept for symmetry with hybrid-mode branch above)
+        )
         assigned_chunk = None
         use_hybrid_mode = False
         use_work_stealing = False
@@ -1924,41 +2153,47 @@ def _process_task_batch_dynamic(
     import os
     import sys
 
-    DEBUG_PARALLEL = os.environ.get('DEBUG_PARALLEL', '0') == '1'
+    DEBUG_PARALLEL = os.environ.get("DEBUG_PARALLEL", "0") == "1"
 
     def debug_log(msg):
         if DEBUG_PARALLEL:
-            print(f'[Dynamic Worker {worker_id} PID {os.getpid()}] {msg}', file=sys.stderr, flush=True)
+            print(
+                f"[Dynamic Worker {worker_id} PID {os.getpid()}] {msg}",
+                file=sys.stderr,
+                flush=True,
+            )
 
     if DEBUG_PARALLEL:
-        debug_log('Starting dynamic worker function...')
+        debug_log("Starting dynamic worker function...")
 
     try:
         from lfsr.sage_imports import GF, VectorSpace, vector
-        debug_log('SageMath import successful')
+
+        debug_log("SageMath import successful")
     except ImportError as e:
-        debug_log(f'SageMath import failed: {e}')
+        debug_log(f"SageMath import failed: {e}")
         return {
-            'sequences': [],
-            'max_period': 0,
-            'processed_count': 0,
-            'errors': [f'SageMath not available in worker process: {str(e)}'],
-            'work_metrics': {},
+            "sequences": [],
+            "max_period": 0,
+            "processed_count": 0,
+            "errors": [f"SageMath not available in worker process: {str(e)}"],
+            "work_metrics": {},
         }
 
     # Reconstruct state update matrix in worker
     try:
         from lfsr.core import build_state_update_matrix
+
         state_update_matrix, _ = build_state_update_matrix(coeffs_vector, gf_order)
-        debug_log('State update matrix reconstructed')
+        debug_log("State update matrix reconstructed")
     except Exception as e:
-        debug_log(f'Failed to build state update matrix: {e}')
+        debug_log(f"Failed to build state update matrix: {e}")
         return {
-            'sequences': [],
-            'max_period': 0,
-            'processed_count': 0,
-            'errors': [f'Failed to build state update matrix: {str(e)}'],
-            'work_metrics': {},
+            "sequences": [],
+            "max_period": 0,
+            "processed_count": 0,
+            "errors": [f"Failed to build state update matrix: {str(e)}"],
+            "work_metrics": {},
         }
 
     # Initialize worker-local results
@@ -1972,11 +2207,13 @@ def _process_task_batch_dynamic(
         F = GF(gf_order)
         V = VectorSpace(F, lfsr_degree)
         _test_vec = vector(F, [0] * lfsr_degree)
-        debug_log('SageMath isolated successfully in worker')
+        debug_log("SageMath isolated successfully in worker")
     except Exception as e:
-        debug_log(f'Warning: SageMath isolation test failed: {e}, continuing anyway...')
+        debug_log(f"Warning: SageMath isolation test failed: {e}, continuing anyway...")
         F = GF(gf_order)
-        V = VectorSpace(F, lfsr_degree)  # noqa: F841 (sanity check that sage isolation works)
+        V = VectorSpace(
+            F, lfsr_degree
+        )  # noqa: F841 (sanity check that sage isolation works)
 
     # Local visited set for this worker
     local_visited = set()
@@ -2004,160 +2241,173 @@ def _process_task_batch_dynamic(
 
         for idx, (state_tuple, state_idx) in enumerate(batch):
             try:
-                    # Skip if already visited
-                    if state_tuple in local_visited:
-                        states_skipped_visited += 1
+                # Skip if already visited
+                if state_tuple in local_visited:
+                    states_skipped_visited += 1
+                    continue
+
+                # Reconstruct state vector
+                state_list = [F(x) for x in state_tuple]
+                state = vector(F, state_list)
+
+                # Process state (same logic as _process_state_chunk)
+                if period_only:
+                    # Period-only mode.
+                    #
+                    # PERFORMANCE FIX: this used to make 3 separate full
+                    # O(period) passes over the cycle with real Sage
+                    # matrix multiplies -- one via _find_period() to get
+                    # the period, one to find min_state (the dedup key),
+                    # and one more (on whichever of the skip/claim paths
+                    # below was taken) to mark every state in the cycle
+                    # as locally visited. Measured (standalone prototype,
+                    # alternated/repeated/warm-up-discarded to rule out
+                    # measurement artifacts -- an early single-shot
+                    # comparison was itself fooled by run-ordering/warm-up
+                    # effects and had to be redone) at ~1.8x slower than
+                    # a single fused pass doing all three at once. That
+                    # 2-3x redundant per-cycle compute, not cross-worker
+                    # collision (states_skipped_claimed was observed to
+                    # be 0 in real runs -- this path's "already claimed"
+                    # branches are rarely/never actually taken at the
+                    # sizes tested), was the main reason parallel
+                    # enumeration failed to beat serial even after the
+                    # Manager()-IPC-overhead and sentinel-hang fixes.
+                    #
+                    # Fixed by walking the cycle exactly once, tracking
+                    # the period count, the running min_state, and the
+                    # full list of every state tuple visited (needed
+                    # either way: the full cycle must still be marked as
+                    # locally visited on both the skip-as-claimed and
+                    # claim-and-process paths below) in that single pass.
+                    try:
+                        cycle_states_in_order = [state_tuple]
+                        min_state = state_tuple
+                        current = state
+                        current_tuple = state_tuple
+                        seq_period = 1
+                        while True:
+                            current = current * state_update_matrix
+                            current_tuple = tuple(current)
+                            if current_tuple == state_tuple:
+                                break
+                            cycle_states_in_order.append(current_tuple)
+                            if current_tuple < min_state:
+                                min_state = current_tuple
+                            seq_period += 1
+                            # Periodic check every 1000 iterations for very large cycles
+                            if seq_period % 1000 == 0:
+                                _ = len(
+                                    str(current)
+                                )  # Force evaluation to detect hangs
+                            # SAFETY LIMIT (matches _find_period_enumeration's
+                            # own guard, which this fused loop replaces): a
+                            # degenerate (non-bijective) companion matrix can
+                            # produce a trajectory that enters a sub-cycle
+                            # never containing the start state, so
+                            # `current_tuple == state_tuple` may never
+                            # become true -- the pre-fusion two-pass code
+                            # had this same exposure via _find_period's own
+                            # internal 10,000,000-step limit, but this fused
+                            # loop has no separate _find_period() call to
+                            # inherit that limit from, so it needs its own.
+                            if seq_period > 10000000:
+                                raise ValueError(
+                                    "Period exceeds maximum limit (possible infinite loop)"
+                                )
+                    except Exception as e:
+                        errors.append(
+                            f"Error computing period for state {state_tuple}: {str(e)}"
+                        )
+                        continue
+                    min_state_tuple = min_state
+
+                    # Check if cycle already claimed
+                    if min_state_tuple in shared_cycles:
+                        local_visited.update(cycle_states_in_order)
+                        states_skipped_claimed += seq_period
+                        cycles_skipped += 1
                         continue
 
-                    # Reconstruct state vector
-                    state_list = [F(x) for x in state_tuple]
-                    state = vector(F, state_list)
-
-                    # Process state (same logic as _process_state_chunk)
-                    if period_only:
-                        # Period-only mode.
-                        #
-                        # PERFORMANCE FIX: this used to make 3 separate full
-                        # O(period) passes over the cycle with real Sage
-                        # matrix multiplies -- one via _find_period() to get
-                        # the period, one to find min_state (the dedup key),
-                        # and one more (on whichever of the skip/claim paths
-                        # below was taken) to mark every state in the cycle
-                        # as locally visited. Measured (standalone prototype,
-                        # alternated/repeated/warm-up-discarded to rule out
-                        # measurement artifacts -- an early single-shot
-                        # comparison was itself fooled by run-ordering/warm-up
-                        # effects and had to be redone) at ~1.8x slower than
-                        # a single fused pass doing all three at once. That
-                        # 2-3x redundant per-cycle compute, not cross-worker
-                        # collision (states_skipped_claimed was observed to
-                        # be 0 in real runs -- this path's "already claimed"
-                        # branches are rarely/never actually taken at the
-                        # sizes tested), was the main reason parallel
-                        # enumeration failed to beat serial even after the
-                        # Manager()-IPC-overhead and sentinel-hang fixes.
-                        #
-                        # Fixed by walking the cycle exactly once, tracking
-                        # the period count, the running min_state, and the
-                        # full list of every state tuple visited (needed
-                        # either way: the full cycle must still be marked as
-                        # locally visited on both the skip-as-claimed and
-                        # claim-and-process paths below) in that single pass.
-                        try:
-                            cycle_states_in_order = [state_tuple]
-                            min_state = state_tuple
-                            current = state
-                            current_tuple = state_tuple
-                            seq_period = 1
-                            while True:
-                                current = current * state_update_matrix
-                                current_tuple = tuple(current)
-                                if current_tuple == state_tuple:
-                                    break
-                                cycle_states_in_order.append(current_tuple)
-                                if current_tuple < min_state:
-                                    min_state = current_tuple
-                                seq_period += 1
-                                # Periodic check every 1000 iterations for very large cycles
-                                if seq_period % 1000 == 0:
-                                    _ = len(str(current))  # Force evaluation to detect hangs
-                                # SAFETY LIMIT (matches _find_period_enumeration's
-                                # own guard, which this fused loop replaces): a
-                                # degenerate (non-bijective) companion matrix can
-                                # produce a trajectory that enters a sub-cycle
-                                # never containing the start state, so
-                                # `current_tuple == state_tuple` may never
-                                # become true -- the pre-fusion two-pass code
-                                # had this same exposure via _find_period's own
-                                # internal 10,000,000-step limit, but this fused
-                                # loop has no separate _find_period() call to
-                                # inherit that limit from, so it needs its own.
-                                if seq_period > 10000000:
-                                    raise ValueError("Period exceeds maximum limit (possible infinite loop)")
-                        except Exception as e:
-                            errors.append(f'Error computing period for state {state_tuple}: {str(e)}')
-                            continue
-                        min_state_tuple = min_state
-
-                        # Check if cycle already claimed
+                    # Try to claim cycle
+                    cycle_claimed = False
+                    with cycle_lock:
                         if min_state_tuple in shared_cycles:
+                            # Already claimed by another worker
                             local_visited.update(cycle_states_in_order)
                             states_skipped_claimed += seq_period
                             cycles_skipped += 1
                             continue
+                        else:
+                            # Claim this cycle for this worker
+                            shared_cycles[min_state_tuple] = worker_id
+                            cycle_claimed = True
 
-                        # Try to claim cycle
-                        cycle_claimed = False
-                        with cycle_lock:
-                            if min_state_tuple in shared_cycles:
-                                # Already claimed by another worker
-                                local_visited.update(cycle_states_in_order)
-                                states_skipped_claimed += seq_period
-                                cycles_skipped += 1
-                                continue
-                            else:
-                                # Claim this cycle for this worker
-                                shared_cycles[min_state_tuple] = worker_id
-                                cycle_claimed = True
+                    # Only process if we successfully claimed the cycle
+                    if not cycle_claimed:
+                        continue
 
-                        # Only process if we successfully claimed the cycle
-                        if not cycle_claimed:
-                            continue
+                    # Process cycle (we've successfully claimed it)
+                    states_tuples = (min_state,)
+                    local_visited.update(cycle_states_in_order)
+                    states_processed += 1
+                    cycles_found += 1
+                    cycles_claimed += 1
+                else:
+                    # Full mode
+                    local_visited_set = set()
+                    seq_lst, seq_period = _find_sequence_cycle(
+                        state,
+                        state_update_matrix,
+                        local_visited_set,
+                        algorithm=algorithm,
+                        period_only=period_only,
+                    )
+                    for seq_state in seq_lst:
+                        seq_state_tuple = tuple(seq_state)
+                        local_visited.add(seq_state_tuple)
+                    states_tuples = [tuple(s) for s in seq_lst]
 
-                        # Process cycle (we've successfully claimed it)
-                        states_tuples = (min_state,)
-                        local_visited.update(cycle_states_in_order)
-                        states_processed += 1
-                        cycles_found += 1
-                        cycles_claimed += 1
-                    else:
-                        # Full mode
-                        local_visited_set = set()
-                        seq_lst, seq_period = _find_sequence_cycle(
-                            state,
-                            state_update_matrix,
-                            local_visited_set,
-                            algorithm=algorithm,
-                            period_only=period_only,
-                        )
-                        for seq_state in seq_lst:
-                            seq_state_tuple = tuple(seq_state)
-                            local_visited.add(seq_state_tuple)
-                        states_tuples = [tuple(s) for s in seq_lst]
+                # Store sequence information
+                sequences.append(
+                    {
+                        "states": states_tuples,
+                        "period": seq_period,
+                        "start_state": state_tuple,
+                        "period_only": period_only,
+                    }
+                )
 
-                    # Store sequence information
-                    sequences.append({
-                        'states': states_tuples,
-                        'period': seq_period,
-                        'start_state': state_tuple,
-                        'period_only': period_only,
-                    })
+                if seq_period > worker_max_period:
+                    worker_max_period = seq_period
 
-                    if seq_period > worker_max_period:
-                        worker_max_period = seq_period
-
-                    processed_count += 1
+                processed_count += 1
 
             except Exception as e:
-                errors.append(f'Error processing state {state_tuple}: {str(e)}')
+                errors.append(f"Error processing state {state_tuple}: {str(e)}")
                 continue
 
         batch_elapsed = time.time() - batch_start_time
         if DEBUG_PARALLEL:
-            debug_log(f'Batch {batches_processed} completed in {batch_elapsed:.2f}s ({len(batch)} states)')
+            debug_log(
+                f"Batch {batches_processed} completed in {batch_elapsed:.2f}s ({len(batch)} states)"
+            )
 
     # Main loop: process assigned chunk first (hybrid), then pull batches from queue
-    debug_log(f'Starting worker (hybrid: {use_hybrid_mode}, work_stealing: {use_work_stealing}, aggregation: {batch_aggregation_count})...')
+    debug_log(
+        f"Starting worker (hybrid: {use_hybrid_mode}, work_stealing: {use_work_stealing}, aggregation: {batch_aggregation_count})..."
+    )
     import queue as queue_module
     import time
+
     worker_start_time = time.time()
 
     # Phase 3.2: Hybrid mode - process assigned chunk first (static, low overhead)
     if use_hybrid_mode and assigned_chunk:
-        debug_log(f'Processing assigned static chunk ({len(assigned_chunk)} states)...')
+        debug_log(f"Processing assigned static chunk ({len(assigned_chunk)} states)...")
         # Process chunk as single batch (reuse batch processing logic)
         process_single_batch(assigned_chunk)
-        debug_log('Static chunk completed, starting work stealing...')
+        debug_log("Static chunk completed, starting work stealing...")
 
     # In work-stealing/hybrid mode, each worker pulls from its own
     # dedicated queue (worker_queues[worker_id]) rather than a single
@@ -2190,7 +2440,9 @@ def _process_task_batch_dynamic(
             if sentinel_received:
                 for remaining_batch in batches_to_process:
                     process_single_batch(remaining_batch)
-                debug_log(f'Received sentinel, worker done. Processed {batches_processed} batches, {processed_count} states')
+                debug_log(
+                    f"Received sentinel, worker done. Processed {batches_processed} batches, {processed_count} states"
+                )
                 break
 
             # Process all pulled batches
@@ -2214,31 +2466,33 @@ def _process_task_batch_dynamic(
             time.sleep(0.01)
             continue
         except Exception as e:
-            debug_log(f'Error in worker loop: {e}')
-            errors.append(f'Worker loop error: {str(e)}')
+            debug_log(f"Error in worker loop: {e}")
+            errors.append(f"Worker loop error: {str(e)}")
             # Continue processing (don't exit on error)
             continue
 
     worker_elapsed = time.time() - worker_start_time
-    debug_log(f'Worker completed in {worker_elapsed:.2f}s: {processed_count} states, {len(sequences)} sequences')
+    debug_log(
+        f"Worker completed in {worker_elapsed:.2f}s: {processed_count} states, {len(sequences)} sequences"
+    )
 
     # Work distribution metrics
     work_metrics = {
-        'states_processed': states_processed,
-        'states_skipped_visited': states_skipped_visited,
-        'states_skipped_claimed': states_skipped_claimed,
-        'cycles_found': cycles_found,
-        'cycles_claimed': cycles_claimed,
-        'cycles_skipped': cycles_skipped,
-        'batches_processed': batches_processed,
+        "states_processed": states_processed,
+        "states_skipped_visited": states_skipped_visited,
+        "states_skipped_claimed": states_skipped_claimed,
+        "cycles_found": cycles_found,
+        "cycles_claimed": cycles_claimed,
+        "cycles_skipped": cycles_skipped,
+        "batches_processed": batches_processed,
     }
 
     return {
-        'sequences': sequences,
-        'max_period': worker_max_period,
-        'processed_count': processed_count,
-        'errors': errors,
-        'work_metrics': work_metrics,
+        "sequences": sequences,
+        "max_period": worker_max_period,
+        "processed_count": processed_count,
+        "errors": errors,
+        "work_metrics": work_metrics,
     }
 
 
@@ -2306,7 +2560,7 @@ def lfsr_sequence_mapper_parallel_dynamic(
 
     # Extract coefficients from matrix
     d = state_update_matrix.dimensions()[0]
-    coeffs_vector = [int(state_update_matrix[i, d-1]) for i in range(d)]
+    coeffs_vector = [int(state_update_matrix[i, d - 1]) for i in range(d)]
 
     # Adaptive batch sizing based on state space size
     # Goal: Balance IPC overhead vs. load balancing granularity
@@ -2342,7 +2596,10 @@ def lfsr_sequence_mapper_parallel_dynamic(
     batch_aggregation_count = max(1, min(batch_aggregation_count, 10))
 
     subsec_name = "STATES SEQUENCES"
-    subsec_desc = "all possible state sequences " + "and their corresponding periods (dynamic parallel processing)"
+    subsec_desc = (
+        "all possible state sequences "
+        + "and their corresponding periods (dynamic parallel processing)"
+    )
     subsection(subsec_name, subsec_desc, output_file)
 
     if state_space_size == 0:
@@ -2353,8 +2610,12 @@ def lfsr_sequence_mapper_parallel_dynamic(
 
     # Phase 3.1: Work Stealing - Per-worker queues instead of single shared queue
     # Phase 3.2: Hybrid mode - Static partitioning + work stealing
-    use_hybrid_mode = False  # Enable hybrid mode (Phase 3.2) - combines static + dynamic
-    use_work_stealing = True  # Enable work stealing (Phase 3.1) - used by hybrid mode too
+    use_hybrid_mode = (
+        False  # Enable hybrid mode (Phase 3.2) - combines static + dynamic
+    )
+    use_work_stealing = (
+        True  # Enable work stealing (Phase 3.1) - used by hybrid mode too
+    )
 
     # Auto-select hybrid mode for medium problems (8K-64K states)
     # Small problems: static is better (overhead dominates)
@@ -2362,8 +2623,11 @@ def lfsr_sequence_mapper_parallel_dynamic(
     if state_space_size >= 8192 and state_space_size < 65536:
         use_hybrid_mode = True
         if not no_progress:
-            print(f"  Auto-selected hybrid mode (Phase 3.2) for {state_space_size:,} states")
+            print(
+                f"  Auto-selected hybrid mode (Phase 3.2) for {state_space_size:,} states"
+            )
             import sys
+
             sys.stdout.flush()
 
     # CRITICAL: Add queue size limits to prevent memory leaks
@@ -2377,28 +2641,41 @@ def lfsr_sequence_mapper_parallel_dynamic(
         chunks = _partition_state_space(state_vector_space, num_workers)
 
         # Create work stealing queues for remaining work (with size limit)
-        worker_queues = [manager.Queue(maxsize=max_queue_size) for _ in range(num_workers)]
+        worker_queues = [
+            manager.Queue(maxsize=max_queue_size) for _ in range(num_workers)
+        ]
         task_queue = None
 
         if not no_progress:
-            print(f"  Hybrid mode: {len(chunks)} static chunks + work stealing queues (max {max_queue_size} batches/queue)")
+            print(
+                f"  Hybrid mode: {len(chunks)} static chunks + work stealing queues (max {max_queue_size} batches/queue)"
+            )
             import sys
+
             sys.stdout.flush()
     elif use_work_stealing:
         # Per-worker queues for work stealing (with size limit)
-        worker_queues = [manager.Queue(maxsize=max_queue_size) for _ in range(num_workers)]
+        worker_queues = [
+            manager.Queue(maxsize=max_queue_size) for _ in range(num_workers)
+        ]
         task_queue = None  # Not used in work stealing mode
         if not no_progress:
-            print(f"  Using work stealing with {num_workers} per-worker queues (Phase 3.1, max {max_queue_size} batches/queue)")
+            print(
+                f"  Using work stealing with {num_workers} per-worker queues (Phase 3.1, max {max_queue_size} batches/queue)"
+            )
             import sys
+
             sys.stdout.flush()
     else:
         # Original shared queue (fallback, with size limit)
-        task_queue = manager.Queue(maxsize=max_queue_size * num_workers)  # Larger limit for shared queue
+        task_queue = manager.Queue(
+            maxsize=max_queue_size * num_workers
+        )  # Larger limit for shared queue
         worker_queues = None
         if not no_progress:
             print(f"  Using shared queue (max {max_queue_size * num_workers} batches)")
             import sys
+
             sys.stdout.flush()
 
     # Each worker tracks cycle claims in its own local dict instead of a Manager().dict()/
@@ -2409,7 +2686,9 @@ def lfsr_sequence_mapper_parallel_dynamic(
 
     # Populate queue with batches of states
     # Use same state_index_to_tuple function from _partition_state_space
-    def state_index_to_tuple(state_index: int, degree: int, gf_order: int) -> Tuple[int, ...]:
+    def state_index_to_tuple(
+        state_index: int, degree: int, gf_order: int
+    ) -> Tuple[int, ...]:
         """Convert state index to tuple representation without iterating VectorSpace."""
         if gf_order == 2:
             return tuple((state_index >> i) & 1 for i in range(degree))
@@ -2472,6 +2751,7 @@ def lfsr_sequence_mapper_parallel_dynamic(
     if not no_progress:
         print(f"  Using lazy task generation (batches of {batch_size} states)...")
         import sys
+
         sys.stdout.flush()
 
     # Generator function for batches (lazy generation)
@@ -2500,11 +2780,11 @@ def lfsr_sequence_mapper_parallel_dynamic(
     import os
     import sys
 
-    DEBUG_PARALLEL = os.environ.get('DEBUG_PARALLEL', '0') == '1'
+    DEBUG_PARALLEL = os.environ.get("DEBUG_PARALLEL", "0") == "1"
 
     def debug_log(msg):
         if DEBUG_PARALLEL:
-            print(f'[Producer PID {os.getpid()}] {msg}', file=sys.stderr, flush=True)
+            print(f"[Producer PID {os.getpid()}] {msg}", file=sys.stderr, flush=True)
 
     def producer_thread():
         """Background thread that generates batches and populates queues."""
@@ -2539,7 +2819,9 @@ def lfsr_sequence_mapper_parallel_dynamic(
                         except queue_module.Full:
                             # Queue still full, check stop flag and retry
                             if producer_stop_requested.is_set():
-                                debug_log("Producer: Emergency stop requested during queue wait")
+                                debug_log(
+                                    "Producer: Emergency stop requested during queue wait"
+                                )
                                 break
                             # Continue loop to retry
 
@@ -2569,7 +2851,9 @@ def lfsr_sequence_mapper_parallel_dynamic(
                         except queue_module.Full:
                             # Queue still full, check stop flag and retry
                             if producer_stop_requested.is_set():
-                                debug_log("Producer: Emergency stop requested during queue wait")
+                                debug_log(
+                                    "Producer: Emergency stop requested during queue wait"
+                                )
                                 break
                             # Continue loop to retry
 
@@ -2602,7 +2886,9 @@ def lfsr_sequence_mapper_parallel_dynamic(
     # CRITICAL: Producer thread is daemon=True so it terminates with main thread
     # This prevents orphaned threads that could cause memory leaks
     if not use_hybrid_mode:
-        producer = threading.Thread(target=producer_thread, daemon=True, name="BatchProducer")
+        producer = threading.Thread(
+            target=producer_thread, daemon=True, name="BatchProducer"
+        )
         producer.start()
 
         if not no_progress:
@@ -2685,6 +2971,7 @@ def lfsr_sequence_mapper_parallel_dynamic(
     if not no_progress:
         print(f"  Starting {num_workers} dynamic workers...")
         import sys
+
         sys.stdout.flush()
 
     # Persistent worker pool management (Phase 2.3)
@@ -2714,7 +3001,10 @@ def lfsr_sequence_mapper_parallel_dynamic(
                 try:
                     # Verify pool is still alive (check if it has a _state attribute)
                     # multiprocessing.Pool has _state that indicates if it's running
-                    if hasattr(_worker_pool, '_state') and _worker_pool._state == multiprocessing.pool.RUN:
+                    if (
+                        hasattr(_worker_pool, "_state")
+                        and _worker_pool._state == multiprocessing.pool.RUN
+                    ):
                         return _worker_pool, _worker_pool_context
                     else:
                         # Pool is not running, need to recreate
@@ -2729,13 +3019,17 @@ def lfsr_sequence_mapper_parallel_dynamic(
 
             # Create new pool
             try:
-                ctx = multiprocessing.get_context('fork')
+                ctx = multiprocessing.get_context("fork")
                 if not no_progress:
-                    print(f"  Creating persistent worker pool ({num_workers} workers)...")
+                    print(
+                        f"  Creating persistent worker pool ({num_workers} workers)..."
+                    )
             except ValueError:
-                ctx = multiprocessing.get_context('spawn')
+                ctx = multiprocessing.get_context("spawn")
                 if not no_progress:
-                    print(f"  Creating persistent worker pool ({num_workers} workers, spawn mode)...")
+                    print(
+                        f"  Creating persistent worker pool ({num_workers} workers, spawn mode)..."
+                    )
 
             pool = ctx.Pool(processes=num_workers)
             _worker_pool = pool
@@ -2743,7 +3037,9 @@ def lfsr_sequence_mapper_parallel_dynamic(
             _worker_pool_size = num_workers
 
             if not no_progress:
-                print("  Persistent pool created (will be reused for subsequent analyses)")
+                print(
+                    "  Persistent pool created (will be reused for subsequent analyses)"
+                )
 
             return pool, ctx
 
@@ -2767,18 +3063,25 @@ def lfsr_sequence_mapper_parallel_dynamic(
         # CRITICAL: Ensure producer thread terminates to prevent memory leaks
         if producer is not None:
             import sys
+
             # Wait for producer with timeout
             producer.join(timeout=30.0)  # Increased timeout for large problems
             if producer.is_alive():
                 if not no_progress:
-                    print("  WARNING: Producer thread did not finish in time - requesting emergency stop", file=sys.stderr)
+                    print(
+                        "  WARNING: Producer thread did not finish in time - requesting emergency stop",
+                        file=sys.stderr,
+                    )
                 # Request emergency stop
                 producer_stop_requested.set()
                 # Wait a bit more for graceful shutdown
                 producer.join(timeout=5.0)
                 if producer.is_alive():
                     if not no_progress:
-                        print("  ERROR: Producer thread still alive after stop request - possible memory leak", file=sys.stderr)
+                        print(
+                            "  ERROR: Producer thread still alive after stop request - possible memory leak",
+                            file=sys.stderr,
+                        )
                     # Daemon thread will terminate with main process, but log error
 
             # Check for producer errors
@@ -2790,20 +3093,22 @@ def lfsr_sequence_mapper_parallel_dynamic(
 
     except Exception as e:
         import sys
+
         print(f"ERROR: Dynamic parallel processing failed: {e}", file=sys.stderr)
         print("  Falling back to sequential processing...", file=sys.stderr)
 
         # CRITICAL: Request emergency stop for producer thread if it exists
         # This prevents producer from continuing after error
         try:
-            if 'producer_stop_requested' in locals():
+            if "producer_stop_requested" in locals():
                 producer_stop_requested.set()
-            if 'producer' in locals() and producer is not None:
+            if "producer" in locals() and producer is not None:
                 producer.join(timeout=2.0)  # Quick cleanup
         except Exception:
             pass  # Ignore cleanup errors
 
         import traceback
+
         traceback.print_exc()
         return lfsr_sequence_mapper(
             state_update_matrix,
@@ -2816,7 +3121,7 @@ def lfsr_sequence_mapper_parallel_dynamic(
         )
 
     # Extract work metrics from worker results for load imbalance analysis
-    work_metrics_list = [result.get('work_metrics', {}) for result in worker_results]
+    work_metrics_list = [result.get("work_metrics", {}) for result in worker_results]
 
     # Merge results
     seq_dict, period_dict, max_period, periods_sum = _merge_parallel_results(
@@ -2824,18 +3129,25 @@ def lfsr_sequence_mapper_parallel_dynamic(
     )
 
     # Calculate load imbalance from work metrics
-    if work_metrics_list and all('states_processed' in m for m in work_metrics_list):
-        states_processed_list = [m['states_processed'] for m in work_metrics_list]
+    if work_metrics_list and all("states_processed" in m for m in work_metrics_list):
+        states_processed_list = [m["states_processed"] for m in work_metrics_list]
         total_states = sum(states_processed_list)
         if total_states > 0:
             avg_work = total_states / len(states_processed_list)
             max_work = max(states_processed_list)
-            imbalance_pct = ((max_work - avg_work) / avg_work * 100) if avg_work > 0 else 0
+            imbalance_pct = (
+                ((max_work - avg_work) / avg_work * 100) if avg_work > 0 else 0
+            )
             # Store in a way that can be accessed (for now, just log if DEBUG)
             import os
-            if os.environ.get('DEBUG_PARALLEL', '0') == '1':
+
+            if os.environ.get("DEBUG_PARALLEL", "0") == "1":
                 import sys
-                print(f"[Load Imbalance] Workers: {states_processed_list}, Avg: {avg_work:.1f}, Max: {max_work}, Imbalance: {imbalance_pct:.1f}%", file=sys.stderr)
+
+                print(
+                    f"[Load Imbalance] Workers: {states_processed_list}, Avg: {avg_work:.1f}, Max: {max_work}, Imbalance: {imbalance_pct:.1f}%",
+                    file=sys.stderr,
+                )
 
     # Display sequences (same format as sequential version)
     print("\n")
@@ -2847,7 +3159,9 @@ def lfsr_sequence_mapper_parallel_dynamic(
 
     if period_only:
         for seq_num, period in period_dict.items():
-            seq_entry = f" | ** sequence {seq_num:3d} | T : {period:3d} | (period only)  |"
+            seq_entry = (
+                f" | ** sequence {seq_num:3d} | T : {period:3d} | (period only)  |"
+            )
             dump(seq_entry, "mode=all", output_file)
     else:
         for seq_num, sequence in seq_dict.items():
@@ -2857,7 +3171,12 @@ def lfsr_sequence_mapper_parallel_dynamic(
             )
 
             dump_seq_row(
-                seq_num, seq_entry, num_sequences, row_width, "mode=console", output_file
+                seq_num,
+                seq_entry,
+                num_sequences,
+                row_width,
+                "mode=console",
+                output_file,
             )
             dump_seq_row(
                 seq_num, seq_all_v, num_sequences, row_width, "mode=file", output_file
@@ -2874,6 +3193,7 @@ def lfsr_sequence_mapper_parallel_dynamic(
     # Verification
     if periods_sum != state_vector_space_size:
         import sys
+
         print(
             f"WARNING: Period sum ({periods_sum}) != state space size ({state_vector_space_size})",
             file=sys.stderr,
@@ -2907,7 +3227,9 @@ def display_period_distribution(
     subsection(subsec_name, subsec_desc, output_file)
 
     # Compute distribution statistics
-    stats = compute_period_distribution(period_dict, gf_order, lfsr_degree, is_primitive)
+    stats = compute_period_distribution(
+        period_dict, gf_order, lfsr_degree, is_primitive
+    )
 
     if "error" in stats:
         dump(f"  Error: {stats['error']}", "mode=all", output_file)
@@ -2923,37 +3245,77 @@ def display_period_distribution(
     dump(f"  Variance: {stats['variance']:.2f}", "mode=all", output_file)
 
     # Distribution info
-    dist_info = stats['distribution_info']
+    dist_info = stats["distribution_info"]
     dump(f"  Unique Periods: {dist_info['unique_periods']}", "mode=all", output_file)
-    dump(f"  Period Diversity: {dist_info['period_diversity']:.2%}", "mode=all", output_file)
+    dump(
+        f"  Period Diversity: {dist_info['period_diversity']:.2%}",
+        "mode=all",
+        output_file,
+    )
 
     # Theoretical bounds
-    theo_bounds = stats['theoretical_bounds']
+    theo_bounds = stats["theoretical_bounds"]
     dump("", "mode=all", output_file)
     dump("  Theoretical Bounds:", "mode=all", output_file)
-    dump(f"    Maximum Theoretical Period: {theo_bounds['max_theoretical_period']}", "mode=all", output_file)
-    dump(f"    State Space Size: {theo_bounds['state_space_size']}", "mode=all", output_file)
-    dump(f"    Polynomial is Primitive: {theo_bounds['is_primitive']}", "mode=all", output_file)
+    dump(
+        f"    Maximum Theoretical Period: {theo_bounds['max_theoretical_period']}",
+        "mode=all",
+        output_file,
+    )
+    dump(
+        f"    State Space Size: {theo_bounds['state_space_size']}",
+        "mode=all",
+        output_file,
+    )
+    dump(
+        f"    Polynomial is Primitive: {theo_bounds['is_primitive']}",
+        "mode=all",
+        output_file,
+    )
 
     # Comparison
-    comparison = stats['comparison']
+    comparison = stats["comparison"]
     dump("", "mode=all", output_file)
     dump("  Comparison with Theoretical Bounds:", "mode=all", output_file)
-    dump(f"    Max Period = Theoretical Max: {comparison['max_period_equals_theoretical']}", "mode=all", output_file)
-    dump(f"    Max Period Ratio: {comparison['max_period_ratio']:.2%}", "mode=all", output_file)
+    dump(
+        f"    Max Period = Theoretical Max: {comparison['max_period_equals_theoretical']}",
+        "mode=all",
+        output_file,
+    )
+    dump(
+        f"    Max Period Ratio: {comparison['max_period_ratio']:.2%}",
+        "mode=all",
+        output_file,
+    )
 
     if is_primitive:
-        dump(f"    All Periods Maximum: {comparison.get('all_periods_maximum', False)}", "mode=all", output_file)
-        if 'expected_period' in comparison:
-            dump(f"    Expected Period (primitive): {comparison['expected_period']}", "mode=all", output_file)
-            dump(f"    Sequences with Max Period: {comparison.get('actual_sequences_with_max_period', 0)} / {comparison.get('expected_sequences', 0)}", "mode=all", output_file)
+        dump(
+            f"    All Periods Maximum: {comparison.get('all_periods_maximum', False)}",
+            "mode=all",
+            output_file,
+        )
+        if "expected_period" in comparison:
+            dump(
+                f"    Expected Period (primitive): {comparison['expected_period']}",
+                "mode=all",
+                output_file,
+            )
+            dump(
+                f"    Sequences with Max Period: {comparison.get('actual_sequences_with_max_period', 0)} / {comparison.get('expected_sequences', 0)}",
+                "mode=all",
+                output_file,
+            )
 
     # Period frequency (top periods)
-    period_freq = stats['period_frequency']
+    period_freq = stats["period_frequency"]
     if period_freq:
         dump("", "mode=all", output_file)
         dump("  Period Frequency (Top 10):", "mode=all", output_file)
         sorted_freq = sorted(period_freq.items(), key=lambda x: x[1], reverse=True)[:10]
         for period, frequency in sorted_freq:
-            percentage = (frequency / stats['total_sequences']) * 100
-            dump(f"    Period {period}: {frequency} sequences ({percentage:.1f}%)", "mode=all", output_file)
+            percentage = (frequency / stats["total_sequences"]) * 100
+            dump(
+                f"    Period {period}: {frequency} sequences ({percentage:.1f}%)",
+                "mode=all",
+                output_file,
+            )

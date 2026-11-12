@@ -72,7 +72,9 @@ class TestLazyGetattr:
     def test_unknown_attribute_raises_attribute_error(self):
         import lfsr
 
-        with pytest.raises(AttributeError, match="has no attribute 'totally_bogus_name'"):
+        with pytest.raises(
+            AttributeError, match="has no attribute 'totally_bogus_name'"
+        ):
             lfsr.totally_bogus_name
 
 
@@ -89,7 +91,8 @@ class TestVersionFallback:
         # `lfsr` package, which must not leak a half-initialized module
         # into the rest of the test session.
         saved_modules = {
-            name: mod for name, mod in sys.modules.items()
+            name: mod
+            for name, mod in sys.modules.items()
             if name == "lfsr" or name.startswith("lfsr.")
         }
 

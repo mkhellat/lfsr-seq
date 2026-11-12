@@ -273,4 +273,3 @@ class TestReadCsvCoefficients:
         csv_file.write_text("")
         result = read_csv_coefficients(str(csv_file))
         assert result == []
-

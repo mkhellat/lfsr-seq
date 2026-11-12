@@ -95,7 +95,7 @@ class TestFullWorkflow:
         assert periods_sum == 16  # 2^4 = 16 states total
 
         # Verify all periods sum to state space size
-        assert periods_sum == 2 ** 4
+        assert periods_sum == 2**4
 
     def test_matrix_order_integration(self):
         """Test matrix order computation in integration context."""
@@ -104,7 +104,7 @@ class TestFullWorkflow:
 
         M = MatrixSpace(GF(2), 4, 4)
         I = M.identity_matrix()
-        state_space_size = 2 ** 4
+        state_space_size = 2**4
 
         order = compute_matrix_order(C, I, state_space_size, None)
 
@@ -177,4 +177,3 @@ class TestEdgeCases:
         content = output_file.read_text()
         # Should mention period 15 somewhere
         assert "15" in content or "T : 15" in content
-

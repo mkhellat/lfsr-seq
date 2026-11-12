@@ -430,7 +430,9 @@ class TestLfsrSequenceMapperSerial:
 
 class TestUpdateProgressDisplay:
     def test_runs_without_error(self, capsys):
-        _update_progress_display(counter=5, elp_t=1.23, max_t_t=10.0, state_vector_space_size=16)
+        _update_progress_display(
+            counter=5, elp_t=1.23, max_t_t=10.0, state_vector_space_size=16
+        )
         captured = capsys.readouterr()
         assert "5/16" in captured.out or "5/16" in captured.err
 
@@ -457,7 +459,11 @@ class TestDisplayPeriodDistribution:
         period_dict = {1: 1, 2: 1, 3: 1, 4: 1}
         with tempfile.TemporaryFile(mode="w+") as f:
             display_period_distribution(
-                period_dict, gf_order=2, lfsr_degree=2, is_primitive=False, output_file=f
+                period_dict,
+                gf_order=2,
+                lfsr_degree=2,
+                is_primitive=False,
+                output_file=f,
             )
             f.seek(0)
             content = f.read()
@@ -570,7 +576,17 @@ class TestProcessStateChunk:
         shared_cycles = manager.dict()
         cycle_lock = manager.Lock()
 
-        chunk_data = (chunk, coeffs, gf_order, d, "auto", True, 0, shared_cycles, cycle_lock)
+        chunk_data = (
+            chunk,
+            coeffs,
+            gf_order,
+            d,
+            "auto",
+            True,
+            0,
+            shared_cycles,
+            cycle_lock,
+        )
         result = _process_state_chunk(chunk_data)
 
         assert result["errors"] == []
@@ -589,7 +605,17 @@ class TestProcessStateChunk:
         shared_cycles = manager.dict()
         cycle_lock = manager.Lock()
 
-        chunk_data = (chunk, coeffs, gf_order, d, "auto", False, 0, shared_cycles, cycle_lock)
+        chunk_data = (
+            chunk,
+            coeffs,
+            gf_order,
+            d,
+            "auto",
+            False,
+            0,
+            shared_cycles,
+            cycle_lock,
+        )
         result = _process_state_chunk(chunk_data)
 
         assert result["errors"] == []
@@ -617,14 +643,24 @@ class TestMergeParallelResults:
         worker_results = [
             {
                 "sequences": [
-                    {"states": ((0, 0, 0, 0),), "period": 1, "start_state": (0, 0, 0, 0), "period_only": True},
+                    {
+                        "states": ((0, 0, 0, 0),),
+                        "period": 1,
+                        "start_state": (0, 0, 0, 0),
+                        "period_only": True,
+                    },
                 ],
                 "max_period": 1,
                 "errors": [],
             },
             {
                 "sequences": [
-                    {"states": ((0, 0, 0, 1),), "period": 6, "start_state": (1, 0, 0, 0), "period_only": True},
+                    {
+                        "states": ((0, 0, 0, 1),),
+                        "period": 6,
+                        "start_state": (1, 0, 0, 0),
+                        "period_only": True,
+                    },
                 ],
                 "max_period": 6,
                 "errors": [],
@@ -646,14 +682,24 @@ class TestMergeParallelResults:
         worker_results = [
             {
                 "sequences": [
-                    {"states": ((1, 1, 1, 1),), "period": 6, "start_state": (1, 1, 1, 0), "period_only": True},
+                    {
+                        "states": ((1, 1, 1, 1),),
+                        "period": 6,
+                        "start_state": (1, 1, 1, 0),
+                        "period_only": True,
+                    },
                 ],
                 "max_period": 6,
                 "errors": [],
             },
             {
                 "sequences": [
-                    {"states": ((1, 1, 1, 1),), "period": 6, "start_state": (0, 1, 1, 1), "period_only": True},
+                    {
+                        "states": ((1, 1, 1, 1),),
+                        "period": 6,
+                        "start_state": (0, 1, 1, 1),
+                        "period_only": True,
+                    },
                 ],
                 "max_period": 6,
                 "errors": [],
@@ -737,8 +783,19 @@ class TestLfsrSequenceMapperParallelStatic:
     def test_matches_serial_result_period_only(self):
         C, V, d = make_matrix([1, 1, 0, 1], 2)
         with tempfile.TemporaryFile(mode="w+") as f:
-            seq_dict, period_dict, max_period, periods_sum = lfsr_sequence_mapper_parallel(
-                C, V, 2, output_file=f, no_progress=True, period_only=True, num_workers=2
+            (
+                seq_dict,
+                period_dict,
+                max_period,
+                periods_sum,
+            ) = lfsr_sequence_mapper_parallel(
+                C,
+                V,
+                2,
+                output_file=f,
+                no_progress=True,
+                period_only=True,
+                num_workers=2,
             )
         assert periods_sum == 16
         assert max_period == 6
@@ -747,8 +804,19 @@ class TestLfsrSequenceMapperParallelStatic:
     def test_single_worker_matches_serial(self):
         C, V, d = make_matrix([1, 1], 2)
         with tempfile.TemporaryFile(mode="w+") as f:
-            seq_dict, period_dict, max_period, periods_sum = lfsr_sequence_mapper_parallel(
-                C, V, 2, output_file=f, no_progress=True, period_only=True, num_workers=1
+            (
+                seq_dict,
+                period_dict,
+                max_period,
+                periods_sum,
+            ) = lfsr_sequence_mapper_parallel(
+                C,
+                V,
+                2,
+                output_file=f,
+                no_progress=True,
+                period_only=True,
+                num_workers=1,
             )
         assert periods_sum == 4
         assert sorted(period_dict.values()) == [1, 3]
@@ -760,13 +828,27 @@ class TestLfsrSequenceMapperParallelStatic:
         vector() reconstruction bug in _merge_parallel_results."""
         C, V, d = make_matrix([1, 1], 2)
         with tempfile.TemporaryFile(mode="w+") as f:
-            seq_dict, period_dict, max_period, periods_sum = lfsr_sequence_mapper_parallel(
-                C, V, 2, output_file=f, no_progress=True, period_only=False, num_workers=2
+            (
+                seq_dict,
+                period_dict,
+                max_period,
+                periods_sum,
+            ) = lfsr_sequence_mapper_parallel(
+                C,
+                V,
+                2,
+                output_file=f,
+                no_progress=True,
+                period_only=False,
+                num_workers=2,
             )
         assert periods_sum == 4
         assert sorted(period_dict.values()) == [1, 3]
         reconstructed = {k: [tuple(v) for v in seq] for k, seq in seq_dict.items()}
-        assert sorted(reconstructed.values(), key=len) == [[(0, 0)], [(1, 0), (0, 1), (1, 1)]]
+        assert sorted(reconstructed.values(), key=len) == [
+            [(0, 0)],
+            [(1, 0), (0, 1), (1, 1)],
+        ]
 
     @pytest.mark.slow
     def test_gf3_partition_covers_full_state_space(self):
@@ -783,8 +865,19 @@ class TestLfsrSequenceMapperParallelStatic:
         """
         C, V, d = make_matrix([1, 2, 1], 3)
         with tempfile.TemporaryFile(mode="w+") as f:
-            seq_dict, period_dict, max_period, periods_sum = lfsr_sequence_mapper_parallel(
-                C, V, 3, output_file=f, no_progress=True, period_only=True, num_workers=2
+            (
+                seq_dict,
+                period_dict,
+                max_period,
+                periods_sum,
+            ) = lfsr_sequence_mapper_parallel(
+                C,
+                V,
+                3,
+                output_file=f,
+                no_progress=True,
+                period_only=True,
+                num_workers=2,
             )
         assert periods_sum == 27
 
@@ -817,7 +910,18 @@ class TestProcessTaskBatchDynamic:
         task_queue.put(batch)
         task_queue.put(None)  # sentinel
 
-        worker_data = (task_queue, coeffs, gf_order, d, "auto", True, 0, shared_cycles, cycle_lock, 1)
+        worker_data = (
+            task_queue,
+            coeffs,
+            gf_order,
+            d,
+            "auto",
+            True,
+            0,
+            shared_cycles,
+            cycle_lock,
+            1,
+        )
         result = _process_task_batch_dynamic(worker_data)
 
         assert result["errors"] == []
@@ -865,8 +969,30 @@ class TestProcessTaskBatchDynamic:
         worker_queues[0].put(None)  # sentinel for worker 0
         worker_queues[1].put(None)  # sentinel for worker 1 (no work assigned)
 
-        worker_data_0 = (worker_queues, 0, coeffs, gf_order, d, "auto", True, shared_cycles, cycle_lock, 1)
-        worker_data_1 = (worker_queues, 1, coeffs, gf_order, d, "auto", True, shared_cycles, cycle_lock, 1)
+        worker_data_0 = (
+            worker_queues,
+            0,
+            coeffs,
+            gf_order,
+            d,
+            "auto",
+            True,
+            shared_cycles,
+            cycle_lock,
+            1,
+        )
+        worker_data_1 = (
+            worker_queues,
+            1,
+            coeffs,
+            gf_order,
+            d,
+            "auto",
+            True,
+            shared_cycles,
+            cycle_lock,
+            1,
+        )
 
         result0 = _process_task_batch_dynamic(worker_data_0)
         result1 = _process_task_batch_dynamic(worker_data_1)
@@ -891,7 +1017,18 @@ class TestProcessTaskBatchDynamic:
         task_queue.put(batch)
         task_queue.put(None)
 
-        worker_data = (task_queue, coeffs, gf_order, d, "auto", False, 0, shared_cycles, cycle_lock, 1)
+        worker_data = (
+            task_queue,
+            coeffs,
+            gf_order,
+            d,
+            "auto",
+            False,
+            0,
+            shared_cycles,
+            cycle_lock,
+            1,
+        )
         result = _process_task_batch_dynamic(worker_data)
 
         assert result["errors"] == []
@@ -917,8 +1054,19 @@ class TestLfsrSequenceMapperParallelDynamic:
     def test_matches_serial_result_period_only(self):
         C, V, d = make_matrix([1, 1, 0, 1], 2)
         with tempfile.TemporaryFile(mode="w+") as f:
-            seq_dict, period_dict, max_period, periods_sum = lfsr_sequence_mapper_parallel_dynamic(
-                C, V, 2, output_file=f, no_progress=True, period_only=True, num_workers=2
+            (
+                seq_dict,
+                period_dict,
+                max_period,
+                periods_sum,
+            ) = lfsr_sequence_mapper_parallel_dynamic(
+                C,
+                V,
+                2,
+                output_file=f,
+                no_progress=True,
+                period_only=True,
+                num_workers=2,
             )
         assert periods_sum == 16
         assert max_period == 6
@@ -1005,9 +1153,24 @@ class TestMergeParallelResultsExtra:
         worker_results = [
             {
                 "sequences": [
-                    {"states": (), "period": 5, "start_state": (0, 0), "period_only": True},
-                    {"states": ((1, 1),), "period": 0, "start_state": (1, 1), "period_only": True},
-                    {"states": ((0, 1),), "period": 2, "start_state": (0, 1), "period_only": True},
+                    {
+                        "states": (),
+                        "period": 5,
+                        "start_state": (0, 0),
+                        "period_only": True,
+                    },
+                    {
+                        "states": ((1, 1),),
+                        "period": 0,
+                        "start_state": (1, 1),
+                        "period_only": True,
+                    },
+                    {
+                        "states": ((0, 1),),
+                        "period": 2,
+                        "start_state": (0, 1),
+                        "period_only": True,
+                    },
                 ],
                 "max_period": 2,
                 "errors": [],
@@ -1029,7 +1192,12 @@ class TestMergeParallelResultsExtra:
                 "sequences": [
                     # A non-tuple, non-list truthy value hits the final
                     # `else: continue` branch.
-                    {"states": "not-a-tuple-or-list", "period": 3, "start_state": (0,), "period_only": True},
+                    {
+                        "states": "not-a-tuple-or-list",
+                        "period": 3,
+                        "start_state": (0,),
+                        "period_only": True,
+                    },
                 ],
                 "max_period": 3,
                 "errors": [],
@@ -1046,7 +1214,12 @@ class TestMergeParallelResultsExtra:
         worker_results = [
             {
                 "sequences": [
-                    {"states": [], "period": 4, "start_state": (1, 0, 0, 0), "period_only": True},
+                    {
+                        "states": [],
+                        "period": 4,
+                        "start_state": (1, 0, 0, 0),
+                        "period_only": True,
+                    },
                 ],
                 "max_period": 4,
                 "errors": [],
@@ -1066,7 +1239,12 @@ class TestMergeParallelResultsExtra:
         worker_results = [
             {
                 "sequences": [
-                    {"states": [], "period": 1, "start_state": (0, 0), "period_only": False},
+                    {
+                        "states": [],
+                        "period": 1,
+                        "start_state": (0, 0),
+                        "period_only": False,
+                    },
                 ],
                 "max_period": 1,
                 "errors": [],
@@ -1080,26 +1258,39 @@ class TestMergeParallelResultsExtra:
     def test_more_than_ten_errors_shows_truncation_message(self, capsys):
         errors = [f"error-{i}" for i in range(15)]
         worker_results = [{"sequences": [], "max_period": 0, "errors": errors}]
-        _merge_parallel_results(worker_results, gf_order=2, lfsr_degree=2, shared_cycles=None)
+        _merge_parallel_results(
+            worker_results, gf_order=2, lfsr_degree=2, shared_cycles=None
+        )
         captured = capsys.readouterr()
         assert "... and 5 more errors" in captured.err
 
-    def test_debug_parallel_env_var_exercises_debug_logging(self, _debug_parallel_env, capsys):
+    def test_debug_parallel_env_var_exercises_debug_logging(
+        self, _debug_parallel_env, capsys
+    ):
         """DEBUG_PARALLEL=1 triggers the merge_debug print branches (both
         shared_cycles and fallback code paths)."""
         worker_results = [
             {
                 "sequences": [
-                    {"states": ((0, 0),), "period": 1, "start_state": (0, 0), "period_only": True},
+                    {
+                        "states": ((0, 0),),
+                        "period": 1,
+                        "start_state": (0, 0),
+                        "period_only": True,
+                    },
                 ],
                 "max_period": 1,
                 "errors": [],
             }
         ]
         # shared_cycles path
-        _merge_parallel_results(worker_results, gf_order=2, lfsr_degree=2, shared_cycles={})
+        _merge_parallel_results(
+            worker_results, gf_order=2, lfsr_degree=2, shared_cycles={}
+        )
         # fallback path
-        _merge_parallel_results(worker_results, gf_order=2, lfsr_degree=2, shared_cycles=None)
+        _merge_parallel_results(
+            worker_results, gf_order=2, lfsr_degree=2, shared_cycles=None
+        )
         captured = capsys.readouterr()
         assert "Merge PID" in captured.err
 
@@ -1143,14 +1334,26 @@ class TestPartitionStateSpaceExtra:
 
 
 class TestProcessStateChunkExtra:
-    def test_debug_parallel_env_exercises_debug_logging(self, _debug_parallel_env, capsys):
+    def test_debug_parallel_env_exercises_debug_logging(
+        self, _debug_parallel_env, capsys
+    ):
         coeffs = [1, 1]
         gf_order, d = 2, 2
         chunk = [((0, 0), 0)]
         manager = multiprocessing.Manager()
         shared_cycles = manager.dict()
         cycle_lock = manager.Lock()
-        chunk_data = (chunk, coeffs, gf_order, d, "auto", True, 0, shared_cycles, cycle_lock)
+        chunk_data = (
+            chunk,
+            coeffs,
+            gf_order,
+            d,
+            "auto",
+            True,
+            0,
+            shared_cycles,
+            cycle_lock,
+        )
         result = _process_state_chunk(chunk_data)
         assert result["errors"] == []
         captured = capsys.readouterr()
@@ -1182,7 +1385,17 @@ class TestProcessStateChunkExtra:
         shared_cycles = manager.dict()
         shared_cycles[(0, 1)] = 99  # claimed by "worker 99"
         cycle_lock = manager.Lock()
-        chunk_data = (chunk, coeffs, gf_order, d, "enumeration", True, 0, shared_cycles, cycle_lock)
+        chunk_data = (
+            chunk,
+            coeffs,
+            gf_order,
+            d,
+            "enumeration",
+            True,
+            0,
+            shared_cycles,
+            cycle_lock,
+        )
         result = _process_state_chunk(chunk_data)
         assert result["errors"] == []
         assert result["sequences"] == []  # nothing claimed/produced by this worker
@@ -1199,10 +1412,23 @@ class TestProcessStateChunkExtra:
         manager = multiprocessing.Manager()
         shared_cycles = manager.dict()
         cycle_lock = manager.Lock()
-        chunk_data = (chunk, coeffs, gf_order, d, "auto", True, 0, shared_cycles, cycle_lock)
+        chunk_data = (
+            chunk,
+            coeffs,
+            gf_order,
+            d,
+            "auto",
+            True,
+            0,
+            shared_cycles,
+            cycle_lock,
+        )
         result = _process_state_chunk(chunk_data)
         assert len(result["errors"]) == 1
-        assert "not-a-number" in result["errors"][0] or "Error processing state" in result["errors"][0]
+        assert (
+            "not-a-number" in result["errors"][0]
+            or "Error processing state" in result["errors"][0]
+        )
         # second (valid) state should still have been processed
         assert result["processed_count"] == 1
         manager.shutdown()
@@ -1219,13 +1445,25 @@ class TestProcessStateChunkExtra:
         manager = multiprocessing.Manager()
         shared_cycles = manager.dict()
         cycle_lock = manager.Lock()
-        chunk_data = (chunk, coeffs, gf_order, d, "enumeration", True, 0, shared_cycles, cycle_lock)
+        chunk_data = (
+            chunk,
+            coeffs,
+            gf_order,
+            d,
+            "enumeration",
+            True,
+            0,
+            shared_cycles,
+            cycle_lock,
+        )
         result = _process_state_chunk(chunk_data)
         assert result["errors"] == []
         assert result["max_period"] == 4095
         manager.shutdown()
 
-    def test_degenerate_matrix_hits_safety_limit_instead_of_hanging_forever(self, monkeypatch):
+    def test_degenerate_matrix_hits_safety_limit_instead_of_hanging_forever(
+        self, monkeypatch
+    ):
         """Mirrors TestProcessTaskBatchDynamicExtra's equivalent test: a
         regression test for a real bug found during PR review (before
         merge, 2026-11-12), see that test's full docstring for the fix
@@ -1276,14 +1514,26 @@ class TestProcessStateChunkExtra:
         def fake_build_state_update_matrix(*args, **kwargs):
             return _NeverTerminatingMatrix(), None
 
-        monkeypatch.setattr(core_mod, "build_state_update_matrix", fake_build_state_update_matrix)
+        monkeypatch.setattr(
+            core_mod, "build_state_update_matrix", fake_build_state_update_matrix
+        )
         coeffs = [0, 0, 0, 0]  # must match _NeverTerminatingMatrix.__getitem__ above
         gf_order, d = 2, 4
         chunk = [((1, 0, 0, 0), 0)]
         manager = multiprocessing.Manager()
         shared_cycles = manager.dict()
         cycle_lock = manager.Lock()
-        chunk_data = (chunk, coeffs, gf_order, d, "auto", True, 0, shared_cycles, cycle_lock)
+        chunk_data = (
+            chunk,
+            coeffs,
+            gf_order,
+            d,
+            "auto",
+            True,
+            0,
+            shared_cycles,
+            cycle_lock,
+        )
         result = _process_state_chunk(chunk_data)
         manager.shutdown()
 
@@ -1319,7 +1569,17 @@ class TestProcessStateChunkExtra:
 
         shared_cycles = RacingSharedCycles()
         chunk = [((1, 0), 0)]
-        chunk_data = (chunk, coeffs, gf_order, d, "enumeration", True, 0, shared_cycles, threading.Lock())
+        chunk_data = (
+            chunk,
+            coeffs,
+            gf_order,
+            d,
+            "enumeration",
+            True,
+            0,
+            shared_cycles,
+            threading.Lock(),
+        )
         result = _process_state_chunk(chunk_data)
         assert result["errors"] == []
         assert result["sequences"] == []  # not claimed by this worker after all
@@ -1331,7 +1591,9 @@ class TestProcessStateChunkExtra:
 
 
 class TestLfsrSequenceMapperParallelExtra:
-    def test_worker_count_note_prints_when_auto_selection_hits_cpu_limit(self, monkeypatch, capsys):
+    def test_worker_count_note_prints_when_auto_selection_hits_cpu_limit(
+        self, monkeypatch, capsys
+    ):
         """The "Note: Using N workers (optimal M...)" message must print
         when auto mode (num_workers=None) selects an optimal worker count
         that then gets capped by a low cpu_count(). This was previously
@@ -1343,12 +1605,20 @@ class TestLfsrSequenceMapperParallelExtra:
         C, V, d = make_matrix([1] * 11, 2)  # 2**11 = 2048 states -> optimal_workers=2
         with tempfile.TemporaryFile(mode="w+") as f:
             lfsr_sequence_mapper_parallel(
-                C, V, 2, output_file=f, no_progress=False, period_only=True, num_workers=None
+                C,
+                V,
+                2,
+                output_file=f,
+                no_progress=False,
+                period_only=True,
+                num_workers=None,
             )
         captured = capsys.readouterr()
         assert "Note: Using" in captured.err
 
-    def test_worker_count_note_not_printed_for_explicit_num_workers(self, monkeypatch, capsys):
+    def test_worker_count_note_not_printed_for_explicit_num_workers(
+        self, monkeypatch, capsys
+    ):
         """When the caller explicitly passes num_workers, the auto-select
         "Note: ..." message must NOT print, even if it differs from the
         optimal count."""
@@ -1356,7 +1626,13 @@ class TestLfsrSequenceMapperParallelExtra:
         C, V, d = make_matrix([1] * 11, 2)
         with tempfile.TemporaryFile(mode="w+") as f:
             lfsr_sequence_mapper_parallel(
-                C, V, 2, output_file=f, no_progress=False, period_only=True, num_workers=1
+                C,
+                V,
+                2,
+                output_file=f,
+                no_progress=False,
+                period_only=True,
+                num_workers=1,
             )
         captured = capsys.readouterr()
         assert "Note: Using" not in captured.out
@@ -1399,8 +1675,19 @@ class TestLfsrSequenceMapperParallelExtra:
         monkeypatch.setattr(multiprocessing, "get_context", lambda method: FakeCtx())
 
         with tempfile.TemporaryFile(mode="w+") as f:
-            seq_dict, period_dict, max_period, periods_sum = lfsr_sequence_mapper_parallel(
-                C, V, 2, output_file=f, no_progress=True, period_only=True, num_workers=2
+            (
+                seq_dict,
+                period_dict,
+                max_period,
+                periods_sum,
+            ) = lfsr_sequence_mapper_parallel(
+                C,
+                V,
+                2,
+                output_file=f,
+                no_progress=True,
+                period_only=True,
+                num_workers=2,
             )
         # Falls back to sequential lfsr_sequence_mapper, which is known-correct.
         assert periods_sum == 4
@@ -1418,7 +1705,13 @@ class TestLfsrSequenceMapperParallelExtra:
 
         with tempfile.TemporaryFile(mode="w+") as f:
             result = lfsr_sequence_mapper_parallel(
-                C, EmptySpace(), 2, output_file=f, no_progress=True, period_only=True, num_workers=2
+                C,
+                EmptySpace(),
+                2,
+                output_file=f,
+                no_progress=True,
+                period_only=True,
+                num_workers=2,
             )
         assert result == ({}, {}, 0, 0)
 
@@ -1438,8 +1731,18 @@ class TestLfsrSequenceMapperParallelExtra:
                 return [
                     {
                         "sequences": [
-                            {"states": ((0, 0),), "period": 1, "start_state": (0, 0), "period_only": True},
-                            {"states": ((0, 1),), "period": 3, "start_state": (1, 0), "period_only": True},
+                            {
+                                "states": ((0, 0),),
+                                "period": 1,
+                                "start_state": (0, 0),
+                                "period_only": True,
+                            },
+                            {
+                                "states": ((0, 1),),
+                                "period": 3,
+                                "start_state": (1, 0),
+                                "period_only": True,
+                            },
                         ],
                         "max_period": 3,
                         "errors": [],
@@ -1473,8 +1776,19 @@ class TestLfsrSequenceMapperParallelExtra:
         monkeypatch.setattr(multiprocessing, "get_context", lambda method: FakeCtx())
 
         with tempfile.TemporaryFile(mode="w+") as f:
-            seq_dict, period_dict, max_period, periods_sum = lfsr_sequence_mapper_parallel(
-                C, V, 2, output_file=f, no_progress=True, period_only=True, num_workers=2
+            (
+                seq_dict,
+                period_dict,
+                max_period,
+                periods_sum,
+            ) = lfsr_sequence_mapper_parallel(
+                C,
+                V,
+                2,
+                output_file=f,
+                no_progress=True,
+                period_only=True,
+                num_workers=2,
             )
         assert periods_sum == 4
 
@@ -1490,8 +1804,19 @@ class TestLfsrSequenceMapperParallelExtra:
         monkeypatch.setattr(multiprocessing, "get_context", broken_get_context)
 
         with tempfile.TemporaryFile(mode="w+") as f:
-            seq_dict, period_dict, max_period, periods_sum = lfsr_sequence_mapper_parallel(
-                C, V, 2, output_file=f, no_progress=True, period_only=True, num_workers=2
+            (
+                seq_dict,
+                period_dict,
+                max_period,
+                periods_sum,
+            ) = lfsr_sequence_mapper_parallel(
+                C,
+                V,
+                2,
+                output_file=f,
+                no_progress=True,
+                period_only=True,
+                num_workers=2,
             )
         assert periods_sum == 4
         assert sorted(period_dict.values()) == [1, 3]
@@ -1509,7 +1834,13 @@ class TestLfsrSequenceMapperParallelExtra:
         monkeypatch.setattr(analysis_mod, "_merge_parallel_results", fake_merge)
         with tempfile.TemporaryFile(mode="w+") as f:
             lfsr_sequence_mapper_parallel(
-                C, V, 2, output_file=f, no_progress=True, period_only=True, num_workers=1
+                C,
+                V,
+                2,
+                output_file=f,
+                no_progress=True,
+                period_only=True,
+                num_workers=1,
             )
         captured = capsys.readouterr()
         assert "WARNING: Period sum" in captured.err
@@ -1556,7 +1887,9 @@ class TestProcessTaskBatchDynamicExtra:
         assert periods == [1, 3]
         manager.shutdown()
 
-    def test_debug_parallel_env_exercises_debug_logging(self, _debug_parallel_env, capsys):
+    def test_debug_parallel_env_exercises_debug_logging(
+        self, _debug_parallel_env, capsys
+    ):
         coeffs = [1, 1]
         gf_order, d = 2, 2
         manager = multiprocessing.Manager()
@@ -1565,7 +1898,18 @@ class TestProcessTaskBatchDynamicExtra:
         task_queue = manager.Queue()
         task_queue.put([((0, 0), 0)])
         task_queue.put(None)
-        worker_data = (task_queue, coeffs, gf_order, d, "auto", True, 0, shared_cycles, cycle_lock, 1)
+        worker_data = (
+            task_queue,
+            coeffs,
+            gf_order,
+            d,
+            "auto",
+            True,
+            0,
+            shared_cycles,
+            cycle_lock,
+            1,
+        )
         result = _process_task_batch_dynamic(worker_data)
         assert result["errors"] == []
         captured = capsys.readouterr()
@@ -1584,7 +1928,18 @@ class TestProcessTaskBatchDynamicExtra:
         manager = multiprocessing.Manager()
         task_queue = manager.Queue()
         task_queue.put(None)
-        worker_data = (task_queue, [1, 1], 2, 2, "auto", True, 0, {}, threading.Lock(), 1)
+        worker_data = (
+            task_queue,
+            [1, 1],
+            2,
+            2,
+            "auto",
+            True,
+            0,
+            {},
+            threading.Lock(),
+            1,
+        )
         result = _process_task_batch_dynamic(worker_data)
         assert result["sequences"] == []
         assert "SageMath not available" in result["errors"][0]
@@ -1596,7 +1951,18 @@ class TestProcessTaskBatchDynamicExtra:
         manager = multiprocessing.Manager()
         task_queue = manager.Queue()
         task_queue.put(None)
-        worker_data = (task_queue, [1, 1], 6, 2, "auto", True, 0, {}, threading.Lock(), 1)
+        worker_data = (
+            task_queue,
+            [1, 1],
+            6,
+            2,
+            "auto",
+            True,
+            0,
+            {},
+            threading.Lock(),
+            1,
+        )
         result = _process_task_batch_dynamic(worker_data)
         assert result["sequences"] == []
         assert "Failed to build state update matrix" in result["errors"][0]
@@ -1612,7 +1978,18 @@ class TestProcessTaskBatchDynamicExtra:
         task_queue = manager.Queue()
         task_queue.put([((1, 0), 0)])
         task_queue.put(None)
-        worker_data = (task_queue, coeffs, gf_order, d, "enumeration", True, 0, shared_cycles, cycle_lock, 1)
+        worker_data = (
+            task_queue,
+            coeffs,
+            gf_order,
+            d,
+            "enumeration",
+            True,
+            0,
+            shared_cycles,
+            cycle_lock,
+            1,
+        )
         result = _process_task_batch_dynamic(worker_data)
         assert result["errors"] == []
         assert result["sequences"] == []
@@ -1628,7 +2005,18 @@ class TestProcessTaskBatchDynamicExtra:
         task_queue = manager.Queue()
         task_queue.put([(("bad", 0), 0), ((0, 0), 1)])
         task_queue.put(None)
-        worker_data = (task_queue, coeffs, gf_order, d, "auto", True, 0, shared_cycles, cycle_lock, 1)
+        worker_data = (
+            task_queue,
+            coeffs,
+            gf_order,
+            d,
+            "auto",
+            True,
+            0,
+            shared_cycles,
+            cycle_lock,
+            1,
+        )
         result = _process_task_batch_dynamic(worker_data)
         assert len(result["errors"]) == 1
         assert result["processed_count"] == 1
@@ -1647,7 +2035,18 @@ class TestProcessTaskBatchDynamicExtra:
         task_queue.put([((0, 0), 0)])
         task_queue.put([((1, 0), 1)])
         task_queue.put(None)
-        worker_data = (task_queue, coeffs, gf_order, d, "auto", True, 0, shared_cycles, cycle_lock, 4)
+        worker_data = (
+            task_queue,
+            coeffs,
+            gf_order,
+            d,
+            "auto",
+            True,
+            0,
+            shared_cycles,
+            cycle_lock,
+            4,
+        )
         result = _process_task_batch_dynamic(worker_data)
         assert result["errors"] == []
         assert result["processed_count"] == 2
@@ -1685,7 +2084,18 @@ class TestProcessTaskBatchDynamicExtra:
         sentinel_thread = threading_mod.Thread(target=delayed_sentinel, daemon=True)
         sentinel_thread.start()
 
-        worker_data = (task_queue, coeffs, gf_order, d, "auto", True, 0, shared_cycles, cycle_lock, 4)
+        worker_data = (
+            task_queue,
+            coeffs,
+            gf_order,
+            d,
+            "auto",
+            True,
+            0,
+            shared_cycles,
+            cycle_lock,
+            4,
+        )
         result = _process_task_batch_dynamic(worker_data)
         sentinel_thread.join(timeout=5.0)
         assert result["errors"] == []
@@ -1705,7 +2115,18 @@ class TestProcessTaskBatchDynamicExtra:
         task_queue = manager.Queue()
         task_queue.put([((1,) + (0,) * 11, 0)])
         task_queue.put(None)
-        worker_data = (task_queue, coeffs, gf_order, d, "enumeration", True, 0, shared_cycles, cycle_lock, 1)
+        worker_data = (
+            task_queue,
+            coeffs,
+            gf_order,
+            d,
+            "enumeration",
+            True,
+            0,
+            shared_cycles,
+            cycle_lock,
+            1,
+        )
         result = _process_task_batch_dynamic(worker_data)
         assert result["errors"] == []
         assert result["max_period"] == 4095
@@ -1741,7 +2162,9 @@ class TestProcessTaskBatchDynamicExtra:
         def broken_build_state_update_matrix(*args, **kwargs):
             return _RaisingMatrix(), None
 
-        monkeypatch.setattr(core_mod, "build_state_update_matrix", broken_build_state_update_matrix)
+        monkeypatch.setattr(
+            core_mod, "build_state_update_matrix", broken_build_state_update_matrix
+        )
         coeffs = [1, 1]
         gf_order, d = 2, 2
         manager = multiprocessing.Manager()
@@ -1750,13 +2173,26 @@ class TestProcessTaskBatchDynamicExtra:
         task_queue = manager.Queue()
         task_queue.put([((1, 0), 0)])
         task_queue.put(None)
-        worker_data = (task_queue, coeffs, gf_order, d, "auto", True, 0, shared_cycles, cycle_lock, 1)
+        worker_data = (
+            task_queue,
+            coeffs,
+            gf_order,
+            d,
+            "auto",
+            True,
+            0,
+            shared_cycles,
+            cycle_lock,
+            1,
+        )
         result = _process_task_batch_dynamic(worker_data)
         assert len(result["errors"]) == 1
         assert "Error computing period" in result["errors"][0]
         manager.shutdown()
 
-    def test_degenerate_matrix_hits_safety_limit_instead_of_hanging_forever(self, monkeypatch):
+    def test_degenerate_matrix_hits_safety_limit_instead_of_hanging_forever(
+        self, monkeypatch
+    ):
         """Regression test for a real bug found during PR review (before
         merge, 2026-11-12): the fused single-pass loop introduced to fix
         the redundant-per-cycle-compute performance issue (see the
@@ -1808,7 +2244,9 @@ class TestProcessTaskBatchDynamicExtra:
         def fake_build_state_update_matrix(*args, **kwargs):
             return _NeverTerminatingMatrix(), None
 
-        monkeypatch.setattr(core_mod, "build_state_update_matrix", fake_build_state_update_matrix)
+        monkeypatch.setattr(
+            core_mod, "build_state_update_matrix", fake_build_state_update_matrix
+        )
         coeffs = [0, 0, 0, 0]  # content irrelevant: the fake matrix ignores it
         gf_order, d = 2, 4
         manager = multiprocessing.Manager()
@@ -1817,7 +2255,18 @@ class TestProcessTaskBatchDynamicExtra:
         task_queue = manager.Queue()
         task_queue.put([((1, 0, 0, 0), 0)])
         task_queue.put(None)
-        worker_data = (task_queue, coeffs, gf_order, d, "auto", True, 0, shared_cycles, cycle_lock, 1)
+        worker_data = (
+            task_queue,
+            coeffs,
+            gf_order,
+            d,
+            "auto",
+            True,
+            0,
+            shared_cycles,
+            cycle_lock,
+            1,
+        )
         result = _process_task_batch_dynamic(worker_data)
         manager.shutdown()
 
@@ -1855,7 +2304,18 @@ class TestProcessTaskBatchDynamicExtra:
         task_queue = manager.Queue()
         task_queue.put([((1, 0), 0)])
         task_queue.put(None)
-        worker_data = (task_queue, coeffs, gf_order, d, "enumeration", True, 0, shared_cycles, threading.Lock(), 1)
+        worker_data = (
+            task_queue,
+            coeffs,
+            gf_order,
+            d,
+            "enumeration",
+            True,
+            0,
+            shared_cycles,
+            threading.Lock(),
+            1,
+        )
         result = _process_task_batch_dynamic(worker_data)
         assert result["errors"] == []
         assert result["sequences"] == []
@@ -1885,7 +2345,13 @@ class TestLfsrSequenceMapperParallelDynamicExtra:
 
         with tempfile.TemporaryFile(mode="w+") as f:
             result = lfsr_sequence_mapper_parallel_dynamic(
-                C, FakeSpace(), 2, output_file=f, no_progress=True, period_only=True, num_workers=1
+                C,
+                FakeSpace(),
+                2,
+                output_file=f,
+                no_progress=True,
+                period_only=True,
+                num_workers=1,
             )
         assert result == ({}, {}, 0, 0)
 
@@ -1906,8 +2372,19 @@ class TestLfsrSequenceMapperParallelDynamicExtra:
         gf_order, d = 2, 13
         C, V, _ = make_matrix(coeffs, gf_order)
         with tempfile.TemporaryFile(mode="w+") as f:
-            seq_dict, period_dict, max_period, periods_sum = lfsr_sequence_mapper_parallel_dynamic(
-                C, V, gf_order, output_file=f, no_progress=True, period_only=True, num_workers=2
+            (
+                seq_dict,
+                period_dict,
+                max_period,
+                periods_sum,
+            ) = lfsr_sequence_mapper_parallel_dynamic(
+                C,
+                V,
+                gf_order,
+                output_file=f,
+                no_progress=True,
+                period_only=True,
+                num_workers=2,
             )
         assert periods_sum == 8192
 
@@ -1917,8 +2394,19 @@ class TestLfsrSequenceMapperParallelDynamicExtra:
         2318-2334 etc.)."""
         C, V, d = make_matrix([1, 1, 0, 1], 2)  # 16 states, small/non-hybrid
         with tempfile.TemporaryFile(mode="w+") as f:
-            seq_dict, period_dict, max_period, periods_sum = lfsr_sequence_mapper_parallel_dynamic(
-                C, V, 2, output_file=f, no_progress=False, period_only=True, num_workers=2
+            (
+                seq_dict,
+                period_dict,
+                max_period,
+                periods_sum,
+            ) = lfsr_sequence_mapper_parallel_dynamic(
+                C,
+                V,
+                2,
+                output_file=f,
+                no_progress=False,
+                period_only=True,
+                num_workers=2,
             )
         assert periods_sum == 16
         captured = capsys.readouterr()
@@ -1951,7 +2439,9 @@ class TestFindSequenceCycleEnumerationDebugLogging:
         captured = capsys.readouterr()
         assert "_find_sequence_cycle_enumeration PID" in captured.err
 
-    def test_debug_logging_iteration_over_100_hits_periodic_log(self, _debug_parallel_env, capsys):
+    def test_debug_logging_iteration_over_100_hits_periodic_log(
+        self, _debug_parallel_env, capsys
+    ):
         """Line 513 (`if iteration % 100 == 0: debug_log(...)`) requires a
         cycle of length > 100. A maximal-length primitive degree-8 LFSR
         gives period 255 (2**8 - 1), confirmed to be the standard maximal
@@ -2053,7 +2543,17 @@ class TestProcessStateChunkExtra2:
         manager = multiprocessing.Manager()
         shared_cycles = manager.dict()
         cycle_lock = manager.Lock()
-        chunk_data = (chunk, coeffs, gf_order, d, "auto", True, 0, shared_cycles, cycle_lock)
+        chunk_data = (
+            chunk,
+            coeffs,
+            gf_order,
+            d,
+            "auto",
+            True,
+            0,
+            shared_cycles,
+            cycle_lock,
+        )
         result = _process_state_chunk(chunk_data)
         # Worker must still function (fallback F/V created) rather than
         # crashing; the fixed-point state (0,0) has period 1.
@@ -2061,7 +2561,9 @@ class TestProcessStateChunkExtra2:
         assert result["max_period"] == 1
         manager.shutdown()
 
-    def test_debug_env_isolation_exception_fallback_prints_warning(self, monkeypatch, _debug_parallel_env, capsys):
+    def test_debug_env_isolation_exception_fallback_prints_warning(
+        self, monkeypatch, _debug_parallel_env, capsys
+    ):
         """Same as above but with DEBUG_PARALLEL=1 to also cover the
         debug_log(f'Warning: SageMath isolation test failed...') message
         text at line 1236."""
@@ -2088,7 +2590,17 @@ class TestProcessStateChunkExtra2:
         manager = multiprocessing.Manager()
         shared_cycles = manager.dict()
         cycle_lock = manager.Lock()
-        chunk_data = (chunk, coeffs, gf_order, d, "auto", True, 0, shared_cycles, cycle_lock)
+        chunk_data = (
+            chunk,
+            coeffs,
+            gf_order,
+            d,
+            "auto",
+            True,
+            0,
+            shared_cycles,
+            cycle_lock,
+        )
         result = _process_state_chunk(chunk_data)
         assert result["errors"] == []
         captured = capsys.readouterr()
@@ -2097,7 +2609,9 @@ class TestProcessStateChunkExtra2:
 
 
 class TestProcessTaskBatchDynamicExtra2:
-    def test_generic_exception_in_worker_loop_is_caught_and_logged(self, _debug_parallel_env, capsys):
+    def test_generic_exception_in_worker_loop_is_caught_and_logged(
+        self, _debug_parallel_env, capsys
+    ):
         """Covers analysis.py lines 2143-2147: the outer
         `except Exception as e` around the main pull-batches loop, which
         is distinct from the inner `except queue_module.Empty` handling
@@ -2110,7 +2624,11 @@ class TestProcessTaskBatchDynamicExtra2:
 
         class FlakyQueue:
             def __init__(self):
-                self._items = [RuntimeError("simulated queue failure"), [((0, 0), 0)], None]
+                self._items = [
+                    RuntimeError("simulated queue failure"),
+                    [((0, 0), 0)],
+                    None,
+                ]
                 self._idx = 0
 
             def get_nowait(self):
@@ -2127,10 +2645,23 @@ class TestProcessTaskBatchDynamicExtra2:
         manager = multiprocessing.Manager()
         shared_cycles = manager.dict()
         cycle_lock = manager.Lock()
-        worker_data = (FlakyQueue(), coeffs, gf_order, d, "auto", True, 0, shared_cycles, cycle_lock, 1)
+        worker_data = (
+            FlakyQueue(),
+            coeffs,
+            gf_order,
+            d,
+            "auto",
+            True,
+            0,
+            shared_cycles,
+            cycle_lock,
+            1,
+        )
         result = _process_task_batch_dynamic(worker_data)
         assert "Worker loop error: simulated queue failure" in result["errors"]
-        assert result["processed_count"] == 1  # the real batch was still processed afterwards
+        assert (
+            result["processed_count"] == 1
+        )  # the real batch was still processed afterwards
         captured = capsys.readouterr()
         assert "Error in worker loop" in captured.err
         manager.shutdown()
@@ -2164,7 +2695,18 @@ class TestProcessTaskBatchDynamicExtra2:
         task_queue = manager.Queue()
         task_queue.put([((0, 0), 0)])
         task_queue.put(None)
-        worker_data = (task_queue, coeffs, gf_order, d, "auto", True, 0, shared_cycles, cycle_lock, 1)
+        worker_data = (
+            task_queue,
+            coeffs,
+            gf_order,
+            d,
+            "auto",
+            True,
+            0,
+            shared_cycles,
+            cycle_lock,
+            1,
+        )
         result = _process_task_batch_dynamic(worker_data)
         # The worker must still function (fallback F/V created), and the
         # warning debug_log call (gated by DEBUG_PARALLEL, off by
@@ -2173,7 +2715,9 @@ class TestProcessTaskBatchDynamicExtra2:
         assert "errors" in result
         manager.shutdown()
 
-    def test_debug_env_isolation_exception_fallback_prints_warning(self, monkeypatch, _debug_parallel_env, capsys):
+    def test_debug_env_isolation_exception_fallback_prints_warning(
+        self, monkeypatch, _debug_parallel_env, capsys
+    ):
         """Same as above but with DEBUG_PARALLEL=1, to also cover the
         debug_log(f'Warning: SageMath isolation test failed...') message
         text itself, not just the code path around it."""
@@ -2198,7 +2742,18 @@ class TestProcessTaskBatchDynamicExtra2:
         task_queue = manager.Queue()
         task_queue.put([((0, 0), 0)])
         task_queue.put(None)
-        worker_data = (task_queue, coeffs, gf_order, d, "auto", True, 0, shared_cycles, cycle_lock, 1)
+        worker_data = (
+            task_queue,
+            coeffs,
+            gf_order,
+            d,
+            "auto",
+            True,
+            0,
+            shared_cycles,
+            cycle_lock,
+            1,
+        )
         result = _process_task_batch_dynamic(worker_data)
         assert "errors" in result
         captured = capsys.readouterr()
@@ -2212,8 +2767,19 @@ class TestLfsrSequenceMapperParallelDynamicExtra2:
         monkeypatch.setattr(multiprocessing, "cpu_count", lambda: 2)
         C, V, d = make_matrix([1, 1], 2)
         with tempfile.TemporaryFile(mode="w+") as f:
-            seq_dict, period_dict, max_period, periods_sum = lfsr_sequence_mapper_parallel_dynamic(
-                C, V, 2, output_file=f, no_progress=True, period_only=True, num_workers=None
+            (
+                seq_dict,
+                period_dict,
+                max_period,
+                periods_sum,
+            ) = lfsr_sequence_mapper_parallel_dynamic(
+                C,
+                V,
+                2,
+                output_file=f,
+                no_progress=True,
+                period_only=True,
+                num_workers=None,
             )
         assert periods_sum == 4
 
@@ -2234,13 +2800,26 @@ class TestLfsrSequenceMapperParallelDynamicExtra2:
 
         C, V, d = make_matrix([1, 1], 2)
         with tempfile.TemporaryFile(mode="w+") as f:
-            seq_dict, period_dict, max_period, periods_sum = lfsr_sequence_mapper_parallel_dynamic(
-                C, V, 2, output_file=f, no_progress=True, period_only=True, num_workers=1
+            (
+                seq_dict,
+                period_dict,
+                max_period,
+                periods_sum,
+            ) = lfsr_sequence_mapper_parallel_dynamic(
+                C,
+                V,
+                2,
+                output_file=f,
+                no_progress=True,
+                period_only=True,
+                num_workers=1,
             )
         assert periods_sum == 4
         assert sorted(period_dict.values()) == [1, 3]
 
-    def test_stale_pool_state_check_raises_attributeerror_is_recreated(self, monkeypatch):
+    def test_stale_pool_state_check_raises_attributeerror_is_recreated(
+        self, monkeypatch
+    ):
         """Covers lines 2590-2594: if checking `_worker_pool._state`
         itself raises AttributeError/ValueError (e.g. a genuinely
         malformed/torn-down pool object), the except branch must also
@@ -2258,8 +2837,19 @@ class TestLfsrSequenceMapperParallelDynamicExtra2:
 
         C, V, d = make_matrix([1, 1], 2)
         with tempfile.TemporaryFile(mode="w+") as f:
-            seq_dict, period_dict, max_period, periods_sum = lfsr_sequence_mapper_parallel_dynamic(
-                C, V, 2, output_file=f, no_progress=True, period_only=True, num_workers=1
+            (
+                seq_dict,
+                period_dict,
+                max_period,
+                periods_sum,
+            ) = lfsr_sequence_mapper_parallel_dynamic(
+                C,
+                V,
+                2,
+                output_file=f,
+                no_progress=True,
+                period_only=True,
+                num_workers=1,
             )
         assert periods_sum == 4
         assert sorted(period_dict.values()) == [1, 3]
@@ -2273,10 +2863,23 @@ class TestLfsrSequenceMapperParallelDynamicExtra2:
         file (coeffs=[1,2,1] over GF(3), periods_sum == 27)."""
         C, V, d = make_matrix([1, 2, 1], 3)
         with tempfile.TemporaryFile(mode="w+") as f:
-            seq_dict, period_dict, max_period, periods_sum = lfsr_sequence_mapper_parallel_dynamic(
-                C, V, 3, output_file=f, no_progress=True, period_only=True, num_workers=1
+            (
+                seq_dict,
+                period_dict,
+                max_period,
+                periods_sum,
+            ) = lfsr_sequence_mapper_parallel_dynamic(
+                C,
+                V,
+                3,
+                output_file=f,
+                no_progress=True,
+                period_only=True,
+                num_workers=1,
             )
-        assert periods_sum == 27  # 3^3, matches TestLfsrSequenceMapperSerial's GF(3) case
+        assert (
+            periods_sum == 27
+        )  # 3^3, matches TestLfsrSequenceMapperSerial's GF(3) case
 
     def test_persistent_pool_reuse_prints_reused_message(self, capsys):
         """Covers line 2624: calling lfsr_sequence_mapper_parallel_dynamic
@@ -2289,11 +2892,23 @@ class TestLfsrSequenceMapperParallelDynamicExtra2:
         C, V, d = make_matrix([1, 1], 2)
         with tempfile.TemporaryFile(mode="w+") as f:
             lfsr_sequence_mapper_parallel_dynamic(
-                C, V, 2, output_file=f, no_progress=True, period_only=True, num_workers=1
+                C,
+                V,
+                2,
+                output_file=f,
+                no_progress=True,
+                period_only=True,
+                num_workers=1,
             )
             capsys.readouterr()  # discard first-call output
             lfsr_sequence_mapper_parallel_dynamic(
-                C, V, 2, output_file=f, no_progress=False, period_only=True, num_workers=1
+                C,
+                V,
+                2,
+                output_file=f,
+                no_progress=False,
+                period_only=True,
+                num_workers=1,
             )
         captured = capsys.readouterr()
         assert "Using persistent pool (reused)" in captured.out
@@ -2308,15 +2923,28 @@ class TestLfsrSequenceMapperParallelDynamicExtra2:
         gf_order, d = 2, 13
         C, V, _ = make_matrix(coeffs, gf_order)
         with tempfile.TemporaryFile(mode="w+") as f:
-            seq_dict, period_dict, max_period, periods_sum = lfsr_sequence_mapper_parallel_dynamic(
-                C, V, gf_order, output_file=f, no_progress=False, period_only=True, num_workers=2
+            (
+                seq_dict,
+                period_dict,
+                max_period,
+                periods_sum,
+            ) = lfsr_sequence_mapper_parallel_dynamic(
+                C,
+                V,
+                gf_order,
+                output_file=f,
+                no_progress=False,
+                period_only=True,
+                num_workers=2,
             )
         assert periods_sum == 8192
         captured = capsys.readouterr()
         assert "Auto-selected hybrid mode" in captured.out
         assert "Hybrid mode:" in captured.out
 
-    def test_get_context_valueerror_falls_back_to_spawn_for_new_pool(self, monkeypatch, capsys):
+    def test_get_context_valueerror_falls_back_to_spawn_for_new_pool(
+        self, monkeypatch, capsys
+    ):
         """Covers lines 2601-2604: when creating a brand-new persistent
         pool, if multiprocessing.get_context('fork') raises ValueError,
         the except branch must fall back to 'spawn' and print the
@@ -2336,8 +2964,19 @@ class TestLfsrSequenceMapperParallelDynamicExtra2:
 
         C, V, d = make_matrix([1, 1], 2)
         with tempfile.TemporaryFile(mode="w+") as f:
-            seq_dict, period_dict, max_period, periods_sum = lfsr_sequence_mapper_parallel_dynamic(
-                C, V, 2, output_file=f, no_progress=False, period_only=True, num_workers=1
+            (
+                seq_dict,
+                period_dict,
+                max_period,
+                periods_sum,
+            ) = lfsr_sequence_mapper_parallel_dynamic(
+                C,
+                V,
+                2,
+                output_file=f,
+                no_progress=False,
+                period_only=True,
+                num_workers=1,
             )
         assert periods_sum == 4
         captured = capsys.readouterr()
@@ -2355,12 +2994,27 @@ class TestLfsrSequenceMapperParallelDynamicExtra2:
         def broken_process_task_batch_dynamic(worker_data):
             raise RuntimeError("simulated worker crash")
 
-        monkeypatch.setattr(analysis_mod, "_process_task_batch_dynamic", broken_process_task_batch_dynamic)
+        monkeypatch.setattr(
+            analysis_mod,
+            "_process_task_batch_dynamic",
+            broken_process_task_batch_dynamic,
+        )
 
         C, V, d = make_matrix([1, 1], 2)
         with tempfile.TemporaryFile(mode="w+") as f:
-            seq_dict, period_dict, max_period, periods_sum = lfsr_sequence_mapper_parallel_dynamic(
-                C, V, 2, output_file=f, no_progress=True, period_only=True, num_workers=1
+            (
+                seq_dict,
+                period_dict,
+                max_period,
+                periods_sum,
+            ) = lfsr_sequence_mapper_parallel_dynamic(
+                C,
+                V,
+                2,
+                output_file=f,
+                no_progress=True,
+                period_only=True,
+                num_workers=1,
             )
         # Falls back to sequential lfsr_sequence_mapper (known-correct).
         assert periods_sum == 4
@@ -2381,7 +3035,13 @@ class TestLfsrSequenceMapperParallelDynamicExtra2:
         monkeypatch.setattr(analysis_mod, "_merge_parallel_results", fake_merge)
         with tempfile.TemporaryFile(mode="w+") as f:
             lfsr_sequence_mapper_parallel_dynamic(
-                C, V, 2, output_file=f, no_progress=True, period_only=True, num_workers=1
+                C,
+                V,
+                2,
+                output_file=f,
+                no_progress=True,
+                period_only=True,
+                num_workers=1,
             )
         captured = capsys.readouterr()
         assert "WARNING: Period sum" in captured.err
@@ -2395,8 +3055,19 @@ class TestLfsrSequenceMapperParallelDynamicExtra2:
         period_only=True)."""
         C, V, d = make_matrix([1, 1], 2)
         with tempfile.TemporaryFile(mode="w+") as f:
-            seq_dict, period_dict, max_period, periods_sum = lfsr_sequence_mapper_parallel_dynamic(
-                C, V, 2, output_file=f, no_progress=True, period_only=False, num_workers=1
+            (
+                seq_dict,
+                period_dict,
+                max_period,
+                periods_sum,
+            ) = lfsr_sequence_mapper_parallel_dynamic(
+                C,
+                V,
+                2,
+                output_file=f,
+                no_progress=True,
+                period_only=False,
+                num_workers=1,
             )
         assert periods_sum == 4
         assert sorted(period_dict.values()) == [1, 3]
@@ -2409,7 +3080,13 @@ class TestLfsrSequenceMapperParallelDynamicExtra2:
         C, V, d = make_matrix([1, 1, 0, 1], 2)  # 16 states, 2 workers
         with tempfile.TemporaryFile(mode="w+") as f:
             lfsr_sequence_mapper_parallel_dynamic(
-                C, V, 2, output_file=f, no_progress=True, period_only=True, num_workers=2
+                C,
+                V,
+                2,
+                output_file=f,
+                no_progress=True,
+                period_only=True,
+                num_workers=2,
             )
         captured = capsys.readouterr()
         assert "[Load Imbalance]" in captured.err
@@ -2477,11 +3154,21 @@ class TestLfsrSequenceMapperParallelWorkerTiers:
     def test_medium_tier_8000_to_32000_selects_4_workers(self, monkeypatch, capsys):
         """state_space_size in [8000, 32000) -> optimal_workers=4 (line 1552)."""
         monkeypatch.setattr(multiprocessing, "cpu_count", lambda: 8)
-        C, V, d = make_matrix([1, 1], 2)  # real space: 4 states, fast regardless of fake size
-        fake_space = self._FakeSpace(V, fake_order=97)  # prime; d=2 -> 97**2 = 9409, in [8000,32000)
+        C, V, d = make_matrix(
+            [1, 1], 2
+        )  # real space: 4 states, fast regardless of fake size
+        fake_space = self._FakeSpace(
+            V, fake_order=97
+        )  # prime; d=2 -> 97**2 = 9409, in [8000,32000)
         with tempfile.TemporaryFile(mode="w+") as f:
             lfsr_sequence_mapper_parallel(
-                C, fake_space, 2, output_file=f, no_progress=False, period_only=True, num_workers=None
+                C,
+                fake_space,
+                2,
+                output_file=f,
+                no_progress=False,
+                period_only=True,
+                num_workers=None,
             )
         captured = capsys.readouterr()
         assert "Note: Using" not in captured.out and "Note: Using" not in captured.err
@@ -2489,11 +3176,21 @@ class TestLfsrSequenceMapperParallelWorkerTiers:
     def test_large_tier_over_32000_selects_up_to_8_workers(self, monkeypatch, capsys):
         """state_space_size >= 32000 -> optimal_workers=min(8, cpu_count) (line 1554)."""
         monkeypatch.setattr(multiprocessing, "cpu_count", lambda: 2)
-        C, V, d = make_matrix([1, 1], 2)  # real space: 4 states, fast regardless of fake size
-        fake_space = self._FakeSpace(V, fake_order=181)  # prime; d=2 -> 181**2 = 32761, >= 32000
+        C, V, d = make_matrix(
+            [1, 1], 2
+        )  # real space: 4 states, fast regardless of fake size
+        fake_space = self._FakeSpace(
+            V, fake_order=181
+        )  # prime; d=2 -> 181**2 = 32761, >= 32000
         with tempfile.TemporaryFile(mode="w+") as f:
             lfsr_sequence_mapper_parallel(
-                C, fake_space, 2, output_file=f, no_progress=False, period_only=True, num_workers=None
+                C,
+                fake_space,
+                2,
+                output_file=f,
+                no_progress=False,
+                period_only=True,
+                num_workers=None,
             )
         captured = capsys.readouterr()
         assert "Note: Using" not in captured.out and "Note: Using" not in captured.err
@@ -2515,8 +3212,19 @@ class TestLfsrSequenceMapperParallelForkSpawnFallback:
 
         C, V, d = make_matrix([1, 1], 2)
         with tempfile.TemporaryFile(mode="w+") as f:
-            seq_dict, period_dict, max_period, periods_sum = lfsr_sequence_mapper_parallel(
-                C, V, 2, output_file=f, no_progress=False, period_only=True, num_workers=1
+            (
+                seq_dict,
+                period_dict,
+                max_period,
+                periods_sum,
+            ) = lfsr_sequence_mapper_parallel(
+                C,
+                V,
+                2,
+                output_file=f,
+                no_progress=False,
+                period_only=True,
+                num_workers=1,
             )
         assert periods_sum == 4
         captured = capsys.readouterr()
@@ -2563,8 +3271,19 @@ class TestLfsrSequenceMapperParallelForkSpawnFallback:
         monkeypatch.setattr(multiprocessing, "get_context", lambda method: FakeCtx())
 
         with tempfile.TemporaryFile(mode="w+") as f:
-            seq_dict, period_dict, max_period, periods_sum = lfsr_sequence_mapper_parallel(
-                C, V, 2, output_file=f, no_progress=True, period_only=True, num_workers=2
+            (
+                seq_dict,
+                period_dict,
+                max_period,
+                periods_sum,
+            ) = lfsr_sequence_mapper_parallel(
+                C,
+                V,
+                2,
+                output_file=f,
+                no_progress=True,
+                period_only=True,
+                num_workers=2,
             )
         # Falls back to sequential lfsr_sequence_mapper (known-correct).
         assert periods_sum == 4
@@ -2616,7 +3335,13 @@ class TestLfsrSequenceMapperParallelForkSpawnFallback:
         with tempfile.TemporaryFile(mode="w+") as f:
             with pytest.raises(KeyboardInterrupt):
                 lfsr_sequence_mapper_parallel(
-                    C, V, 2, output_file=f, no_progress=True, period_only=True, num_workers=2
+                    C,
+                    V,
+                    2,
+                    output_file=f,
+                    no_progress=True,
+                    period_only=True,
+                    num_workers=2,
                 )
         assert terminate_called == [True]
         assert join_calls == [5]
@@ -2630,7 +3355,13 @@ class TestLfsrSequenceMapperParallelLoadImbalanceDebug:
         C, V, d = make_matrix([1, 1, 0, 1], 2)  # 16 states, 2 workers
         with tempfile.TemporaryFile(mode="w+") as f:
             lfsr_sequence_mapper_parallel(
-                C, V, 2, output_file=f, no_progress=True, period_only=True, num_workers=2
+                C,
+                V,
+                2,
+                output_file=f,
+                no_progress=True,
+                period_only=True,
+                num_workers=2,
             )
         captured = capsys.readouterr()
         assert "[Load Imbalance]" in captured.err
@@ -2669,14 +3400,22 @@ class TestLfsrSequenceMapperParallelDynamicBatchTiers:
         def __iter__(self):
             return iter(self._real)
 
-    def test_large_state_space_selects_large_batch_and_aggregation_tiers(self, monkeypatch, capsys):
+    def test_large_state_space_selects_large_batch_and_aggregation_tiers(
+        self, monkeypatch, capsys
+    ):
         coeffs = [1, 1]  # real space: 4 states (fast, regardless of fake size)
         C, V, d = make_matrix(coeffs, 2)
         fake_space = self.FakeSpace(V, fake_dim=17)  # GF(2)**17 = 131072 >= 65536
 
         with tempfile.TemporaryFile(mode="w+") as f:
             lfsr_sequence_mapper_parallel_dynamic(
-                C, fake_space, 2, output_file=f, no_progress=True, period_only=True, num_workers=2
+                C,
+                fake_space,
+                2,
+                output_file=f,
+                no_progress=True,
+                period_only=True,
+                num_workers=2,
             )
         captured = capsys.readouterr()
         # Large tier (>= 65536), not the medium hybrid tier.
@@ -2715,7 +3454,18 @@ class TestProcessTaskBatchDynamicCycleClaimRace:
         # guards against after a failed claim attempt).
         shared_cycles[(0, 1)] = 999  # claimed by a different, nonexistent worker
 
-        worker_data = (worker_queues, 0, coeffs, gf_order, d, "auto", True, shared_cycles, cycle_lock, 1)
+        worker_data = (
+            worker_queues,
+            0,
+            coeffs,
+            gf_order,
+            d,
+            "auto",
+            True,
+            shared_cycles,
+            cycle_lock,
+            1,
+        )
         result = _process_task_batch_dynamic(worker_data)
 
         assert result["errors"] == []
@@ -2777,17 +3527,20 @@ class TestLfsrSequenceMapperParallelDynamicQueueFullRetry:
         num_workers = 1  # Fewer workers -> queue fills faster (deliberate).
 
         with tempfile.TemporaryFile(mode="w+") as f:
-            seq_dict, period_dict, max_period, periods_sum = (
-                lfsr_sequence_mapper_parallel_dynamic(
-                    C,
-                    V,
-                    2,
-                    output_file=f,
-                    no_progress=True,
-                    period_only=True,
-                    num_workers=num_workers,
-                    batch_size=1,  # 256 batches into a maxsize=100 queue.
-                )
+            (
+                seq_dict,
+                period_dict,
+                max_period,
+                periods_sum,
+            ) = lfsr_sequence_mapper_parallel_dynamic(
+                C,
+                V,
+                2,
+                output_file=f,
+                no_progress=True,
+                period_only=True,
+                num_workers=num_workers,
+                batch_size=1,  # 256 batches into a maxsize=100 queue.
             )
         # Correctness: every one of the 256 real states got a period.
         assert periods_sum == 256
@@ -2824,17 +3577,20 @@ class TestLfsrSequenceMapperParallelDynamicQueueFullRetry:
         os_module.environ["DEBUG_PARALLEL"] = "1"
         try:
             with tempfile.TemporaryFile(mode="w+") as f:
-                seq_dict, period_dict, max_period, periods_sum = (
-                    lfsr_sequence_mapper_parallel_dynamic(
-                        C,
-                        V,
-                        2,
-                        output_file=f,
-                        no_progress=True,
-                        period_only=True,
-                        num_workers=1,
-                        batch_size=4,
-                    )
+                (
+                    seq_dict,
+                    period_dict,
+                    max_period,
+                    periods_sum,
+                ) = lfsr_sequence_mapper_parallel_dynamic(
+                    C,
+                    V,
+                    2,
+                    output_file=f,
+                    no_progress=True,
+                    period_only=True,
+                    num_workers=1,
+                    batch_size=4,
                 )
         finally:
             if old_value is None:
@@ -2907,17 +3663,20 @@ class TestLfsrSequenceMapperParallelDynamicQueueFullRetry:
         ProxyClass.put = flaky_put
         try:
             with tempfile.TemporaryFile(mode="w+") as f:
-                seq_dict, period_dict, max_period, periods_sum = (
-                    lfsr_sequence_mapper_parallel_dynamic(
-                        C,
-                        V,
-                        2,
-                        output_file=f,
-                        no_progress=True,
-                        period_only=True,
-                        num_workers=2,
-                        batch_size=4,
-                    )
+                (
+                    seq_dict,
+                    period_dict,
+                    max_period,
+                    periods_sum,
+                ) = lfsr_sequence_mapper_parallel_dynamic(
+                    C,
+                    V,
+                    2,
+                    output_file=f,
+                    no_progress=True,
+                    period_only=True,
+                    num_workers=2,
+                    batch_size=4,
                 )
         finally:
             ProxyClass.put = original_put
@@ -2929,5 +3688,3 @@ class TestLfsrSequenceMapperParallelDynamicQueueFullRetry:
         assert forced_full_count["n"] == 3
         assert periods_sum == 64
         assert sum(period_dict.values()) == 64
-
-

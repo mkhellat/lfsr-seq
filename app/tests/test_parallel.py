@@ -21,11 +21,13 @@ import pytest
 _sage_available = False
 try:
     from sage.all import *
+
     _sage_available = True
 except ImportError:
     # Try to find SageMath via 'sage' command (same as CLI)
     import os
     import subprocess
+
     try:
         result = subprocess.run(
             ["sage", "-c", "import sys; print('\\n'.join(sys.path))"],
@@ -39,8 +41,14 @@ except ImportError:
                 if path and path not in sys.path and os.path.isdir(path):
                     sys.path.insert(0, path)
             from sage.all import *
+
             _sage_available = True
-    except (subprocess.TimeoutExpired, subprocess.SubprocessError, FileNotFoundError, ImportError):
+    except (
+        subprocess.TimeoutExpired,
+        subprocess.SubprocessError,
+        FileNotFoundError,
+        ImportError,
+    ):
         pass
 
 if not _sage_available:
@@ -135,17 +143,17 @@ class TestProcessStateChunk:
         for idx, state in enumerate(list(V)[:4]):  # First 4 states
             chunk.append((tuple(state), idx))
 
-        chunk_data = (chunk, coeffs, 2, 4, 'floyd', True, 0, {}, threading.Lock())
+        chunk_data = (chunk, coeffs, 2, 4, "floyd", True, 0, {}, threading.Lock())
 
         result = _process_state_chunk(chunk_data)
 
-        assert 'sequences' in result
-        assert 'max_period' in result
-        assert 'processed_count' in result
-        assert 'errors' in result
+        assert "sequences" in result
+        assert "max_period" in result
+        assert "processed_count" in result
+        assert "errors" in result
 
-        assert result['processed_count'] > 0
-        assert len(result['errors']) == 0
+        assert result["processed_count"] > 0
+        assert len(result["errors"]) == 0
 
     def test_process_chunk_period_only(self):
         """Test processing chunk in period-only mode."""
@@ -157,14 +165,24 @@ class TestProcessStateChunk:
         for idx, state in enumerate(list(V)[:4]):
             chunk.append((tuple(state), idx))
 
-        chunk_data = (chunk, coeffs, 2, 4, 'floyd', True, 0, {}, threading.Lock())  # period_only=True
+        chunk_data = (
+            chunk,
+            coeffs,
+            2,
+            4,
+            "floyd",
+            True,
+            0,
+            {},
+            threading.Lock(),
+        )  # period_only=True
 
         result = _process_state_chunk(chunk_data)
 
         # In period-only mode, sequences should have empty states lists
-        for seq in result['sequences']:
-            assert 'period' in seq
-            assert 'start_state' in seq
+        for seq in result["sequences"]:
+            assert "period" in seq
+            assert "start_state" in seq
             # States may be empty (period-only) or populated (for deduplication)
 
     def test_process_chunk_with_errors(self):
@@ -173,14 +191,14 @@ class TestProcessStateChunk:
         large_coeffs = [999, 999, 999, 999]
         chunk = [((0, 0, 0, 0), 0)]
 
-        chunk_data = (chunk, large_coeffs, 2, 4, 'floyd', True, 0, {}, threading.Lock())
+        chunk_data = (chunk, large_coeffs, 2, 4, "floyd", True, 0, {}, threading.Lock())
 
         result = _process_state_chunk(chunk_data)
 
         # Worker should complete without crashing and return a valid result dict
-        assert 'errors' in result
-        assert 'sequences' in result
-        assert 'processed_count' in result
+        assert "errors" in result
+        assert "sequences" in result
+        assert "processed_count" in result
 
 
 class TestMergeParallelResults:
@@ -191,23 +209,48 @@ class TestMergeParallelResults:
         # Simulate worker results
         worker_results = [
             {
-                'sequences': [
-                    {'states': [(0, 0, 0, 0)], 'period': 1, 'start_state': (0, 0, 0, 0), 'period_only': True},
-                    {'states': [(0, 0, 0, 1), (1, 0, 0, 0), (0, 1, 0, 0)], 'period': 3, 'start_state': (0, 0, 0, 1), 'period_only': True},
+                "sequences": [
+                    {
+                        "states": [(0, 0, 0, 0)],
+                        "period": 1,
+                        "start_state": (0, 0, 0, 0),
+                        "period_only": True,
+                    },
+                    {
+                        "states": [(0, 0, 0, 1), (1, 0, 0, 0), (0, 1, 0, 0)],
+                        "period": 3,
+                        "start_state": (0, 0, 0, 1),
+                        "period_only": True,
+                    },
                 ],
-                'max_period': 3,
-                'processed_count': 2,
-                'errors': [],
+                "max_period": 3,
+                "processed_count": 2,
+                "errors": [],
             },
             {
-                'sequences': [
-                    {'states': [(1, 0, 0, 0), (0, 1, 0, 0), (0, 0, 0, 1)], 'period': 3, 'start_state': (1, 0, 0, 0), 'period_only': True},
-                {'states': [(0, 1, 0, 0), (0, 0, 0, 1), (1, 0, 0, 0)], 'period': 3, 'start_state': (0, 1, 0, 0), 'period_only': True},
-                {'states': [(1, 1, 0, 0)], 'period': 1, 'start_state': (1, 1, 0, 0), 'period_only': True},
+                "sequences": [
+                    {
+                        "states": [(1, 0, 0, 0), (0, 1, 0, 0), (0, 0, 0, 1)],
+                        "period": 3,
+                        "start_state": (1, 0, 0, 0),
+                        "period_only": True,
+                    },
+                    {
+                        "states": [(0, 1, 0, 0), (0, 0, 0, 1), (1, 0, 0, 0)],
+                        "period": 3,
+                        "start_state": (0, 1, 0, 0),
+                        "period_only": True,
+                    },
+                    {
+                        "states": [(1, 1, 0, 0)],
+                        "period": 1,
+                        "start_state": (1, 1, 0, 0),
+                        "period_only": True,
+                    },
                 ],
-                'max_period': 3,
-                'processed_count': 3,
-                'errors': [],
+                "max_period": 3,
+                "processed_count": 3,
+                "errors": [],
             },
         ]
 
@@ -228,20 +271,30 @@ class TestMergeParallelResults:
 
         worker_results = [
             {
-                'sequences': [
-                    {'states': list(cycle_states), 'period': 3, 'start_state': (0, 0, 0, 1), 'period_only': True},
+                "sequences": [
+                    {
+                        "states": list(cycle_states),
+                        "period": 3,
+                        "start_state": (0, 0, 0, 1),
+                        "period_only": True,
+                    },
                 ],
-                'max_period': 3,
-                'processed_count': 1,
-                'errors': [],
+                "max_period": 3,
+                "processed_count": 1,
+                "errors": [],
             },
             {
-                'sequences': [
-                    {'states': list(reversed(cycle_states)), 'period': 3, 'start_state': (1, 0, 0, 0), 'period_only': True},
+                "sequences": [
+                    {
+                        "states": list(reversed(cycle_states)),
+                        "period": 3,
+                        "start_state": (1, 0, 0, 0),
+                        "period_only": True,
+                    },
                 ],
-                'max_period': 3,
-                'processed_count': 1,
-                'errors': [],
+                "max_period": 3,
+                "processed_count": 1,
+                "errors": [],
             },
         ]
 
@@ -265,12 +318,22 @@ class TestParallelMapper:
         V = VectorSpace(GF(2), 4)
 
         # Sequential
-        seq_dict_seq, period_dict_seq, max_period_seq, periods_sum_seq = lfsr_sequence_mapper(
+        (
+            seq_dict_seq,
+            period_dict_seq,
+            max_period_seq,
+            periods_sum_seq,
+        ) = lfsr_sequence_mapper(
             C, V, 2, output_file=None, no_progress=True, period_only=True
         )
 
         # Parallel with 1 worker (should be similar to sequential)
-        seq_dict_par, period_dict_par, max_period_par, periods_sum_par = lfsr_sequence_mapper_parallel(
+        (
+            seq_dict_par,
+            period_dict_par,
+            max_period_par,
+            periods_sum_par,
+        ) = lfsr_sequence_mapper_parallel(
             C, V, 2, output_file=None, no_progress=True, period_only=True, num_workers=1
         )
 
@@ -279,7 +342,9 @@ class TestParallelMapper:
 
         # Period sum should match (both should equal state space size for correct implementation)
         # Note: Sequential version may have counting bug, so we check parallel is correct
-        assert periods_sum_par == 16, "Parallel period sum should equal state space size"
+        assert (
+            periods_sum_par == 16
+        ), "Parallel period sum should equal state space size"
 
     def test_parallel_multiple_workers(self):
         """Test parallel processing with multiple workers."""
@@ -308,7 +373,9 @@ class TestParallelMapper:
 
         # In period-only mode, sequences should have empty state lists
         for seq_num, seq_list in seq_dict.items():
-            assert seq_list == [], f"Sequence {seq_num} should be empty in period-only mode"
+            assert (
+                seq_list == []
+            ), f"Sequence {seq_num} should be empty in period-only mode"
 
         # But periods should be correct
         assert len(period_dict) > 0
@@ -324,8 +391,19 @@ class TestParallelMapper:
 
         # Should complete without crashing even if there are issues
         try:
-            seq_dict, period_dict, max_period, periods_sum = lfsr_sequence_mapper_parallel(
-                C, V, 2, output_file=None, no_progress=True, period_only=True, num_workers=10  # More workers than states
+            (
+                seq_dict,
+                period_dict,
+                max_period,
+                periods_sum,
+            ) = lfsr_sequence_mapper_parallel(
+                C,
+                V,
+                2,
+                output_file=None,
+                no_progress=True,
+                period_only=True,
+                num_workers=10,  # More workers than states
             )
             # Should still produce valid results
             assert periods_sum > 0
@@ -342,14 +420,15 @@ class TestParallelCorrectness:
         coeffs = [1, 0, 0, 1]
         C, CS = build_state_update_matrix(coeffs, 2)
         V = VectorSpace(GF(2), 4)
-        state_space_size = 2 ** 4  # 16
+        state_space_size = 2**4  # 16
 
         seq_dict, period_dict, max_period, periods_sum = lfsr_sequence_mapper_parallel(
             C, V, 2, output_file=None, no_progress=True, period_only=True, num_workers=2
         )
 
-        assert periods_sum == state_space_size, \
-            f"Period sum ({periods_sum}) should equal state space size ({state_space_size})"
+        assert (
+            periods_sum == state_space_size
+        ), f"Period sum ({periods_sum}) should equal state space size ({state_space_size})"
 
     def test_all_states_visited(self):
         """Test that all states are processed (implicitly via period sum check)."""
@@ -357,7 +436,7 @@ class TestParallelCorrectness:
         coeffs = [1, 0, 0, 1]
         C, CS = build_state_update_matrix(coeffs, 2)
         V = VectorSpace(GF(2), 4)
-        state_space_size = 2 ** 4
+        state_space_size = 2**4
 
         seq_dict, period_dict, max_period, periods_sum = lfsr_sequence_mapper_parallel(
             C, V, 2, output_file=None, no_progress=True, period_only=True, num_workers=2
@@ -417,7 +496,14 @@ class TestParallelIntegration:
 
         # Test with specific number of workers
         with open(output_file, "w") as f:
-            main(str(csv_file), "2", f, use_parallel=True, num_workers=2, period_only=True)
+            main(
+                str(csv_file),
+                "2",
+                f,
+                use_parallel=True,
+                num_workers=2,
+                period_only=True,
+            )
 
         assert output_file.exists()
         content = output_file.read_text()

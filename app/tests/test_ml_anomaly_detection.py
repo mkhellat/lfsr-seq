@@ -225,10 +225,14 @@ class TestDetectDistributionAnomalies:
 
     def test_distribution_outlier_fallback_matches_numpy(self, monkeypatch):
         period_dict = {1: 1, 2: 1, 3: 1, 4: 1, 5: 1, 6: 1, 7: 1, 8: 500}
-        anomalies_np = detect_distribution_anomalies(period_dict, 1000, is_primitive=False)
+        anomalies_np = detect_distribution_anomalies(
+            period_dict, 1000, is_primitive=False
+        )
 
         monkeypatch.setattr(anomdet, "HAS_NUMPY", False)
-        anomalies_fb = detect_distribution_anomalies(period_dict, 1000, is_primitive=False)
+        anomalies_fb = detect_distribution_anomalies(
+            period_dict, 1000, is_primitive=False
+        )
 
         outliers_np = sorted(
             (a.location, round(a.severity, 6))

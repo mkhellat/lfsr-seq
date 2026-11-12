@@ -94,6 +94,7 @@ class TestMain:
         err = capsys.readouterr().err
         assert "ERROR: simulated failure for coverage" in err
 
+
 import sys
 
 

@@ -153,7 +153,9 @@ class TestExtractPolynomialFeaturesNonTrivial:
 
         assert bool(is_irreducible) == actual_charpoly.is_irreducible()
         if actual_charpoly.is_irreducible():
-            assert bool(is_primitive) == is_primitive_polynomial(actual_charpoly, gf_order)
+            assert bool(is_primitive) == is_primitive_polynomial(
+                actual_charpoly, gf_order
+            )
 
 
 class TestExtractPolynomialFeaturesDegreeDefault:

@@ -29,6 +29,7 @@ class AdvancedLFSRConfig:
         base_lfsr_config: Base LFSR configuration
         parameters: Dictionary of structure-specific parameters
     """
+
     structure_type: str
     base_lfsr_config: LFSRConfig
     parameters: Dict[str, Any] = field(default_factory=dict)
@@ -50,6 +51,7 @@ class AdvancedLFSRAnalysisResult:
         security_assessment: Security assessment and recommendations
         details: Additional analysis details
     """
+
     structure_type: str
     structure_properties: Dict[str, Any] = field(default_factory=dict)
     sequence_properties: Dict[str, Any] = field(default_factory=dict)
@@ -126,11 +128,7 @@ class AdvancedLFSR(ABC):
     """
 
     @abstractmethod
-    def generate_sequence(
-        self,
-        initial_state: List[int],
-        length: int
-    ) -> List[int]:
+    def generate_sequence(self, initial_state: List[int], length: int) -> List[int]:
         """
         Generate sequence from initial state.
 
@@ -170,9 +168,7 @@ class AdvancedLFSR(ABC):
         pass
 
     def analyze(
-        self,
-        initial_state: Optional[List[int]] = None,
-        sequence_length: int = 1000
+        self, initial_state: Optional[List[int]] = None, sequence_length: int = 1000
     ) -> AdvancedLFSRAnalysisResult:
         """
         Perform comprehensive structure analysis.
@@ -205,13 +201,10 @@ class AdvancedLFSR(ABC):
             structure_type=self.get_config().structure_type,
             structure_properties=structure_properties,
             sequence_properties=sequence_properties,
-            security_assessment=security_assessment
+            security_assessment=security_assessment,
         )
 
-    def _analyze_sequence_properties(
-        self,
-        sequence: List[int]
-    ) -> Dict[str, Any]:
+    def _analyze_sequence_properties(self, sequence: List[int]) -> Dict[str, Any]:
         """
         Analyze properties of generated sequence.
 
@@ -234,15 +227,12 @@ class AdvancedLFSR(ABC):
             element_counts[element] = element_counts.get(element, 0) + 1
 
         return {
-            'length': len(sequence),
-            'element_counts': element_counts,
-            'field_order': field_order
+            "length": len(sequence),
+            "element_counts": element_counts,
+            "field_order": field_order,
         }
 
-    def _assess_security(
-        self,
-        structure_properties: Dict[str, Any]
-    ) -> Dict[str, Any]:
+    def _assess_security(self, structure_properties: Dict[str, Any]) -> Dict[str, Any]:
         """
         Assess structure security based on properties.
 
@@ -256,7 +246,7 @@ class AdvancedLFSR(ABC):
             Dictionary with security assessment
         """
         return {
-            'structure_complexity': 'medium',  # Placeholder
-            'known_vulnerabilities': [],
-            'recommendations': []
+            "structure_complexity": "medium",  # Placeholder
+            "known_vulnerabilities": [],
+            "recommendations": [],
         }

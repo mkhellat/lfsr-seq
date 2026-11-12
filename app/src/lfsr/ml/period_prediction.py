@@ -16,12 +16,14 @@ from lfsr.ml.base import BaseMLModel, MLModelConfig, extract_polynomial_features
 
 try:
     import numpy as np
+
     HAS_NUMPY = True
 except ImportError:
     HAS_NUMPY = False
 
 try:
     from sklearn.ensemble import GradientBoostingRegressor, RandomForestRegressor
+
     HAS_SKLEARN = True
 except ImportError:
     HAS_SKLEARN = False
@@ -58,7 +60,9 @@ class PeriodPredictionModel(BaseMLModel):
       more accurate than random forests but less interpretable.
     """
 
-    def __init__(self, model_type: str = "random_forest", config: Optional[MLModelConfig] = None):
+    def __init__(
+        self, model_type: str = "random_forest", config: Optional[MLModelConfig] = None
+    ):
         """
         Initialize period prediction model.
 
@@ -69,14 +73,20 @@ class PeriodPredictionModel(BaseMLModel):
         """
         if config is None:
             feature_names = [
-                'degree', 'field_order', 'num_coeffs', 'nonzero_count',
-                'sparsity', 'is_trinomial', 'is_pentanomial',
-                'coeff_sum', 'coeff_mean', 'is_irreducible', 'is_primitive'
+                "degree",
+                "field_order",
+                "num_coeffs",
+                "nonzero_count",
+                "sparsity",
+                "is_trinomial",
+                "is_pentanomial",
+                "coeff_sum",
+                "coeff_mean",
+                "is_irreducible",
+                "is_primitive",
             ]
             config = MLModelConfig(
-                model_type=model_type,
-                model_params={},
-                feature_names=feature_names
+                model_type=model_type, model_params={}, feature_names=feature_names
             )
 
         super().__init__(config)
@@ -86,7 +96,9 @@ class PeriodPredictionModel(BaseMLModel):
             if model_type == "random_forest":
                 self.model = RandomForestRegressor(n_estimators=100, random_state=42)
             elif model_type == "gradient_boosting":
-                self.model = GradientBoostingRegressor(n_estimators=100, random_state=42)
+                self.model = GradientBoostingRegressor(
+                    n_estimators=100, random_state=42
+                )
             else:
                 raise ValueError(f"Unknown model type: {model_type}")
         else:
@@ -127,22 +139,24 @@ class PeriodPredictionModel(BaseMLModel):
         if HAS_NUMPY:
             mse = np.mean((y_array - predictions) ** 2)
             rmse = np.sqrt(mse)
-            r2 = 1 - (np.sum((y_array - predictions) ** 2) /
-                     np.sum((y_array - np.mean(y_array)) ** 2))
+            r2 = 1 - (
+                np.sum((y_array - predictions) ** 2)
+                / np.sum((y_array - np.mean(y_array)) ** 2)
+            )
         else:
             n = len(y)
             mse = sum((y[i] - predictions[i]) ** 2 for i in range(n)) / n
-            rmse = mse ** 0.5
+            rmse = mse**0.5
             y_mean = sum(y) / n
             ss_tot = sum((y[i] - y_mean) ** 2 for i in range(n))
             ss_res = sum((y[i] - predictions[i]) ** 2 for i in range(n))
             r2 = 1 - (ss_res / ss_tot) if ss_tot > 0 else 0.0
 
         return {
-            'mse': float(mse),
-            'rmse': float(rmse),
-            'r2_score': float(r2),
-            'training_samples': len(X)
+            "mse": float(mse),
+            "rmse": float(rmse),
+            "r2_score": float(r2),
+            "training_samples": len(X),
         }
 
     def predict(self, X: List[List[float]]) -> List[float]:
@@ -170,10 +184,7 @@ class PeriodPredictionModel(BaseMLModel):
             return [float(p) for p in predictions]
 
     def predict_period(
-        self,
-        coefficients: List[int],
-        field_order: int,
-        degree: Optional[int] = None
+        self, coefficients: List[int], field_order: int, degree: Optional[int] = None
     ) -> float:
         """
         Predict period directly from polynomial coefficients.
@@ -208,25 +219,27 @@ class PeriodPredictionModel(BaseMLModel):
         # Save model using joblib if available, otherwise pickle
         try:
             import joblib
-            joblib.dump(self.model, filepath + '.model')
+
+            joblib.dump(self.model, filepath + ".model")
         except ImportError:
             import pickle
-            with open(filepath + '.model', 'wb') as f:
+
+            with open(filepath + ".model", "wb") as f:
                 pickle.dump(self.model, f)
 
         # Save configuration
         config_dict = {
-            'model_type': self.model_type,
-            'config': {
-                'model_type': self.config.model_type,
-                'model_params': self.config.model_params,
-                'feature_names': self.config.feature_names,
-                'model_version': self.config.model_version
+            "model_type": self.model_type,
+            "config": {
+                "model_type": self.config.model_type,
+                "model_params": self.config.model_params,
+                "feature_names": self.config.feature_names,
+                "model_version": self.config.model_version,
             },
-            'is_trained': self.is_trained
+            "is_trained": self.is_trained,
         }
 
-        with open(filepath + '.config.json', 'w') as f:
+        with open(filepath + ".config.json", "w") as f:
             json.dump(config_dict, f, indent=2)
 
     def load_model(self, filepath: str) -> None:
@@ -237,25 +250,27 @@ class PeriodPredictionModel(BaseMLModel):
             filepath: Path to load model from
         """
         # Load configuration
-        with open(filepath + '.config.json', 'r') as f:
+        with open(filepath + ".config.json", "r") as f:
             config_dict = json.load(f)
 
-        self.model_type = config_dict['model_type']
-        self.config = MLModelConfig(**config_dict['config'])
-        self.is_trained = config_dict['is_trained']
+        self.model_type = config_dict["model_type"]
+        self.config = MLModelConfig(**config_dict["config"])
+        self.is_trained = config_dict["is_trained"]
 
         # Load model
         try:
             import joblib
-            self.model = joblib.load(filepath + '.model')
+
+            self.model = joblib.load(filepath + ".model")
         except ImportError:
             import pickle
-            with open(filepath + '.model', 'rb') as f:
+
+            with open(filepath + ".model", "rb") as f:
                 self.model = pickle.load(f)
 
 
 def create_period_prediction_model(
-    model_type: str = "random_forest"
+    model_type: str = "random_forest",
 ) -> PeriodPredictionModel:
     """
     Create a new period prediction model.

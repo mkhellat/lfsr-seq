@@ -36,6 +36,7 @@ class TMTOAttackResult:
         coverage: Fraction of state space covered by table
         details: Additional details about the attack
     """
+
     attack_successful: bool
     recovered_state: Optional[List[int]]
     method_used: str
@@ -122,10 +123,7 @@ class HellmanTable:
     """
 
     def __init__(
-        self,
-        chain_count: int,
-        chain_length: int,
-        distinguished_bits: int = 8
+        self, chain_count: int, chain_length: int, distinguished_bits: int = 8
     ):
         """
         Initialize Hellman table.
@@ -163,7 +161,7 @@ class HellmanTable:
         Uses a hash-based approach to create a pseudo-random mapping.
         """
         # Convert state to bytes for hashing
-        state_bytes = bytes(str(state).encode('utf-8'))
+        state_bytes = bytes(str(state).encode("utf-8"))
         hash_obj = hashlib.sha256(state_bytes)
         hash_int = int(hash_obj.hexdigest(), 16)
 
@@ -180,11 +178,7 @@ class HellmanTable:
 
         return result
 
-    def generate(
-        self,
-        lfsr_config: LFSRConfig,
-        max_attempts: int = 10000
-    ) -> None:
+    def generate(self, lfsr_config: LFSRConfig, max_attempts: int = 10000) -> None:
         """
         Generate Hellman table for given LFSR configuration.
 
@@ -197,7 +191,9 @@ class HellmanTable:
         d = lfsr_config.degree
 
         # Build state update matrix
-        C, CS = build_state_update_matrix(lfsr_config.coefficients, lfsr_config.field_order)
+        C, CS = build_state_update_matrix(
+            lfsr_config.coefficients, lfsr_config.field_order
+        )
 
         self.chains = []
         attempts = 0
@@ -206,7 +202,9 @@ class HellmanTable:
             attempts += 1
 
             # Generate random starting state
-            start_state = [F(random.randint(0, lfsr_config.field_order - 1)) for _ in range(d)]
+            start_state = [
+                F(random.randint(0, lfsr_config.field_order - 1)) for _ in range(d)
+            ]
             start_state_vec = vector(F, start_state)
 
             # Compute chain
@@ -233,9 +231,7 @@ class HellmanTable:
                 self.chains.append((start_list, end_list))
 
     def lookup(
-        self,
-        target_state: List[int],
-        lfsr_config: LFSRConfig
+        self, target_state: List[int], lfsr_config: LFSRConfig
     ) -> Optional[List[int]]:
         """
         Lookup target state in Hellman table.
@@ -249,7 +245,9 @@ class HellmanTable:
         """
 
         F = GF(lfsr_config.field_order)
-        C, CS = build_state_update_matrix(lfsr_config.coefficients, lfsr_config.field_order)
+        C, CS = build_state_update_matrix(
+            lfsr_config.coefficients, lfsr_config.field_order
+        )
 
         # Try to find target in chains
         # Check if target is a chain endpoint
@@ -358,10 +356,7 @@ class RainbowTable:
     """
 
     def __init__(
-        self,
-        chain_count: int,
-        chain_length: int,
-        distinguished_bits: int = 8
+        self, chain_count: int, chain_length: int, distinguished_bits: int = 8
     ):
         """
         Initialize Rainbow table.
@@ -385,15 +380,18 @@ class RainbowTable:
         bits_to_check = min(self.distinguished_bits, len(state))
         return all(state[i] == 0 for i in range(bits_to_check))
 
-    def _create_reduction_function(self, step: int, field_order: int, state_size: int) -> Callable:
+    def _create_reduction_function(
+        self, step: int, field_order: int, state_size: int
+    ) -> Callable:
         """
         Create a reduction function for a specific step.
 
         Each step uses a different reduction function to reduce collisions.
         """
+
         def reduction_func(state: List[int]) -> List[int]:
             # Use step number to create different hash
-            state_bytes = (str(state) + str(step)).encode('utf-8')
+            state_bytes = (str(state) + str(step)).encode("utf-8")
             hash_obj = hashlib.sha256(state_bytes)
             hash_int = int(hash_obj.hexdigest(), 16)
 
@@ -409,11 +407,7 @@ class RainbowTable:
 
         return reduction_func
 
-    def generate(
-        self,
-        lfsr_config: LFSRConfig,
-        max_attempts: int = 10000
-    ) -> None:
+    def generate(self, lfsr_config: LFSRConfig, max_attempts: int = 10000) -> None:
         """
         Generate Rainbow table for given LFSR configuration.
 
@@ -424,10 +418,12 @@ class RainbowTable:
 
         F = GF(lfsr_config.field_order)
         d = lfsr_config.degree
-        state_size = lfsr_config.field_order ** d
+        state_size = lfsr_config.field_order**d
 
         # Build state update matrix
-        C, CS = build_state_update_matrix(lfsr_config.coefficients, lfsr_config.field_order)
+        C, CS = build_state_update_matrix(
+            lfsr_config.coefficients, lfsr_config.field_order
+        )
 
         # Create reduction functions for each step
         self.reduction_functions = [
@@ -442,7 +438,9 @@ class RainbowTable:
             attempts += 1
 
             # Generate random starting state
-            start_state = [F(random.randint(0, lfsr_config.field_order - 1)) for _ in range(d)]
+            start_state = [
+                F(random.randint(0, lfsr_config.field_order - 1)) for _ in range(d)
+            ]
             start_state_vec = vector(F, start_state)
 
             # Compute rainbow chain
@@ -472,9 +470,7 @@ class RainbowTable:
                 self.chains.append((start_list, end_list))
 
     def lookup(
-        self,
-        target_state: List[int],
-        lfsr_config: LFSRConfig
+        self, target_state: List[int], lfsr_config: LFSRConfig
     ) -> Optional[List[int]]:
         """
         Lookup target state in Rainbow table.
@@ -488,7 +484,9 @@ class RainbowTable:
         """
 
         F = GF(lfsr_config.field_order)
-        C, CS = build_state_update_matrix(lfsr_config.coefficients, lfsr_config.field_order)
+        C, CS = build_state_update_matrix(
+            lfsr_config.coefficients, lfsr_config.field_order
+        )
 
         target_list = target_state
 
@@ -543,7 +541,7 @@ def tmto_attack(
     method: str = "hellman",
     chain_count: int = 1000,
     chain_length: int = 100,
-    precomputed_table: Optional[Any] = None
+    precomputed_table: Optional[Any] = None,
 ) -> TMTOAttackResult:
     """
     Perform time-memory trade-off attack on LFSR.
@@ -606,7 +604,7 @@ def tmto_attack(
                 lookup_time=0.0,
                 precomputation_time=0.0,
                 coverage=0.0,
-                details={'error': f'Unknown method: {method}'}
+                details={"error": f"Unknown method: {method}"},
             )
 
         table.generate(lfsr_config)
@@ -621,7 +619,7 @@ def tmto_attack(
     lookup_time = time.perf_counter() - lookup_start
 
     # Compute coverage
-    state_space_size = lfsr_config.field_order ** lfsr_config.degree
+    state_space_size = lfsr_config.field_order**lfsr_config.degree
     table_size = len(table.chains) * chain_length
     coverage = min(1.0, table_size / state_space_size) if state_space_size > 0 else 0.0
 
@@ -636,17 +634,17 @@ def tmto_attack(
         precomputation_time=precomputation_time,
         coverage=coverage,
         details={
-            'chain_count': len(table.chains),
-            'chain_length': chain_length,
-            'state_space_size': state_space_size
-        }
+            "chain_count": len(table.chains),
+            "chain_length": chain_length,
+            "state_space_size": state_space_size,
+        },
     )
 
 
 def optimize_tmto_parameters(
     state_space_size: int,
     available_memory: int,
-    target_success_probability: float = 0.5
+    target_success_probability: float = 0.5,
 ) -> Dict[str, Any]:
     """
     Optimize TMTO parameters for given constraints.
@@ -694,7 +692,7 @@ def optimize_tmto_parameters(
 
     # Try different parameter combinations
     best_params = None
-    best_product = float('inf')
+    best_product = float("inf")
 
     # Search space: chain_count * chain_length <= available_memory
     for chain_count in [100, 500, 1000, 5000]:
@@ -716,11 +714,11 @@ def optimize_tmto_parameters(
             if product < best_product:
                 best_product = product
                 best_params = {
-                    'chain_count': chain_count,
-                    'chain_length': chain_length,
-                    'estimated_coverage': coverage,
-                    'estimated_success_prob': success_prob,
-                    'time_memory_product': product
+                    "chain_count": chain_count,
+                    "chain_length": chain_length,
+                    "estimated_coverage": coverage,
+                    "estimated_success_prob": success_prob,
+                    "time_memory_product": product,
                 }
 
     if best_params is None:
@@ -729,11 +727,13 @@ def optimize_tmto_parameters(
         chain_length = available_memory // chain_count if chain_count > 0 else 100
 
         return {
-            'chain_count': chain_count,
-            'chain_length': chain_length,
-            'estimated_coverage': min(1.0, (chain_count * chain_length) / state_space_size),
-            'estimated_success_prob': 0.0,
-            'time_memory_product': chain_count * chain_length
+            "chain_count": chain_count,
+            "chain_length": chain_length,
+            "estimated_coverage": min(
+                1.0, (chain_count * chain_length) / state_space_size
+            ),
+            "estimated_success_prob": 0.0,
+            "time_memory_product": chain_count * chain_length,
         }
 
     return best_params

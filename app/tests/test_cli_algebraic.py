@@ -148,6 +148,7 @@ class TestPerformAlgebraicAttackCli:
         triggering compute_algebraic_immunity's 'not optimal' path --
         exercises the else branch in perform_algebraic_attack_cli that
         prints the 'does not achieve maximum' warning."""
+
         def and3(a, b, c):
             return a & b & c
 

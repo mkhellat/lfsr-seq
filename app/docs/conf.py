@@ -15,16 +15,18 @@ warnings.filterwarnings("ignore", message=".*is superseded.*")
 warnings.filterwarnings("ignore", message=".*Importing.*from here is deprecated.*")
 warnings.filterwarnings("ignore", message=".*combinat.species.*")
 
+
 # Set up logging filter EARLY to suppress duplicate warnings
 # This must be done before Sphinx initializes its logging system
 class DuplicateWarningFilter(logging.Filter):
     """Filter to suppress duplicate object description warnings."""
+
     def filter(self, record):
         try:
             msg = record.getMessage()
         except Exception:
             try:
-                if hasattr(record, 'args') and record.args:
+                if hasattr(record, "args") and record.args:
                     msg = str(record.msg) % record.args
                 else:
                     msg = str(record.msg)
@@ -34,6 +36,7 @@ class DuplicateWarningFilter(logging.Filter):
             return False
         return True
 
+
 # Apply filter to root logger early
 _dup_filter = DuplicateWarningFilter()
 _root_logger = logging.getLogger()
@@ -41,9 +44,13 @@ for handler in _root_logger.handlers:
     handler.addFilter(_dup_filter)
 # Also add to any future handlers
 _original_addHandler = _root_logger.addHandler
+
+
 def _addHandler_with_filter(handler):
     handler.addFilter(_dup_filter)
     return _original_addHandler(handler)
+
+
 _root_logger.addHandler = _addHandler_with_filter
 
 # Add the project root to the path
@@ -70,14 +77,14 @@ extensions = [
 # Configure autodoc to not process type hints as objects
 # This prevents duplicate warnings when the same type appears in multiple modules
 autodoc_type_aliases = {
-    'TextIO': 'typing.TextIO',
-    'Optional': 'typing.Optional',
-    'List': 'typing.List',
-    'Dict': 'typing.Dict',
-    'Tuple': 'typing.Tuple',
-    'Set': 'typing.Set',
-    'Any': 'typing.Any',
-    'Union': 'typing.Union',
+    "TextIO": "typing.TextIO",
+    "Optional": "typing.Optional",
+    "List": "typing.List",
+    "Dict": "typing.Dict",
+    "Tuple": "typing.Tuple",
+    "Set": "typing.Set",
+    "Any": "typing.Any",
+    "Union": "typing.Union",
 }
 
 templates_path = ["_templates"]
@@ -152,6 +159,7 @@ suppress_warnings = [
     "ref.duplicate",  # Suppress duplicate object description warnings (typing.*, sage.*, etc.)
 ]
 
+
 # Skip members that cause issues with SageMath
 def autodoc_skip_member(app, what, name, obj, skip, options):
     """Skip problematic members during autodoc."""
@@ -171,13 +179,21 @@ def autodoc_skip_member(app, what, name, obj, skip, options):
             if module.startswith("typing"):
                 return True
             # Skip SageMath-related types (cysignals, cypari2, sage modules)
-            if any(module.startswith(prefix) for prefix in ["cysignals", "cypari2", "sage"]):
+            if any(
+                module.startswith(prefix) for prefix in ["cysignals", "cypari2", "sage"]
+            ):
                 return True
     # Skip if it's a SageMath object (check type string)
     if hasattr(obj, "__module__") and obj.__module__ and "sage" in obj.__module__:
-        if name not in ["GF", "MatrixSpace", "VectorSpace", "SR"]:  # Keep essential ones
+        if name not in [
+            "GF",
+            "MatrixSpace",
+            "VectorSpace",
+            "SR",
+        ]:  # Keep essential ones
             return True
     return skip
+
 
 def setup(app):
     """Setup function for Sphinx."""
@@ -191,12 +207,13 @@ def setup(app):
     # Create comprehensive filter
     class DuplicateWarningFilter(logging.Filter):
         """Filter to suppress duplicate object description warnings."""
+
         def filter(self, record):
             try:
                 msg = record.getMessage()
             except Exception:
                 try:
-                    if hasattr(record, 'args') and record.args:
+                    if hasattr(record, "args") and record.args:
                         msg = str(record.msg) % record.args
                     else:
                         msg = str(record.msg)
@@ -213,13 +230,14 @@ def setup(app):
         handler.addFilter(dup_filter)
 
     # Also add to Sphinx-specific loggers
-    for name in ['sphinx', 'sphinx.ref', 'sphinx.application', 'sphinx.environment']:
+    for name in ["sphinx", "sphinx.ref", "sphinx.application", "sphinx.environment"]:
         logger = logging.getLogger(name)
         for handler in logger.handlers:
             handler.addFilter(dup_filter)
 
     # The suppress_warnings is already configured in the config above
     # No need to add it again here
+
 
 # Intersphinx mapping
 intersphinx_mapping = {
@@ -232,21 +250,26 @@ intersphinx_mapping = {
 
 # LaTeX document class and options (texinfo style)
 latex_documents = [
-    ('index', 'lfsr-seq.tex', 'lfsr-seq Documentation',
-     'Mohammadreza Khellat', 'manual'),
+    (
+        "index",
+        "lfsr-seq.tex",
+        "lfsr-seq Documentation",
+        "Mohammadreza Khellat",
+        "manual",
+    ),
 ]
 
 # LaTeX settings for texinfo-style output
 latex_logo = None  # No logo for cleaner texinfo style
-latex_show_urls = 'footnote'  # Show URLs as footnotes (texinfo style)
+latex_show_urls = "footnote"  # Show URLs as footnotes (texinfo style)
 latex_show_pagerefs = True  # Show page references
-latex_toplevel_sectioning = 'section'  # Use sections as top-level
+latex_toplevel_sectioning = "section"  # Use sections as top-level
 
 latex_elements = {
     # Use article class with two-column layout (texinfo style)
-    'papersize': 'a4paper',
-    'pointsize': '10pt',
-    'preamble': r'''
+    "papersize": "a4paper",
+    "pointsize": "10pt",
+    "preamble": r"""
 % Fix for \omit errors in nested align/split/equation environments
 % Note: \omit errors were fixed by changing align to aligned in RST files
 % No preamble workaround needed
@@ -353,12 +376,12 @@ latex_elements = {
 % \setlist[enumerate]{topsep=0.2em, itemsep=0.1em}  % Commented out
 % \setlist[description]{topsep=0.2em, itemsep=0.1em}  % Commented out
 % Use standard LaTeX list spacing instead (texinfo style is still maintained)
-''',
+""",
     # Single-column layout (standard for software documentation)
     # Note: Two-column layout removed - not suitable for software docs or texinfo style
     # 'extraclassoptions': 'twocolumn',  # Removed - not needed
     # Compact document settings
-    'sphinxsetup': 'verbatimwithframe=false, verbatimwrapslines=true, verbatimhintsturnover=false',
+    "sphinxsetup": "verbatimwithframe=false, verbatimwrapslines=true, verbatimhintsturnover=false",
 }
 
 # Add project description
@@ -389,4 +412,3 @@ html_css_files = [
 # Logo (if you have one)
 # html_logo = "../artwork/icon.png"
 # html_favicon = "../artwork/icon.png"
-

@@ -128,7 +128,10 @@ def main(
         # Multiple LFSRs: disable parallel by default to avoid worker hang issues
         use_parallel = False
         if not quiet:
-            print(f"INFO: Processing {num_lfsrs} LFSRs - using sequential mode for reliability", file=sys.stderr)
+            print(
+                f"INFO: Processing {num_lfsrs} LFSRs - using sequential mode for reliability",
+                file=sys.stderr,
+            )
 
     coeffs_num = 0
     for coeffs_vector_str in coeffs_list:
@@ -180,7 +183,9 @@ def main(
             if period_only:
                 effective_algorithm = "floyd"  # Floyd is better for period-only
             else:
-                effective_algorithm = "enumeration"  # Enumeration is better for full mode
+                effective_algorithm = (
+                    "enumeration"  # Enumeration is better for full mode
+                )
 
         # Decide whether to use parallel processing
         # CRITICAL: Parallel processing is currently SLOWER than sequential due to overhead
@@ -202,8 +207,12 @@ def main(
         # - Dynamic mode: Shared task queue with dynamic load balancing (new)
         if should_use_parallel:
             if parallel_mode == "dynamic":
-                print("INFO: Using dynamic parallel processing (shared task queue)", file=sys.stderr)
+                print(
+                    "INFO: Using dynamic parallel processing (shared task queue)",
+                    file=sys.stderr,
+                )
                 from lfsr.analysis import lfsr_sequence_mapper_parallel_dynamic
+
                 # Dynamic mode works best with period-only to minimize IPC overhead
                 parallel_period_only = period_only if period_only else True
                 # Auto-adjust batch size for non-period-only mode if not specified
@@ -211,29 +220,69 @@ def main(
                 if not period_only and batch_size is None:
                     effective_batch_size = 100  # Smaller batches when storing sequences
                 if not period_only:
-                    print("INFO: Dynamic parallel processing using period-only mode for better performance.", file=sys.stderr)
-                seq_dict, period_dict, max_period, periods_sum = lfsr_sequence_mapper_parallel_dynamic(
-                    C, V, gf_order, output_file, no_progress=no_progress,
-                    algorithm=effective_algorithm, period_only=parallel_period_only,
-                    num_workers=num_workers, batch_size=effective_batch_size
+                    print(
+                        "INFO: Dynamic parallel processing using period-only mode for better performance.",
+                        file=sys.stderr,
+                    )
+                (
+                    seq_dict,
+                    period_dict,
+                    max_period,
+                    periods_sum,
+                ) = lfsr_sequence_mapper_parallel_dynamic(
+                    C,
+                    V,
+                    gf_order,
+                    output_file,
+                    no_progress=no_progress,
+                    algorithm=effective_algorithm,
+                    period_only=parallel_period_only,
+                    num_workers=num_workers,
+                    batch_size=effective_batch_size,
                 )
             else:
                 # Static mode (default)
-                print("INFO: Using static parallel processing (fixed chunks)", file=sys.stderr)
+                print(
+                    "INFO: Using static parallel processing (fixed chunks)",
+                    file=sys.stderr,
+                )
                 from lfsr.analysis import lfsr_sequence_mapper_parallel
+
                 # Force period_only=True for parallel processing to avoid hangs
                 parallel_period_only = period_only if period_only else True
                 if not period_only:
-                    print("WARNING: Parallel processing forced to period-only mode to avoid hangs.", file=sys.stderr)
-                    print("  Use --no-parallel for full sequence mode, or --period-only for parallel.", file=sys.stderr)
-                seq_dict, period_dict, max_period, periods_sum = lfsr_sequence_mapper_parallel(
-                    C, V, gf_order, output_file, no_progress=no_progress,
-                    algorithm=effective_algorithm, period_only=parallel_period_only, num_workers=num_workers
+                    print(
+                        "WARNING: Parallel processing forced to period-only mode to avoid hangs.",
+                        file=sys.stderr,
+                    )
+                    print(
+                        "  Use --no-parallel for full sequence mode, or --period-only for parallel.",
+                        file=sys.stderr,
+                    )
+                (
+                    seq_dict,
+                    period_dict,
+                    max_period,
+                    periods_sum,
+                ) = lfsr_sequence_mapper_parallel(
+                    C,
+                    V,
+                    gf_order,
+                    output_file,
+                    no_progress=no_progress,
+                    algorithm=effective_algorithm,
+                    period_only=parallel_period_only,
+                    num_workers=num_workers,
                 )
         else:
             seq_dict, period_dict, max_period, periods_sum = lfsr_sequence_mapper(
-                C, V, gf_order, output_file, no_progress=no_progress,
-                algorithm=effective_algorithm, period_only=period_only
+                C,
+                V,
+                gf_order,
+                output_file,
+                no_progress=no_progress,
+                algorithm=effective_algorithm,
+                period_only=period_only,
             )
 
         # Finding all sequences of states of the parameterized
@@ -246,11 +295,15 @@ def main(
         if show_period_stats:
             # Check if polynomial is primitive for period distribution analysis
             from lfsr.polynomial import is_primitive_polynomial
+
             is_primitive = is_primitive_polynomial(char_poly, gf_order)
 
             # Display period distribution statistics
             from lfsr.analysis import display_period_distribution
-            display_period_distribution(period_dict, gf_order, d, is_primitive, output_file)
+
+            display_period_distribution(
+                period_dict, gf_order, d, is_primitive, output_file
+            )
 
         # Export in requested format if not text
         if output_format != "text" and output_file is not None:
@@ -427,8 +480,8 @@ def parse_args(args: Optional[list] = None) -> argparse.Namespace:
         default=None,
         dest="batch_size",
         help="Batch size for dynamic parallel mode (states per batch). "
-             "If not specified, automatically selected based on problem size. "
-             "Small problems (<8K): 500-1000, Medium (8K-64K): 200-500, Large (>64K): 100-200.",
+        "If not specified, automatically selected based on problem size. "
+        "Small problems (<8K): 500-1000, Medium (8K-64K): 200-500, Large (>64K): 100-200.",
     )
 
     parser.add_argument(
@@ -440,25 +493,25 @@ def parse_args(args: Optional[list] = None) -> argparse.Namespace:
     # Correlation attack options
     correlation_group = parser.add_argument_group(
         "correlation attack options",
-        "Options for correlation attack analysis on combination generators"
+        "Options for correlation attack analysis on combination generators",
     )
 
     correlation_group.add_argument(
         "--correlation-attack",
         action="store_true",
-        help="Perform correlation attack analysis. Requires --lfsr-configs file specifying multiple LFSRs and combining function."
+        help="Perform correlation attack analysis. Requires --lfsr-configs file specifying multiple LFSRs and combining function.",
     )
 
     correlation_group.add_argument(
         "--lfsr-configs",
         metavar="CONFIG_FILE",
-        help="JSON file containing combination generator configuration (LFSRs and combining function). Required for --correlation-attack."
+        help="JSON file containing combination generator configuration (LFSRs and combining function). Required for --correlation-attack.",
     )
 
     correlation_group.add_argument(
         "--keystream-file",
         metavar="KEYSTREAM_FILE",
-        help="File containing keystream bits (one per line, or space-separated). If not provided, keystream is generated from combination generator."
+        help="File containing keystream bits (one per line, or space-separated). If not provided, keystream is generated from combination generator.",
     )
 
     correlation_group.add_argument(
@@ -466,7 +519,7 @@ def parse_args(args: Optional[list] = None) -> argparse.Namespace:
         type=int,
         default=0,
         metavar="INDEX",
-        help="Index of LFSR to attack (0-based). Default: 0 (first LFSR)."
+        help="Index of LFSR to attack (0-based). Default: 0 (first LFSR).",
     )
 
     correlation_group.add_argument(
@@ -474,13 +527,13 @@ def parse_args(args: Optional[list] = None) -> argparse.Namespace:
         type=float,
         default=0.05,
         metavar="ALPHA",
-        help="Statistical significance level for correlation test (default: 0.05)."
+        help="Statistical significance level for correlation test (default: 0.05).",
     )
 
     correlation_group.add_argument(
         "--fast-correlation-attack",
         action="store_true",
-        help="Use fast correlation attack (Meier-Staffelbach) instead of basic attack. More efficient for large state spaces."
+        help="Use fast correlation attack (Meier-Staffelbach) instead of basic attack. More efficient for large state spaces.",
     )
 
     correlation_group.add_argument(
@@ -488,13 +541,13 @@ def parse_args(args: Optional[list] = None) -> argparse.Namespace:
         type=int,
         default=1000,
         metavar="N",
-        help="Maximum number of candidate states to test in fast correlation attack (default: 1000)."
+        help="Maximum number of candidate states to test in fast correlation attack (default: 1000).",
     )
 
     correlation_group.add_argument(
         "--distinguishing-attack",
         action="store_true",
-        help="Perform distinguishing attack to determine if keystream is distinguishable from random."
+        help="Perform distinguishing attack to determine if keystream is distinguishable from random.",
     )
 
     correlation_group.add_argument(
@@ -503,19 +556,18 @@ def parse_args(args: Optional[list] = None) -> argparse.Namespace:
         default="correlation",
         choices=["correlation", "statistical"],
         metavar="METHOD",
-        help="Method for distinguishing attack: 'correlation' or 'statistical' (default: correlation)."
+        help="Method for distinguishing attack: 'correlation' or 'statistical' (default: correlation).",
     )
 
     # Algebraic attack options
     algebraic_group = parser.add_argument_group(
-        "algebraic attack options",
-        "Options for algebraic attack analysis on LFSRs"
+        "algebraic attack options", "Options for algebraic attack analysis on LFSRs"
     )
 
     algebraic_group.add_argument(
         "--algebraic-attack",
         action="store_true",
-        help="Perform algebraic attack analysis. Requires LFSR configuration and keystream."
+        help="Perform algebraic attack analysis. Requires LFSR configuration and keystream.",
     )
 
     algebraic_group.add_argument(
@@ -524,7 +576,7 @@ def parse_args(args: Optional[list] = None) -> argparse.Namespace:
         default="groebner_basis",
         choices=["groebner_basis", "cube_attack", "algebraic_immunity"],
         metavar="METHOD",
-        help="Method for algebraic attack: 'groebner_basis', 'cube_attack', or 'algebraic_immunity' (default: groebner_basis)."
+        help="Method for algebraic attack: 'groebner_basis', 'cube_attack', or 'algebraic_immunity' (default: groebner_basis).",
     )
 
     algebraic_group.add_argument(
@@ -532,7 +584,7 @@ def parse_args(args: Optional[list] = None) -> argparse.Namespace:
         type=int,
         default=10,
         metavar="N",
-        help="Maximum cube size for cube attack (default: 10)."
+        help="Maximum cube size for cube attack (default: 10).",
     )
 
     algebraic_group.add_argument(
@@ -540,19 +592,19 @@ def parse_args(args: Optional[list] = None) -> argparse.Namespace:
         type=int,
         default=1000,
         metavar="N",
-        help="Maximum number of equations for Gröbner basis attack (default: 1000)."
+        help="Maximum number of equations for Gröbner basis attack (default: 1000).",
     )
 
     # Time-Memory Trade-Off attack options
     tmto_group = parser.add_argument_group(
         "time-memory trade-off attack options",
-        "Options for time-memory trade-off (TMTO) attacks on LFSRs"
+        "Options for time-memory trade-off (TMTO) attacks on LFSRs",
     )
 
     tmto_group.add_argument(
         "--tmto-attack",
         action="store_true",
-        help="Perform time-memory trade-off attack. Precomputes tables for faster state recovery."
+        help="Perform time-memory trade-off attack. Precomputes tables for faster state recovery.",
     )
 
     tmto_group.add_argument(
@@ -561,7 +613,7 @@ def parse_args(args: Optional[list] = None) -> argparse.Namespace:
         default="hellman",
         choices=["hellman", "rainbow"],
         metavar="METHOD",
-        help="TMTO method: 'hellman' or 'rainbow' (default: hellman)."
+        help="TMTO method: 'hellman' or 'rainbow' (default: hellman).",
     )
 
     tmto_group.add_argument(
@@ -569,7 +621,7 @@ def parse_args(args: Optional[list] = None) -> argparse.Namespace:
         type=int,
         default=1000,
         metavar="N",
-        help="Number of chains in TMTO table (default: 1000)."
+        help="Number of chains in TMTO table (default: 1000).",
     )
 
     tmto_group.add_argument(
@@ -577,20 +629,20 @@ def parse_args(args: Optional[list] = None) -> argparse.Namespace:
         type=int,
         default=100,
         metavar="N",
-        help="Length of each chain in TMTO table (default: 100)."
+        help="Length of each chain in TMTO table (default: 100).",
     )
 
     tmto_group.add_argument(
         "--tmto-table-file",
         type=str,
         metavar="FILE",
-        help="File containing precomputed TMTO table (JSON format). If not provided, table is generated."
+        help="File containing precomputed TMTO table (JSON format). If not provided, table is generated.",
     )
 
     # Stream cipher analysis options
     cipher_group = parser.add_argument_group(
         "stream cipher analysis options",
-        "Options for analyzing real-world stream ciphers"
+        "Options for analyzing real-world stream ciphers",
     )
 
     cipher_group.add_argument(
@@ -598,19 +650,19 @@ def parse_args(args: Optional[list] = None) -> argparse.Namespace:
         type=str,
         choices=["a5_1", "a5_2", "e0", "trivium", "grain128", "grain128a", "lili128"],
         metavar="NAME",
-        help="Select stream cipher to analyze: a5_1, a5_2, e0, trivium, grain128, grain128a, or lili128."
+        help="Select stream cipher to analyze: a5_1, a5_2, e0, trivium, grain128, grain128a, or lili128.",
     )
 
     cipher_group.add_argument(
         "--analyze-cipher",
         action="store_true",
-        help="Analyze cipher structure (LFSRs, clocking, combining function)."
+        help="Analyze cipher structure (LFSRs, clocking, combining function).",
     )
 
     cipher_group.add_argument(
         "--generate-keystream",
         action="store_true",
-        help="Generate keystream from key and IV."
+        help="Generate keystream from key and IV.",
     )
 
     cipher_group.add_argument(
@@ -618,33 +670,33 @@ def parse_args(args: Optional[list] = None) -> argparse.Namespace:
         type=int,
         default=1000,
         metavar="N",
-        help="Length of keystream to generate in bits (default: 1000)."
+        help="Length of keystream to generate in bits (default: 1000).",
     )
 
     cipher_group.add_argument(
         "--key-file",
         type=str,
         metavar="FILE",
-        help="File containing key bits (binary or text format)."
+        help="File containing key bits (binary or text format).",
     )
 
     cipher_group.add_argument(
         "--iv-file",
         type=str,
         metavar="FILE",
-        help="File containing IV bits (binary or text format)."
+        help="File containing IV bits (binary or text format).",
     )
 
     cipher_group.add_argument(
         "--compare-ciphers",
         action="store_true",
-        help="Compare multiple ciphers side-by-side."
+        help="Compare multiple ciphers side-by-side.",
     )
 
     # Advanced LFSR structures options
     advanced_group = parser.add_argument_group(
         "advanced LFSR structures options",
-        "Options for analyzing advanced LFSR structures (filtered, clock-controlled, etc.)"
+        "Options for analyzing advanced LFSR structures (filtered, clock-controlled, etc.)",
     )
 
     advanced_group.add_argument(
@@ -652,19 +704,19 @@ def parse_args(args: Optional[list] = None) -> argparse.Namespace:
         type=str,
         choices=["nfsr", "filtered", "clock_controlled", "multi_output", "irregular"],
         metavar="TYPE",
-        help="Select advanced structure type: nfsr, filtered, clock_controlled, multi_output, or irregular."
+        help="Select advanced structure type: nfsr, filtered, clock_controlled, multi_output, or irregular.",
     )
 
     advanced_group.add_argument(
         "--analyze-advanced-structure",
         action="store_true",
-        help="Analyze advanced structure properties."
+        help="Analyze advanced structure properties.",
     )
 
     advanced_group.add_argument(
         "--generate-advanced-sequence",
         action="store_true",
-        help="Generate sequence from advanced structure."
+        help="Generate sequence from advanced structure.",
     )
 
     advanced_group.add_argument(
@@ -672,87 +724,87 @@ def parse_args(args: Optional[list] = None) -> argparse.Namespace:
         type=int,
         default=1000,
         metavar="N",
-        help="Length of sequence to generate (default: 1000)."
+        help="Length of sequence to generate (default: 1000).",
     )
 
     # Theoretical analysis options
     theoretical_group = parser.add_argument_group(
         "theoretical analysis options",
-        "Options for theoretical analysis, LaTeX export, and research features"
+        "Options for theoretical analysis, LaTeX export, and research features",
     )
 
     theoretical_group.add_argument(
         "--export-latex",
         type=str,
         metavar="FILE",
-        help="Export analysis results to LaTeX format (specify output file)."
+        help="Export analysis results to LaTeX format (specify output file).",
     )
 
     theoretical_group.add_argument(
         "--generate-paper",
         type=str,
         metavar="FILE",
-        help="Generate complete research paper from analysis results (specify output file)."
+        help="Generate complete research paper from analysis results (specify output file).",
     )
 
     theoretical_group.add_argument(
         "--compare-known",
         action="store_true",
-        help="Compare computed results with known results in database."
+        help="Compare computed results with known results in database.",
     )
 
     theoretical_group.add_argument(
         "--benchmark",
         action="store_true",
-        help="Run performance benchmarks for analysis methods."
+        help="Run performance benchmarks for analysis methods.",
     )
 
     theoretical_group.add_argument(
         "--reproducibility-report",
         type=str,
         metavar="FILE",
-        help="Generate reproducibility report (specify output file)."
+        help="Generate reproducibility report (specify output file).",
     )
 
     # Visualization options
     viz_group = parser.add_argument_group(
         "visualization options",
-        "Options for generating visualizations of analysis results"
+        "Options for generating visualizations of analysis results",
     )
 
     viz_group.add_argument(
         "--plot-period-distribution",
         type=str,
         metavar="FILE",
-        help="Generate period distribution plot (specify output file)."
+        help="Generate period distribution plot (specify output file).",
     )
 
     viz_group.add_argument(
         "--plot-state-transitions",
         type=str,
         metavar="FILE",
-        help="Generate state transition diagram (specify output file)."
+        help="Generate state transition diagram (specify output file).",
     )
 
     viz_group.add_argument(
         "--plot-period-statistics",
         type=str,
         metavar="FILE",
-        help="Generate statistical plots for period distribution (specify output file)."
+        help="Generate statistical plots for period distribution (specify output file).",
     )
 
     viz_group.add_argument(
         "--plot-3d-state-space",
         type=str,
         metavar="FILE",
-        help="Generate 3D state space visualization (specify output file)."
+        help="Generate 3D state space visualization (specify output file).",
     )
 
     viz_group.add_argument(
         "--visualize-attack",
         type=str,
         metavar="FILE",
-        help="Visualize attack results (specify output file)."
+        help="Visualize attack results (specify output file).",
     )
 
     viz_group.add_argument(
@@ -760,44 +812,44 @@ def parse_args(args: Optional[list] = None) -> argparse.Namespace:
         type=str,
         choices=["png", "svg", "pdf", "html"],
         default="png",
-        help="Output format for visualizations (default: png)."
+        help="Output format for visualizations (default: png).",
     )
 
     viz_group.add_argument(
         "--viz-interactive",
         action="store_true",
-        help="Generate interactive visualizations (HTML format)."
+        help="Generate interactive visualizations (HTML format).",
     )
 
     # Machine learning options
     ml_group = parser.add_argument_group(
         "machine learning options",
-        "Options for ML-based analysis (period prediction, pattern detection, anomaly detection)"
+        "Options for ML-based analysis (period prediction, pattern detection, anomaly detection)",
     )
 
     ml_group.add_argument(
         "--predict-period",
         action="store_true",
-        help="Predict period using ML model (requires trained model)."
+        help="Predict period using ML model (requires trained model).",
     )
 
     ml_group.add_argument(
         "--detect-patterns",
         action="store_true",
-        help="Detect patterns in generated sequences."
+        help="Detect patterns in generated sequences.",
     )
 
     ml_group.add_argument(
         "--detect-anomalies",
         action="store_true",
-        help="Detect anomalies in sequences and distributions."
+        help="Detect anomalies in sequences and distributions.",
     )
 
     ml_group.add_argument(
         "--train-model",
         type=str,
         metavar="FILE",
-        help="Train ML model and save to file (specify output file)."
+        help="Train ML model and save to file (specify output file).",
     )
 
     ml_group.add_argument(
@@ -805,7 +857,7 @@ def parse_args(args: Optional[list] = None) -> argparse.Namespace:
         type=int,
         default=100,
         metavar="N",
-        help="Number of training samples for --train-model (default: 100)."
+        help="Number of training samples for --train-model (default: 100).",
     )
 
     ml_group.add_argument(
@@ -813,21 +865,21 @@ def parse_args(args: Optional[list] = None) -> argparse.Namespace:
         type=str,
         choices=["random_forest", "gradient_boosting"],
         default="random_forest",
-        help="Model type for --train-model (default: random_forest)."
+        help="Model type for --train-model (default: random_forest).",
     )
 
     ml_group.add_argument(
         "--ml-model-file",
         type=str,
         metavar="FILE",
-        help="Path to trained ML model file (for prediction or --evaluate-model)."
+        help="Path to trained ML model file (for prediction or --evaluate-model).",
     )
 
     ml_group.add_argument(
         "--evaluate-model",
         action="store_true",
         help="Evaluate a trained model (--ml-model-file) on fresh synthetic "
-             "test data and report MSE/RMSE/R²."
+        "test data and report MSE/RMSE/R².",
     )
 
     ml_group.add_argument(
@@ -835,25 +887,25 @@ def parse_args(args: Optional[list] = None) -> argparse.Namespace:
         type=int,
         default=50,
         metavar="N",
-        help="Number of test samples for --evaluate-model (default: 50)."
+        help="Number of test samples for --evaluate-model (default: 50).",
     )
 
     # NIST test suite options
     nist_group = parser.add_argument_group(
         "NIST SP 800-22 test suite options",
-        "Options for NIST statistical test suite analysis"
+        "Options for NIST statistical test suite analysis",
     )
 
     nist_group.add_argument(
         "--nist-test",
         action="store_true",
-        help="Run NIST SP 800-22 statistical test suite on sequence. Requires sequence file or generates from LFSR."
+        help="Run NIST SP 800-22 statistical test suite on sequence. Requires sequence file or generates from LFSR.",
     )
 
     nist_group.add_argument(
         "--sequence-file",
         metavar="SEQUENCE_FILE",
-        help="File containing binary sequence (one bit per line, or space-separated). Required for --nist-test if not generating from LFSR."
+        help="File containing binary sequence (one bit per line, or space-separated). Required for --nist-test if not generating from LFSR.",
     )
 
     nist_group.add_argument(
@@ -861,7 +913,7 @@ def parse_args(args: Optional[list] = None) -> argparse.Namespace:
         type=float,
         default=0.01,
         metavar="ALPHA",
-        help="Statistical significance level for NIST tests (default: 0.01)."
+        help="Statistical significance level for NIST tests (default: 0.01).",
     )
 
     nist_group.add_argument(
@@ -869,7 +921,7 @@ def parse_args(args: Optional[list] = None) -> argparse.Namespace:
         type=int,
         default=128,
         metavar="SIZE",
-        help="Block size for block-based NIST tests (default: 128)."
+        help="Block size for block-based NIST tests (default: 128).",
     )
 
     nist_group.add_argument(
@@ -878,7 +930,7 @@ def parse_args(args: Optional[list] = None) -> argparse.Namespace:
         default="text",
         choices=["text", "json", "csv", "xml", "html"],
         metavar="FORMAT",
-        help="Output format for NIST test results (default: text). Options: text, json, csv, xml, html."
+        help="Output format for NIST test results (default: text). Options: text, json, csv, xml, html.",
     )
 
     parsed_args = parser.parse_args(args)
@@ -931,7 +983,9 @@ def cli_main() -> None:
 
         # Validate input file exists before opening output file
         if not os.path.exists(input_file_name):
-            print(f"ERROR: Input CSV file not found: {input_file_name}", file=sys.stderr)
+            print(
+                f"ERROR: Input CSV file not found: {input_file_name}", file=sys.stderr
+            )
             sys.exit(1)
 
         # Show verbose information if requested
@@ -953,8 +1007,13 @@ def cli_main() -> None:
                 else:
                     # TODO: Extract sequence from LFSR analysis output
                     # For now, require sequence file
-                    print("ERROR: --nist-test requires --sequence-file", file=sys.stderr)
-                    print("       (Extracting sequence from LFSR analysis not yet implemented)", file=sys.stderr)
+                    print(
+                        "ERROR: --nist-test requires --sequence-file", file=sys.stderr
+                    )
+                    print(
+                        "       (Extracting sequence from LFSR analysis not yet implemented)",
+                        file=sys.stderr,
+                    )
                     sys.exit(1)
 
                 perform_nist_test_cli(
@@ -962,7 +1021,7 @@ def cli_main() -> None:
                     output_file=output_file,
                     significance_level=args.nist_significance_level,
                     block_size=args.nist_block_size,
-                    output_format=args.nist_output_format
+                    output_format=args.nist_output_format,
                 )
             # Check if advanced structure analysis mode
             elif args.advanced_structure:
@@ -971,13 +1030,20 @@ def cli_main() -> None:
 
                 # Load coefficients from input file
                 if not args.input_file:
-                    print("ERROR: --advanced-structure requires input file with LFSR coefficients", file=sys.stderr)
+                    print(
+                        "ERROR: --advanced-structure requires input file with LFSR coefficients",
+                        file=sys.stderr,
+                    )
                     sys.exit(1)
 
                 from lfsr.io import read_coefficient_vectors
+
                 coeffs_list = read_coefficient_vectors(args.input_file, args.gf_order)
                 if not coeffs_list:
-                    print("ERROR: No valid coefficients found in input file", file=sys.stderr)
+                    print(
+                        "ERROR: No valid coefficients found in input file",
+                        file=sys.stderr,
+                    )
                     sys.exit(1)
 
                 # Use first set of coefficients
@@ -985,7 +1051,7 @@ def cli_main() -> None:
                 base_lfsr = LFSRConfig(
                     coefficients=coefficients,
                     field_order=int(args.gf_order),
-                    degree=len(coefficients)
+                    degree=len(coefficients),
                 )
 
                 perform_advanced_structure_analysis_cli(
@@ -994,7 +1060,7 @@ def cli_main() -> None:
                     analyze_structure=args.analyze_advanced_structure,
                     generate_sequence=args.generate_advanced_sequence,
                     sequence_length=args.advanced_sequence_length,
-                    output_file=output_file
+                    output_file=output_file,
                 )
             # Check if stream cipher analysis mode
             elif args.cipher:
@@ -1008,7 +1074,7 @@ def cli_main() -> None:
                     key_file=args.key_file,
                     iv_file=args.iv_file,
                     compare=args.compare_ciphers,
-                    output_file=output_file
+                    output_file=output_file,
                 )
             # Check if TMTO attack mode
             elif args.tmto_attack:
@@ -1016,13 +1082,20 @@ def cli_main() -> None:
 
                 # Load coefficients from input file
                 if not args.input_file:
-                    print("ERROR: --tmto-attack requires input file with LFSR coefficients", file=sys.stderr)
+                    print(
+                        "ERROR: --tmto-attack requires input file with LFSR coefficients",
+                        file=sys.stderr,
+                    )
                     sys.exit(1)
 
                 from lfsr.io import read_coefficient_vectors
+
                 coeffs_list = read_coefficient_vectors(args.input_file, args.gf_order)
                 if not coeffs_list:
-                    print("ERROR: No valid coefficients found in input file", file=sys.stderr)
+                    print(
+                        "ERROR: No valid coefficients found in input file",
+                        file=sys.stderr,
+                    )
                     sys.exit(1)
 
                 # Use first set of coefficients
@@ -1035,7 +1108,7 @@ def cli_main() -> None:
                     chain_count=args.chain_count,
                     chain_length=args.chain_length,
                     table_file=args.tmto_table_file,
-                    output_file=output_file
+                    output_file=output_file,
                 )
             # Check if algebraic attack mode
             elif args.algebraic_attack:
@@ -1044,14 +1117,21 @@ def cli_main() -> None:
                 # For now, require coefficients from input file
                 # In future, could add --lfsr-coefficients argument
                 if not args.input_file:
-                    print("ERROR: --algebraic-attack requires input file with LFSR coefficients", file=sys.stderr)
+                    print(
+                        "ERROR: --algebraic-attack requires input file with LFSR coefficients",
+                        file=sys.stderr,
+                    )
                     sys.exit(1)
 
                 # Load coefficients from input file
                 from lfsr.io import read_coefficient_vectors
+
                 coeffs_list = read_coefficient_vectors(args.input_file, args.gf_order)
                 if not coeffs_list:
-                    print("ERROR: No valid coefficients found in input file", file=sys.stderr)
+                    print(
+                        "ERROR: No valid coefficients found in input file",
+                        file=sys.stderr,
+                    )
                     sys.exit(1)
 
                 # Use first set of coefficients
@@ -1059,22 +1139,29 @@ def cli_main() -> None:
 
                 # Load keystream if provided
                 keystream = None
-                if hasattr(args, 'keystream_file') and args.keystream_file:
+                if hasattr(args, "keystream_file") and args.keystream_file:
                     from lfsr.cli_correlation import load_keystream_from_file
+
                     keystream = load_keystream_from_file(args.keystream_file)
 
                 perform_algebraic_attack_cli(
                     lfsr_coefficients=coefficients,
                     field_order=args.gf_order,
                     keystream=keystream,
-                    keystream_file=getattr(args, 'keystream_file', None),
+                    keystream_file=getattr(args, "keystream_file", None),
                     method=args.algebraic_method,
                     max_cube_size=args.max_cube_size,
                     max_equations=args.max_equations,
-                    output_file=output_file
+                    output_file=output_file,
                 )
             # Check if theoretical analysis features requested
-            elif args.export_latex or args.generate_paper or args.compare_known or args.benchmark or args.reproducibility_report:
+            elif (
+                args.export_latex
+                or args.generate_paper
+                or args.compare_known
+                or args.benchmark
+                or args.reproducibility_report
+            ):
                 from lfsr.benchmarking import compare_methods
                 from lfsr.core import analyze_lfsr
                 from lfsr.export_latex import (
@@ -1089,12 +1176,18 @@ def cli_main() -> None:
 
                 # Load coefficients from input file
                 if not args.input_file:
-                    print("ERROR: Theoretical analysis features require input file with LFSR coefficients", file=sys.stderr)
+                    print(
+                        "ERROR: Theoretical analysis features require input file with LFSR coefficients",
+                        file=sys.stderr,
+                    )
                     sys.exit(1)
 
                 coeffs_list = read_coefficient_vectors(args.input_file, args.gf_order)
                 if not coeffs_list:
-                    print("ERROR: No valid coefficients found in input file", file=sys.stderr)
+                    print(
+                        "ERROR: No valid coefficients found in input file",
+                        file=sys.stderr,
+                    )
                     sys.exit(1)
 
                 # Use first set of coefficients
@@ -1106,48 +1199,59 @@ def cli_main() -> None:
                     coefficients, gf_order_int
                 )
                 from lfsr.polynomial import characteristic_polynomial, polynomial_order
+
                 char_poly = characteristic_polynomial(CS, gf_order_int)
                 char_poly_order = polynomial_order(char_poly, d, gf_order_int)
 
                 # Prepare analysis results dictionary
                 from lfsr.polynomial import is_primitive_polynomial
+
                 is_primitive = is_primitive_polynomial(char_poly, gf_order_int)
                 theoretical_max = gf_order_int ** len(coefficients) - 1
 
                 analysis_results = {
-                    'field_order': args.gf_order,
-                    'lfsr_degree': len(coefficients),
-                    'coefficients': coefficients,
-                    'max_period': max_period,
-                    'theoretical_max_period': theoretical_max,
-                    'is_primitive': is_primitive,
-                    'polynomial': {
-                        'polynomial': char_poly,
-                        'order': int(char_poly_order) if char_poly_order != oo else None,
-                        'is_primitive': is_primitive,
-                        'is_irreducible': char_poly.is_irreducible(),
-                        'field_order': args.gf_order
+                    "field_order": args.gf_order,
+                    "lfsr_degree": len(coefficients),
+                    "coefficients": coefficients,
+                    "max_period": max_period,
+                    "theoretical_max_period": theoretical_max,
+                    "is_primitive": is_primitive,
+                    "polynomial": {
+                        "polynomial": char_poly,
+                        "order": int(char_poly_order)
+                        if char_poly_order != oo
+                        else None,
+                        "is_primitive": is_primitive,
+                        "is_irreducible": char_poly.is_irreducible(),
+                        "field_order": args.gf_order,
                     },
-                    'period_distribution': {
-                        'period_dict': period_dict,
-                        'field_order': args.gf_order,
-                        'lfsr_degree': len(coefficients),
-                        'is_primitive': is_primitive,
-                        'theoretical_max_period': theoretical_max
-                    }
+                    "period_distribution": {
+                        "period_dict": period_dict,
+                        "field_order": args.gf_order,
+                        "lfsr_degree": len(coefficients),
+                        "is_primitive": is_primitive,
+                        "theoretical_max_period": theoretical_max,
+                    },
                 }
 
                 # LaTeX export
                 if args.export_latex:
-                    export_to_latex_file(analysis_results, args.export_latex, include_preamble=True)
-                    print(f"LaTeX export saved to {args.export_latex}", file=output_file)
+                    export_to_latex_file(
+                        analysis_results, args.export_latex, include_preamble=True
+                    )
+                    print(
+                        f"LaTeX export saved to {args.export_latex}", file=output_file
+                    )
 
                 # Paper generation
                 if args.generate_paper:
                     paper = generate_complete_paper(analysis_results)
-                    with open(args.generate_paper, 'w', encoding='utf-8') as f:
+                    with open(args.generate_paper, "w", encoding="utf-8") as f:
                         f.write(paper)
-                    print(f"Research paper saved to {args.generate_paper}", file=output_file)
+                    print(
+                        f"Research paper saved to {args.generate_paper}",
+                        file=output_file,
+                    )
 
                 # Compare with known results
                 if args.compare_known:
@@ -1157,18 +1261,35 @@ def cli_main() -> None:
                         args.gf_order,
                         len(coefficients),
                         int(char_poly_order) if char_poly_order != oo else None,
-                        is_primitive
+                        is_primitive,
                     )
                     print("=" * 70, file=output_file)
                     print("Comparison with Known Results", file=output_file)
                     print("=" * 70, file=output_file)
-                    print(f"Found in database: {comparison['found_in_database']}", file=output_file)
-                    if comparison['found_in_database']:
-                        print(f"Known order: {comparison['known_order']}", file=output_file)
-                        print(f"Known primitive: {comparison['known_is_primitive']}", file=output_file)
-                        print(f"Order match: {comparison['order_match']}", file=output_file)
-                        print(f"Primitive match: {comparison['primitive_match']}", file=output_file)
-                        print(f"Overall match: {comparison['matches']}", file=output_file)
+                    print(
+                        f"Found in database: {comparison['found_in_database']}",
+                        file=output_file,
+                    )
+                    if comparison["found_in_database"]:
+                        print(
+                            f"Known order: {comparison['known_order']}",
+                            file=output_file,
+                        )
+                        print(
+                            f"Known primitive: {comparison['known_is_primitive']}",
+                            file=output_file,
+                        )
+                        print(
+                            f"Order match: {comparison['order_match']}",
+                            file=output_file,
+                        )
+                        print(
+                            f"Primitive match: {comparison['primitive_match']}",
+                            file=output_file,
+                        )
+                        print(
+                            f"Overall match: {comparison['matches']}", file=output_file
+                        )
                     else:
                         print("No matching results found in database", file=output_file)
                     print("=" * 70, file=output_file)
@@ -1178,31 +1299,44 @@ def cli_main() -> None:
                     print("=" * 70, file=output_file)
                     print("Performance Benchmarking", file=output_file)
                     print("=" * 70, file=output_file)
-                    benchmark_results = compare_methods(coefficients, args.gf_order, max_period)
+                    benchmark_results = compare_methods(
+                        coefficients, args.gf_order, max_period
+                    )
                     for method, result in benchmark_results.items():
                         print(f"\nMethod: {method}", file=output_file)
-                        print(f"  Execution time: {result.execution_time:.6f} seconds", file=output_file)
+                        print(
+                            f"  Execution time: {result.execution_time:.6f} seconds",
+                            file=output_file,
+                        )
                         print(f"  Result: {result.result_value}", file=output_file)
                         if result.result_correct is not None:
-                            print(f"  Correct: {result.result_correct}", file=output_file)
+                            print(
+                                f"  Correct: {result.result_correct}", file=output_file
+                            )
                     print("=" * 70, file=output_file)
 
                 # Reproducibility report
                 if args.reproducibility_report:
                     analysis_config = {
-                        'coefficients': coefficients,
-                        'field_order': args.gf_order,
-                        'degree': len(coefficients)
+                        "coefficients": coefficients,
+                        "field_order": args.gf_order,
+                        "degree": len(coefficients),
                     }
                     save_reproducibility_report(
-                        analysis_results,
-                        analysis_config,
-                        args.reproducibility_report
+                        analysis_results, analysis_config, args.reproducibility_report
                     )
-                    print(f"Reproducibility report saved to {args.reproducibility_report}", file=output_file)
+                    print(
+                        f"Reproducibility report saved to {args.reproducibility_report}",
+                        file=output_file,
+                    )
             # Check if ML features requested
-            elif (args.predict_period or args.detect_patterns or args.detect_anomalies or
-                  args.train_model or args.evaluate_model):
+            elif (
+                args.predict_period
+                or args.detect_patterns
+                or args.detect_anomalies
+                or args.train_model
+                or args.evaluate_model
+            ):
                 from lfsr.core import analyze_lfsr
                 from lfsr.io import read_coefficient_vectors
                 from lfsr.ml.anomaly_detection import detect_all_anomalies
@@ -1215,12 +1349,18 @@ def cli_main() -> None:
 
                 # Load coefficients from input file
                 if not args.input_file:
-                    print("ERROR: ML features require input file with LFSR coefficients", file=sys.stderr)
+                    print(
+                        "ERROR: ML features require input file with LFSR coefficients",
+                        file=sys.stderr,
+                    )
                     sys.exit(1)
 
                 coeffs_list = read_coefficient_vectors(args.input_file, args.gf_order)
                 if not coeffs_list:
-                    print("ERROR: No valid coefficients found in input file", file=sys.stderr)
+                    print(
+                        "ERROR: No valid coefficients found in input file",
+                        file=sys.stderr,
+                    )
                     sys.exit(1)
 
                 coefficients = coeffs_list[0]
@@ -1234,11 +1374,19 @@ def cli_main() -> None:
                     if args.ml_model_file:
                         model = PeriodPredictionModel()
                         model.load_model(args.ml_model_file)
-                        predicted = model.predict_period(coefficients, int(args.gf_order))
+                        predicted = model.predict_period(
+                            coefficients, int(args.gf_order)
+                        )
                         print(f"Predicted period: {predicted:.2f}", file=output_file)
                     else:
-                        print("WARNING: No model file specified. Using default model.", file=output_file)
-                        print("         Train a model with --train-model for better accuracy.", file=output_file)
+                        print(
+                            "WARNING: No model file specified. Using default model.",
+                            file=output_file,
+                        )
+                        print(
+                            "         Train a model with --train-model for better accuracy.",
+                            file=output_file,
+                        )
                         # Could create a default model here
 
                 # Pattern detection
@@ -1247,7 +1395,9 @@ def cli_main() -> None:
                     print("Pattern Detection", file=output_file)
                     print("=" * 70, file=output_file)
 
-                    seq_dict, period_dict, max_period, _, _, _, _ = analyze_lfsr(coefficients, int(args.gf_order))
+                    seq_dict, period_dict, max_period, _, _, _, _ = analyze_lfsr(
+                        coefficients, int(args.gf_order)
+                    )
                     # Get first sequence
                     if seq_dict:
                         first_seq = list(seq_dict.values())[0]
@@ -1255,9 +1405,15 @@ def cli_main() -> None:
                         patterns = detect_all_patterns(sequence)
 
                         for pattern_type, pattern_list in patterns.items():
-                            print(f"\n{pattern_type}: {len(pattern_list)} patterns", file=output_file)
+                            print(
+                                f"\n{pattern_type}: {len(pattern_list)} patterns",
+                                file=output_file,
+                            )
                             for i, pattern in enumerate(pattern_list[:5]):  # Show top 5
-                                print(f"  Pattern {i+1}: {pattern.description} (confidence: {pattern.confidence:.2f})", file=output_file)
+                                print(
+                                    f"  Pattern {i+1}: {pattern.description} (confidence: {pattern.confidence:.2f})",
+                                    file=output_file,
+                                )
 
                 # Anomaly detection
                 if args.detect_anomalies:
@@ -1266,11 +1422,14 @@ def cli_main() -> None:
                     print("=" * 70, file=output_file)
 
                     _gf_order_int = int(args.gf_order)
-                    seq_dict, period_dict, max_period, _, _, _, _ = analyze_lfsr(coefficients, _gf_order_int)
+                    seq_dict, period_dict, max_period, _, _, _, _ = analyze_lfsr(
+                        coefficients, _gf_order_int
+                    )
                     theoretical_max = _gf_order_int ** len(coefficients) - 1
 
                     from lfsr.polynomial import is_primitive_polynomial
                     from lfsr.sage_imports import GF, PolynomialRing
+
                     F = GF(_gf_order_int)
                     R = PolynomialRing(F, "t")
                     # Characteristic polynomial of the companion matrix is
@@ -1288,18 +1447,32 @@ def cli_main() -> None:
                             sequence=sequence,
                             period_dict=period_dict,
                             theoretical_max_period=theoretical_max,
-                            is_primitive=is_primitive
+                            is_primitive=is_primitive,
                         )
 
                         if isinstance(anomalies, dict):
                             for anomaly_type, anomaly_list in anomalies.items():
-                                print(f"\n{anomaly_type}: {len(anomaly_list)} anomalies", file=output_file)
-                                for i, anomaly in enumerate(anomaly_list[:10]):  # Show top 10
-                                    print(f"  Anomaly {i+1}: {anomaly.description} (severity: {anomaly.severity:.2f})", file=output_file)
+                                print(
+                                    f"\n{anomaly_type}: {len(anomaly_list)} anomalies",
+                                    file=output_file,
+                                )
+                                for i, anomaly in enumerate(
+                                    anomaly_list[:10]
+                                ):  # Show top 10
+                                    print(
+                                        f"  Anomaly {i+1}: {anomaly.description} (severity: {anomaly.severity:.2f})",
+                                        file=output_file,
+                                    )
                         else:
-                            print(f"Anomalies detected: {len(anomalies)}", file=output_file)
+                            print(
+                                f"Anomalies detected: {len(anomalies)}",
+                                file=output_file,
+                            )
                             for i, anomaly in enumerate(anomalies[:10]):  # Show top 10
-                                print(f"  Anomaly {i+1}: {anomaly.description} (severity: {anomaly.severity:.2f})", file=output_file)
+                                print(
+                                    f"  Anomaly {i+1}: {anomaly.description} (severity: {anomaly.severity:.2f})",
+                                    file=output_file,
+                                )
 
                 # Model training
                 if args.train_model:
@@ -1312,9 +1485,12 @@ def cli_main() -> None:
                         num_samples=args.ml_samples,
                         max_degree=min(10, len(coefficients) + 2),
                         field_order=int(args.gf_order),
-                        save_path=args.train_model
+                        save_path=args.train_model,
                     )
-                    print(f"Model trained and saved to {args.train_model}", file=output_file)
+                    print(
+                        f"Model trained and saved to {args.train_model}",
+                        file=output_file,
+                    )
 
                 # Model evaluation
                 if args.evaluate_model:
@@ -1323,7 +1499,10 @@ def cli_main() -> None:
                     print("=" * 70, file=output_file)
 
                     if not args.ml_model_file:
-                        print("ERROR: --evaluate-model requires --ml-model-file", file=sys.stderr)
+                        print(
+                            "ERROR: --evaluate-model requires --ml-model-file",
+                            file=sys.stderr,
+                        )
                         sys.exit(1)
 
                     model = PeriodPredictionModel()
@@ -1332,15 +1511,19 @@ def cli_main() -> None:
                         model,
                         test_samples=args.ml_test_samples,
                         max_degree=min(10, len(coefficients) + 2),
-                        field_order=int(args.gf_order)
+                        field_order=int(args.gf_order),
                     )
                     print(f"MSE: {metrics['mse']:.2f}", file=output_file)
                     print(f"RMSE: {metrics['rmse']:.2f}", file=output_file)
                     print(f"R² Score: {metrics['r2_score']:.4f}", file=output_file)
             # Check if visualization features requested
-            elif (args.plot_period_distribution or args.plot_state_transitions or
-                  args.plot_period_statistics or args.plot_3d_state_space or
-                  args.visualize_attack):
+            elif (
+                args.plot_period_distribution
+                or args.plot_state_transitions
+                or args.plot_period_statistics
+                or args.plot_3d_state_space
+                or args.visualize_attack
+            ):
                 from lfsr.core import analyze_lfsr
                 from lfsr.io import read_coefficient_vectors
                 from lfsr.visualization.attack_visualization import (
@@ -1356,12 +1539,18 @@ def cli_main() -> None:
 
                 # Load coefficients from input file
                 if not args.input_file:
-                    print("ERROR: Visualization features require input file with LFSR coefficients", file=sys.stderr)
+                    print(
+                        "ERROR: Visualization features require input file with LFSR coefficients",
+                        file=sys.stderr,
+                    )
                     sys.exit(1)
 
                 coeffs_list = read_coefficient_vectors(args.input_file, args.gf_order)
                 if not coeffs_list:
-                    print("ERROR: No valid coefficients found in input file", file=sys.stderr)
+                    print(
+                        "ERROR: No valid coefficients found in input file",
+                        file=sys.stderr,
+                    )
                     sys.exit(1)
 
                 coefficients = coeffs_list[0]
@@ -1372,18 +1561,20 @@ def cli_main() -> None:
                     coefficients, gf_order_int
                 )
                 from lfsr.polynomial import characteristic_polynomial
+
                 char_poly = characteristic_polynomial(CS, gf_order_int)
 
                 from lfsr.polynomial import is_primitive_polynomial
+
                 is_primitive = is_primitive_polynomial(char_poly, gf_order_int)
                 theoretical_max = gf_order_int ** len(coefficients) - 1
 
                 # Determine output format
                 format_map = {
-                    'png': OutputFormat.PNG,
-                    'svg': OutputFormat.SVG,
-                    'pdf': OutputFormat.PDF,
-                    'html': OutputFormat.HTML
+                    "png": OutputFormat.PNG,
+                    "svg": OutputFormat.SVG,
+                    "pdf": OutputFormat.PDF,
+                    "html": OutputFormat.HTML,
                 }
                 output_format = format_map.get(args.viz_format, OutputFormat.PNG)
                 interactive = args.viz_interactive or output_format == OutputFormat.HTML
@@ -1391,7 +1582,7 @@ def cli_main() -> None:
                 config = VisualizationConfig(
                     output_format=output_format,
                     interactive=interactive,
-                    title="LFSR Analysis Visualization"
+                    title="LFSR Analysis Visualization",
                 )
 
                 # Period distribution plot
@@ -1401,9 +1592,12 @@ def cli_main() -> None:
                         theoretical_max_period=theoretical_max,
                         is_primitive=is_primitive,
                         config=config,
-                        output_file=args.plot_period_distribution
+                        output_file=args.plot_period_distribution,
                     )
-                    print(f"Period distribution plot saved to {args.plot_period_distribution}", file=output_file)
+                    print(
+                        f"Period distribution plot saved to {args.plot_period_distribution}",
+                        file=output_file,
+                    )
 
                 # State transition diagram
                 if args.plot_state_transitions:
@@ -1412,9 +1606,12 @@ def cli_main() -> None:
                         period_dict,
                         max_states=50,
                         config=config,
-                        output_file=args.plot_state_transitions
+                        output_file=args.plot_state_transitions,
                     )
-                    print(f"State transition diagram saved to {args.plot_state_transitions}", file=output_file)
+                    print(
+                        f"State transition diagram saved to {args.plot_state_transitions}",
+                        file=output_file,
+                    )
 
                 # Period statistics
                 if args.plot_period_statistics:
@@ -1423,9 +1620,12 @@ def cli_main() -> None:
                         theoretical_max_period=theoretical_max,
                         is_primitive=is_primitive,
                         config=config,
-                        output_file=args.plot_period_statistics
+                        output_file=args.plot_period_statistics,
                     )
-                    print(f"Period statistics plot saved to {args.plot_period_statistics}", file=output_file)
+                    print(
+                        f"Period statistics plot saved to {args.plot_period_statistics}",
+                        file=output_file,
+                    )
 
                 # 3D state space
                 if args.plot_3d_state_space:
@@ -1434,31 +1634,38 @@ def cli_main() -> None:
                         period_dict,
                         max_states=100,
                         config=config,
-                        output_file=args.plot_3d_state_space
+                        output_file=args.plot_3d_state_space,
                     )
-                    print(f"3D state space visualization saved to {args.plot_3d_state_space}", file=output_file)
+                    print(
+                        f"3D state space visualization saved to {args.plot_3d_state_space}",
+                        file=output_file,
+                    )
 
                 # Attack visualization (if attack results available)
                 if args.visualize_attack:
                     # For now, create a simple visualization
                     # In future, could load actual attack results
                     attack_results = {
-                        'correlations': [0.5] * len(coefficients),
-                        'success_probability': 0.5,
-                        'attack_successful': False
+                        "correlations": [0.5] * len(coefficients),
+                        "success_probability": 0.5,
+                        "attack_successful": False,
                     }
                     visualize_correlation_attack(
-                        attack_results,
-                        config=config,
-                        output_file=args.visualize_attack
+                        attack_results, config=config, output_file=args.visualize_attack
                     )
-                    print(f"Attack visualization saved to {args.visualize_attack}", file=output_file)
+                    print(
+                        f"Attack visualization saved to {args.visualize_attack}",
+                        file=output_file,
+                    )
             # Check if correlation attack mode
             elif args.correlation_attack:
                 from lfsr.cli_correlation import perform_correlation_attack_cli
 
                 if not args.lfsr_configs:
-                    print("ERROR: --correlation-attack requires --lfsr-configs", file=sys.stderr)
+                    print(
+                        "ERROR: --correlation-attack requires --lfsr-configs",
+                        file=sys.stderr,
+                    )
                     sys.exit(1)
 
                 perform_correlation_attack_cli(
@@ -1496,8 +1703,10 @@ def cli_main() -> None:
 
         if not args.quiet:
             print(f"\nAnalysis complete. Results written to: {output_file_name}")
-            print("New to LFSR terminology? See the Glossary in the User Guide "
-                  "(docs/user_guide.rst, or run 'make docs' to browse it as HTML).")
+            print(
+                "New to LFSR terminology? See the Glossary in the User Guide "
+                "(docs/user_guide.rst, or run 'make docs' to browse it as HTML)."
+            )
 
     except IOError as e:
         print(f"ERROR: File I/O error: {e}", file=sys.stderr)

@@ -70,15 +70,15 @@ def example_latex_export():
 
     # Create analysis results
     analysis_results = {  # noqa: F841 (illustrative; export call commented out below)
-        'field_order': 2,
-        'lfsr_degree': 4,
-        'polynomial': {
-            'polynomial': p,
-            'order': 6,
-            'is_primitive': False,
-            'is_irreducible': False,
-            'field_order': 2
-        }
+        "field_order": 2,
+        "lfsr_degree": 4,
+        "polynomial": {
+            "polynomial": p,
+            "order": 6,
+            "is_primitive": False,
+            "is_irreducible": False,
+            "field_order": 2,
+        },
     }
 
     # Export to LaTeX (comment out to avoid creating file in examples)
@@ -94,21 +94,21 @@ def example_paper_generation():
     print("=" * 70)
 
     analysis_results = {
-        'field_order': 2,
-        'lfsr_degree': 4,
-        'max_period': 6,
-        'theoretical_max_period': 15,
-        'is_primitive': False
+        "field_order": 2,
+        "lfsr_degree": 4,
+        "max_period": 6,
+        "theoretical_max_period": 15,
+        "is_primitive": False,
     }
 
     paper = generate_complete_paper(
-        analysis_results,
-        title="LFSR Analysis Example",
-        author="Example Researcher"
+        analysis_results, title="LFSR Analysis Example", author="Example Researcher"
     )
 
     print(f"\n✓ Generated research paper ({len(paper)} characters)")
-    print("  Paper includes: Abstract, Introduction, Methodology, Results, Discussion, Conclusion")
+    print(
+        "  Paper includes: Abstract, Introduction, Methodology, Results, Discussion, Conclusion"
+    )
     # Uncomment to save:
     # with open("example_paper.tex", "w") as f:
     #     f.write(paper)
@@ -128,11 +128,11 @@ def example_database_comparison():
         field_order=2,
         degree=4,
         computed_order=6,
-        computed_is_primitive=False
+        computed_is_primitive=False,
     )
 
     print(f"\nFound in database: {comparison['found_in_database']}")
-    if comparison['found_in_database']:
+    if comparison["found_in_database"]:
         print(f"Known order: {comparison['known_order']}")
         print(f"Known primitive: {comparison['known_is_primitive']}")
         print(f"Order match: {comparison['order_match']}")
@@ -148,9 +148,7 @@ def example_benchmarking():
     print("=" * 70)
 
     results = compare_methods(
-        coefficients=[1, 0, 0, 1],
-        field_order=2,
-        expected_period=6
+        coefficients=[1, 0, 0, 1], field_order=2, expected_period=6
     )
 
     print("\nBenchmark Results:")
@@ -169,26 +167,22 @@ def example_reproducibility():
     print("=" * 70)
 
     analysis_results = {
-        'field_order': 2,
-        'lfsr_degree': 4,
-        'max_period': 6,
-        'is_primitive': False
+        "field_order": 2,
+        "lfsr_degree": 4,
+        "max_period": 6,
+        "is_primitive": False,
     }
 
-    analysis_config = {
-        'coefficients': [1, 0, 0, 1],
-        'field_order': 2,
-        'degree': 4
-    }
+    analysis_config = {"coefficients": [1, 0, 0, 1], "field_order": 2, "degree": 4}
 
     report = generate_reproducibility_report(
-        analysis_results,
-        analysis_config,
-        seed=12345
+        analysis_results, analysis_config, seed=12345
     )
 
     print(f"\n✓ Generated reproducibility report ({len(report)} characters)")
-    print("  Report includes: Configuration, Environment, Results Summary, Instructions")
+    print(
+        "  Report includes: Configuration, Environment, Results Summary, Instructions"
+    )
     # Uncomment to save:
     # with open("reproducibility_report.json", "w") as f:
     #     f.write(report)
@@ -219,6 +213,7 @@ def main():
     except Exception as e:
         print(f"\nERROR: {e}", file=sys.stderr)
         import traceback
+
         traceback.print_exc()
         sys.exit(1)
 

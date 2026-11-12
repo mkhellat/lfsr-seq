@@ -46,7 +46,9 @@ def test_direct_import_succeeds_when_sage_already_on_sys_path():
     already importable, e.g. because conftest.py or an earlier test
     already made it so), so the function returns True without ever
     shelling out to the `sage` command."""
-    assert "sage" in sys.modules  # true in this dev venv once sage.all was ever imported
+    assert (
+        "sage" in sys.modules
+    )  # true in this dev venv once sage.all was ever imported
     result = sd.ensure_sage_importable()
     assert result is True
     assert sd._discovery_succeeded is True
@@ -79,7 +81,8 @@ def test_falls_back_to_sage_command_when_direct_import_fails(monkeypatch):
     sys.modules keyed by a path subprocess.run "discovers"."""
     # Remove any cached real sage module so `import sage` re-executes.
     saved_sage_modules = {
-        name: mod for name, mod in list(sys.modules.items())
+        name: mod
+        for name, mod in list(sys.modules.items())
         if name == "sage" or name.startswith("sage.")
     }
     for name in list(saved_sage_modules):
@@ -129,7 +132,8 @@ def test_subprocess_timeout_returns_false(monkeypatch):
     """If `sage` isn't on PATH, or hangs, or errors out at the process
     level, the function should return False rather than raising."""
     saved_sage_modules = {
-        name: mod for name, mod in list(sys.modules.items())
+        name: mod
+        for name, mod in list(sys.modules.items())
         if name == "sage" or name.startswith("sage.")
     }
     for name in list(saved_sage_modules):
@@ -160,7 +164,8 @@ def test_sage_command_nonzero_returncode_returns_false(monkeypatch):
     (e.g. a broken installation), the function should treat that as
     discovery failure and return False."""
     saved_sage_modules = {
-        name: mod for name, mod in list(sys.modules.items())
+        name: mod
+        for name, mod in list(sys.modules.items())
         if name == "sage" or name.startswith("sage.")
     }
     for name in list(saved_sage_modules):
@@ -196,7 +201,8 @@ def test_sage_command_succeeds_but_import_still_fails_returns_false(monkeypatch)
     reported paths don't actually contain a usable sage package).
     Should return False, not raise."""
     saved_sage_modules = {
-        name: mod for name, mod in list(sys.modules.items())
+        name: mod
+        for name, mod in list(sys.modules.items())
         if name == "sage" or name.startswith("sage.")
     }
     for name in list(saved_sage_modules):

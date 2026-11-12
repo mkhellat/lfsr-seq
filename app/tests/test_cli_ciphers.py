@@ -22,7 +22,15 @@ from lfsr.cli_ciphers import (
 
 class TestGetCipherInstance:
     def test_all_known_ciphers_resolve(self):
-        for name in ["a5_1", "a5_2", "e0", "trivium", "grain128", "grain128a", "lili128"]:
+        for name in [
+            "a5_1",
+            "a5_2",
+            "e0",
+            "trivium",
+            "grain128",
+            "grain128a",
+            "lili128",
+        ]:
             cipher = get_cipher_instance(name)
             assert cipher is not None
 
@@ -113,7 +121,9 @@ class TestPerformCipherAnalysisCli:
         assert "Key size mismatch" not in captured.err
         assert "IV size mismatch" not in captured.err
 
-    def test_generate_keystream_key_size_mismatch_warns_and_pads(self, tmp_path, capsys):
+    def test_generate_keystream_key_size_mismatch_warns_and_pads(
+        self, tmp_path, capsys
+    ):
         key_file = tmp_path / "key.txt"
         key_file.write_text("11")  # way too short for grain128 (needs 128 bits)
 

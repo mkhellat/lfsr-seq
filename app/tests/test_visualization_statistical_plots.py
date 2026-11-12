@@ -10,6 +10,7 @@ subplot: sequence trace, bit frequency, autocorrelation, run lengths).
 """
 
 import matplotlib
+
 matplotlib.use("Agg")
 
 import matplotlib.pyplot as plt
@@ -66,7 +67,11 @@ class TestPlotPeriodStatistics:
         found = False
         for line in median_lines:
             ydata = line.get_ydata()
-            if len(ydata) and abs(ydata[0] - expected_median) < 1e-9 and ydata[0] == ydata[-1]:
+            if (
+                len(ydata)
+                and abs(ydata[0] - expected_median) < 1e-9
+                and ydata[0] == ydata[-1]
+            ):
                 found = True
                 break
         assert found, f"expected a boxplot line at median={expected_median}"

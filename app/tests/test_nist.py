@@ -1459,9 +1459,7 @@ class TestRunNistTestSuite:
                 details={},
             )
 
-        monkeypatch.setattr(
-            nist_mod, "discrete_fourier_transform_test", fast_dft_stub
-        )
+        monkeypatch.setattr(nist_mod, "discrete_fourier_transform_test", fast_dft_stub)
 
         seq = ([1, 0] * 375001)[:750000]
         assert len(seq) == 750000
@@ -1472,8 +1470,9 @@ class TestRunNistTestSuite:
         # TestLongestRunOfOnesTest; here we only need confirmation the
         # suite ran the correct code path without crashing/hanging.
         lr_result = next(
-            r for r in result.results if "Longest-Run" in r.test_name
-            or "Longest Run" in r.test_name
+            r
+            for r in result.results
+            if "Longest-Run" in r.test_name or "Longest Run" in r.test_name
         )
         assert lr_result is not None
 

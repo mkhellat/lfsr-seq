@@ -52,26 +52,34 @@ def __getattr__(name: str):
     """Lazy import for sage-dependent modules."""
     if name == "lfsr_sequence_mapper":
         from lfsr.analysis import lfsr_sequence_mapper
+
         return lfsr_sequence_mapper
     elif name == "build_state_update_matrix":
         from lfsr.core import build_state_update_matrix
+
         return build_state_update_matrix
     elif name == "compute_matrix_order":
         from lfsr.core import compute_matrix_order
+
         return compute_matrix_order
     elif name == "validate_coefficient_vector":
         from lfsr.field import validate_coefficient_vector
+
         return validate_coefficient_vector
     elif name == "validate_gf_order":
         from lfsr.field import validate_gf_order
+
         return validate_gf_order
     elif name == "characteristic_polynomial":
         from lfsr.polynomial import characteristic_polynomial
+
         return characteristic_polynomial
     elif name == "polynomial_order":
         from lfsr.polynomial import polynomial_order
+
         return polynomial_order
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+
 
 __all__ = [
     # CLI

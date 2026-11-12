@@ -54,7 +54,13 @@ class TestCaptureEnvironment:
     def test_platform_section_fields(self):
         env = capture_environment()
         plat = env["platform"]
-        assert set(plat.keys()) == {"system", "release", "version", "machine", "processor"}
+        assert set(plat.keys()) == {
+            "system",
+            "release",
+            "version",
+            "machine",
+            "processor",
+        }
         assert isinstance(plat["system"], str)
 
     def test_python_section_matches_running_interpreter(self):
@@ -95,7 +101,9 @@ class TestCaptureEnvironment:
         assert "numpy" not in env["packages"]
         assert "scipy" not in env["packages"]
 
-    def test_distribution_not_found_for_individual_package_is_skipped(self, monkeypatch):
+    def test_distribution_not_found_for_individual_package_is_skipped(
+        self, monkeypatch
+    ):
         """Each package lookup is independently guarded by its own
         try/except PackageNotFoundError -- one missing package must
         not prevent others from being captured."""
@@ -113,12 +121,15 @@ class TestCaptureEnvironment:
         assert "sage" not in env["packages"]
         assert "scipy" not in env["packages"]
 
-    def test_unexpected_exception_during_package_capture_is_swallowed(self, monkeypatch):
+    def test_unexpected_exception_during_package_capture_is_swallowed(
+        self, monkeypatch
+    ):
         """Covers the outer `except Exception: pass`: if something
         other than PackageNotFoundError blows up while iterating
         packages (e.g. version() itself raising a totally different
         error), capture_environment must not propagate it -- the whole
         packages capture is best-effort."""
+
         def fake_version(name):
             raise RuntimeError("simulated unexpected failure")
 
@@ -163,7 +174,10 @@ class TestExportConfiguration:
         assert "environment" in parsed
         assert "export_timestamp" in parsed
         assert set(parsed["environment"].keys()) == {
-            "timestamp", "platform", "python", "packages"
+            "timestamp",
+            "platform",
+            "python",
+            "packages",
         }
 
     def test_different_configs_produce_different_json(self):
@@ -197,7 +211,9 @@ class TestExportConfiguration:
 
 class TestGenerateReproducibilityReport:
     def test_returns_valid_json_string(self):
-        result = generate_reproducibility_report({"field_order": 2}, {"coefficients": [1, 0, 1]})
+        result = generate_reproducibility_report(
+            {"field_order": 2}, {"coefficients": [1, 0, 1]}
+        )
         parsed = json.loads(result)
         assert isinstance(parsed, dict)
 
@@ -206,8 +222,13 @@ class TestGenerateReproducibilityReport:
         parsed = json.loads(result)
         assert parsed["report_type"] == "reproducibility_report"
         assert set(parsed.keys()) == {
-            "report_type", "generated", "seed", "configuration",
-            "environment", "results_summary", "reproducibility_instructions",
+            "report_type",
+            "generated",
+            "seed",
+            "configuration",
+            "environment",
+            "results_summary",
+            "reproducibility_instructions",
         }
 
     def test_seed_defaults_to_none_and_round_trips_when_given(self):
@@ -257,7 +278,13 @@ class TestGenerateReproducibilityReport:
     def test_reproducibility_instructions_present_and_ordered(self):
         result = generate_reproducibility_report({}, {})
         instructions = json.loads(result)["reproducibility_instructions"]
-        assert list(instructions.keys()) == ["step1", "step2", "step3", "step4", "step5"]
+        assert list(instructions.keys()) == [
+            "step1",
+            "step2",
+            "step3",
+            "step4",
+            "step5",
+        ]
 
     def test_writes_to_output_file_when_provided(self):
         buf = io.StringIO()
@@ -268,14 +295,22 @@ class TestGenerateReproducibilityReport:
         result = generate_reproducibility_report({}, {})
         parsed = json.loads(result)
         assert set(parsed["environment"].keys()) == {
-            "timestamp", "platform", "python", "packages"
+            "timestamp",
+            "platform",
+            "python",
+            "packages",
         }
 
 
 class TestSaveReproducibilityReport:
     def test_writes_expected_json_content_to_file(self, tmp_path):
         out_file = tmp_path / "report.json"
-        results = {"field_order": 2, "lfsr_degree": 4, "max_period": 15, "is_primitive": True}
+        results = {
+            "field_order": 2,
+            "lfsr_degree": 4,
+            "max_period": 15,
+            "is_primitive": True,
+        }
         config = {"coefficients": [1, 0, 0, 1], "field_order": 2}
 
         save_reproducibility_report(results, config, str(out_file), seed=42)
@@ -287,10 +322,15 @@ class TestSaveReproducibilityReport:
         assert parsed["seed"] == 42
         assert parsed["configuration"] == config
         assert parsed["results_summary"] == {
-            "field_order": 2, "lfsr_degree": 4, "max_period": 15, "is_primitive": True
+            "field_order": 2,
+            "lfsr_degree": 4,
+            "max_period": 15,
+            "is_primitive": True,
         }
 
-    def test_file_content_matches_generate_reproducibility_report_output(self, tmp_path, monkeypatch):
+    def test_file_content_matches_generate_reproducibility_report_output(
+        self, tmp_path, monkeypatch
+    ):
         """save_reproducibility_report should write exactly what
         generate_reproducibility_report would return (plus the trailing
         newline), for the same inputs -- pin the environment's volatile

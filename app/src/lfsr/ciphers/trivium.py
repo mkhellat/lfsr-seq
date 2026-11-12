@@ -93,12 +93,12 @@ class Trivium(StreamCipher):
             iv_size=80,
             description="Trivium eSTREAM finalist with 3 shift registers and non-linear feedback",
             parameters={
-                'reg_a_size': self.REG_A_SIZE,
-                'reg_b_size': self.REG_B_SIZE,
-                'reg_c_size': self.REG_C_SIZE,
-                'total_size': self.TOTAL_SIZE,
-                'warmup_steps': self.WARMUP_STEPS
-            }
+                "reg_a_size": self.REG_A_SIZE,
+                "reg_b_size": self.REG_B_SIZE,
+                "reg_c_size": self.REG_C_SIZE,
+                "total_size": self.TOTAL_SIZE,
+                "warmup_steps": self.WARMUP_STEPS,
+            },
         )
 
     def _clock_register(self, reg: List[int], size: int, feedback_func) -> List[int]:
@@ -172,10 +172,7 @@ class Trivium(StreamCipher):
             self._clock_trivium()
 
     def generate_keystream(
-        self,
-        key: List[int],
-        iv: Optional[List[int]],
-        length: int
+        self, key: List[int], iv: Optional[List[int]], length: int
     ) -> List[int]:
         """
         Generate Trivium keystream.
@@ -205,9 +202,7 @@ class Trivium(StreamCipher):
 
         # Placeholder LFSR configs (Trivium doesn't use LFSRs)
         lfsr1_config = LFSRConfig(
-            coefficients=[1] * 93,  # Placeholder
-            field_order=2,
-            degree=93
+            coefficients=[1] * 93, field_order=2, degree=93  # Placeholder
         )
 
         return CipherStructure(
@@ -216,23 +211,21 @@ class Trivium(StreamCipher):
             combiner="Non-linear combining with AND operations in feedback",
             state_size=288,  # 93 + 84 + 111
             details={
-                'reg_a_size': 93,
-                'reg_b_size': 84,
-                'reg_c_size': 111,
-                'total_size': 288,
-                'warmup_steps': self.WARMUP_STEPS,
-                'note': 'Trivium uses shift registers with non-linear feedback, not pure LFSRs'
-            }
+                "reg_a_size": 93,
+                "reg_b_size": 84,
+                "reg_c_size": 111,
+                "total_size": 288,
+                "warmup_steps": self.WARMUP_STEPS,
+                "note": "Trivium uses shift registers with non-linear feedback, not pure LFSRs",
+            },
         )
 
     def apply_attacks(
-        self,
-        keystream: List[int],
-        attack_types: Optional[List[str]] = None
+        self, keystream: List[int], attack_types: Optional[List[str]] = None
     ) -> dict:
         """Apply attacks to Trivium keystream."""
         return {
-            'note': 'Trivium is considered secure',
-            'known_vulnerabilities': [],
-            'security_status': 'No practical attacks found'
+            "note": "Trivium is considered secure",
+            "known_vulnerabilities": [],
+            "security_status": "No practical attacks found",
         }

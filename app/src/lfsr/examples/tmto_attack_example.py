@@ -31,11 +31,7 @@ def example_hellman_table():
     print("=" * 70)
 
     # Create LFSR configuration
-    lfsr = LFSRConfig(
-        coefficients=[1, 0, 0, 1],
-        field_order=2,
-        degree=4
-    )
+    lfsr = LFSRConfig(coefficients=[1, 0, 0, 1], field_order=2, degree=4)
 
     print("\nLFSR Configuration:")
     print(f"  Coefficients: {lfsr.coefficients}")
@@ -118,7 +114,7 @@ def example_tmto_attack():
         target_state=target_state,
         method="hellman",
         chain_count=100,
-        chain_length=50
+        chain_length=50,
     )
 
     print(f"\n{'─'*70}")
@@ -150,7 +146,7 @@ def example_parameter_optimization():
     params = optimize_tmto_parameters(
         state_space_size=state_space_size,
         available_memory=available_memory,
-        target_success_probability=0.5
+        target_success_probability=0.5,
     )
 
     print(f"\n{'─'*70}")
@@ -186,7 +182,7 @@ def example_comparison():
         target_state=target_state,
         method="hellman",
         chain_count=chain_count,
-        chain_length=chain_length
+        chain_length=chain_length,
     )
     print(f"   Success: {hellman_result.attack_successful}")
     print(f"   Coverage: {hellman_result.coverage:.2%}")
@@ -199,7 +195,7 @@ def example_comparison():
         target_state=target_state,
         method="rainbow",
         chain_count=chain_count,
-        chain_length=chain_length
+        chain_length=chain_length,
     )
     print(f"   Success: {rainbow_result.attack_successful}")
     print(f"   Coverage: {rainbow_result.coverage:.2%}")
@@ -234,6 +230,7 @@ def main():
     except Exception as e:
         print(f"\nERROR: {e}", file=sys.stderr)
         import traceback
+
         traceback.print_exc()
         sys.exit(1)
 

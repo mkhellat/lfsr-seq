@@ -67,7 +67,9 @@ class TestExtractPolynomialFeatures:
         if actual_charpoly.is_irreducible():
             from lfsr.polynomial import is_primitive_polynomial
 
-            assert bool(is_primitive) == is_primitive_polynomial(actual_charpoly, gf_order)
+            assert bool(is_primitive) == is_primitive_polynomial(
+                actual_charpoly, gf_order
+            )
 
     def test_gf5_characteristic_polynomial_matches_matrix(self):
         """Same cross-check as test_gf3_..., for GF(5)."""
@@ -85,7 +87,9 @@ class TestExtractPolynomialFeatures:
         if actual_charpoly.is_irreducible():
             from lfsr.polynomial import is_primitive_polynomial
 
-            assert bool(is_primitive) == is_primitive_polynomial(actual_charpoly, gf_order)
+            assert bool(is_primitive) == is_primitive_polynomial(
+                actual_charpoly, gf_order
+            )
 
 
 class TestExtractSequenceFeatures:
@@ -184,7 +188,7 @@ class TestTrainingPipeline:
             num_samples=10,
             max_degree=6,
             field_order=2,
-            save_path=None
+            save_path=None,
         )
         assert model.is_trained
 
@@ -195,7 +199,7 @@ class TestTrainingPipeline:
             num_samples=10,
             max_degree=6,
             field_order=2,
-            save_path=None
+            save_path=None,
         )
         assert model.is_trained
 
@@ -206,7 +210,7 @@ class TestTrainingPipeline:
             num_samples=10,
             max_degree=6,
             field_order=2,
-            save_path=None
+            save_path=None,
         )
         metrics = evaluate_model_performance(
             model, test_samples=5, max_degree=6, field_order=2
@@ -219,13 +223,18 @@ class TestPatternDetection:
         sequence = [0, 1, 0, 1, 1, 0, 1, 1, 1, 0] * 5
         patterns = detect_all_patterns(sequence)
         assert set(patterns.keys()) == {
-            "repeating_subsequences", "statistical_anomalies", "periodicity_indicators"
+            "repeating_subsequences",
+            "statistical_anomalies",
+            "periodicity_indicators",
         }
 
     def test_detect_all_patterns_partial_selection(self):
         sequence = [0, 1, 0, 1, 1, 0, 1, 1, 1, 0] * 5
         patterns = detect_all_patterns(
-            sequence, include_repeating=False, include_anomalies=False, include_periodicity=True
+            sequence,
+            include_repeating=False,
+            include_anomalies=False,
+            include_periodicity=True,
         )
         assert set(patterns.keys()) == {"periodicity_indicators"}
 

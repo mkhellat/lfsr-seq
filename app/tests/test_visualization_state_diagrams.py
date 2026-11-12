@@ -9,6 +9,7 @@ backends) and export_to_graphviz() (DOT file text generation).
 """
 
 import matplotlib
+
 matplotlib.use("Agg")
 
 import matplotlib.pyplot as plt
@@ -150,7 +151,7 @@ class TestExportToGraphviz:
         assert content.startswith("digraph StateTransitions {")
         assert content.strip().endswith("}")
         assert "rankdir=LR;" in content
-        assert 'node [shape=circle];' in content
+        assert "node [shape=circle];" in content
 
     def test_all_edges_present_in_dot_output(self, tmp_path):
         out = tmp_path / "graph.dot"

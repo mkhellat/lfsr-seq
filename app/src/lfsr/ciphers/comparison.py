@@ -25,6 +25,7 @@ class CipherComparison:
         security_assessment: Security assessment for each cipher
         recommendations: Recommendations based on comparison
     """
+
     ciphers: List[str]
     properties: Dict[str, Dict[str, Any]] = field(default_factory=dict)
     security_assessment: Dict[str, Dict[str, Any]] = field(default_factory=dict)
@@ -35,7 +36,7 @@ def compare_ciphers(
     ciphers: List[StreamCipher],
     analyze_keystream: bool = False,
     key: List[int] = None,
-    iv: List[int] = None
+    iv: List[int] = None,
 ) -> CipherComparison:
     """
     Compare multiple stream ciphers.
@@ -81,54 +82,54 @@ def compare_ciphers(
         name = config.cipher_name
 
         properties[name] = {
-            'key_size': config.key_size,
-            'iv_size': config.iv_size,
-            'state_size': structure.state_size,
-            'num_lfsrs': len(structure.lfsr_configs),
-            'clock_control': structure.clock_control,
-            'combiner': structure.combiner
+            "key_size": config.key_size,
+            "iv_size": config.iv_size,
+            "state_size": structure.state_size,
+            "num_lfsrs": len(structure.lfsr_configs),
+            "clock_control": structure.clock_control,
+            "combiner": structure.combiner,
         }
 
         # Security assessment
         security_assessment[name] = {
-            'status': 'analyzed',
-            'known_vulnerabilities': [],
-            'recommendations': []
+            "status": "analyzed",
+            "known_vulnerabilities": [],
+            "recommendations": [],
         }
 
         # Cipher-specific security notes
         if name == "A5/1":
-            security_assessment[name]['known_vulnerabilities'] = [
-                'Time-memory trade-off attacks',
-                'Correlation attacks',
-                'Known-plaintext attacks'
+            security_assessment[name]["known_vulnerabilities"] = [
+                "Time-memory trade-off attacks",
+                "Correlation attacks",
+                "Known-plaintext attacks",
             ]
-            security_assessment[name]['recommendations'] = [
-                'Not recommended for new systems',
-                'Use only for educational purposes'
+            security_assessment[name]["recommendations"] = [
+                "Not recommended for new systems",
+                "Use only for educational purposes",
             ]
         elif name == "A5/2":
-            security_assessment[name]['known_vulnerabilities'] = [
-                'Complete break (Barkan et al., 2003)',
-                'Real-time key recovery',
-                'Deliberately weakened'
+            security_assessment[name]["known_vulnerabilities"] = [
+                "Complete break (Barkan et al., 2003)",
+                "Real-time key recovery",
+                "Deliberately weakened",
             ]
-            security_assessment[name]['recommendations'] = [
-                'Never use in production',
-                'Educational purposes only'
+            security_assessment[name]["recommendations"] = [
+                "Never use in production",
+                "Educational purposes only",
             ]
         elif name in ["Trivium", "Grain-128", "Grain-128a"]:
-            security_assessment[name]['known_vulnerabilities'] = []
-            security_assessment[name]['recommendations'] = [
-                'Considered secure',
-                'Suitable for research and some applications'
+            security_assessment[name]["known_vulnerabilities"] = []
+            security_assessment[name]["recommendations"] = [
+                "Considered secure",
+                "Suitable for research and some applications",
             ]
 
     # Generate recommendations
     recommendations = []
 
     # Compare key sizes
-    key_sizes = [p['key_size'] for p in properties.values()]
+    key_sizes = [p["key_size"] for p in properties.values()]
     if min(key_sizes) < 128:
         recommendations.append(
             "Some ciphers use keys smaller than 128 bits. "
@@ -136,7 +137,7 @@ def compare_ciphers(
         )
 
     # Compare state sizes
-    state_sizes = [p['state_size'] for p in properties.values()]
+    state_sizes = [p["state_size"] for p in properties.values()]
     recommendations.append(
         f"State sizes range from {min(state_sizes)} to {max(state_sizes)} bits. "
         f"Larger state generally provides better security."
@@ -146,7 +147,7 @@ def compare_ciphers(
         ciphers=cipher_names,
         properties=properties,
         security_assessment=security_assessment,
-        recommendations=recommendations
+        recommendations=recommendations,
     )
 
 
@@ -211,7 +212,7 @@ def generate_comparison_report(comparison: CipherComparison) -> str:
 
     for cipher in comparison.ciphers:
         report.append(f"{cipher}:")
-        vulns = comparison.security_assessment[cipher]['known_vulnerabilities']
+        vulns = comparison.security_assessment[cipher]["known_vulnerabilities"]
         if vulns:
             report.append("  Known Vulnerabilities:")
             for vuln in vulns:
@@ -219,7 +220,7 @@ def generate_comparison_report(comparison: CipherComparison) -> str:
         else:
             report.append("  Known Vulnerabilities: None")
 
-        recs = comparison.security_assessment[cipher]['recommendations']
+        recs = comparison.security_assessment[cipher]["recommendations"]
         if recs:
             report.append("  Recommendations:")
             for rec in recs:

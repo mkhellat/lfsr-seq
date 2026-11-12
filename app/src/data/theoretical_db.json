@@ -1,0 +1,53 @@
+{
+  "primitive_polynomials": {
+    "2_2_1_1": {
+      "coefficients": [
+        1,
+        1
+      ],
+      "field_order": 2,
+      "degree": 2,
+      "order": 3,
+      "source": "Standard primitive polynomial"
+    },
+    "2_3_1_0_1": {
+      "coefficients": [
+        1,
+        0,
+        1
+      ],
+      "field_order": 2,
+      "degree": 3,
+      "order": 7,
+      "source": "Standard primitive polynomial"
+    },
+    "2_4_1_0_0_1": {
+      "coefficients": [
+        1,
+        0,
+        0,
+        1
+      ],
+      "field_order": 2,
+      "degree": 4,
+      "order": 15,
+      "source": "Standard primitive polynomial"
+    },
+    "2_5_1_0_0_1_0": {
+      "coefficients": [
+        1,
+        0,
+        0,
+        1,
+        0
+      ],
+      "field_order": 2,
+      "degree": 5,
+      "order": 31,
+      "source": "Standard primitive polynomial"
+    }
+  },
+  "polynomial_orders": {},
+  "period_distributions": {},
+  "known_results": []
+}
