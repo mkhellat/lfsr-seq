@@ -33,17 +33,29 @@ jobs:
     # reliable option on current Ubuntu runner images (confirmed broken/
     # removed on 24.04+, see CLAUDE.md's SageMath Dependency section).
     # conda-forge is the SageMath project's own documented, maintained
-    # install route. `sagelib` (not the full `sage` metapackage) is used
-    # deliberately: it is the minimal package that supports `import
-    # sage.all`, which is everything src/lfsr/sage_imports.py actually
-    # needs (verified by reading that file's imports directly) -- the
-    # full `sage` metapackage additionally bundles Jupyter, plotting
-    # backends, and interfaces to GAP/Macaulay2/etc. that this project
-    # never imports. Measured directly (2026-11-12, via a throwaway probe
-    # workflow, since this timing isn't documented anywhere reliable):
-    # sagelib installs in ~23s (2.4GB), vs. the full sage package's ~68s
-    # (5.4GB) for the exact same conda-forge channel/solver.
-    - name: Install Miniforge + sagelib (conda-forge)
+    # install route.
+    #
+    # CORRECTION (2026-11-12): a first attempt used `sagelib` (the
+    # minimal package supporting `import sage.all`, verified against
+    # this project's own sage_imports.py) instead of the full `sage`
+    # metapackage, on the theory that nothing here needs Jupyter/
+    # plotting/GAP/Macaulay2 interfaces. That theory was wrong in
+    # practice, not just in principle: `sagelib` alone does not bundle
+    # Maxima (the symbolic computation engine some Sage operations
+    # delegate to internally, e.g. certain polynomial factorization
+    # paths), and real test runs against `sagelib` failed with
+    # `RuntimeError: ECL says: Module error: Don't know how to REQUIRE
+    # MAXIMA.` on dozens of tests across both Python versions -- caught
+    # by actually running the test suite against it in a real CI run,
+    # not assumed from reading import statements alone. The full `sage`
+    # metapackage is confirmed to include Maxima and the other runtime
+    # dependencies `sagelib`'s own pip metadata declares but doesn't
+    # actually install (conway-polynomials, fpylll, mpmath, sympy, etc.)
+    # Measured directly (2026-11-12, via a throwaway probe workflow):
+    # sagelib installs in ~23s (2.4GB) vs. sage's ~68s (5.4GB) -- a real
+    # but, it turns out, not worthwhile trade-off, since sagelib doesn't
+    # actually work for this project's real test suite.
+    - name: Install Miniforge + sage (conda-forge)
       uses: conda-incubator/setup-miniconda@v3
       with:
         miniforge-version: latest
@@ -52,8 +64,8 @@ jobs:
         python-version: ${{ matrix.python-version }}
         activate-environment: lfsr-ci
 
-    - name: Install sagelib
-      run: conda install -y -n lfsr-ci sagelib python=${{ matrix.python-version }}
+    - name: Install sage
+      run: conda install -y -n lfsr-ci sage python=${{ matrix.python-version }}
 
     # Installed into the SAME conda env as sagelib (not a separate venv,
     # unlike local dev's .venv + _sage_discovery.py subprocess-fallback
