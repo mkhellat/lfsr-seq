@@ -119,11 +119,31 @@ tool.
      - Standalone implementations of one attack technique in isolation,
        not part of an integrated analysis suite.
 
+Future Direction
+----------------
+
+**A separate, non-SageMath computational engine (Rust and/or C/C++) is a decided future
+direction for this project, not yet started**, as of 2026-11-12. Profiling found SageMath's
+own per-state object overhead accounts for roughly 85-90% of per-state time in the core
+state-enumeration path; a plain machine-integer representation of a :math:`GF(2)` state
+measured roughly 288x faster in a direct comparison. The scope decided is full replacement of
+SageMath's role in this project's core math (not just the fast numeric path), planned as a
+**separate repository**, not a rewrite of ``lfsr-seq`` itself — which would continue to exist
+with SageMath as its engine. For polynomial factorization specifically, no real pure-Rust or
+pure-C library exists (SageMath itself delegates this to `FLINT <https://flintlib.org/>`_
+internally, not from scratch), so the planned architecture uses one deliberate FFI boundary to
+FLINT for that capability only, with everything else implemented directly. Not yet decided:
+Rust vs. C/C++, the new repository's name, and an implementation timeline. See the root
+``README.md``'s "Future Direction" section for more detail; nothing here describes software
+that currently exists.
+
 Additional Resources
 --------------------
 
 * `SageMath Documentation <https://doc.sagemath.org/>`_
 * `Tanja Lange's Cryptology Course <https://www.hyperelliptic.org/tanja/teaching/CS22/>`_
+* `FLINT <https://flintlib.org/>`_ — planned FFI dependency for the future Rust/C/C++ engine's
+  polynomial factorization (see "Future Direction" above)
 
 Indices and tables
 ==================

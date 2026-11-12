@@ -12,36 +12,44 @@ Installing SageMath
 
 SageMath must be installed separately as it's not available via PyPI:
 
-**Debian/Ubuntu:**
+**Conda/Mamba (recommended — confirmed working, including in this project's own CI):**
+
+.. code-block:: bash
+
+   conda install -c conda-forge sage
+
+This is the route this project's own CI pipeline uses, confirmed working end-to-end
+(2026-11-12). It installs in well under a minute on a typical machine.
+
+**Debian/Ubuntu:** ``apt-get install sagemath`` is **not reliably available** on current
+releases — confirmed: the package was removed from Ubuntu 24.04+'s repositories due to a
+Python 3.12 build failure. Use the Conda route above instead.
 
 .. code-block:: bash
 
    sudo apt-get update
-   sudo apt-get install sagemath
+   sudo apt-get install sagemath  # may fail on current releases; prefer conda above
 
-**Fedora/RHEL:**
+**Fedora/RHEL:** not independently re-verified as of this project's own 2026-11-12 CI work;
+if this fails, use the Conda route above.
 
 .. code-block:: bash
 
    sudo dnf install sagemath
 
-**Arch Linux:**
+**Arch Linux:** this is what the primary development environment for this project actually
+uses day-to-day.
 
 .. code-block:: bash
 
    sudo pacman -S sagemath
 
-**macOS (Homebrew):**
+**macOS (Homebrew):** not independently re-verified as of this project's own 2026-11-12 CI
+work; if this fails, use the Conda route above.
 
 .. code-block:: bash
 
    brew install sagemath
-
-**Conda:**
-
-.. code-block:: bash
-
-   conda install -c conda-forge sage
 
 Installation Methods
 --------------------
