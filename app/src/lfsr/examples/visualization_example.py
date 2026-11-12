@@ -22,7 +22,8 @@ except ImportError:
 
 try:
     import matplotlib
-    matplotlib.use('Agg')  # Non-interactive backend
+
+    matplotlib.use("Agg")  # Non-interactive backend
     HAS_MATPLOTLIB = True
 except ImportError:
     HAS_MATPLOTLIB = False
@@ -30,6 +31,7 @@ except ImportError:
 
 try:
     import plotly  # noqa: F401
+
     HAS_PLOTLY = True
 except ImportError:
     HAS_PLOTLY = False
@@ -60,8 +62,7 @@ def example_period_distribution():
 
     if HAS_MATPLOTLIB:
         config = VisualizationConfig(  # noqa: F841 (illustrative; actual call commented out below)
-            title="Period Distribution Example",
-            output_format=OutputFormat.PNG
+            title="Period Distribution Example", output_format=OutputFormat.PNG
         )
         # Note: Commented out to avoid creating files in examples
         # fig = plot_period_distribution(
@@ -91,8 +92,7 @@ def example_state_transitions():
 
     if HAS_MATPLOTLIB:
         config = VisualizationConfig(  # noqa: F841 (illustrative; actual call commented out below)
-            title="State Transition Diagram Example",
-            output_format=OutputFormat.PNG
+            title="State Transition Diagram Example", output_format=OutputFormat.PNG
         )
         # Note: Commented out to avoid creating files in examples
         # graph = generate_state_transition_diagram(
@@ -116,12 +116,13 @@ def example_statistical_plots():
 
     coefficients = [1, 0, 0, 1]
     seq_dict, period_dict, max_period, _, _, _, _ = analyze_lfsr(coefficients, 2)
-    theoretical_max = 2 ** len(coefficients) - 1  # noqa: F841 (illustrative; actual call commented out below)
+    theoretical_max = (
+        2 ** len(coefficients) - 1
+    )  # noqa: F841 (illustrative; actual call commented out below)
 
     if HAS_MATPLOTLIB:
         config = VisualizationConfig(  # noqa: F841 (illustrative; actual call commented out below)
-            title="Period Statistics Example",
-            output_format=OutputFormat.PNG
+            title="Period Statistics Example", output_format=OutputFormat.PNG
         )
         # Note: Commented out to avoid creating files in examples
         # fig = plot_period_statistics(
@@ -150,7 +151,7 @@ def example_3d_visualization():
         config = VisualizationConfig(  # noqa: F841 (illustrative; actual call commented out below)
             title="3D State Space Example",
             interactive=True,
-            output_format=OutputFormat.HTML
+            output_format=OutputFormat.HTML,
         )
         # Note: Commented out to avoid creating files in examples
         # fig = plot_3d_state_space(
@@ -174,16 +175,15 @@ def example_attack_visualization():
 
     # Simulated attack results
     attack_results = {  # noqa: F841 (illustrative; actual call commented out below)
-        'correlations': [0.5, 0.3, 0.7, 0.2],
-        'success_probability': 0.75,
-        'attack_successful': True,
-        'iterations': 100
+        "correlations": [0.5, 0.3, 0.7, 0.2],
+        "success_probability": 0.75,
+        "attack_successful": True,
+        "iterations": 100,
     }
 
     if HAS_MATPLOTLIB:
         config = VisualizationConfig(  # noqa: F841 (illustrative; actual call commented out below)
-            title="Correlation Attack Visualization",
-            output_format=OutputFormat.PNG
+            title="Correlation Attack Visualization", output_format=OutputFormat.PNG
         )
         # Note: Commented out to avoid creating files in examples
         # fig = visualize_correlation_attack(
@@ -221,6 +221,7 @@ def main():
     except Exception as e:
         print(f"\nERROR: {e}", file=sys.stderr)
         import traceback
+
         traceback.print_exc()
         sys.exit(1)
 

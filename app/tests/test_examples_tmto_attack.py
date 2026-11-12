@@ -144,6 +144,7 @@ class TestMainEndToEnd:
         assert "Example 1: Hellman Table" in out
         assert "Example 5: Hellman vs Rainbow Comparison" in out
 
+
 import sys
 
 

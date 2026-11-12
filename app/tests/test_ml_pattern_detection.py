@@ -203,21 +203,30 @@ class TestDetectAllPatterns:
     def test_only_repeating_selected(self):
         seq = [0, 1, 0, 1, 1, 0, 1, 1, 1, 0] * 5
         result = detect_all_patterns(
-            seq, include_repeating=True, include_anomalies=False, include_periodicity=False
+            seq,
+            include_repeating=True,
+            include_anomalies=False,
+            include_periodicity=False,
         )
         assert set(result.keys()) == {"repeating_subsequences"}
 
     def test_only_anomalies_selected(self):
         seq = [0, 1, 0, 1, 1, 0, 1, 1, 1, 0] * 5
         result = detect_all_patterns(
-            seq, include_repeating=False, include_anomalies=True, include_periodicity=False
+            seq,
+            include_repeating=False,
+            include_anomalies=True,
+            include_periodicity=False,
         )
         assert set(result.keys()) == {"statistical_anomalies"}
 
     def test_none_selected_returns_empty_dict(self):
         seq = [0, 1, 0, 1, 1, 0, 1, 1, 1, 0] * 5
         result = detect_all_patterns(
-            seq, include_repeating=False, include_anomalies=False, include_periodicity=False
+            seq,
+            include_repeating=False,
+            include_anomalies=False,
+            include_periodicity=False,
         )
         assert result == {}
 
@@ -230,9 +239,7 @@ class TestImportFallback:
 
     def test_numpy_import_error_sets_has_numpy_false(self):
         try:
-            fresh = _reimport_with_blocked_import(
-                "lfsr.ml.pattern_detection", "numpy"
-            )
+            fresh = _reimport_with_blocked_import("lfsr.ml.pattern_detection", "numpy")
             assert fresh.HAS_NUMPY is False
         finally:
             del sys.modules["lfsr.ml.pattern_detection"]

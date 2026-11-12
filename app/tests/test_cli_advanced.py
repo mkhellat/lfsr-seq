@@ -65,7 +65,11 @@ class TestPerformAdvancedStructureAnalysisCli:
     def test_filtered_generate_sequence(self, base_lfsr):
         buf = io.StringIO()
         perform_advanced_structure_analysis_cli(
-            "filtered", base_lfsr, generate_sequence=True, sequence_length=20, output_file=buf
+            "filtered",
+            base_lfsr,
+            generate_sequence=True,
+            sequence_length=20,
+            output_file=buf,
         )
         out = buf.getvalue()
         assert "This IS an LFSR" in out
@@ -75,7 +79,11 @@ class TestPerformAdvancedStructureAnalysisCli:
     def test_clock_controlled_generate_sequence(self, base_lfsr):
         buf = io.StringIO()
         perform_advanced_structure_analysis_cli(
-            "clock_controlled", base_lfsr, generate_sequence=True, sequence_length=10, output_file=buf
+            "clock_controlled",
+            base_lfsr,
+            generate_sequence=True,
+            sequence_length=10,
+            output_file=buf,
         )
         out = buf.getvalue()
         assert "Generated 10 sequence elements" in out
@@ -83,7 +91,11 @@ class TestPerformAdvancedStructureAnalysisCli:
     def test_irregular_generate_sequence(self, base_lfsr):
         buf = io.StringIO()
         perform_advanced_structure_analysis_cli(
-            "irregular", base_lfsr, generate_sequence=True, sequence_length=10, output_file=buf
+            "irregular",
+            base_lfsr,
+            generate_sequence=True,
+            sequence_length=10,
+            output_file=buf,
         )
         out = buf.getvalue()
         assert "Generated 10 sequence elements" in out
@@ -91,8 +103,11 @@ class TestPerformAdvancedStructureAnalysisCli:
     def test_multi_output_analyze_and_generate(self, base_lfsr):
         buf = io.StringIO()
         perform_advanced_structure_analysis_cli(
-            "multi_output", base_lfsr,
-            analyze_structure=True, generate_sequence=True, sequence_length=15,
+            "multi_output",
+            base_lfsr,
+            analyze_structure=True,
+            generate_sequence=True,
+            sequence_length=15,
             output_file=buf,
         )
         out = buf.getvalue()

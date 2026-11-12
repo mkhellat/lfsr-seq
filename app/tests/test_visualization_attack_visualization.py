@@ -9,6 +9,7 @@ plotly) and visualize_attack_comparison() (matplotlib only).
 """
 
 import matplotlib
+
 matplotlib.use("Agg")
 
 import matplotlib.pyplot as plt
@@ -162,8 +163,18 @@ class TestVisualizeCorrelationAttackInteractive:
 
 
 ATTACK_RESULTS_LIST = [
-    {"method_name": "Correlation", "success_rate": 0.8, "execution_time": 1.5, "memory_usage": 100},
-    {"method_name": "TMTO", "success_rate": 0.6, "execution_time": 3.2, "memory_usage": 500},
+    {
+        "method_name": "Correlation",
+        "success_rate": 0.8,
+        "execution_time": 1.5,
+        "memory_usage": 100,
+    },
+    {
+        "method_name": "TMTO",
+        "success_rate": 0.6,
+        "execution_time": 3.2,
+        "memory_usage": 500,
+    },
 ]
 
 
@@ -219,7 +230,9 @@ class TestVisualizeAttackComparison:
         assert len(tables) == 1
         table = tables[0]
         # 2 data rows + 1 header row = should have cells for method,success,time x 3 rows
-        cell_texts = {key: cell.get_text().get_text() for key, cell in table._cells.items()}
+        cell_texts = {
+            key: cell.get_text().get_text() for key, cell in table._cells.items()
+        }
         # header row (row index 0)
         header_texts = [cell_texts[(0, c)] for c in range(3)]
         assert header_texts == ["Method", "Success", "Time (s)"]

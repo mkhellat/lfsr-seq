@@ -94,7 +94,9 @@ class TestBranchesUnreachableViaRealCalls:
             }
 
         monkeypatch.setattr(
-            example_module, "compute_algebraic_immunity", fake_compute_algebraic_immunity
+            example_module,
+            "compute_algebraic_immunity",
+            fake_compute_algebraic_immunity,
         )
         example_module.example_algebraic_immunity()
         out = capsys.readouterr().out
@@ -208,6 +210,7 @@ class TestBranchesUnreachableViaRealCalls:
         assert exc_info.value.code == 1
         err = capsys.readouterr().err
         assert "ERROR: simulated failure for coverage" in err
+
 
 import sys
 

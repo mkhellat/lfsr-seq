@@ -389,7 +389,9 @@ class TestHellmanTableLookup:
 
         assert table.lookup(end, REFERENCE_CONFIG) == start
 
-    def test_lookup_finds_endpoint_reached_only_at_final_step_via_reduction_fallback(self):
+    def test_lookup_finds_endpoint_reached_only_at_final_step_via_reduction_fallback(
+        self,
+    ):
         """Same off-by-one fix as test_lookup_finds_endpoint_reached_only_at_final_step
         above, but for the SEPARATE final-position check inside the
         reduction-function fallback branch (lfsr/tmto.py line ~289,
@@ -423,7 +425,9 @@ class TestHellmanTableLookup:
         ends = [e for _s, e in table.chains]
         assert target not in ends, "precondition: not a direct endpoint"
         reduced = table._reduction_function(target, REFERENCE_CONFIG.field_order)
-        assert reduced == end, "precondition: reduction must land on chain 9's end_state"
+        assert (
+            reduced == end
+        ), "precondition: reduction must land on chain 9's end_state"
 
         C, _CS = build_state_update_matrix(
             REFERENCE_CONFIG.coefficients, REFERENCE_CONFIG.field_order

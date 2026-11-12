@@ -20,7 +20,7 @@ def generate_training_data(
     num_samples: int = 100,
     max_degree: int = 10,
     field_order: int = 2,
-    include_primitive: bool = True
+    include_primitive: bool = True,
 ) -> Tuple[List[List[float]], List[float]]:
     """
     Generate training data for period prediction models.
@@ -78,7 +78,7 @@ def generate_training_data(
         # indefinitely inside random.randint with unchanging degree and
         # a `generated` set that had stopped growing). Cap the retries
         # and fall through to a duplicate rather than hang.
-        max_attempts = max(field_order ** degree, 100)
+        max_attempts = max(field_order**degree, 100)
         coefficients = None
         for _ in range(max_attempts):
             candidate = [random.randint(0, field_order - 1) for _ in range(degree)]
@@ -117,7 +117,7 @@ def train_period_prediction_model(
     num_samples: int = 100,
     max_degree: int = 10,
     field_order: int = 2,
-    save_path: Optional[str] = None
+    save_path: Optional[str] = None,
 ) -> PeriodPredictionModel:
     """
     Train a period prediction model.
@@ -161,7 +161,7 @@ def evaluate_model_performance(
     model: PeriodPredictionModel,
     test_samples: int = 50,
     max_degree: int = 10,
-    field_order: int = 2
+    field_order: int = 2,
 ) -> Dict[str, float]:
     """
     Evaluate model performance on test data.

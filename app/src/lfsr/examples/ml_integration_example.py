@@ -21,9 +21,13 @@ except ImportError:
 
 try:
     import sklearn  # noqa: F401
+
     HAS_SKLEARN = True
 except ImportError:
-    print("WARNING: scikit-learn not available. Some ML features may not work.", file=sys.stderr)
+    print(
+        "WARNING: scikit-learn not available. Some ML features may not work.",
+        file=sys.stderr,
+    )
     HAS_SKLEARN = False
 
 from lfsr.core import analyze_lfsr
@@ -107,7 +111,7 @@ def example_anomaly_detection():
         sequence=sequence,
         period_dict={5: 10, 6: 8, 7: 12, 20: 1},  # 20 is unusual
         theoretical_max_period=15,
-        is_primitive=False
+        is_primitive=False,
     )
 
     print("\nDetected Anomalies:")
@@ -137,7 +141,7 @@ def example_model_training():
         num_samples=50,  # Small for example
         max_degree=8,
         field_order=2,
-        save_path=None  # Don't save in example
+        save_path=None,  # Don't save in example
     )
 
     print("\n✓ Model training complete!")
@@ -202,6 +206,7 @@ def main():
     except Exception as e:
         print(f"\nERROR: {e}", file=sys.stderr)
         import traceback
+
         traceback.print_exc()
         sys.exit(1)
 

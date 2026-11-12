@@ -24,10 +24,7 @@ from lfsr.advanced import (
 from lfsr.attacks import LFSRConfig
 
 
-def get_advanced_structure_instance(
-    structure_type: str,
-    base_lfsr_config: LFSRConfig
-):
+def get_advanced_structure_instance(structure_type: str, base_lfsr_config: LFSRConfig):
     """
     Get advanced structure instance from type.
 
@@ -45,9 +42,7 @@ def get_advanced_structure_instance(
     elif structure_type == "filtered":
         # Create simple filtered LFSR
         return create_simple_filtered_lfsr(
-            base_lfsr_config,
-            filter_taps=[0, 1],
-            nonlinear_terms=[(2, 3)]
+            base_lfsr_config, filter_taps=[0, 1], nonlinear_terms=[(2, 3)]
         )
 
     elif structure_type == "clock_controlled":
@@ -76,7 +71,7 @@ def perform_advanced_structure_analysis_cli(
     analyze_structure: bool = False,
     generate_sequence: bool = False,
     sequence_length: int = 1000,
-    output_file: Optional[TextIO] = None
+    output_file: Optional[TextIO] = None,
 ) -> None:
     """
     Perform advanced structure analysis from CLI.
@@ -110,7 +105,10 @@ def perform_advanced_structure_analysis_cli(
     if structure_type == "nfsr":
         print("⚠️  NOTE: NFSR is NOT an LFSR (non-linear feedback)", file=output_file)
     else:
-        print("✓ NOTE: This IS an LFSR (linear feedback) with advanced features", file=output_file)
+        print(
+            "✓ NOTE: This IS an LFSR (linear feedback) with advanced features",
+            file=output_file,
+        )
     print(file=output_file)
 
     if analyze_structure:
@@ -141,9 +139,13 @@ def perform_advanced_structure_analysis_cli(
         if structure_type in ["clock_controlled", "irregular"]:
             control_state = [1, 0]  # Default control state
             if structure_type == "clock_controlled":
-                sequence = structure.generate_sequence(initial_state, sequence_length, control_state)
+                sequence = structure.generate_sequence(
+                    initial_state, sequence_length, control_state
+                )
             else:
-                sequence = structure.generate_sequence(initial_state, sequence_length, control_state)
+                sequence = structure.generate_sequence(
+                    initial_state, sequence_length, control_state
+                )
         else:
             sequence = structure.generate_sequence(initial_state, sequence_length)
 
@@ -155,11 +157,13 @@ def perform_advanced_structure_analysis_cli(
             zeros = len(sequence) - ones
             print(f"  Ones: {ones}", file=output_file)
             print(f"  Zeros: {zeros}", file=output_file)
-            print(f"  Balance: {abs(ones - zeros) / len(sequence):.4f}", file=output_file)
+            print(
+                f"  Balance: {abs(ones - zeros) / len(sequence):.4f}", file=output_file
+            )
 
         # Show first 50 elements
         print("\nFirst 50 elements:", file=output_file)
-        seq_str = ''.join(str(b) for b in sequence[:50])
+        seq_str = "".join(str(b) for b in sequence[:50])
         print(f"  {seq_str}", file=output_file)
         print(file=output_file)
 

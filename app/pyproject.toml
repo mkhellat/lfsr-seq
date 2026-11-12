@@ -72,6 +72,20 @@ cross-check = [
 visualization = [
     "matplotlib>=3.5.0,<4.0.0",
     "plotly>=5.0.0,<6.0.0",
+    # plotly.express has always required pandas as a real import-time
+    # dependency (separate from the `plotly` core package, which does
+    # not need it) -- confirmed directly: `import plotly.express`
+    # raises "ImportError: Plotly express requires pandas to be
+    # installed." with plotly installed but pandas absent. This was
+    # invisible in local dev because the system-wide SageMath install
+    # happens to bundle a real pandas, which lfsr._sage_discovery's
+    # PATH-injection side effect makes importable even though pandas is
+    # never declared as this project's own dependency and `pip show
+    # pandas` correctly reports it's not installed in the venv. Found
+    # when CI (which installs lfsr-seq directly into the same conda env
+    # as sage, not a separate venv + Sage-discovery setup) failed 22
+    # visualization tests with HAS_PLOTLY silently False, 2026-11-12.
+    "pandas>=1.3.0,<3.0.0",
     "networkx>=2.8.0,<4.0.0",
     "scikit-learn>=1.0.0,<2.0.0",
 ]
@@ -101,18 +115,27 @@ line-length = 88
 target-version = ['py38', 'py39', 'py310', 'py311', 'py312']
 include = '\.pyi?$'
 extend-exclude = '''
-/(
+(
   # directories
-  \.eggs
-  | \.git
-  | \.hg
-  | \.mypy_cache
-  | \.tox
-  | \.venv
-  | build
-  | dist
-)/
-'''
+  /(
+    \.eggs
+    | \.git
+    | \.hg
+    | \.mypy_cache
+    | \.tox
+    | \.venv
+    | build
+    | dist
+  )/
+  # setuptools-scm-generated file, gitignored, regenerated fresh on every
+  # `pip install -e .` -- its exact content (and thus whether it happens
+  # to satisfy black's formatting) depends on the version string at
+  # install time, which isn't something anyone should hand-format or
+  # commit. Found failing in CI (2026-11-12) where a freshly-generated
+  # copy didn't happen to match black's rules, even though local dev's
+  # own copy did (generated at a different point, different content).
+  | src/lfsr/_version\.py
+)'''
 
 [tool.mypy]
 python_version = "3.8"

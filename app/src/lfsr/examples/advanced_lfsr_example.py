@@ -76,9 +76,7 @@ def example_filtered_lfsr():
 
     # Create filtered LFSR
     filtered = create_simple_filtered_lfsr(
-        base_lfsr,
-        filter_taps=[0, 1, 2],
-        nonlinear_terms=[(2, 3)]
+        base_lfsr, filter_taps=[0, 1, 2], nonlinear_terms=[(2, 3)]
     )
 
     config = filtered.get_config()
@@ -103,7 +101,9 @@ def example_clock_controlled_lfsr():
     print("\n" + "=" * 70)
     print("Example 3: Clock-Controlled LFSR")
     print("=" * 70)
-    print("\n✓ NOTE: Clock-Controlled LFSR IS an LFSR (linear feedback + irregular clocking)\n")
+    print(
+        "\n✓ NOTE: Clock-Controlled LFSR IS an LFSR (linear feedback + irregular clocking)\n"
+    )
 
     main_lfsr = LFSRConfig(coefficients=[1, 0, 0, 1], field_order=2, degree=4)
     control_lfsr = LFSRConfig(coefficients=[1, 1], field_order=2, degree=2)
@@ -134,7 +134,9 @@ def example_multi_output_lfsr():
     print("\n" + "=" * 70)
     print("Example 4: Multi-Output LFSR")
     print("=" * 70)
-    print("\n✓ NOTE: Multi-Output LFSR IS an LFSR (linear feedback + multiple outputs)\n")
+    print(
+        "\n✓ NOTE: Multi-Output LFSR IS an LFSR (linear feedback + multiple outputs)\n"
+    )
 
     base_lfsr = LFSRConfig(coefficients=[1, 0, 0, 1], field_order=2, degree=4)
 
@@ -164,7 +166,9 @@ def example_irregular_clocking():
     print("\n" + "=" * 70)
     print("Example 5: Irregular Clocking LFSR")
     print("=" * 70)
-    print("\n✓ NOTE: Irregular Clocking LFSR IS an LFSR (linear feedback + irregular pattern)\n")
+    print(
+        "\n✓ NOTE: Irregular Clocking LFSR IS an LFSR (linear feedback + irregular pattern)\n"
+    )
 
     base_lfsr = LFSRConfig(coefficients=[1, 0, 0, 1], field_order=2, degree=4)
     control_lfsr = LFSRConfig(coefficients=[1, 1], field_order=2, degree=2)
@@ -175,7 +179,9 @@ def example_irregular_clocking():
 
     config = iclfsr.get_config()
     print(f"Structure Type: {config.structure_type}")
-    print("Note: Irregular Clocking LFSR has linear feedback + irregular clocking pattern")
+    print(
+        "Note: Irregular Clocking LFSR has linear feedback + irregular clocking pattern"
+    )
 
     # Analyze structure
     properties = iclfsr.analyze_structure()
@@ -241,6 +247,7 @@ def main():
     except Exception as e:
         print(f"\nERROR: {e}", file=sys.stderr)
         import traceback
+
         traceback.print_exc()
         sys.exit(1)
 

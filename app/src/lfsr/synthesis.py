@@ -70,7 +70,7 @@ def berlekamp_massey(sequence: List[int], gf_order: int) -> Tuple[Any, int]:
             # Discrepancy found
             T = C
             # Update connection polynomial
-            C = C - (d / b) * (x ** m) * B
+            C = C - (d / b) * (x**m) * B
 
             if 2 * L <= n_iter:
                 # Update length and previous values
@@ -170,8 +170,7 @@ def synthesize_lfsr_from_sequence(
     # gf_order -- i.e. drop a_0 (the constant term), negate the rest, and
     # reverse their order.
     coeffs_int = [
-        (-int(a)) % gf_order for a in reversed(full_coeffs[1:complexity + 1])
+        (-int(a)) % gf_order for a in reversed(full_coeffs[1 : complexity + 1])
     ]
 
     return coeffs_int, complexity
-

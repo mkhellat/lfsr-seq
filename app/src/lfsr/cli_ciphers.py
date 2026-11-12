@@ -33,7 +33,7 @@ def get_cipher_instance(cipher_name: str):
         "trivium": Trivium,
         "grain128": Grain128,
         "grain128a": Grain128a,
-        "lili128": LILI128
+        "lili128": LILI128,
     }
 
     if cipher_name not in cipher_map:
@@ -57,16 +57,16 @@ def load_bits_from_file(file_path: str) -> List[int]:
     Returns:
         List of bits (0 or 1)
     """
-    with open(file_path, 'rb') as f:
+    with open(file_path, "rb") as f:
         data = f.read()
 
     try:
-        content = data.decode('ascii').strip()
+        content = data.decode("ascii").strip()
     except UnicodeDecodeError:
         content = None
 
-    if content is not None and content and all(c in '01' for c in content):
-        return [1 if c == '1' else 0 for c in content]
+    if content is not None and content and all(c in "01" for c in content):
+        return [1 if c == "1" else 0 for c in content]
 
     bits = []
     for byte in data:
@@ -83,7 +83,7 @@ def perform_cipher_analysis_cli(
     key_file: Optional[str] = None,
     iv_file: Optional[str] = None,
     compare: bool = False,
-    output_file: Optional[TextIO] = None
+    output_file: Optional[TextIO] = None,
 ) -> None:
     """
     Perform stream cipher analysis from CLI.
@@ -115,7 +115,9 @@ def perform_cipher_analysis_cli(
         # Get list of ciphers to compare
         cipher_names = ["a5_1", "e0", "trivium"]  # Default comparison
         if cipher_name:
-            cipher_names = [cipher_name] + [c for c in ["a5_1", "e0", "trivium"] if c != cipher_name]
+            cipher_names = [cipher_name] + [
+                c for c in ["a5_1", "e0", "trivium"] if c != cipher_name
+            ]
 
         ciphers = [get_cipher_instance(name) for name in cipher_names]
         comparison = compare_ciphers(ciphers)
@@ -163,8 +165,15 @@ def perform_cipher_analysis_cli(
         if key_file:
             key = load_bits_from_file(key_file)
             if len(key) != config.key_size:
-                print(f"WARNING: Key size mismatch. Expected {config.key_size} bits, got {len(key)}", file=sys.stderr)
-                key = key[:config.key_size] if len(key) > config.key_size else key + [0] * (config.key_size - len(key))
+                print(
+                    f"WARNING: Key size mismatch. Expected {config.key_size} bits, got {len(key)}",
+                    file=sys.stderr,
+                )
+                key = (
+                    key[: config.key_size]
+                    if len(key) > config.key_size
+                    else key + [0] * (config.key_size - len(key))
+                )
         else:
             # Use default key
             key = [1] * config.key_size
@@ -174,8 +183,15 @@ def perform_cipher_analysis_cli(
         if iv_file:
             iv = load_bits_from_file(iv_file)
             if len(iv) != config.iv_size:
-                print(f"WARNING: IV size mismatch. Expected {config.iv_size} bits, got {len(iv)}", file=sys.stderr)
-                iv = iv[:config.iv_size] if len(iv) > config.iv_size else iv + [0] * (config.iv_size - len(iv))
+                print(
+                    f"WARNING: IV size mismatch. Expected {config.iv_size} bits, got {len(iv)}",
+                    file=sys.stderr,
+                )
+                iv = (
+                    iv[: config.iv_size]
+                    if len(iv) > config.iv_size
+                    else iv + [0] * (config.iv_size - len(iv))
+                )
         else:
             # Use default IV
             iv = [0] * config.iv_size
@@ -187,12 +203,15 @@ def perform_cipher_analysis_cli(
         print(f"✓ Generated {len(keystream)} keystream bits", file=output_file)
         print(f"  Ones: {sum(keystream)}", file=output_file)
         print(f"  Zeros: {len(keystream) - sum(keystream)}", file=output_file)
-        print(f"  Balance: {abs(sum(keystream) - (len(keystream) - sum(keystream))) / len(keystream):.4f}", file=output_file)
+        print(
+            f"  Balance: {abs(sum(keystream) - (len(keystream) - sum(keystream))) / len(keystream):.4f}",
+            file=output_file,
+        )
         print(file=output_file)
 
         # Show first 100 bits
         print("First 100 bits of keystream:", file=output_file)
-        keystream_str = ''.join(str(b) for b in keystream[:100])
+        keystream_str = "".join(str(b) for b in keystream[:100])
         print(f"  {keystream_str}", file=output_file)
         print(file=output_file)
 

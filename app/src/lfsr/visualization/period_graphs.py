@@ -22,7 +22,7 @@ def plot_period_distribution(
     theoretical_max_period: Optional[int] = None,
     is_primitive: bool = False,
     config: Optional[VisualizationConfig] = None,
-    output_file: Optional[str] = None
+    output_file: Optional[str] = None,
 ) -> Any:
     """
     Create period distribution visualization.
@@ -86,7 +86,7 @@ def _plot_period_distribution_static(
     theoretical_max: Optional[int],
     is_primitive: bool,
     config: VisualizationConfig,
-    output_file: Optional[str]
+    output_file: Optional[str],
 ) -> Any:
     """Create static period distribution plot using matplotlib."""
     import matplotlib.pyplot as plt
@@ -94,26 +94,26 @@ def _plot_period_distribution_static(
     fig, ax = plt.subplots(figsize=(config.width, config.height), dpi=config.dpi)
 
     # Create histogram
-    ax.bar(periods, counts, alpha=0.7, edgecolor='black', linewidth=0.5)
+    ax.bar(periods, counts, alpha=0.7, edgecolor="black", linewidth=0.5)
 
     # Add theoretical maximum line if provided
     if theoretical_max:
         ax.axvline(
             theoretical_max,
-            color='red',
-            linestyle='--',
+            color="red",
+            linestyle="--",
             linewidth=2,
-            label=f'Theoretical Maximum: {theoretical_max}'
+            label=f"Theoretical Maximum: {theoretical_max}",
         )
 
     # Labels and title
     if config.title:
-        ax.set_title(config.title, fontsize=14, fontweight='bold')
+        ax.set_title(config.title, fontsize=14, fontweight="bold")
     else:
         title = "Period Distribution"
         if is_primitive:
             title += " (Primitive Polynomial)"
-        ax.set_title(title, fontsize=14, fontweight='bold')
+        ax.set_title(title, fontsize=14, fontweight="bold")
 
     ax.set_xlabel(config.xlabel or "Period", fontsize=12)
     ax.set_ylabel(config.ylabel or "Number of Sequences", fontsize=12)
@@ -127,7 +127,7 @@ def _plot_period_distribution_static(
     plt.tight_layout()
 
     if output_file:
-        fig.savefig(output_file, dpi=config.dpi, bbox_inches='tight')
+        fig.savefig(output_file, dpi=config.dpi, bbox_inches="tight")
 
     return fig
 
@@ -138,7 +138,7 @@ def _plot_period_distribution_interactive(
     theoretical_max: Optional[int],
     is_primitive: bool,
     config: VisualizationConfig,
-    output_file: Optional[str]
+    output_file: Optional[str],
 ) -> Any:
     """Create interactive period distribution plot using plotly."""
     import plotly.graph_objects as go
@@ -146,14 +146,16 @@ def _plot_period_distribution_interactive(
     fig = go.Figure()
 
     # Add histogram bars
-    fig.add_trace(go.Bar(
-        x=periods,
-        y=counts,
-        name="Period Distribution",
-        marker_color='steelblue',
-        opacity=0.7,
-        hovertemplate='Period: %{x}<br>Count: %{y}<extra></extra>'
-    ))
+    fig.add_trace(
+        go.Bar(
+            x=periods,
+            y=counts,
+            name="Period Distribution",
+            marker_color="steelblue",
+            opacity=0.7,
+            hovertemplate="Period: %{x}<br>Count: %{y}<extra></extra>",
+        )
+    )
 
     # Add theoretical maximum line if provided
     if theoretical_max:
@@ -162,7 +164,7 @@ def _plot_period_distribution_interactive(
             line_dash="dash",
             line_color="red",
             annotation_text=f"Theoretical Maximum: {theoretical_max}",
-            annotation_position="top"
+            annotation_position="top",
         )
 
     # Update layout
@@ -177,11 +179,11 @@ def _plot_period_distribution_interactive(
         showlegend=config.show_legend,
         width=config.width * 80,  # Convert inches to pixels
         height=config.height * 80,
-        hovermode='closest'
+        hovermode="closest",
     )
 
     if output_file:
-        if output_file.endswith('.html'):
+        if output_file.endswith(".html"):
             fig.write_html(output_file)
         else:
             fig.write_image(output_file)
@@ -192,7 +194,7 @@ def _plot_period_distribution_interactive(
 def plot_period_vs_state(
     state_period_pairs: List[Tuple[Any, int]],
     config: Optional[VisualizationConfig] = None,
-    output_file: Optional[str] = None
+    output_file: Optional[str] = None,
 ) -> Any:
     """
     Create scatter plot of period vs initial state.
@@ -229,7 +231,7 @@ def _plot_period_vs_state_static(
     states: List[str],
     periods: List[int],
     config: VisualizationConfig,
-    output_file: Optional[str]
+    output_file: Optional[str],
 ) -> Any:
     """Create static scatter plot using matplotlib."""
     import matplotlib.pyplot as plt
@@ -241,7 +243,9 @@ def _plot_period_vs_state_static(
     ax.scatter(x_indices, periods, alpha=0.6, s=20)
 
     # Labels and title
-    ax.set_title(config.title or "Period vs Initial State", fontsize=14, fontweight='bold')
+    ax.set_title(
+        config.title or "Period vs Initial State", fontsize=14, fontweight="bold"
+    )
     ax.set_xlabel(config.xlabel or "State Index", fontsize=12)
     ax.set_ylabel(config.ylabel or "Period", fontsize=12)
 
@@ -251,7 +255,7 @@ def _plot_period_vs_state_static(
     plt.tight_layout()
 
     if output_file:
-        fig.savefig(output_file, dpi=config.dpi, bbox_inches='tight')
+        fig.savefig(output_file, dpi=config.dpi, bbox_inches="tight")
 
     return fig
 
@@ -260,22 +264,24 @@ def _plot_period_vs_state_interactive(
     states: List[str],
     periods: List[int],
     config: VisualizationConfig,
-    output_file: Optional[str]
+    output_file: Optional[str],
 ) -> Any:
     """Create interactive scatter plot using plotly."""
     import plotly.graph_objects as go
 
     fig = go.Figure()
 
-    fig.add_trace(go.Scatter(
-        x=list(range(len(states))),
-        y=periods,
-        mode='markers',
-        name="Period",
-        marker={"size": 5, "opacity": 0.6},
-        hovertemplate='State: %{text}<br>Period: %{y}<extra></extra>',
-        text=states
-    ))
+    fig.add_trace(
+        go.Scatter(
+            x=list(range(len(states))),
+            y=periods,
+            mode="markers",
+            name="Period",
+            marker={"size": 5, "opacity": 0.6},
+            hovertemplate="State: %{text}<br>Period: %{y}<extra></extra>",
+            text=states,
+        )
+    )
 
     fig.update_layout(
         title=config.title or "Period vs Initial State",
@@ -284,11 +290,11 @@ def _plot_period_vs_state_interactive(
         showlegend=config.show_legend,
         width=config.width * 80,
         height=config.height * 80,
-        hovermode='closest'
+        hovermode="closest",
     )
 
     if output_file:
-        if output_file.endswith('.html'):
+        if output_file.endswith(".html"):
             fig.write_html(output_file)
         else:
             fig.write_image(output_file)

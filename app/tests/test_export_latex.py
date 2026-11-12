@@ -67,7 +67,9 @@ class TestPolynomialToLatex:
         assert polynomial_to_latex(sample_polynomial) == "t^{4} + t^{3} + 1"
 
     def test_custom_variable_name_substituted(self, sample_polynomial):
-        assert polynomial_to_latex(sample_polynomial, variable="x") == "x^{4} + x^{3} + 1"
+        assert (
+            polynomial_to_latex(sample_polynomial, variable="x") == "x^{4} + x^{3} + 1"
+        )
 
     def test_latex_conversion_failure_falls_back_to_str(self):
         """Regression coverage for lines 54-56: when SageMath's latex()

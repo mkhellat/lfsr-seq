@@ -111,7 +111,12 @@ def export_to_csv(
     writer.writerow(["GF Order", gf_order])
     writer.writerow(["Coefficients", ",".join(map(str, coeffs_vector))])
     writer.writerow(["Characteristic Polynomial", str(char_poly)])
-    writer.writerow(["Polynomial Order", str(char_poly_order) if char_poly_order != oo else "infinity"])
+    writer.writerow(
+        [
+            "Polynomial Order",
+            str(char_poly_order) if char_poly_order != oo else "infinity",
+        ]
+    )
     writer.writerow(["Max Period", max_period])
     writer.writerow(["Total Sequences", len(seq_dict)])
     writer.writerow(["Total States", periods_sum])
@@ -234,11 +239,19 @@ def export_nist_to_json(
                 "passed": bool(test_result.passed),
                 "statistic": float(test_result.statistic),
                 "details": {
-                    k: (float(v) if isinstance(v, (int, float)) else
-                        bool(v) if isinstance(v, bool) else
-                        str(v) if not isinstance(v, (dict, list)) else v)
+                    k: (
+                        float(v)
+                        if isinstance(v, (int, float))
+                        else bool(v)
+                        if isinstance(v, bool)
+                        else str(v)
+                        if not isinstance(v, (dict, list))
+                        else v
+                    )
                     for k, v in test_result.details.items()
-                } if test_result.details else {},
+                }
+                if test_result.details
+                else {},
             }
             for test_result in suite_result.results
         ],
@@ -276,12 +289,14 @@ def export_nist_to_csv(
     # Write test results
     writer.writerow(["Test Name", "P-value", "Passed", "Statistic"])
     for test_result in suite_result.results:
-        writer.writerow([
-            test_result.test_name,
-            f"{test_result.p_value:.6f}",
-            "PASS" if test_result.passed else "FAIL",
-            f"{test_result.statistic:.6f}",
-        ])
+        writer.writerow(
+            [
+                test_result.test_name,
+                f"{test_result.p_value:.6f}",
+                "PASS" if test_result.passed else "FAIL",
+                f"{test_result.statistic:.6f}",
+            ]
+        )
 
 
 def export_nist_to_xml(
@@ -306,7 +321,9 @@ def export_nist_to_xml(
     # Metadata
     metadata = ET.SubElement(root, "metadata")
     ET.SubElement(metadata, "sequence_length").text = str(suite_result.sequence_length)
-    ET.SubElement(metadata, "significance_level").text = str(suite_result.significance_level)
+    ET.SubElement(metadata, "significance_level").text = str(
+        suite_result.significance_level
+    )
 
     # Summary
     summary = ET.SubElement(root, "summary")
@@ -322,7 +339,9 @@ def export_nist_to_xml(
         test_elem = ET.SubElement(test_results_elem, "test")
         test_elem.set("name", test_result.test_name)
         ET.SubElement(test_elem, "p_value").text = f"{test_result.p_value:.6f}"
-        ET.SubElement(test_elem, "passed").text = "true" if test_result.passed else "false"
+        ET.SubElement(test_elem, "passed").text = (
+            "true" if test_result.passed else "false"
+        )
         ET.SubElement(test_elem, "statistic").text = f"{test_result.statistic:.6f}"
 
         # Details
@@ -528,7 +547,9 @@ def get_export_function(format_name: str):
 
     format_lower = format_name.lower()
     if format_lower not in formats:
-        raise ValueError(f"Unsupported format: {format_name}. Supported: {list(formats.keys())}")
+        raise ValueError(
+            f"Unsupported format: {format_name}. Supported: {list(formats.keys())}"
+        )
 
     return formats[format_lower]
 
@@ -555,7 +576,8 @@ def get_nist_export_function(format_name: str):
 
     format_lower = format_name.lower()
     if format_lower not in formats:
-        raise ValueError(f"Unsupported format: {format_name}. Supported: {list(formats.keys())}")
+        raise ValueError(
+            f"Unsupported format: {format_name}. Supported: {list(formats.keys())}"
+        )
 
     return formats[format_lower]
-

@@ -105,9 +105,7 @@ class FilteredLFSR(AdvancedLFSR):
     """
 
     def __init__(
-        self,
-        base_lfsr_config: LFSRConfig,
-        filter_function: Callable[[List[int]], int]
+        self, base_lfsr_config: LFSRConfig, filter_function: Callable[[List[int]], int]
     ):
         """
         Initialize Filtered LFSR.
@@ -123,8 +121,7 @@ class FilteredLFSR(AdvancedLFSR):
 
         # Build state update matrix
         self.C, self.CS = build_state_update_matrix(
-            base_lfsr_config.coefficients,
-            base_lfsr_config.field_order
+            base_lfsr_config.coefficients, base_lfsr_config.field_order
         )
 
     def get_config(self) -> AdvancedLFSRConfig:
@@ -133,10 +130,10 @@ class FilteredLFSR(AdvancedLFSR):
             structure_type="filtered",
             base_lfsr_config=self.base_lfsr_config,
             parameters={
-                'state_size': self.state_size,
-                'field_order': self.field_order,
-                'has_filter_function': True
-            }
+                "state_size": self.state_size,
+                "field_order": self.field_order,
+                "has_filter_function": True,
+            },
         )
 
     def _clock_lfsr(self, state: List[int]) -> List[int]:
@@ -154,11 +151,7 @@ class FilteredLFSR(AdvancedLFSR):
         new_state_vec = state_vec * self.C
         return [int(x) for x in new_state_vec]
 
-    def generate_sequence(
-        self,
-        initial_state: List[int],
-        length: int
-    ) -> List[int]:
+    def generate_sequence(self, initial_state: List[int], length: int) -> List[int]:
         """
         Generate sequence from initial state.
 
@@ -196,38 +189,35 @@ class FilteredLFSR(AdvancedLFSR):
             Dictionary of structure properties
         """
         return {
-            'structure_type': 'FilteredLFSR',
-            'base_lfsr_degree': self.base_lfsr_config.degree,
-            'base_lfsr_field_order': self.field_order,
-            'state_size': self.state_size,
-            'has_filter_function': True,
-            'note': 'Filtered LFSR uses non-linear filter function on LFSR state'
+            "structure_type": "FilteredLFSR",
+            "base_lfsr_degree": self.base_lfsr_config.degree,
+            "base_lfsr_field_order": self.field_order,
+            "state_size": self.state_size,
+            "has_filter_function": True,
+            "note": "Filtered LFSR uses non-linear filter function on LFSR state",
         }
 
-    def _assess_security(
-        self,
-        structure_properties: dict
-    ) -> dict:
+    def _assess_security(self, structure_properties: dict) -> dict:
         """Assess Filtered LFSR security."""
         return {
-            'nonlinearity': 'Non-linear filter provides resistance to linear attacks',
-            'known_vulnerabilities': [
-                'Algebraic attacks (if algebraic immunity is low)',
-                'Correlation attacks (if correlation immunity is low)',
-                'Fast correlation attacks'
+            "nonlinearity": "Non-linear filter provides resistance to linear attacks",
+            "known_vulnerabilities": [
+                "Algebraic attacks (if algebraic immunity is low)",
+                "Correlation attacks (if correlation immunity is low)",
+                "Fast correlation attacks",
             ],
-            'recommendations': [
-                'Use filter function with high algebraic immunity',
-                'Ensure correlation immunity is sufficient',
-                'Consider combining multiple LFSRs'
-            ]
+            "recommendations": [
+                "Use filter function with high algebraic immunity",
+                "Ensure correlation immunity is sufficient",
+                "Consider combining multiple LFSRs",
+            ],
         }
 
 
 def create_simple_filtered_lfsr(
     base_lfsr_config: LFSRConfig,
     filter_taps: Optional[List[int]] = None,
-    nonlinear_terms: Optional[List[tuple]] = None
+    nonlinear_terms: Optional[List[tuple]] = None,
 ) -> FilteredLFSR:
     """
     Create a simple filtered LFSR with specified filter function.
@@ -273,7 +263,7 @@ def create_simple_filtered_lfsr(
         if nonlinear_terms:
             for i, j in nonlinear_terms:
                 if 0 <= i < degree and 0 <= j < degree:
-                    nonlinear ^= (state[i] & state[j])
+                    nonlinear ^= state[i] & state[j]
 
         return linear ^ nonlinear
 

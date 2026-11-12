@@ -60,9 +60,11 @@ def example_algebraic_immunity():
 
     for name, func, num_inputs in functions:
         result = compute_algebraic_immunity(func, num_inputs)
-        optimal_str = "Yes" if result['optimal'] else "No"
-        print(f"{name:<30} {result['algebraic_immunity']:<8} "
-              f"{result['max_possible']:<8} {optimal_str:<10}")
+        optimal_str = "Yes" if result["optimal"] else "No"
+        print(
+            f"{name:<30} {result['algebraic_immunity']:<8} "
+            f"{result['max_possible']:<8} {optimal_str:<10}"
+        )
 
     # Detailed analysis
     print(f"\n{'─'*70}")
@@ -72,9 +74,11 @@ def example_algebraic_immunity():
     print(f"  Algebraic immunity: {result['algebraic_immunity']}")
     print(f"  Maximum possible: {result['max_possible']}")
     print(f"  Optimal: {result['optimal']}")
-    if not result['optimal']:
+    if not result["optimal"]:
         print("  ⚠ VULNERABLE: Function does not achieve maximum algebraic immunity")
-        print(f"    (Vulnerable to algebraic attacks of degree {result['algebraic_immunity']})")
+        print(
+            f"    (Vulnerable to algebraic attacks of degree {result['algebraic_immunity']})"
+        )
 
 
 def example_groebner_basis_attack():
@@ -84,11 +88,7 @@ def example_groebner_basis_attack():
     print("=" * 70)
 
     # Create LFSR configuration
-    lfsr = LFSRConfig(
-        coefficients=[1, 0, 0, 1],
-        field_order=2,
-        degree=4
-    )
+    lfsr = LFSRConfig(coefficients=[1, 0, 0, 1], field_order=2, degree=4)
 
     print("\nLFSR Configuration:")
     print(f"  Coefficients: {lfsr.coefficients}")
@@ -105,9 +105,7 @@ def example_groebner_basis_attack():
     # Perform Gröbner basis attack
     print("\nPerforming Gröbner basis attack...")
     result = groebner_basis_attack(
-        lfsr_config=lfsr,
-        keystream=keystream,
-        max_equations=100
+        lfsr_config=lfsr, keystream=keystream, max_equations=100
     )
 
     print(f"\n{'─'*70}")
@@ -119,7 +117,7 @@ def example_groebner_basis_attack():
         print(f"  ✓ Recovered state: {result.recovered_state}")
     else:
         print("  ✗ Attack failed")
-        if 'error' in result.details:
+        if "error" in result.details:
             print(f"  Error: {result.details['error']}")
     print(f"  Equations solved: {result.equations_solved}")
     print(f"  Complexity estimate: {result.complexity_estimate:.0f} operations")
@@ -133,11 +131,7 @@ def example_cube_attack():
     print("=" * 70)
 
     # Create LFSR configuration
-    lfsr = LFSRConfig(
-        coefficients=[1, 0, 0, 1],
-        field_order=2,
-        degree=4
-    )
+    lfsr = LFSRConfig(coefficients=[1, 0, 0, 1], field_order=2, degree=4)
 
     print("\nLFSR Configuration:")
     print(f"  Coefficients: {lfsr.coefficients}")
@@ -150,11 +144,7 @@ def example_cube_attack():
 
     # Perform cube attack
     print("\nPerforming cube attack (max cube size: 5)...")
-    result = cube_attack(
-        lfsr_config=lfsr,
-        keystream=keystream,
-        max_cube_size=5
-    )
+    result = cube_attack(lfsr_config=lfsr, keystream=keystream, max_cube_size=5)
 
     print(f"\n{'─'*70}")
     print("Cube Attack Results:")
@@ -167,7 +157,7 @@ def example_cube_attack():
         print(f"  Recovered bits: {result.recovered_bits}")
     else:
         print("  ✗ Attack failed")
-        if 'error' in result.details:
+        if "error" in result.details:
             print(f"  Error: {result.details['error']}")
     print(f"  Complexity estimate: {result.complexity_estimate:.0f} operations")
 
@@ -224,6 +214,7 @@ def main():
     except Exception as e:
         print(f"\nERROR: {e}", file=sys.stderr)
         import traceback
+
         traceback.print_exc()
         sys.exit(1)
 

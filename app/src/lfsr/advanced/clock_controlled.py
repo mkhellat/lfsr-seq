@@ -104,7 +104,7 @@ class ClockControlledLFSR(AdvancedLFSR):
         self,
         main_lfsr_config: LFSRConfig,
         control_lfsr_config: Optional[LFSRConfig] = None,
-        clock_control_function: Optional[Callable] = None
+        clock_control_function: Optional[Callable] = None,
     ):
         """
         Initialize Clock-Controlled LFSR.
@@ -121,14 +121,12 @@ class ClockControlledLFSR(AdvancedLFSR):
 
         # Build state update matrices
         self.main_C, _ = build_state_update_matrix(
-            main_lfsr_config.coefficients,
-            main_lfsr_config.field_order
+            main_lfsr_config.coefficients, main_lfsr_config.field_order
         )
 
         if control_lfsr_config:
             self.control_C, _ = build_state_update_matrix(
-                control_lfsr_config.coefficients,
-                control_lfsr_config.field_order
+                control_lfsr_config.coefficients, control_lfsr_config.field_order
             )
         else:
             self.control_C = None
@@ -143,9 +141,9 @@ class ClockControlledLFSR(AdvancedLFSR):
             structure_type="clock_controlled",
             base_lfsr_config=self.main_lfsr_config,
             parameters={
-                'has_control_lfsr': self.control_lfsr_config is not None,
-                'has_clock_control': self.clock_control_function is not None
-            }
+                "has_control_lfsr": self.control_lfsr_config is not None,
+                "has_clock_control": self.clock_control_function is not None,
+            },
         )
 
     def _clock_lfsr(self, state: List[int], C, field_order: int) -> List[int]:
@@ -159,7 +157,7 @@ class ClockControlledLFSR(AdvancedLFSR):
         self,
         initial_state: List[int],
         length: int,
-        control_initial_state: Optional[List[int]] = None
+        control_initial_state: Optional[List[int]] = None,
     ) -> List[int]:
         """
         Generate sequence from initial state.
@@ -201,17 +199,13 @@ class ClockControlledLFSR(AdvancedLFSR):
             # Clock main LFSR if control says so
             if should_clock:
                 main_state = self._clock_lfsr(
-                    main_state,
-                    self.main_C,
-                    self.main_lfsr_config.field_order
+                    main_state, self.main_C, self.main_lfsr_config.field_order
                 )
 
             # Clock control LFSR (always)
             if control_state is not None:
                 control_state = self._clock_lfsr(
-                    control_state,
-                    self.control_C,
-                    self.control_lfsr_config.field_order
+                    control_state, self.control_C, self.control_lfsr_config.field_order
                 )
 
         return sequence
@@ -219,38 +213,33 @@ class ClockControlledLFSR(AdvancedLFSR):
     def analyze_structure(self) -> dict:
         """Analyze Clock-Controlled LFSR structure."""
         return {
-            'structure_type': 'ClockControlledLFSR',
-            'main_lfsr_degree': self.main_lfsr_config.degree,
-            'has_control_lfsr': self.control_lfsr_config is not None,
-            'control_lfsr_degree': (
-                self.control_lfsr_config.degree
-                if self.control_lfsr_config else None
+            "structure_type": "ClockControlledLFSR",
+            "main_lfsr_degree": self.main_lfsr_config.degree,
+            "has_control_lfsr": self.control_lfsr_config is not None,
+            "control_lfsr_degree": (
+                self.control_lfsr_config.degree if self.control_lfsr_config else None
             ),
-            'has_irregular_clocking': True,
-            'note': 'Clock-controlled LFSR has irregular clocking pattern'
+            "has_irregular_clocking": True,
+            "note": "Clock-controlled LFSR has irregular clocking pattern",
         }
 
-    def _assess_security(
-        self,
-        structure_properties: dict
-    ) -> dict:
+    def _assess_security(self, structure_properties: dict) -> dict:
         """Assess Clock-Controlled LFSR security."""
         return {
-            'irregularity': 'Irregular clocking provides resistance to linear analysis',
-            'known_vulnerabilities': [
-                'Clock control analysis',
-                'Correlation attacks (if correlations exist)'
+            "irregularity": "Irregular clocking provides resistance to linear analysis",
+            "known_vulnerabilities": [
+                "Clock control analysis",
+                "Correlation attacks (if correlations exist)",
             ],
-            'recommendations': [
-                'Use complex clock control function',
-                'Ensure control LFSR is independent'
-            ]
+            "recommendations": [
+                "Use complex clock control function",
+                "Ensure control LFSR is independent",
+            ],
         }
 
 
 def create_stop_and_go_lfsr(
-    main_lfsr_config: LFSRConfig,
-    control_lfsr_config: LFSRConfig
+    main_lfsr_config: LFSRConfig, control_lfsr_config: LFSRConfig
 ) -> ClockControlledLFSR:
     """
     Create a stop-and-go clock-controlled LFSR.
@@ -265,11 +254,8 @@ def create_stop_and_go_lfsr(
     Returns:
         ClockControlledLFSR instance with stop-and-go behavior
     """
+
     def stop_and_go(control_output: int) -> bool:
         return control_output == 1
 
-    return ClockControlledLFSR(
-        main_lfsr_config,
-        control_lfsr_config,
-        stop_and_go
-    )
+    return ClockControlledLFSR(main_lfsr_config, control_lfsr_config, stop_and_go)

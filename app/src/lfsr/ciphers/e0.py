@@ -96,13 +96,13 @@ class E0(StreamCipher):
             iv_size=64,
             description="E0 Bluetooth stream cipher with 4 LFSRs and FSM combiner",
             parameters={
-                'lfsr1_size': self.LFSR1_SIZE,
-                'lfsr2_size': self.LFSR2_SIZE,
-                'lfsr3_size': self.LFSR3_SIZE,
-                'lfsr4_size': self.LFSR4_SIZE,
-                'fsm_state_size': self.FSM_STATE_SIZE,
-                'warmup_steps': self.WARMUP_STEPS
-            }
+                "lfsr1_size": self.LFSR1_SIZE,
+                "lfsr2_size": self.LFSR2_SIZE,
+                "lfsr3_size": self.LFSR3_SIZE,
+                "lfsr4_size": self.LFSR4_SIZE,
+                "fsm_state_size": self.FSM_STATE_SIZE,
+                "warmup_steps": self.WARMUP_STEPS,
+            },
         )
 
     def _clock_lfsr(self, state: List[int], taps: List[int], size: int) -> List[int]:
@@ -214,10 +214,7 @@ class E0(StreamCipher):
             self._get_output_bit()  # Update FSM but discard output
 
     def generate_keystream(
-        self,
-        key: List[int],
-        iv: Optional[List[int]],
-        length: int
+        self, key: List[int], iv: Optional[List[int]], length: int
     ) -> List[int]:
         """
         Generate E0 keystream.
@@ -282,32 +279,30 @@ class E0(StreamCipher):
             combiner="Finite State Machine (FSM) with 4 states providing non-linear combining",
             state_size=128,  # 25 + 31 + 33 + 39
             details={
-                'lfsr1_size': 25,
-                'lfsr2_size': 31,
-                'lfsr3_size': 33,
-                'lfsr4_size': 39,
-                'fsm_state_size': 2,
-                'warmup_steps': self.WARMUP_STEPS,
-                'polynomials': {
-                    'lfsr1': 'x^25 + x^20 + x^12 + x^8 + 1',
-                    'lfsr2': 'x^31 + x^24 + x^16 + x^12 + 1',
-                    'lfsr3': 'x^33 + x^28 + x^24 + x^4 + 1',
-                    'lfsr4': 'x^39 + x^36 + x^28 + x^4 + 1'
-                }
-            }
+                "lfsr1_size": 25,
+                "lfsr2_size": 31,
+                "lfsr3_size": 33,
+                "lfsr4_size": 39,
+                "fsm_state_size": 2,
+                "warmup_steps": self.WARMUP_STEPS,
+                "polynomials": {
+                    "lfsr1": "x^25 + x^20 + x^12 + x^8 + 1",
+                    "lfsr2": "x^31 + x^24 + x^16 + x^12 + 1",
+                    "lfsr3": "x^33 + x^28 + x^24 + x^4 + 1",
+                    "lfsr4": "x^39 + x^36 + x^28 + x^4 + 1",
+                },
+            },
         )
 
     def apply_attacks(
-        self,
-        keystream: List[int],
-        attack_types: Optional[List[str]] = None
+        self, keystream: List[int], attack_types: Optional[List[str]] = None
     ) -> dict:
         """Apply attacks to E0 keystream."""
         return {
-            'note': 'Attack integration pending',
-            'known_vulnerabilities': [
-                'Correlation attacks',
-                'Algebraic attacks',
-                'Time-memory trade-off attacks'
-            ]
+            "note": "Attack integration pending",
+            "known_vulnerabilities": [
+                "Correlation attacks",
+                "Algebraic attacks",
+                "Time-memory trade-off attacks",
+            ],
         }

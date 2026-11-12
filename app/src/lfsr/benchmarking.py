@@ -29,6 +29,7 @@ class BenchmarkResult:
         expected_value: Expected result value (if known)
         parameters: Parameters used for the benchmark
     """
+
     method_name: str
     execution_time: float
     memory_usage: Optional[float] = None
@@ -49,6 +50,7 @@ class BenchmarkSuite:
         total_time: Total execution time
         average_time: Average execution time per benchmark
     """
+
     suite_name: str
     results: List[BenchmarkResult] = field(default_factory=list)
     total_time: float = 0.0
@@ -59,7 +61,7 @@ def benchmark_polynomial_order(
     polynomial: Any,
     field_order: int,
     state_vector_dim: int,
-    expected_order: Optional[int] = None
+    expected_order: Optional[int] = None,
 ) -> BenchmarkResult:
     """
     Benchmark polynomial order computation.
@@ -108,10 +110,10 @@ def benchmark_polynomial_order(
         result_value=int(computed_order) if computed_order != oo else None,
         expected_value=expected_order,
         parameters={
-            'field_order': field_order,
-            'degree': polynomial.degree(),
-            'state_vector_dim': state_vector_dim
-        }
+            "field_order": field_order,
+            "degree": polynomial.degree(),
+            "state_vector_dim": state_vector_dim,
+        },
     )
 
 
@@ -119,7 +121,7 @@ def benchmark_period_computation(
     coefficients: List[int],
     field_order: int,
     method: str = "enumeration",
-    expected_period: Optional[int] = None
+    expected_period: Optional[int] = None,
 ) -> BenchmarkResult:
     """
     Benchmark period computation methods.
@@ -153,8 +155,13 @@ def benchmark_period_computation(
         sink = io.StringIO()
         with contextlib.redirect_stdout(sink):
             _, _, computed_period, _ = lfsr_sequence_mapper(
-                C, V, field_order, output_file=sink, no_progress=True,
-                algorithm="enumeration", period_only=True,
+                C,
+                V,
+                field_order,
+                output_file=sink,
+                no_progress=True,
+                algorithm="enumeration",
+                period_only=True,
             )
     elif method == "factorization":
         computed_period = compute_period_via_factorization(coefficients, field_order)
@@ -174,16 +181,15 @@ def benchmark_period_computation(
         result_value=computed_period,
         expected_value=expected_period,
         parameters={
-            'coefficients': coefficients,
-            'field_order': field_order,
-            'method': method
-        }
+            "coefficients": coefficients,
+            "field_order": field_order,
+            "method": method,
+        },
     )
 
 
 def run_benchmark_suite(
-    test_cases: List[Dict[str, Any]],
-    suite_name: str = "LFSR Analysis Benchmarks"
+    test_cases: List[Dict[str, Any]], suite_name: str = "LFSR Analysis Benchmarks"
 ) -> BenchmarkSuite:
     """
     Run a suite of benchmarks.
@@ -202,25 +208,26 @@ def run_benchmark_suite(
     total_time = 0.0
 
     for test_case in test_cases:
-        benchmark_type = test_case.get('type', 'polynomial_order')
+        benchmark_type = test_case.get("type", "polynomial_order")
 
-        if benchmark_type == 'polynomial_order':
+        if benchmark_type == "polynomial_order":
             from lfsr.sage_imports import GF, PolynomialRing
-            F = GF(test_case['field_order'])
+
+            F = GF(test_case["field_order"])
             R = PolynomialRing(F, "t")
-            poly = R(test_case['polynomial'])
+            poly = R(test_case["polynomial"])
             result = benchmark_polynomial_order(
                 poly,
-                test_case['field_order'],
-                test_case.get('state_vector_dim', poly.degree()),
-                test_case.get('expected_order')
+                test_case["field_order"],
+                test_case.get("state_vector_dim", poly.degree()),
+                test_case.get("expected_order"),
             )
-        elif benchmark_type == 'period_computation':
+        elif benchmark_type == "period_computation":
             result = benchmark_period_computation(
-                test_case['coefficients'],
-                test_case['field_order'],
-                test_case.get('method', 'enumeration'),
-                test_case.get('expected_period')
+                test_case["coefficients"],
+                test_case["field_order"],
+                test_case.get("method", "enumeration"),
+                test_case.get("expected_period"),
             )
         else:
             continue
@@ -235,9 +242,7 @@ def run_benchmark_suite(
 
 
 def compare_methods(
-    coefficients: List[int],
-    field_order: int,
-    expected_period: Optional[int] = None
+    coefficients: List[int], field_order: int, expected_period: Optional[int] = None
 ) -> Dict[str, BenchmarkResult]:
     """
     Compare different period computation methods.
@@ -259,14 +264,14 @@ def compare_methods(
     enum_result = benchmark_period_computation(
         coefficients, field_order, "enumeration", expected_period
     )
-    results['enumeration'] = enum_result
+    results["enumeration"] = enum_result
 
     # Benchmark factorization
     try:
         factor_result = benchmark_period_computation(
             coefficients, field_order, "factorization", expected_period
         )
-        results['factorization'] = factor_result
+        results["factorization"] = factor_result
     except Exception:
         # Factorization may fail for some polynomials
         pass

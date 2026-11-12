@@ -120,8 +120,12 @@ class TestAdvancedLFSRConfig:
         """Regression guard for the classic mutable-default-argument
         footgun -- dataclass uses field(default_factory=dict) so each
         instance must get its own dict."""
-        cfg_a = AdvancedLFSRConfig(structure_type="a", base_lfsr_config=REFERENCE_CONFIG)
-        cfg_b = AdvancedLFSRConfig(structure_type="b", base_lfsr_config=REFERENCE_CONFIG)
+        cfg_a = AdvancedLFSRConfig(
+            structure_type="a", base_lfsr_config=REFERENCE_CONFIG
+        )
+        cfg_b = AdvancedLFSRConfig(
+            structure_type="b", base_lfsr_config=REFERENCE_CONFIG
+        )
         cfg_a.parameters["x"] = 1
         assert cfg_b.parameters == {}
 
@@ -314,9 +318,7 @@ class TestFilteredLFSR:
         flt = FilteredLFSR(REFERENCE_CONFIG, lambda s: s[0])
         seq = flt.generate_sequence([1, 0, 1, 0], 8)
 
-        trail = _advanced_module_convention_steps(
-            REFERENCE_COEFFS, 2, [1, 0, 1, 0], 8
-        )
+        trail = _advanced_module_convention_steps(REFERENCE_COEFFS, 2, [1, 0, 1, 0], 8)
         expected = [row[0] for row in trail[:8]]
         assert seq == expected
 
@@ -363,9 +365,7 @@ class TestFilteredLFSR:
         seq = flt.generate_sequence([1, 1, 0, 0], 6)
 
         trail = _advanced_module_convention_steps(REFERENCE_COEFFS, 2, [1, 1, 0, 0], 6)
-        expected = [
-            (row[0] ^ row[1]) ^ (row[2] & row[3]) for row in trail[:6]
-        ]
+        expected = [(row[0] ^ row[1]) ^ (row[2] & row[3]) for row in trail[:6]]
         assert seq == expected
 
 

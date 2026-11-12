@@ -20,7 +20,7 @@ def plot_3d_state_space(
     period_dict: Dict[int, int],
     max_states: int = 100,
     config: Optional[VisualizationConfig] = None,
-    output_file: Optional[str] = None
+    output_file: Optional[str] = None,
 ) -> Any:
     """
     Create 3D visualization of state space.
@@ -72,7 +72,7 @@ def plot_3d_state_space(
 
         period = period_dict.get(seq_num, len(sequence))
 
-        for state in sequence[:min(len(sequence), max_states - state_count)]:
+        for state in sequence[: min(len(sequence), max_states - state_count)]:
             if len(state) >= 3:
                 # Coerce Sage GF(q) field elements to plain Python ints;
                 # leaving them as-is makes np.array() infer dtype=object,
@@ -100,7 +100,7 @@ def _plot_3d_interactive(
     states: np.ndarray,
     periods: List[int],
     config: VisualizationConfig,
-    output_file: Optional[str]
+    output_file: Optional[str],
 ) -> Any:
     """Create interactive 3D plot using plotly."""
     import plotly.graph_objects as go
@@ -110,35 +110,37 @@ def _plot_3d_interactive(
     color_map = {p: i for i, p in enumerate(unique_periods)}
     colors = [color_map[p] for p in periods]
 
-    fig = go.Figure(data=go.Scatter3d(
-        x=states[:, 0],
-        y=states[:, 1],
-        z=states[:, 2],
-        mode='markers',
-        marker={
-            "size": 5,
-            "color": colors,
-            "colorscale": 'Viridis',
-            "opacity": 0.7,
-            "colorbar": {"title": "Period"}
-        },
-        text=[f"Period: {p}" for p in periods],
-        hovertemplate='State: (%{x}, %{y}, %{z})<br>Period: %{text}<extra></extra>'
-    ))
+    fig = go.Figure(
+        data=go.Scatter3d(
+            x=states[:, 0],
+            y=states[:, 1],
+            z=states[:, 2],
+            mode="markers",
+            marker={
+                "size": 5,
+                "color": colors,
+                "colorscale": "Viridis",
+                "opacity": 0.7,
+                "colorbar": {"title": "Period"},
+            },
+            text=[f"Period: {p}" for p in periods],
+            hovertemplate="State: (%{x}, %{y}, %{z})<br>Period: %{text}<extra></extra>",
+        )
+    )
 
     fig.update_layout(
         title=config.title or "3D State Space Visualization",
         scene={
             "xaxis_title": "State[0]",
             "yaxis_title": "State[1]",
-            "zaxis_title": "State[2]"
+            "zaxis_title": "State[2]",
         },
         width=config.width * 80,
-        height=config.height * 80
+        height=config.height * 80,
     )
 
     if output_file:
-        if output_file.endswith('.html'):
+        if output_file.endswith(".html"):
             fig.write_html(output_file)
         else:
             fig.write_image(output_file)
@@ -150,13 +152,13 @@ def _plot_3d_static(
     states: np.ndarray,
     periods: List[int],
     config: VisualizationConfig,
-    output_file: Optional[str]
+    output_file: Optional[str],
 ) -> Any:
     """Create static 3D plot using matplotlib."""
     import matplotlib.pyplot as plt
 
     fig = plt.figure(figsize=(config.width, config.height), dpi=config.dpi)
-    ax = fig.add_subplot(111, projection='3d')
+    ax = fig.add_subplot(111, projection="3d")
 
     # Create color map based on periods
     unique_periods = list(set(periods))
@@ -168,21 +170,23 @@ def _plot_3d_static(
         states[:, 1],
         states[:, 2],
         c=colors,
-        cmap='viridis',
+        cmap="viridis",
         s=20,
-        alpha=0.7
+        alpha=0.7,
     )
 
     ax.set_xlabel("State[0]", fontsize=10)
     ax.set_ylabel("State[1]", fontsize=10)
     ax.set_zlabel("State[2]", fontsize=10)
-    ax.set_title(config.title or "3D State Space Visualization", fontsize=14, fontweight='bold')
+    ax.set_title(
+        config.title or "3D State Space Visualization", fontsize=14, fontweight="bold"
+    )
 
     plt.colorbar(scatter, ax=ax, label="Period")
     plt.tight_layout()
 
     if output_file:
-        fig.savefig(output_file, dpi=config.dpi, bbox_inches='tight')
+        fig.savefig(output_file, dpi=config.dpi, bbox_inches="tight")
 
     return fig
 
@@ -193,7 +197,7 @@ def plot_state_space_projection(
     projection_method: str = "pca",
     max_states: int = 100,
     config: Optional[VisualizationConfig] = None,
-    output_file: Optional[str] = None
+    output_file: Optional[str] = None,
 ) -> Any:
     """
     Create 2D projection of state space using dimensionality reduction.
@@ -244,7 +248,7 @@ def plot_state_space_projection(
 
         period = period_dict.get(seq_num, len(sequence))
 
-        for state in sequence[:min(len(sequence), max_states - state_count)]:
+        for state in sequence[: min(len(sequence), max_states - state_count)]:
             # Coerce Sage GF(q) field elements to plain Python ints; see
             # the equivalent fix in plot_3d_state_space() above.
             states_list.append([int(c) for c in state])
@@ -261,11 +265,13 @@ def plot_state_space_projection(
     # Apply projection
     if projection_method.lower() == "pca":
         from sklearn.decomposition import PCA
+
         pca = PCA(n_components=2)
         projected = pca.fit_transform(states_array)
     elif projection_method.lower() == "tsne":
         try:
             from sklearn.manifold import TSNE
+
             tsne = TSNE(n_components=2, random_state=42)
             projected = tsne.fit_transform(states_array)
         except ImportError as e:
@@ -282,17 +288,23 @@ def plot_state_space_projection(
     color_map = {p: i / len(unique_periods) for i, p in enumerate(unique_periods)}
     colors = [color_map[p] for p in periods_list]
 
-    scatter = ax.scatter(projected[:, 0], projected[:, 1], c=colors, cmap='viridis', s=20, alpha=0.7)
+    scatter = ax.scatter(
+        projected[:, 0], projected[:, 1], c=colors, cmap="viridis", s=20, alpha=0.7
+    )
 
     ax.set_xlabel(f"{projection_method.upper()} Component 1", fontsize=10)
     ax.set_ylabel(f"{projection_method.upper()} Component 2", fontsize=10)
-    ax.set_title(config.title or f"State Space Projection ({projection_method.upper()})", fontsize=14, fontweight='bold')
+    ax.set_title(
+        config.title or f"State Space Projection ({projection_method.upper()})",
+        fontsize=14,
+        fontweight="bold",
+    )
     ax.grid(True, alpha=0.3)
 
     plt.colorbar(scatter, ax=ax, label="Period")
     plt.tight_layout()
 
     if output_file:
-        fig.savefig(output_file, dpi=config.dpi, bbox_inches='tight')
+        fig.savefig(output_file, dpi=config.dpi, bbox_inches="tight")
 
     return fig

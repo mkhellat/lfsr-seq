@@ -10,6 +10,7 @@ only).
 """
 
 import matplotlib
+
 matplotlib.use("Agg")
 
 import matplotlib.pyplot as plt
@@ -115,7 +116,9 @@ class TestPlot3DStateSpaceInteractive:
     def test_saves_html_output(self, tmp_path):
         out = tmp_path / "3d.html"
         config = VisualizationConfig(interactive=True)
-        plot_3d_state_space(SEQUENCES_3D, PERIODS_3D, config=config, output_file=str(out))
+        plot_3d_state_space(
+            SEQUENCES_3D, PERIODS_3D, config=config, output_file=str(out)
+        )
         assert out.exists()
 
     def test_saves_non_html_output_file_via_write_image(self, tmp_path, monkeypatch):
@@ -130,13 +133,17 @@ class TestPlot3DStateSpaceInteractive:
         )
         out = tmp_path / "3d.png"
         config = VisualizationConfig(interactive=True)
-        plot_3d_state_space(SEQUENCES_3D, PERIODS_3D, config=config, output_file=str(out))
+        plot_3d_state_space(
+            SEQUENCES_3D, PERIODS_3D, config=config, output_file=str(out)
+        )
         assert calls == [str(out)]
 
 
 class TestPlotStateSpaceProjectionPCA:
     def test_returns_matplotlib_figure(self):
-        fig = plot_state_space_projection(SEQUENCES_3D, PERIODS_3D, projection_method="pca")
+        fig = plot_state_space_projection(
+            SEQUENCES_3D, PERIODS_3D, projection_method="pca"
+        )
         assert isinstance(fig, plt.Figure)
 
     def test_raises_without_matplotlib(self, monkeypatch):
@@ -145,7 +152,9 @@ class TestPlotStateSpaceProjectionPCA:
             plot_state_space_projection(SEQUENCES_3D, PERIODS_3D)
 
     def test_scatter_point_count_matches_states(self):
-        fig = plot_state_space_projection(SEQUENCES_3D, PERIODS_3D, projection_method="pca")
+        fig = plot_state_space_projection(
+            SEQUENCES_3D, PERIODS_3D, projection_method="pca"
+        )
         ax = fig.axes[0]
         offsets = ax.collections[0].get_offsets()
         total_states = sum(len(seq) for seq in SEQUENCES_3D.values())
@@ -161,7 +170,9 @@ class TestPlotStateSpaceProjectionPCA:
         states_array = np.array(SEQUENCES_3D[0] + SEQUENCES_3D[1])
         expected = PCA(n_components=2).fit_transform(states_array)
 
-        fig = plot_state_space_projection(SEQUENCES_3D, PERIODS_3D, projection_method="pca")
+        fig = plot_state_space_projection(
+            SEQUENCES_3D, PERIODS_3D, projection_method="pca"
+        )
         ax = fig.axes[0]
         offsets = ax.collections[0].get_offsets()
 
@@ -170,14 +181,18 @@ class TestPlotStateSpaceProjectionPCA:
 
     def test_unknown_projection_method_raises_value_error(self):
         with pytest.raises(ValueError, match="Unknown projection method"):
-            plot_state_space_projection(SEQUENCES_3D, PERIODS_3D, projection_method="magic")
+            plot_state_space_projection(
+                SEQUENCES_3D, PERIODS_3D, projection_method="magic"
+            )
 
     def test_no_states_raises_value_error(self):
         with pytest.raises(ValueError, match="No states found"):
             plot_state_space_projection({}, {})
 
     def test_axis_labels_reflect_method_name(self):
-        fig = plot_state_space_projection(SEQUENCES_3D, PERIODS_3D, projection_method="pca")
+        fig = plot_state_space_projection(
+            SEQUENCES_3D, PERIODS_3D, projection_method="pca"
+        )
         ax = fig.axes[0]
         assert ax.get_xlabel() == "PCA Component 1"
         assert ax.get_ylabel() == "PCA Component 2"
@@ -187,7 +202,9 @@ class TestPlotStateSpaceProjectionPCA:
         assert "PCA" in fig_default.axes[0].get_title()
 
         config = VisualizationConfig(title="Custom Proj")
-        fig_custom = plot_state_space_projection(SEQUENCES_3D, PERIODS_3D, config=config)
+        fig_custom = plot_state_space_projection(
+            SEQUENCES_3D, PERIODS_3D, config=config
+        )
         assert fig_custom.axes[0].get_title() == "Custom Proj"
 
     def test_saves_to_output_file(self, tmp_path):
@@ -230,5 +247,7 @@ class TestPlotStateSpaceProjectionTSNE:
             plot_state_space_projection(sequences, {0: 3}, projection_method="tsne")
 
     def test_method_name_case_insensitive(self):
-        fig_upper = plot_state_space_projection(SEQUENCES_3D, PERIODS_3D, projection_method="PCA")
+        fig_upper = plot_state_space_projection(
+            SEQUENCES_3D, PERIODS_3D, projection_method="PCA"
+        )
         assert isinstance(fig_upper, plt.Figure)

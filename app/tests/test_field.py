@@ -194,4 +194,3 @@ class TestValidateCoefficientVector:
         validate_coefficient_vector(vector1, 2, 1)
         validate_coefficient_vector(vector2, 2, 2)
         # Should not raise
-

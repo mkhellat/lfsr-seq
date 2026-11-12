@@ -38,6 +38,7 @@ class IrreduciblePolynomialAnalysis:
         degree_distribution: Distribution of factor degrees
         theoretical_period: Theoretical maximum period
     """
+
     polynomial: Any
     is_irreducible: bool
     factors: List[Tuple[Any, int]] = field(default_factory=list)
@@ -53,9 +54,7 @@ class IrreduciblePolynomialAnalysis:
 
 
 def analyze_irreducible_properties(
-    polynomial: Any,
-    field_order: int,
-    state_vector_dim: Optional[int] = None
+    polynomial: Any, field_order: int, state_vector_dim: Optional[int] = None
 ) -> IrreduciblePolynomialAnalysis:
     """
     Perform comprehensive analysis of irreducible polynomial properties.
@@ -158,7 +157,9 @@ def analyze_irreducible_properties(
             factors_list.append((factor_poly, multiplicity))
 
             # Compute order of this factor
-            factor_order = _polynomial_order_helper(factor_poly, factor_deg, field_order)
+            factor_order = _polynomial_order_helper(
+                factor_poly, factor_deg, field_order
+            )
             if factor_order != oo:
                 factor_orders_list.append(int(factor_order))
             else:
@@ -201,7 +202,7 @@ def analyze_irreducible_properties(
         degree_distribution=degree_dist,
         theoretical_period=theoretical_period,
         field_order=field_order,
-        polynomial_degree=degree
+        polynomial_degree=degree,
     )
 
 
@@ -209,7 +210,7 @@ def compare_with_theoretical_bounds(
     computed_period: int,
     theoretical_max_period: int,
     is_primitive: bool,
-    polynomial_order: Optional[int] = None
+    polynomial_order: Optional[int] = None,
 ) -> Dict[str, Any]:
     """
     Compare computed results with theoretical predictions.
@@ -251,42 +252,50 @@ def compare_with_theoretical_bounds(
         Dictionary with comparison results and verification status
     """
     comparison = {
-        'computed_period': computed_period,
-        'theoretical_max_period': theoretical_max_period,
-        'is_primitive': is_primitive,
-        'period_equals_max': computed_period == theoretical_max_period,
-        'period_ratio': computed_period / theoretical_max_period if theoretical_max_period > 0 else 0.0,
-        'verification_status': 'unknown'
+        "computed_period": computed_period,
+        "theoretical_max_period": theoretical_max_period,
+        "is_primitive": is_primitive,
+        "period_equals_max": computed_period == theoretical_max_period,
+        "period_ratio": computed_period / theoretical_max_period
+        if theoretical_max_period > 0
+        else 0.0,
+        "verification_status": "unknown",
     }
 
     if is_primitive:
         # For primitive polynomials, period should equal q^d - 1
         if computed_period == theoretical_max_period:
-            comparison['verification_status'] = 'verified'
-            comparison['verification_message'] = 'Period matches theoretical maximum for primitive polynomial'
+            comparison["verification_status"] = "verified"
+            comparison[
+                "verification_message"
+            ] = "Period matches theoretical maximum for primitive polynomial"
         else:
-            comparison['verification_status'] = 'mismatch'
-            comparison['verification_message'] = f'Period {computed_period} does not match expected {theoretical_max_period} for primitive polynomial'
+            comparison["verification_status"] = "mismatch"
+            comparison[
+                "verification_message"
+            ] = f"Period {computed_period} does not match expected {theoretical_max_period} for primitive polynomial"
     elif polynomial_order is not None:
         # For non-primitive polynomials, period should equal polynomial order
         if computed_period == polynomial_order:
-            comparison['verification_status'] = 'verified'
-            comparison['verification_message'] = 'Period matches polynomial order'
+            comparison["verification_status"] = "verified"
+            comparison["verification_message"] = "Period matches polynomial order"
         else:
-            comparison['verification_status'] = 'mismatch'
-            comparison['verification_message'] = f'Period {computed_period} does not match polynomial order {polynomial_order}'
+            comparison["verification_status"] = "mismatch"
+            comparison[
+                "verification_message"
+            ] = f"Period {computed_period} does not match polynomial order {polynomial_order}"
     else:
         # Cannot verify without polynomial order
-        comparison['verification_status'] = 'unverified'
-        comparison['verification_message'] = 'Cannot verify: polynomial order not provided'
+        comparison["verification_status"] = "unverified"
+        comparison[
+            "verification_message"
+        ] = "Cannot verify: polynomial order not provided"
 
     return comparison
 
 
 def _polynomial_order_helper(
-    polynomial: Any,
-    state_vector_dim: int,
-    gf_order: int
+    polynomial: Any, state_vector_dim: int, gf_order: int
 ) -> Union[int, Any]:
     """
     Find the order of a polynomial over the field GF(gf_order).

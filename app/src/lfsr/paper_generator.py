@@ -30,7 +30,9 @@ _LATEX_SPECIAL_CHARS = {
     "^": "\\textasciicircum{}",
     "~": "\\textasciitilde{}",
 }
-_LATEX_SPECIAL_CHARS_RE = re.compile("|".join(re.escape(c) for c in _LATEX_SPECIAL_CHARS))
+_LATEX_SPECIAL_CHARS_RE = re.compile(
+    "|".join(re.escape(c) for c in _LATEX_SPECIAL_CHARS)
+)
 
 
 def escape_latex(text: str) -> str:
@@ -51,8 +53,7 @@ def escape_latex(text: str) -> str:
 
 
 def generate_abstract_section(
-    analysis_results: Dict[str, Any],
-    research_focus: Optional[str] = None
+    analysis_results: Dict[str, Any], research_focus: Optional[str] = None
 ) -> str:
     """
     Generate abstract section for research paper.
@@ -82,11 +83,11 @@ def generate_abstract_section(
     latex_code.append("")
 
     # Extract key information
-    field_order = analysis_results.get('field_order', 2)
-    lfsr_degree = analysis_results.get('lfsr_degree', 0)
-    is_primitive = analysis_results.get('is_primitive', False)
-    max_period = analysis_results.get('max_period', 0)
-    theoretical_max = analysis_results.get('theoretical_max_period', 0)
+    field_order = analysis_results.get("field_order", 2)
+    lfsr_degree = analysis_results.get("lfsr_degree", 0)
+    is_primitive = analysis_results.get("is_primitive", False)
+    max_period = analysis_results.get("max_period", 0)
+    theoretical_max = analysis_results.get("theoretical_max_period", 0)
 
     # Generate abstract content
     abstract_text = "This paper presents a comprehensive analysis of Linear "
@@ -114,8 +115,7 @@ def generate_abstract_section(
 
 
 def generate_methodology_section(
-    analysis_results: Dict[str, Any],
-    methods_used: Optional[List[str]] = None
+    analysis_results: Dict[str, Any], methods_used: Optional[List[str]] = None
 ) -> str:
     """
     Generate methodology section for research paper.
@@ -143,11 +143,13 @@ def generate_methodology_section(
     latex_code.append("\\section{Methodology}")
     latex_code.append("")
 
-    field_order = analysis_results.get('field_order', 2)
-    lfsr_degree = analysis_results.get('lfsr_degree', 0)
+    field_order = analysis_results.get("field_order", 2)
+    lfsr_degree = analysis_results.get("lfsr_degree", 0)
 
     latex_code.append("This section describes the methodology used to analyze ")
-    latex_code.append(f"LFSRs over $\\mathbb{{F}}_{{{field_order}}}$ of degree {lfsr_degree}.")
+    latex_code.append(
+        f"LFSRs over $\\mathbb{{F}}_{{{field_order}}}$ of degree {lfsr_degree}."
+    )
     latex_code.append("")
 
     latex_code.append("\\subsection{Polynomial Analysis}")
@@ -178,16 +180,19 @@ def generate_methodology_section(
     latex_code.append("\\subsection{Statistical Analysis}")
     latex_code.append("")
     latex_code.append("Period distribution analysis was conducted to understand ")
-    latex_code.append("the distribution of periods across all possible initial states. ")
-    latex_code.append("Theoretical bounds were computed and compared with observed results.")
+    latex_code.append(
+        "the distribution of periods across all possible initial states. "
+    )
+    latex_code.append(
+        "Theoretical bounds were computed and compared with observed results."
+    )
     latex_code.append("")
 
     return "\n".join(latex_code)
 
 
 def generate_results_section(
-    analysis_results: Dict[str, Any],
-    include_tables: bool = True
+    analysis_results: Dict[str, Any], include_tables: bool = True
 ) -> str:
     """
     Generate results section for research paper.
@@ -216,20 +221,20 @@ def generate_results_section(
     latex_code.append("")
 
     # Polynomial analysis
-    if 'polynomial' in analysis_results:
+    if "polynomial" in analysis_results:
         latex_code.append("\\subsection{Characteristic Polynomial Analysis}")
         latex_code.append("")
 
-        poly_result = analysis_results['polynomial']
-        poly = poly_result.get('polynomial')
+        poly_result = analysis_results["polynomial"]
+        poly = poly_result.get("polynomial")
         poly_latex = polynomial_to_latex(poly) if poly else "N/A"
 
         latex_code.append(f"The characteristic polynomial is ${poly_latex}$. ")
 
-        if poly_result.get('is_primitive'):
+        if poly_result.get("is_primitive"):
             latex_code.append("The polynomial is primitive, which guarantees ")
             latex_code.append("maximum period sequences.")
-        elif poly_result.get('is_irreducible'):
+        elif poly_result.get("is_irreducible"):
             latex_code.append("The polynomial is irreducible but not primitive.")
         else:
             latex_code.append("The polynomial factors into irreducible components.")
@@ -238,31 +243,31 @@ def generate_results_section(
 
         if include_tables:
             table_latex = export_polynomial_analysis_to_latex(
-                polynomial=poly_result.get('polynomial'),
-                polynomial_order=poly_result.get('order'),
-                is_primitive=poly_result.get('is_primitive', False),
-                is_irreducible=poly_result.get('is_irreducible', False),
-                factors=poly_result.get('factors'),
-                factor_orders=poly_result.get('factor_orders'),
-                field_order=poly_result.get('field_order', 2)
+                polynomial=poly_result.get("polynomial"),
+                polynomial_order=poly_result.get("order"),
+                is_primitive=poly_result.get("is_primitive", False),
+                is_irreducible=poly_result.get("is_irreducible", False),
+                factors=poly_result.get("factors"),
+                factor_orders=poly_result.get("factor_orders"),
+                field_order=poly_result.get("field_order", 2),
             )
             latex_code.append(table_latex)
             latex_code.append("")
 
     # Period distribution
-    if 'period_distribution' in analysis_results:
+    if "period_distribution" in analysis_results:
         latex_code.append("\\subsection{Period Distribution}")
         latex_code.append("")
 
-        period_result = analysis_results['period_distribution']
-        period_dict = period_result.get('period_dict', {})
+        period_result = analysis_results["period_distribution"]
+        period_dict = period_result.get("period_dict", {})
         max_period = max(period_dict.keys()) if period_dict else 0
-        theoretical_max = period_result.get('theoretical_max_period', 0)
+        theoretical_max = period_result.get("theoretical_max_period", 0)
 
         latex_code.append(f"The analysis revealed a maximum period of {max_period}, ")
         latex_code.append(f"compared to the theoretical maximum of {theoretical_max}. ")
 
-        if period_result.get('is_primitive'):
+        if period_result.get("is_primitive"):
             latex_code.append("As expected for a primitive polynomial, all non-zero ")
             latex_code.append("states achieve the maximum period.")
         else:
@@ -274,10 +279,10 @@ def generate_results_section(
         if include_tables:
             table_latex = export_period_distribution_to_latex(
                 period_dict=period_dict,
-                field_order=period_result.get('field_order', 2),
-                lfsr_degree=period_result.get('lfsr_degree', 0),
-                is_primitive=period_result.get('is_primitive', False),
-                theoretical_max_period=theoretical_max
+                field_order=period_result.get("field_order", 2),
+                lfsr_degree=period_result.get("lfsr_degree", 0),
+                is_primitive=period_result.get("is_primitive", False),
+                theoretical_max_period=theoretical_max,
             )
             latex_code.append(table_latex)
             latex_code.append("")
@@ -286,8 +291,7 @@ def generate_results_section(
 
 
 def generate_discussion_section(
-    analysis_results: Dict[str, Any],
-    key_observations: Optional[List[str]] = None
+    analysis_results: Dict[str, Any], key_observations: Optional[List[str]] = None
 ) -> str:
     """
     Generate discussion section for research paper.
@@ -315,9 +319,9 @@ def generate_discussion_section(
     latex_code.append("\\section{Discussion}")
     latex_code.append("")
 
-    is_primitive = analysis_results.get('is_primitive', False)
-    max_period = analysis_results.get('max_period', 0)
-    theoretical_max = analysis_results.get('theoretical_max_period', 0)
+    is_primitive = analysis_results.get("is_primitive", False)
+    max_period = analysis_results.get("max_period", 0)
+    theoretical_max = analysis_results.get("theoretical_max_period", 0)
 
     latex_code.append("The analysis provides insights into the period structure ")
     latex_code.append("and cryptographic properties of the LFSR configuration.")
@@ -336,7 +340,9 @@ def generate_discussion_section(
         latex_code.append("")
         latex_code.append(f"The observed maximum period of {max_period} represents ")
         if theoretical_max:
-            latex_code.append(f"{max_period/theoretical_max*100:.1f}\\% of the theoretical ")
+            latex_code.append(
+                f"{max_period/theoretical_max*100:.1f}\\% of the theoretical "
+            )
         else:
             latex_code.append("an undefined fraction of the theoretical ")
         latex_code.append("maximum. This indicates the polynomial's period-generating ")
@@ -370,7 +376,7 @@ def generate_complete_paper(
     research_focus: Optional[str] = None,
     methods_used: Optional[List[str]] = None,
     key_observations: Optional[List[str]] = None,
-    output_file: Optional[TextIO] = None
+    output_file: Optional[TextIO] = None,
 ) -> str:
     """
     Generate complete research paper from analysis results.

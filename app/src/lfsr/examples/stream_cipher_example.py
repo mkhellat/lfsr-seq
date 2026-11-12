@@ -55,7 +55,9 @@ def example_a5_1():
     print(f"  Generated {len(keystream)} bits")
     print(f"  Ones: {sum(keystream)}")
     print(f"  Zeros: {len(keystream) - sum(keystream)}")
-    print(f"  Balance: {abs(sum(keystream) - (len(keystream) - sum(keystream))) / len(keystream):.4f}")
+    print(
+        f"  Balance: {abs(sum(keystream) - (len(keystream) - sum(keystream))) / len(keystream):.4f}"
+    )
     print(f"  First 20 bits: {''.join(str(b) for b in keystream[:20])}")
 
 
@@ -129,7 +131,9 @@ def example_grain():
     print("\nGrain-128a:")
     print(f"  Name: {config128a.cipher_name}")
     print(f"  Key size: {config128a.key_size} bits")
-    print(f"  Authenticated encryption: {config128a.parameters.get('authenticated_encryption', False)}")
+    print(
+        f"  Authenticated encryption: {config128a.parameters.get('authenticated_encryption', False)}"
+    )
 
 
 def example_lili128():
@@ -168,7 +172,7 @@ def example_comparison():
     print(f"{'Property':<20} {'A5/1':<15} {'E0':<15} {'Trivium':<15}")
     print("-" * 70)
 
-    for prop in ['key_size', 'iv_size', 'state_size']:
+    for prop in ["key_size", "iv_size", "state_size"]:
         row = f"{prop.replace('_', ' ').title():<20}"
         for cipher_name in comparison.ciphers:
             row += f"{comparison.properties[cipher_name][prop]:<15}"
@@ -228,6 +232,7 @@ def main():
     except Exception as e:
         print(f"\nERROR: {e}", file=sys.stderr)
         import traceback
+
         traceback.print_exc()
         sys.exit(1)
 

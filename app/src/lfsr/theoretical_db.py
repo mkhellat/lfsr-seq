@@ -56,7 +56,7 @@ class KnownResultDatabase:
         """Load database from file."""
         if os.path.exists(self.db_path):
             try:
-                with open(self.db_path, 'r', encoding='utf-8') as f:
+                with open(self.db_path, "r", encoding="utf-8") as f:
                     self.db = json.load(f)
             except (json.JSONDecodeError, IOError):
                 self.db = self._initialize_database()
@@ -67,16 +67,16 @@ class KnownResultDatabase:
     def _save_database(self) -> None:
         """Save database to file."""
         os.makedirs(os.path.dirname(self.db_path), exist_ok=True)
-        with open(self.db_path, 'w', encoding='utf-8') as f:
+        with open(self.db_path, "w", encoding="utf-8") as f:
             json.dump(self.db, f, indent=2, ensure_ascii=False)
 
     def _initialize_database(self) -> Dict[str, Any]:
         """Initialize database with standard known results."""
         return {
-            'primitive_polynomials': {},
-            'polynomial_orders': {},
-            'period_distributions': {},
-            'known_results': []
+            "primitive_polynomials": {},
+            "polynomial_orders": {},
+            "period_distributions": {},
+            "known_results": [],
         }
 
     def add_primitive_polynomial(
@@ -85,7 +85,7 @@ class KnownResultDatabase:
         field_order: int,
         degree: int,
         order: int,
-        source: Optional[str] = None
+        source: Optional[str] = None,
     ) -> None:
         """
         Add a known primitive polynomial to the database.
@@ -98,20 +98,17 @@ class KnownResultDatabase:
             source: Optional source/reference
         """
         key = f"{field_order}_{degree}_{'_'.join(map(str, coefficients))}"
-        self.db['primitive_polynomials'][key] = {
-            'coefficients': coefficients,
-            'field_order': field_order,
-            'degree': degree,
-            'order': order,
-            'source': source
+        self.db["primitive_polynomials"][key] = {
+            "coefficients": coefficients,
+            "field_order": field_order,
+            "degree": degree,
+            "order": order,
+            "source": source,
         }
         self._save_database()
 
     def lookup_primitive_polynomial(
-        self,
-        coefficients: List[int],
-        field_order: int,
-        degree: int
+        self, coefficients: List[int], field_order: int, degree: int
     ) -> Optional[Dict[str, Any]]:
         """
         Look up a primitive polynomial in the database.
@@ -125,7 +122,7 @@ class KnownResultDatabase:
             Dictionary with polynomial data if found, None otherwise
         """
         key = f"{field_order}_{degree}_{'_'.join(map(str, coefficients))}"
-        return self.db['primitive_polynomials'].get(key)
+        return self.db["primitive_polynomials"].get(key)
 
     def add_polynomial_order(
         self,
@@ -133,7 +130,7 @@ class KnownResultDatabase:
         field_order: int,
         degree: int,
         order: int,
-        source: Optional[str] = None
+        source: Optional[str] = None,
     ) -> None:
         """
         Add a known polynomial order to the database.
@@ -146,20 +143,17 @@ class KnownResultDatabase:
             source: Optional source/reference
         """
         key = f"{field_order}_{degree}_{'_'.join(map(str, coefficients))}"
-        self.db['polynomial_orders'][key] = {
-            'coefficients': coefficients,
-            'field_order': field_order,
-            'degree': degree,
-            'order': order,
-            'source': source
+        self.db["polynomial_orders"][key] = {
+            "coefficients": coefficients,
+            "field_order": field_order,
+            "degree": degree,
+            "order": order,
+            "source": source,
         }
         self._save_database()
 
     def lookup_polynomial_order(
-        self,
-        coefficients: List[int],
-        field_order: int,
-        degree: int
+        self, coefficients: List[int], field_order: int, degree: int
     ) -> Optional[Dict[str, Any]]:
         """
         Look up a polynomial order in the database.
@@ -173,7 +167,7 @@ class KnownResultDatabase:
             Dictionary with order data if found, None otherwise
         """
         key = f"{field_order}_{degree}_{'_'.join(map(str, coefficients))}"
-        return self.db['polynomial_orders'].get(key)
+        return self.db["polynomial_orders"].get(key)
 
     def compare_with_known(
         self,
@@ -181,7 +175,7 @@ class KnownResultDatabase:
         field_order: int,
         degree: int,
         computed_order: Optional[int] = None,
-        computed_is_primitive: Optional[bool] = None
+        computed_is_primitive: Optional[bool] = None,
     ) -> Dict[str, Any]:
         """
         Compare computed results with known results in database.
@@ -197,43 +191,47 @@ class KnownResultDatabase:
             Dictionary with comparison results
         """
         comparison = {
-            'found_in_database': False,
-            'matches': False,
-            'known_order': None,
-            'known_is_primitive': None,
-            'computed_order': computed_order,
-            'computed_is_primitive': computed_is_primitive,
-            'order_match': None,
-            'primitive_match': None
+            "found_in_database": False,
+            "matches": False,
+            "known_order": None,
+            "known_is_primitive": None,
+            "computed_order": computed_order,
+            "computed_is_primitive": computed_is_primitive,
+            "order_match": None,
+            "primitive_match": None,
         }
 
         # Check primitive polynomials
-        primitive_result = self.lookup_primitive_polynomial(coefficients, field_order, degree)
+        primitive_result = self.lookup_primitive_polynomial(
+            coefficients, field_order, degree
+        )
         if primitive_result:
-            comparison['found_in_database'] = True
-            comparison['known_is_primitive'] = True
-            comparison['known_order'] = primitive_result['order']
+            comparison["found_in_database"] = True
+            comparison["known_is_primitive"] = True
+            comparison["known_order"] = primitive_result["order"]
 
             if computed_is_primitive is not None:
-                comparison['primitive_match'] = computed_is_primitive
-                comparison['matches'] = comparison['primitive_match']
+                comparison["primitive_match"] = computed_is_primitive
+                comparison["matches"] = comparison["primitive_match"]
 
             if computed_order is not None:
-                comparison['order_match'] = computed_order == primitive_result['order']
-                if comparison['matches'] is False:
-                    comparison['matches'] = comparison['order_match']
+                comparison["order_match"] = computed_order == primitive_result["order"]
+                if comparison["matches"] is False:
+                    comparison["matches"] = comparison["order_match"]
 
         # Check polynomial orders
-        if not comparison['found_in_database']:
-            order_result = self.lookup_polynomial_order(coefficients, field_order, degree)
+        if not comparison["found_in_database"]:
+            order_result = self.lookup_polynomial_order(
+                coefficients, field_order, degree
+            )
             if order_result:
-                comparison['found_in_database'] = True
-                comparison['known_order'] = order_result['order']
-                comparison['known_is_primitive'] = False
+                comparison["found_in_database"] = True
+                comparison["known_order"] = order_result["order"]
+                comparison["known_is_primitive"] = False
 
                 if computed_order is not None:
-                    comparison['order_match'] = computed_order == order_result['order']
-                    comparison['matches'] = comparison['order_match']
+                    comparison["order_match"] = computed_order == order_result["order"]
+                    comparison["matches"] = comparison["order_match"]
 
         return comparison
 
@@ -253,8 +251,11 @@ class KnownResultDatabase:
 
         for coeffs, field_order, degree, order in standard_primitives:
             self.add_primitive_polynomial(
-                coeffs, field_order, degree, order,
-                source="Standard primitive polynomial"
+                coeffs,
+                field_order,
+                degree,
+                order,
+                source="Standard primitive polynomial",
             )
 
 
@@ -276,6 +277,6 @@ def get_database(db_path: Optional[str] = None) -> KnownResultDatabase:
     if _global_db is None:
         _global_db = KnownResultDatabase(db_path)
         # Populate with standard primitives if empty
-        if not _global_db.db['primitive_polynomials']:
+        if not _global_db.db["primitive_polynomials"]:
             _global_db.populate_standard_primitives()
     return _global_db

@@ -49,7 +49,9 @@ class TestBenchmarkPeriodComputation:
         # This is the exact call that used to raise ImportError
         # unconditionally -- see module docstring.
         result = benchmark_period_computation(
-            PRIMITIVE_COEFFS_GF2, 2, method="enumeration",
+            PRIMITIVE_COEFFS_GF2,
+            2,
+            method="enumeration",
             expected_period=PRIMITIVE_PERIOD_GF2,
         )
         assert result.result_value == PRIMITIVE_PERIOD_GF2
@@ -59,7 +61,9 @@ class TestBenchmarkPeriodComputation:
 
     def test_factorization_matches_known_primitive_period(self):
         result = benchmark_period_computation(
-            PRIMITIVE_COEFFS_GF2, 2, method="factorization",
+            PRIMITIVE_COEFFS_GF2,
+            2,
+            method="factorization",
             expected_period=PRIMITIVE_PERIOD_GF2,
         )
         assert result.result_value == PRIMITIVE_PERIOD_GF2
@@ -73,7 +77,9 @@ class TestBenchmarkPeriodComputation:
         assert fact_result.result_value == 3
 
     def test_no_expected_period_leaves_result_correct_none(self):
-        result = benchmark_period_computation(PRIMITIVE_COEFFS_GF2, 2, method="enumeration")
+        result = benchmark_period_computation(
+            PRIMITIVE_COEFFS_GF2, 2, method="enumeration"
+        )
         assert result.result_correct is None
         assert result.expected_value is None
 
@@ -102,7 +108,9 @@ class TestBenchmarkPolynomialOrder:
     def test_order_matches_expected_for_primitive_polynomial(self):
         R = PolynomialRing(GF(2), "t")
         poly = R("t^4 + t^3 + 1")
-        result = benchmark_polynomial_order(poly, 2, 4, expected_order=PRIMITIVE_PERIOD_GF2)
+        result = benchmark_polynomial_order(
+            poly, 2, 4, expected_order=PRIMITIVE_PERIOD_GF2
+        )
         assert result.result_value == PRIMITIVE_PERIOD_GF2
         assert result.result_correct is True
         assert result.method_name == "polynomial_order"
@@ -121,7 +129,9 @@ class TestBenchmarkPolynomialOrder:
         result = benchmark_polynomial_order(poly, 2, 4, expected_order=999)
         assert result.result_correct is False
 
-    def test_infinite_order_polynomial_with_expected_order_marks_incorrect_not_crash(self):
+    def test_infinite_order_polynomial_with_expected_order_marks_incorrect_not_crash(
+        self,
+    ):
         # t^2 + t = t*(t+1) over GF(2) has t as a factor, so t^j mod
         # polynomial never reduces to the constant 1 for any j -- the
         # order search in polynomial_order() never terminates within its
@@ -246,7 +256,9 @@ class TestCompareMethods:
         # This is the exact function backing the CLI's --benchmark flag
         # (cli.py:1171-1182) -- previously crashed unconditionally, see
         # module docstring.
-        results = compare_methods(PRIMITIVE_COEFFS_GF2, 2, expected_period=PRIMITIVE_PERIOD_GF2)
+        results = compare_methods(
+            PRIMITIVE_COEFFS_GF2, 2, expected_period=PRIMITIVE_PERIOD_GF2
+        )
         assert set(results.keys()) == {"enumeration", "factorization"}
         assert results["enumeration"].result_value == PRIMITIVE_PERIOD_GF2
         assert results["factorization"].result_value == PRIMITIVE_PERIOD_GF2
@@ -263,7 +275,9 @@ class TestCompareMethods:
         assert results["enumeration"].result_value == 3
         assert results["factorization"].result_value == 3
 
-    def test_factorization_exception_is_swallowed_enumeration_still_returned(self, monkeypatch):
+    def test_factorization_exception_is_swallowed_enumeration_still_returned(
+        self, monkeypatch
+    ):
         # compare_methods wraps only the factorization call in
         # try/except Exception: pass, per its own docstring ("Factorization
         # may fail for some polynomials"). Exercise that branch directly
@@ -282,7 +296,9 @@ class TestCompareMethods:
 
         monkeypatch.setattr(benchmarking_module, "benchmark_period_computation", fake)
 
-        results = compare_methods(PRIMITIVE_COEFFS_GF2, 2, expected_period=PRIMITIVE_PERIOD_GF2)
+        results = compare_methods(
+            PRIMITIVE_COEFFS_GF2, 2, expected_period=PRIMITIVE_PERIOD_GF2
+        )
         assert "enumeration" in results
         assert results["enumeration"].result_value == PRIMITIVE_PERIOD_GF2
         assert "factorization" not in results
@@ -297,7 +313,9 @@ class TestBenchmarkDataclasses:
         assert result.expected_value is None
         assert result.parameters == {}
 
-    def test_benchmark_result_parameters_default_factory_is_independent_per_instance(self):
+    def test_benchmark_result_parameters_default_factory_is_independent_per_instance(
+        self,
+    ):
         # dataclass field(default_factory=dict) pitfall check: two
         # instances must not share the same dict object.
         r1 = BenchmarkResult(method_name="a", execution_time=0.0)

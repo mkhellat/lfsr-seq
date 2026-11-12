@@ -73,9 +73,17 @@ class TestModelTypeDispatch:
     def test_default_config_feature_names(self):
         model = PeriodPredictionModel(model_type="random_forest")
         assert model.config.feature_names == [
-            'degree', 'field_order', 'num_coeffs', 'nonzero_count',
-            'sparsity', 'is_trinomial', 'is_pentanomial',
-            'coeff_sum', 'coeff_mean', 'is_irreducible', 'is_primitive'
+            "degree",
+            "field_order",
+            "num_coeffs",
+            "nonzero_count",
+            "sparsity",
+            "is_trinomial",
+            "is_pentanomial",
+            "coeff_sum",
+            "coeff_mean",
+            "is_irreducible",
+            "is_primitive",
         ]
         assert model.config.model_type == "random_forest"
 
@@ -83,7 +91,9 @@ class TestModelTypeDispatch:
         from lfsr.ml.base import MLModelConfig
 
         config = MLModelConfig(
-            model_type="random_forest", model_params={"n_estimators": 5}, feature_names=["a"]
+            model_type="random_forest",
+            model_params={"n_estimators": 5},
+            feature_names=["a"],
         )
         model = PeriodPredictionModel(model_type="random_forest", config=config)
         assert model.config is config
@@ -238,9 +248,7 @@ class TestImportFallbacks:
 
     def test_numpy_import_error_sets_has_numpy_false(self):
         try:
-            fresh = _reimport_with_blocked_import(
-                "lfsr.ml.period_prediction", "numpy"
-            )
+            fresh = _reimport_with_blocked_import("lfsr.ml.period_prediction", "numpy")
             assert fresh.HAS_NUMPY is False
         finally:
             del sys.modules["lfsr.ml.period_prediction"]

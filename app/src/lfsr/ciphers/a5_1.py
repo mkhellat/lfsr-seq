@@ -117,7 +117,7 @@ class A5_1(StreamCipher):
     LFSR3_SIZE = 23
 
     # Clock control bit positions
-    CLOCK_BIT_1 = 8   # LFSR1 bit 8
+    CLOCK_BIT_1 = 8  # LFSR1 bit 8
     CLOCK_BIT_2 = 10  # LFSR2 bit 10
     CLOCK_BIT_3 = 10  # LFSR3 bit 10
 
@@ -138,11 +138,11 @@ class A5_1(StreamCipher):
             iv_size=22,
             description="A5/1 GSM stream cipher with 3 LFSRs and irregular clocking",
             parameters={
-                'lfsr1_size': self.LFSR1_SIZE,
-                'lfsr2_size': self.LFSR2_SIZE,
-                'lfsr3_size': self.LFSR3_SIZE,
-                'warmup_steps': self.WARMUP_STEPS
-            }
+                "lfsr1_size": self.LFSR1_SIZE,
+                "lfsr2_size": self.LFSR2_SIZE,
+                "lfsr3_size": self.LFSR3_SIZE,
+                "warmup_steps": self.WARMUP_STEPS,
+            },
         )
 
     def _majority(self, a: int, b: int, c: int) -> int:
@@ -218,23 +218,17 @@ class A5_1(StreamCipher):
         # Clock LFSRs whose control bit matches majority
         if c1 == majority:
             self.lfsr1_state = self._clock_lfsr(
-                self.lfsr1_state,
-                self.LFSR1_TAPS,
-                self.LFSR1_SIZE
+                self.lfsr1_state, self.LFSR1_TAPS, self.LFSR1_SIZE
             )
 
         if c2 == majority:
             self.lfsr2_state = self._clock_lfsr(
-                self.lfsr2_state,
-                self.LFSR2_TAPS,
-                self.LFSR2_SIZE
+                self.lfsr2_state, self.LFSR2_TAPS, self.LFSR2_SIZE
             )
 
         if c3 == majority:
             self.lfsr3_state = self._clock_lfsr(
-                self.lfsr3_state,
-                self.LFSR3_TAPS,
-                self.LFSR3_SIZE
+                self.lfsr3_state, self.LFSR3_TAPS, self.LFSR3_SIZE
             )
 
     def _initialize(self, key: List[int], iv: Optional[List[int]]):
@@ -283,10 +277,7 @@ class A5_1(StreamCipher):
             self._clock_controlled()
 
     def generate_keystream(
-        self,
-        key: List[int],
-        iv: Optional[List[int]],
-        length: int
+        self, key: List[int], iv: Optional[List[int]], length: int
     ) -> List[int]:
         """
         Generate A5/1 keystream.
@@ -372,23 +363,11 @@ class A5_1(StreamCipher):
         lfsr3_coeffs[21] = 1  # x^22
         lfsr3_coeffs[22] = 1  # x^23
 
-        lfsr1_config = LFSRConfig(
-            coefficients=lfsr1_coeffs,
-            field_order=2,
-            degree=19
-        )
+        lfsr1_config = LFSRConfig(coefficients=lfsr1_coeffs, field_order=2, degree=19)
 
-        lfsr2_config = LFSRConfig(
-            coefficients=lfsr2_coeffs,
-            field_order=2,
-            degree=22
-        )
+        lfsr2_config = LFSRConfig(coefficients=lfsr2_coeffs, field_order=2, degree=22)
 
-        lfsr3_config = LFSRConfig(
-            coefficients=lfsr3_coeffs,
-            field_order=2,
-            degree=23
-        )
+        lfsr3_config = LFSRConfig(coefficients=lfsr3_coeffs, field_order=2, degree=23)
 
         return CipherStructure(
             lfsr_configs=[lfsr1_config, lfsr2_config, lfsr3_config],
@@ -400,23 +379,21 @@ class A5_1(StreamCipher):
             combiner="XOR of three LFSR output bits (MSB of each LFSR)",
             state_size=64,  # 19 + 22 + 23
             details={
-                'lfsr1_size': 19,
-                'lfsr2_size': 22,
-                'lfsr3_size': 23,
-                'clock_control_bits': [8, 10, 10],
-                'warmup_steps': self.WARMUP_STEPS,
-                'polynomials': {
-                    'lfsr1': 'x^19 + x^18 + x^17 + x^14 + 1',
-                    'lfsr2': 'x^22 + x^21 + 1',
-                    'lfsr3': 'x^23 + x^22 + x^21 + x^8 + 1'
-                }
-            }
+                "lfsr1_size": 19,
+                "lfsr2_size": 22,
+                "lfsr3_size": 23,
+                "clock_control_bits": [8, 10, 10],
+                "warmup_steps": self.WARMUP_STEPS,
+                "polynomials": {
+                    "lfsr1": "x^19 + x^18 + x^17 + x^14 + 1",
+                    "lfsr2": "x^22 + x^21 + 1",
+                    "lfsr3": "x^23 + x^22 + x^21 + x^8 + 1",
+                },
+            },
         )
 
     def apply_attacks(
-        self,
-        keystream: List[int],
-        attack_types: Optional[List[str]] = None
+        self, keystream: List[int], attack_types: Optional[List[str]] = None
     ) -> dict:
         """
         Apply attacks to A5/1 keystream.
@@ -436,10 +413,10 @@ class A5_1(StreamCipher):
         # Placeholder for attack integration
         # In full implementation, this would integrate with attack frameworks
         return {
-            'note': 'Attack integration pending',
-            'known_vulnerabilities': [
-                'Time-memory trade-off attacks (Barkan et al., 2003)',
-                'Correlation attacks',
-                'Known-plaintext attacks'
-            ]
+            "note": "Attack integration pending",
+            "known_vulnerabilities": [
+                "Time-memory trade-off attacks (Barkan et al., 2003)",
+                "Correlation attacks",
+                "Known-plaintext attacks",
+            ],
         }

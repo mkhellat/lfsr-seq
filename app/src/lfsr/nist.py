@@ -89,19 +89,23 @@ from lfsr.sage_imports import *
 try:
     from scipy.stats import chi2 as scipy_chi2
     from scipy.stats import norm as scipy_norm
+
     chi2 = scipy_chi2
     norm = scipy_norm
     SCIPY_AVAILABLE = True
 except ImportError:
     SCIPY_AVAILABLE = False
+
     # Fallback for chi-square distribution
     class _Chi2Fallback:
         """Fallback chi-square distribution when scipy is not available."""
+
         @staticmethod
         def sf(x, df):
             """Survival function (1 - CDF) using approximation."""
             # Rough approximation - for exact results, use scipy
             import math
+
             # For large df, use normal approximation
             if df > 30:
                 z = (x - df) / math.sqrt(2 * df)
@@ -116,10 +120,13 @@ except ImportError:
         @staticmethod
         def cdf(x):
             import math
+
             return 0.5 * (1 + math.erf(x / math.sqrt(2)))
+
         @staticmethod
         def sf(x):
             import math
+
             return 1.0 - 0.5 * (1 + math.erf(x / math.sqrt(2)))
 
     norm = _NormFallback()
@@ -138,6 +145,7 @@ class NISTTestResult:
         details: Dictionary with test-specific details and
           intermediate values
     """
+
     test_name: str
     p_value: float
     passed: bool
@@ -160,6 +168,7 @@ class NISTTestSuiteResult:
         overall_assessment: Overall assessment ("PASSED" or "FAILED")
         pass_rate: Percentage of tests that passed
     """
+
     sequence_length: int
     significance_level: float
     tests_passed: int
@@ -210,7 +219,7 @@ def frequency_test(sequence: List[int]) -> NISTTestResult:
             p_value=0.0,
             passed=False,
             statistic=0.0,
-            details={"error": f"Sequence too short: {n} bits (minimum: 100)"}
+            details={"error": f"Sequence too short: {n} bits (minimum: 100)"},
         )
 
     # Count ones and zeros
@@ -239,8 +248,8 @@ def frequency_test(sequence: List[int]) -> NISTTestResult:
             "n1": n1,
             "n": n,
             "ratio": n1 / n if n > 0 else 0.0,
-            "expected_ratio": 0.5
-        }
+            "expected_ratio": 0.5,
+        },
     )
 
 
@@ -291,7 +300,7 @@ def block_frequency_test(sequence: List[int], block_size: int = 128) -> NISTTest
             p_value=0.0,
             passed=False,
             statistic=0.0,
-            details={"error": f"Sequence too short: {n} bits (minimum: {M * 10})"}
+            details={"error": f"Sequence too short: {n} bits (minimum: {M * 10})"},
         )
 
     # Number of blocks
@@ -300,7 +309,7 @@ def block_frequency_test(sequence: List[int], block_size: int = 128) -> NISTTest
     # Compute proportion of ones in each block
     proportions = []
     for i in range(N):
-        block = sequence[i * M:(i + 1) * M]
+        block = sequence[i * M : (i + 1) * M]
         ones_count = sum(block)
         pi = ones_count / M
         proportions.append(pi)
@@ -324,9 +333,13 @@ def block_frequency_test(sequence: List[int], block_size: int = 128) -> NISTTest
         details={
             "block_size": M,
             "num_blocks": N,
-            "proportions": proportions[:10] if len(proportions) > 10 else proportions,  # First 10 for display
-            "mean_proportion": sum(proportions) / len(proportions) if proportions else 0.0
-        }
+            "proportions": proportions[:10]
+            if len(proportions) > 10
+            else proportions,  # First 10 for display
+            "mean_proportion": sum(proportions) / len(proportions)
+            if proportions
+            else 0.0,
+        },
     )
 
 
@@ -374,7 +387,7 @@ def runs_test(sequence: List[int]) -> NISTTestResult:
             p_value=0.0,
             passed=False,
             statistic=0.0,
-            details={"error": f"Sequence too short: {n} bits (minimum: 100)"}
+            details={"error": f"Sequence too short: {n} bits (minimum: 100)"},
         )
 
     # Count zeros and ones
@@ -388,7 +401,7 @@ def runs_test(sequence: List[int]) -> NISTTestResult:
             p_value=0.0,
             passed=False,
             statistic=0.0,
-            details={"error": "Sequence contains only zeros or only ones"}
+            details={"error": "Sequence contains only zeros or only ones"},
         )
 
     # Count runs
@@ -409,7 +422,7 @@ def runs_test(sequence: List[int]) -> NISTTestResult:
             p_value=0.0,
             passed=False,
             statistic=0.0,
-            details={"error": "Variance is zero or negative"}
+            details={"error": "Variance is zero or negative"},
         )
 
     # Test statistic: z-score
@@ -432,12 +445,14 @@ def runs_test(sequence: List[int]) -> NISTTestResult:
             "n0": n0,
             "n1": n1,
             "expected_runs": expected_runs,
-            "variance": variance
-        }
+            "variance": variance,
+        },
     )
 
 
-def longest_run_of_ones_test(sequence: List[int], block_size: int = 8) -> NISTTestResult:
+def longest_run_of_ones_test(
+    sequence: List[int], block_size: int = 8
+) -> NISTTestResult:
     """
     Test 4: Tests for Longest-Run-of-Ones in a Block.
 
@@ -493,7 +508,7 @@ def longest_run_of_ones_test(sequence: List[int], block_size: int = 8) -> NISTTe
             p_value=0.0,
             passed=False,
             statistic=0.0,
-            details={"error": f"Sequence too short: {n} bits (minimum: {M * 16})"}
+            details={"error": f"Sequence too short: {n} bits (minimum: {M * 16})"},
         )
 
     # Number of blocks
@@ -507,7 +522,7 @@ def longest_run_of_ones_test(sequence: List[int], block_size: int = 8) -> NISTTe
     # Find longest run in each block
     longest_runs = []
     for i in range(N):
-        block = sequence[i * M:(i + 1) * M]
+        block = sequence[i * M : (i + 1) * M]
         max_run = 0
         current_run = 0
         for bit in block:
@@ -575,14 +590,18 @@ def longest_run_of_ones_test(sequence: List[int], block_size: int = 8) -> NISTTe
         details={
             "block_size": M,
             "num_blocks": N,
-            "longest_runs": longest_runs[:10] if len(longest_runs) > 10 else longest_runs,
+            "longest_runs": longest_runs[:10]
+            if len(longest_runs) > 10
+            else longest_runs,
             "categories": categories,
-            "expected": expected
-        }
+            "expected": expected,
+        },
     )
 
 
-def binary_matrix_rank_test(sequence: List[int], matrix_rows: int = 32, matrix_cols: int = 32) -> NISTTestResult:
+def binary_matrix_rank_test(
+    sequence: List[int], matrix_rows: int = 32, matrix_cols: int = 32
+) -> NISTTestResult:
     """
     Test 5: Binary Matrix Rank Test.
 
@@ -637,7 +656,9 @@ def binary_matrix_rank_test(sequence: List[int], matrix_rows: int = 32, matrix_c
             p_value=0.0,
             passed=False,
             statistic=0.0,
-            details={"error": f"Sequence too short: {n} bits (minimum: {matrix_size * 38})"}
+            details={
+                "error": f"Sequence too short: {n} bits (minimum: {matrix_size * 38})"
+            },
         )
 
     # Number of matrices
@@ -645,17 +666,17 @@ def binary_matrix_rank_test(sequence: List[int], matrix_rows: int = 32, matrix_c
 
     # Count ranks
     rank_full = 0  # Rank = M
-    rank_m1 = 0    # Rank = M-1
-    rank_other = 0 # Rank < M-1
+    rank_m1 = 0  # Rank = M-1
+    rank_other = 0  # Rank < M-1
 
     for i in range(N):
         # Extract matrix from sequence
-        matrix_data = sequence[i * matrix_size:(i + 1) * matrix_size]
+        matrix_data = sequence[i * matrix_size : (i + 1) * matrix_size]
 
         # Build matrix over GF(2)
         matrix_list = []
         for row in range(M):
-            row_data = matrix_data[row * Q:(row + 1) * Q]
+            row_data = matrix_data[row * Q : (row + 1) * Q]
             matrix_list.append([GF(2)(bit) for bit in row_data])
 
         # Compute rank
@@ -713,8 +734,8 @@ def binary_matrix_rank_test(sequence: List[int], matrix_rows: int = 32, matrix_c
             "rank_other": rank_other,
             "expected_full": expected_full,
             "expected_m1": expected_m1,
-            "expected_other": expected_other
-        }
+            "expected_other": expected_other,
+        },
     )
 
 
@@ -761,7 +782,7 @@ def discrete_fourier_transform_test(sequence: List[int]) -> NISTTestResult:
             p_value=0.0,
             passed=False,
             statistic=0.0,
-            details={"error": f"Sequence too short: {n} bits (minimum: 1000)"}
+            details={"error": f"Sequence too short: {n} bits (minimum: 1000)"},
         )
 
     # Convert to -1, +1 representation
@@ -806,7 +827,9 @@ def discrete_fourier_transform_test(sequence: List[int]) -> NISTTestResult:
     # Compute test statistic using normal approximation
     # d = (N_0 - 0.95 * (N/2 - 1)) / sqrt(0.95 * 0.05 * (N/2 - 1))
     if len(magnitudes_no_dc) > 0:
-        d = (N_0 - 0.95 * len(magnitudes_no_dc)) / math.sqrt(0.95 * 0.05 * len(magnitudes_no_dc))
+        d = (N_0 - 0.95 * len(magnitudes_no_dc)) / math.sqrt(
+            0.95 * 0.05 * len(magnitudes_no_dc)
+        )
     else:
         d = 0.0
 
@@ -828,15 +851,13 @@ def discrete_fourier_transform_test(sequence: List[int]) -> NISTTestResult:
             "coefficients_below_threshold": N_0,
             "coefficients_above_threshold": N_1,
             "total_coefficients": len(magnitudes_no_dc),
-            "expected_below": expected_below
-        }
+            "expected_below": expected_below,
+        },
     )
 
 
 def non_overlapping_template_matching_test(
-    sequence: List[int],
-    template: Optional[List[int]] = None,
-    block_size: int = 128
+    sequence: List[int], template: Optional[List[int]] = None, block_size: int = 128
 ) -> NISTTestResult:
     """
     Test 7: Non-overlapping Template Matching Test.
@@ -893,7 +914,7 @@ def non_overlapping_template_matching_test(
             p_value=0.0,
             passed=False,
             statistic=0.0,
-            details={"error": f"Sequence too short: {n} bits (minimum: {M * 10})"}
+            details={"error": f"Sequence too short: {n} bits (minimum: {M * 10})"},
         )
 
     # Default template: 9-bit pattern [0,0,0,0,0,0,0,0,1] (NIST standard)
@@ -908,11 +929,11 @@ def non_overlapping_template_matching_test(
     # Count matches in each block
     matches = []
     for i in range(N):
-        block = sequence[i * M:(i + 1) * M]
+        block = sequence[i * M : (i + 1) * M]
         # Check if template appears in block (non-overlapping search)
         match_found = False
         for j in range(M - m + 1):
-            if block[j:j + m] == template:
+            if block[j : j + m] == template:
                 match_found = True
                 break
         matches.append(1 if match_found else 0)
@@ -922,7 +943,7 @@ def non_overlapping_template_matching_test(
 
     # Expected number of matches per block: (M - m + 1) / 2^m
     # Probability of match in a block
-    prob_match = (M - m + 1) / (2 ** m)
+    prob_match = (M - m + 1) / (2**m)
     expected_matches = N * prob_match
     variance = N * prob_match * (1 - prob_match)
 
@@ -932,7 +953,7 @@ def non_overlapping_template_matching_test(
             p_value=0.0,
             passed=False,
             statistic=0.0,
-            details={"error": "Variance is zero or negative"}
+            details={"error": "Variance is zero or negative"},
         )
 
     # Compute chi-square statistic
@@ -957,15 +978,13 @@ def non_overlapping_template_matching_test(
             "num_blocks": N,
             "matches": W,
             "expected_matches": expected_matches,
-            "variance": variance
-        }
+            "variance": variance,
+        },
     )
 
 
 def overlapping_template_matching_test(
-    sequence: List[int],
-    template: Optional[List[int]] = None,
-    block_size: int = 1032
+    sequence: List[int], template: Optional[List[int]] = None, block_size: int = 1032
 ) -> NISTTestResult:
     """
     Test 8: Overlapping Template Matching Test.
@@ -1021,7 +1040,7 @@ def overlapping_template_matching_test(
             p_value=0.0,
             passed=False,
             statistic=0.0,
-            details={"error": f"Sequence too short: {n} bits (minimum: {M * 8})"}
+            details={"error": f"Sequence too short: {n} bits (minimum: {M * 8})"},
         )
 
     # Default template: 9-bit pattern of all ones [1,1,1,1,1,1,1,1,1] (NIST standard)
@@ -1036,17 +1055,17 @@ def overlapping_template_matching_test(
     # Count occurrences in each block (overlapping search)
     occurrences_per_block = []
     for i in range(N):
-        block = sequence[i * M:(i + 1) * M]
+        block = sequence[i * M : (i + 1) * M]
         count = 0
         # Count overlapping occurrences
         for j in range(M - m + 1):
-            if block[j:j + m] == template:
+            if block[j : j + m] == template:
                 count += 1
         occurrences_per_block.append(count)
 
     # Categorize blocks by number of occurrences
     # Expected distribution: Poisson with lambda = (M - m + 1) / 2^m
-    lambda_param = (M - m + 1) / (2 ** m)
+    lambda_param = (M - m + 1) / (2**m)
 
     # Count blocks in each category (0, 1, 2, 3, 4, 5+ occurrences)
     categories = [0, 0, 0, 0, 0, 0]  # 0, 1, 2, 3, 4, 5+
@@ -1059,12 +1078,13 @@ def overlapping_template_matching_test(
     # Expected frequencies using Poisson distribution
     # P(k) = (lambda^k * e^(-lambda)) / k!
     import math
+
     expected = []
     for k in range(5):
         if k == 0:
             prob = math.exp(-lambda_param)
         else:
-            prob = (lambda_param ** k) * math.exp(-lambda_param) / math.factorial(k)
+            prob = (lambda_param**k) * math.exp(-lambda_param) / math.factorial(k)
         expected.append(N * prob)
 
     # Category 5+: 1 - sum(P(0) to P(4))
@@ -1095,12 +1115,14 @@ def overlapping_template_matching_test(
             "num_blocks": N,
             "lambda": lambda_param,
             "categories": categories,
-            "expected": expected
-        }
+            "expected": expected,
+        },
     )
 
 
-def maurers_universal_test(sequence: List[int], block_size: int = 6, init_blocks: int = 10) -> NISTTestResult:
+def maurers_universal_test(
+    sequence: List[int], block_size: int = 6, init_blocks: int = 10
+) -> NISTTestResult:
     """
     Test 9: Maurer's "Universal Statistical" Test.
 
@@ -1152,34 +1174,36 @@ def maurers_universal_test(sequence: List[int], block_size: int = 6, init_blocks
     min_length = L * (Q + 1000)
     if n < min_length:
         return NISTTestResult(
-            test_name="Maurer's \"Universal Statistical\" Test",
+            test_name='Maurer\'s "Universal Statistical" Test',
             p_value=0.0,
             passed=False,
             statistic=0.0,
-            details={"error": f"Sequence too short: {n} bits (minimum: {min_length})"}
+            details={"error": f"Sequence too short: {n} bits (minimum: {min_length})"},
         )
 
     # Number of blocks
     K = (n // L) - Q  # Blocks after initialization
     if K < 1000:
         return NISTTestResult(
-            test_name="Maurer's \"Universal Statistical\" Test",
+            test_name='Maurer\'s "Universal Statistical" Test',
             p_value=0.0,
             passed=False,
             statistic=0.0,
-            details={"error": f"Not enough blocks after initialization: {K} (minimum: 1000)"}
+            details={
+                "error": f"Not enough blocks after initialization: {K} (minimum: 1000)"
+            },
         )
 
     # Initialize table: map block pattern to last position
     table = {}
     for i in range(Q):
-        block = tuple(sequence[i * L:(i + 1) * L])
+        block = tuple(sequence[i * L : (i + 1) * L])
         table[block] = i + 1  # 1-indexed position
 
     # Process remaining blocks and compute distances
     distances = []
     for i in range(Q, Q + K):
-        block = tuple(sequence[i * L:(i + 1) * L])
+        block = tuple(sequence[i * L : (i + 1) * L])
         if block in table:
             distance = i + 1 - table[block]
             distances.append(distance)
@@ -1191,11 +1215,11 @@ def maurers_universal_test(sequence: List[int], block_size: int = 6, init_blocks
     # Compute test statistic: f_n = (1/K) * sum(log2(distance))
     if len(distances) == 0:
         return NISTTestResult(
-            test_name="Maurer's \"Universal Statistical\" Test",
+            test_name='Maurer\'s "Universal Statistical" Test',
             p_value=0.0,
             passed=False,
             statistic=0.0,
-            details={"error": "No distances computed"}
+            details={"error": "No distances computed"},
         )
 
     f_n = sum(math.log2(d) if d > 0 else 0 for d in distances) / len(distances)
@@ -1203,16 +1227,41 @@ def maurers_universal_test(sequence: List[int], block_size: int = 6, init_blocks
     # Expected value and variance (from NIST specification)
     # These depend on L
     expected_values = {
-        1: 0.7326495, 2: 1.5374383, 3: 2.4016068, 4: 3.3112247, 5: 4.2534266,
-        6: 5.2177052, 7: 6.1962507, 8: 7.1836656, 9: 8.1764248, 10: 9.1723243,
-        11: 10.170032, 12: 11.168765, 13: 12.168070, 14: 13.167693, 15: 14.167488,
-        16: 15.167379
+        1: 0.7326495,
+        2: 1.5374383,
+        3: 2.4016068,
+        4: 3.3112247,
+        5: 4.2534266,
+        6: 5.2177052,
+        7: 6.1962507,
+        8: 7.1836656,
+        9: 8.1764248,
+        10: 9.1723243,
+        11: 10.170032,
+        12: 11.168765,
+        13: 12.168070,
+        14: 13.167693,
+        15: 14.167488,
+        16: 15.167379,
     }
 
     variance_values = {
-        1: 0.690, 2: 1.338, 3: 1.901, 4: 2.358, 5: 2.705, 6: 2.954, 7: 3.125,
-        8: 3.238, 9: 3.311, 10: 3.356, 11: 3.384, 12: 3.401, 13: 3.410, 14: 3.416,
-        15: 3.419, 16: 3.421
+        1: 0.690,
+        2: 1.338,
+        3: 1.901,
+        4: 2.358,
+        5: 2.705,
+        6: 2.954,
+        7: 3.125,
+        8: 3.238,
+        9: 3.311,
+        10: 3.356,
+        11: 3.384,
+        12: 3.401,
+        13: 3.410,
+        14: 3.416,
+        15: 3.419,
+        16: 3.421,
     }
 
     expected = expected_values.get(L, 0.0)
@@ -1220,11 +1269,11 @@ def maurers_universal_test(sequence: List[int], block_size: int = 6, init_blocks
 
     if expected == 0.0:
         return NISTTestResult(
-            test_name="Maurer's \"Universal Statistical\" Test",
+            test_name='Maurer\'s "Universal Statistical" Test',
             p_value=0.0,
             passed=False,
             statistic=0.0,
-            details={"error": f"Unsupported block size: {L} (supported: 1-16)"}
+            details={"error": f"Unsupported block size: {L} (supported: 1-16)"},
         )
 
     # Compute test statistic: z-score
@@ -1238,7 +1287,7 @@ def maurers_universal_test(sequence: List[int], block_size: int = 6, init_blocks
     passed = p_value >= 0.01
 
     return NISTTestResult(
-        test_name="Maurer's \"Universal Statistical\" Test",
+        test_name='Maurer\'s "Universal Statistical" Test',
         p_value=p_value,
         passed=passed,
         statistic=z_score,
@@ -1248,12 +1297,14 @@ def maurers_universal_test(sequence: List[int], block_size: int = 6, init_blocks
             "test_blocks": K,
             "f_n": f_n,
             "expected": expected,
-            "variance": variance
-        }
+            "variance": variance,
+        },
     )
 
 
-def linear_complexity_test(sequence: List[int], block_size: int = 500) -> NISTTestResult:
+def linear_complexity_test(
+    sequence: List[int], block_size: int = 500
+) -> NISTTestResult:
     """
     Test 10: Linear Complexity Test.
 
@@ -1305,7 +1356,7 @@ def linear_complexity_test(sequence: List[int], block_size: int = 500) -> NISTTe
             p_value=0.0,
             passed=False,
             statistic=0.0,
-            details={"error": f"Sequence too short: {n} bits (minimum: {M * 200})"}
+            details={"error": f"Sequence too short: {n} bits (minimum: {M * 200})"},
         )
 
     # Number of blocks
@@ -1316,13 +1367,13 @@ def linear_complexity_test(sequence: List[int], block_size: int = 500) -> NISTTe
 
     linear_complexities = []
     for i in range(N):
-        block = sequence[i * M:(i + 1) * M]
+        block = sequence[i * M : (i + 1) * M]
         lc = linear_complexity(block, 2)
         linear_complexities.append(lc)
 
     # Expected linear complexity: mu = M/2 + (9 + (-1)^(M+1)) / 36
     # - (M/3 + 2/9) / 2^M
-    mu = M / 2.0 + (9.0 + ((-1) ** (M + 1))) / 36.0 - (M / 3.0 + 2.0 / 9.0) / (2 ** M)
+    mu = M / 2.0 + (9.0 + ((-1) ** (M + 1))) / 36.0 - (M / 3.0 + 2.0 / 9.0) / (2**M)
 
     # Compute deviations: T_i = (-1)^M * (LC_i - mu) + 2/9 (NIST SP
     # 800-22's actual formula; the "+ 2/9" term was previously missing,
@@ -1381,12 +1432,16 @@ def linear_complexity_test(sequence: List[int], block_size: int = 500) -> NISTTe
         details={
             "block_size": M,
             "num_blocks": N,
-            "linear_complexities": linear_complexities[:10] if len(linear_complexities) > 10 else linear_complexities,
-            "mean_complexity": sum(linear_complexities) / len(linear_complexities) if linear_complexities else 0.0,
+            "linear_complexities": linear_complexities[:10]
+            if len(linear_complexities) > 10
+            else linear_complexities,
+            "mean_complexity": sum(linear_complexities) / len(linear_complexities)
+            if linear_complexities
+            else 0.0,
             "expected_complexity": mu,
             "categories": categories,
-            "expected": expected
-        }
+            "expected": expected,
+        },
     )
 
 
@@ -1436,14 +1491,14 @@ def serial_test(sequence: List[int], block_size: int = 2) -> NISTTestResult:
     m = block_size
 
     # Minimum length: 2^m * 100
-    min_length = (2 ** m) * 100
+    min_length = (2**m) * 100
     if n < min_length:
         return NISTTestResult(
             test_name="Serial Test",
             p_value=0.0,
             passed=False,
             statistic=0.0,
-            details={"error": f"Sequence too short: {n} bits (minimum: {min_length})"}
+            details={"error": f"Sequence too short: {n} bits (minimum: {min_length})"},
         )
 
     # Count patterns for m, m-1, m-2
@@ -1453,41 +1508,53 @@ def serial_test(sequence: List[int], block_size: int = 2) -> NISTTestResult:
 
     # Count m-bit patterns
     for i in range(n - m + 1):
-        pattern = tuple(sequence[i:i + m])
+        pattern = tuple(sequence[i : i + m])
         pattern_counts_m[pattern] = pattern_counts_m.get(pattern, 0) + 1
 
     # Count (m-1)-bit patterns
     if m > 1:
         for i in range(n - m + 2):
-            pattern = tuple(sequence[i:i + m - 1])
+            pattern = tuple(sequence[i : i + m - 1])
             pattern_counts_m1[pattern] = pattern_counts_m1.get(pattern, 0) + 1
 
     # Count (m-2)-bit patterns
     if m > 2:
         for i in range(n - m + 3):
-            pattern = tuple(sequence[i:i + m - 2])
+            pattern = tuple(sequence[i : i + m - 2])
             pattern_counts_m2[pattern] = pattern_counts_m2.get(pattern, 0) + 1
 
     # Compute chi-square statistics
     # For m-bit patterns
-    expected_m = (n - m + 1) / (2 ** m)
-    chi_square_m = sum(((count - expected_m) ** 2) / expected_m for count in pattern_counts_m.values())
+    expected_m = (n - m + 1) / (2**m)
+    chi_square_m = sum(
+        ((count - expected_m) ** 2) / expected_m for count in pattern_counts_m.values()
+    )
 
     # For (m-1)-bit patterns
     chi_square_m1 = 0.0
     if m > 1:
         expected_m1 = (n - m + 2) / (2 ** (m - 1))
-        chi_square_m1 = sum(((count - expected_m1) ** 2) / expected_m1 for count in pattern_counts_m1.values())
+        chi_square_m1 = sum(
+            ((count - expected_m1) ** 2) / expected_m1
+            for count in pattern_counts_m1.values()
+        )
 
     # For (m-2)-bit patterns
     chi_square_m2 = 0.0
     if m > 2:
         expected_m2 = (n - m + 3) / (2 ** (m - 2))
-        chi_square_m2 = sum(((count - expected_m2) ** 2) / expected_m2 for count in pattern_counts_m2.values())
+        chi_square_m2 = sum(
+            ((count - expected_m2) ** 2) / expected_m2
+            for count in pattern_counts_m2.values()
+        )
 
     # Compute delta chi-square
     delta_chi_square = chi_square_m - chi_square_m1
-    delta2_chi_square = chi_square_m - 2 * chi_square_m1 + chi_square_m2 if m > 2 else chi_square_m - chi_square_m1
+    delta2_chi_square = (
+        chi_square_m - 2 * chi_square_m1 + chi_square_m2
+        if m > 2
+        else chi_square_m - chi_square_m1
+    )
 
     # Compute p-values
     df1 = 2 ** (m - 1)  # Degrees of freedom for delta
@@ -1516,12 +1583,14 @@ def serial_test(sequence: List[int], block_size: int = 2) -> NISTTestResult:
             "delta_chi_square": delta_chi_square,
             "delta2_chi_square": delta2_chi_square,
             "p_value1": p_value1,
-            "p_value2": p_value2
-        }
+            "p_value2": p_value2,
+        },
     )
 
 
-def approximate_entropy_test(sequence: List[int], block_size: int = 2) -> NISTTestResult:
+def approximate_entropy_test(
+    sequence: List[int], block_size: int = 2
+) -> NISTTestResult:
     """
     Test 12: Approximate Entropy Test.
 
@@ -1567,26 +1636,26 @@ def approximate_entropy_test(sequence: List[int], block_size: int = 2) -> NISTTe
     m = block_size
 
     # Minimum length: 2^m * 10
-    min_length = (2 ** m) * 10
+    min_length = (2**m) * 10
     if n < min_length:
         return NISTTestResult(
             test_name="Approximate Entropy Test",
             p_value=0.0,
             passed=False,
             statistic=0.0,
-            details={"error": f"Sequence too short: {n} bits (minimum: {min_length})"}
+            details={"error": f"Sequence too short: {n} bits (minimum: {min_length})"},
         )
 
     # Count m-bit patterns
     pattern_counts_m = {}
     for i in range(n - m + 1):
-        pattern = tuple(sequence[i:i + m])
+        pattern = tuple(sequence[i : i + m])
         pattern_counts_m[pattern] = pattern_counts_m.get(pattern, 0) + 1
 
     # Count (m+1)-bit patterns
     pattern_counts_m1 = {}
     for i in range(n - m):
-        pattern = tuple(sequence[i:i + m + 1])
+        pattern = tuple(sequence[i : i + m + 1])
         pattern_counts_m1[pattern] = pattern_counts_m1.get(pattern, 0) + 1
 
     # Compute approximate entropy
@@ -1611,7 +1680,7 @@ def approximate_entropy_test(sequence: List[int], block_size: int = 2) -> NISTTe
     chi_square = 2.0 * n * (math.log(2) - ap_en)
 
     # Degrees of freedom: 2^m
-    df = 2 ** m
+    df = 2**m
 
     # Compute p-value using chi-square distribution
     p_value = chi2.sf(chi_square, df)
@@ -1630,8 +1699,8 @@ def approximate_entropy_test(sequence: List[int], block_size: int = 2) -> NISTTe
             "phi_m": phi_m,
             "phi_m1": phi_m1,
             "approximate_entropy": ap_en,
-            "chi_square": chi_square
-        }
+            "chi_square": chi_square,
+        },
     )
 
 
@@ -1683,7 +1752,7 @@ def cumulative_sums_test(sequence: List[int], mode: str = "forward") -> NISTTest
             p_value=0.0,
             passed=False,
             statistic=0.0,
-            details={"error": f"Sequence too short: {n} bits (minimum: 100)"}
+            details={"error": f"Sequence too short: {n} bits (minimum: 100)"},
         )
 
     # Convert to -1, +1
@@ -1718,11 +1787,7 @@ def cumulative_sums_test(sequence: List[int], mode: str = "forward") -> NISTTest
         p_value=p_value,
         passed=passed,
         statistic=z,
-        details={
-            "mode": mode,
-            "max_absolute_sum": max_abs_sum,
-            "z_score": z
-        }
+        details={"mode": mode, "max_absolute_sum": max_abs_sum, "z_score": z},
     )
 
 
@@ -1774,7 +1839,7 @@ def random_excursions_test(sequence: List[int]) -> NISTTestResult:
             p_value=0.0,
             passed=False,
             statistic=0.0,
-            details={"error": f"Sequence too short: {n} bits (minimum: 1000)"}
+            details={"error": f"Sequence too short: {n} bits (minimum: 1000)"},
         )
 
     # Convert to -1, +1
@@ -1882,8 +1947,8 @@ def random_excursions_test(sequence: List[int]) -> NISTTestResult:
             "num_cycles": len(cycles),
             "chi_square_values": chi_square_values,
             "p_values": p_values,
-            "states_tested": states
-        }
+            "states_tested": states,
+        },
     )
 
 
@@ -1931,7 +1996,7 @@ def random_excursions_variant_test(sequence: List[int]) -> NISTTestResult:
             p_value=0.0,
             passed=False,
             statistic=0.0,
-            details={"error": f"Sequence too short: {n} bits (minimum: 1000)"}
+            details={"error": f"Sequence too short: {n} bits (minimum: 1000)"},
         )
 
     # Convert to -1, +1
@@ -1990,9 +2055,11 @@ def random_excursions_variant_test(sequence: List[int]) -> NISTTestResult:
         statistic=min(chi_square_values.values()) if chi_square_values else 0.0,
         details={
             "state_visit_totals": state_visit_totals,
-            "chi_square_values": dict(list(chi_square_values.items())[:5]),  # Show first 5
-            "p_values": dict(list(p_values.items())[:5])  # Show first 5
-        }
+            "chi_square_values": dict(
+                list(chi_square_values.items())[:5]
+            ),  # Show first 5
+            "p_values": dict(list(p_values.items())[:5]),  # Show first 5
+        },
     )
 
 
@@ -2001,7 +2068,7 @@ def run_nist_test_suite(
     significance_level: float = 0.01,
     block_size: int = 128,
     matrix_rows: int = 32,
-    matrix_cols: int = 32
+    matrix_cols: int = 32,
 ) -> NISTTestSuiteResult:
     """
     Run the complete NIST SP 800-22 test suite on a binary sequence.
@@ -2078,7 +2145,7 @@ def run_nist_test_suite(
             total_tests=0,
             results=[],
             overall_assessment="FAILED",
-            pass_rate=0.0
+            pass_rate=0.0,
         )
 
     # Run all available tests
@@ -2102,21 +2169,31 @@ def run_nist_test_suite(
         longest_run_block_size = 128
     else:
         longest_run_block_size = 8
-    results.append(longest_run_of_ones_test(sequence, block_size=longest_run_block_size))
+    results.append(
+        longest_run_of_ones_test(sequence, block_size=longest_run_block_size)
+    )
 
     # Test 5: Binary Matrix Rank Test
-    results.append(binary_matrix_rank_test(sequence, matrix_rows=matrix_rows, matrix_cols=matrix_cols))
+    results.append(
+        binary_matrix_rank_test(
+            sequence, matrix_rows=matrix_rows, matrix_cols=matrix_cols
+        )
+    )
 
     # Test 6: Discrete Fourier Transform (Spectral) Test
     results.append(discrete_fourier_transform_test(sequence))
 
     # Test 7: Non-overlapping Template Matching Test
-    results.append(non_overlapping_template_matching_test(sequence, block_size=block_size))
+    results.append(
+        non_overlapping_template_matching_test(sequence, block_size=block_size)
+    )
 
     # Test 8: Overlapping Template Matching Test
     # Use larger block size for overlapping test
     overlapping_block_size = 1032 if n >= 1032 * 8 else block_size
-    results.append(overlapping_template_matching_test(sequence, block_size=overlapping_block_size))
+    results.append(
+        overlapping_template_matching_test(sequence, block_size=overlapping_block_size)
+    )
 
     # Test 9: Maurer's "Universal Statistical" Test
     results.append(maurers_universal_test(sequence))
@@ -2164,5 +2241,5 @@ def run_nist_test_suite(
         total_tests=total_tests,
         results=results,
         overall_assessment=overall_assessment,
-        pass_rate=pass_rate
+        pass_rate=pass_rate,
     )

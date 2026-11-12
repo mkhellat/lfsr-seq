@@ -30,6 +30,7 @@ class CipherConfig:
         description: Human-readable description of the cipher
         parameters: Dictionary of cipher-specific parameters
     """
+
     cipher_name: str
     key_size: int
     iv_size: int
@@ -52,6 +53,7 @@ class CipherStructure:
         state_size: Total state size in bits
         details: Additional structure details
     """
+
     lfsr_configs: List[LFSRConfig]
     clock_control: str
     combiner: str
@@ -75,6 +77,7 @@ class CipherAnalysisResult:
         security_assessment: Security assessment and recommendations
         details: Additional analysis details
     """
+
     cipher_name: str
     structure: CipherStructure
     keystream_properties: Dict[str, Any] = field(default_factory=dict)
@@ -143,10 +146,7 @@ class StreamCipher(ABC):
 
     @abstractmethod
     def generate_keystream(
-        self,
-        key: List[int],
-        iv: Optional[List[int]],
-        length: int
+        self, key: List[int], iv: Optional[List[int]], length: int
     ) -> List[int]:
         """
         Generate keystream from key and IV.
@@ -191,9 +191,7 @@ class StreamCipher(ABC):
         pass
 
     def apply_attacks(
-        self,
-        keystream: List[int],
-        attack_types: Optional[List[str]] = None
+        self, keystream: List[int], attack_types: Optional[List[str]] = None
     ) -> Dict[str, Any]:
         """
         Apply available attacks to keystream.
@@ -217,7 +215,7 @@ class StreamCipher(ABC):
         self,
         key: Optional[List[int]] = None,
         iv: Optional[List[int]] = None,
-        keystream_length: int = 1000
+        keystream_length: int = 1000,
     ) -> CipherAnalysisResult:
         """
         Perform comprehensive cipher analysis.
@@ -257,13 +255,10 @@ class StreamCipher(ABC):
             structure=structure,
             keystream_properties=keystream_properties,
             attack_results=attack_results,
-            security_assessment=security_assessment
+            security_assessment=security_assessment,
         )
 
-    def _analyze_keystream_properties(
-        self,
-        keystream: List[int]
-    ) -> Dict[str, Any]:
+    def _analyze_keystream_properties(self, keystream: List[int]) -> Dict[str, Any]:
         """
         Analyze properties of generated keystream.
 
@@ -284,17 +279,15 @@ class StreamCipher(ABC):
         zeros = len(keystream) - ones
 
         return {
-            'length': len(keystream),
-            'ones': ones,
-            'zeros': zeros,
-            'balance': abs(ones - zeros) / len(keystream) if keystream else 0.0,
-            'ones_ratio': ones / len(keystream) if keystream else 0.0
+            "length": len(keystream),
+            "ones": ones,
+            "zeros": zeros,
+            "balance": abs(ones - zeros) / len(keystream) if keystream else 0.0,
+            "ones_ratio": ones / len(keystream) if keystream else 0.0,
         }
 
     def _assess_security(
-        self,
-        structure: CipherStructure,
-        attack_results: Dict[str, Any]
+        self, structure: CipherStructure, attack_results: Dict[str, Any]
     ) -> Dict[str, Any]:
         """
         Assess cipher security based on structure and attack results.
@@ -310,7 +303,7 @@ class StreamCipher(ABC):
             Dictionary with security assessment
         """
         return {
-            'structure_complexity': 'medium',  # Placeholder
-            'known_vulnerabilities': [],
-            'recommendations': []
+            "structure_complexity": "medium",  # Placeholder
+            "known_vulnerabilities": [],
+            "recommendations": [],
         }

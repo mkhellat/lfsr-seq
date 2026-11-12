@@ -11,6 +11,7 @@ export) and that __all__ doesn't omit or over-declare anything.
 """
 
 import matplotlib
+
 matplotlib.use("Agg")
 
 import lfsr.visualization as viz
@@ -74,6 +75,7 @@ class TestPackageExports:
             visualize_attack_comparison,
             visualize_correlation_attack,
         )
+
         # Import succeeding is the assertion; nothing further needed.
         assert BaseVisualization is base.BaseVisualization
         assert OutputFormat is base.OutputFormat

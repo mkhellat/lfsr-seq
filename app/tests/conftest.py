@@ -34,6 +34,7 @@ from lfsr._sage_discovery import ensure_sage_importable
 # problem entirely.
 if ensure_sage_importable():
     import sage.all  # noqa: F401  (import only, deliberately not `from ... import *`)
+
     SAGEMATH_AVAILABLE = True
 else:
     SAGEMATH_AVAILABLE = False
@@ -44,14 +45,13 @@ else:
 def pytest_configure(config):
     """Configure pytest markers."""
     config.addinivalue_line(
-        "markers", "sagemath: mark test as requiring SageMath (deselect with '-m \"not sagemath\"')"
+        "markers",
+        "sagemath: mark test as requiring SageMath (deselect with '-m \"not sagemath\"')",
     )
     config.addinivalue_line(
         "markers", "slow: mark test as slow (deselect with '-m \"not slow\"')"
     )
-    config.addinivalue_line(
-        "markers", "integration: mark test as integration test"
-    )
+    config.addinivalue_line("markers", "integration: mark test as integration test")
 
 
 def pytest_collection_modifyitems(config, items):
@@ -71,8 +71,10 @@ def pytest_collection_modifyitems(config, items):
                     if source:
                         with open(source, "r") as f:
                             content = f.read()
-                            if "from sage.all import" in content or "import sage" in content:
+                            if (
+                                "from sage.all import" in content
+                                or "import sage" in content
+                            ):
                                 item.add_marker(pytest.mark.sagemath)
                 except (AttributeError, IOError):
                     pass
-

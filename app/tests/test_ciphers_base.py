@@ -63,9 +63,7 @@ class _ToyCipherWithAttacks(_ToyCipher):
 
 
 def test_cipher_config_dataclass_defaults():
-    config = CipherConfig(
-        cipher_name="X", key_size=64, iv_size=22, description="desc"
-    )
+    config = CipherConfig(cipher_name="X", key_size=64, iv_size=22, description="desc")
     assert config.parameters == {}
 
 
@@ -137,7 +135,9 @@ def test_analyze_with_key_populates_keystream_properties():
     cipher = _ToyCipher()
     result = cipher.analyze(key=[1, 0, 1, 1], iv=None, keystream_length=50)
     assert result.keystream_properties["length"] == 50
-    assert result.keystream_properties["ones"] + result.keystream_properties["zeros"] == 50
+    assert (
+        result.keystream_properties["ones"] + result.keystream_properties["zeros"] == 50
+    )
     assert 0.0 <= result.keystream_properties["ones_ratio"] <= 1.0
     assert 0.0 <= result.keystream_properties["balance"] <= 1.0
 

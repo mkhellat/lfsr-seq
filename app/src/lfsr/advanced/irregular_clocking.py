@@ -101,7 +101,7 @@ class IrregularClockingLFSR(AdvancedLFSR):
         self,
         base_lfsr_config: LFSRConfig,
         control_lfsr_config: Optional[LFSRConfig] = None,
-        clocking_pattern_function: Optional[Callable[[int], int]] = None
+        clocking_pattern_function: Optional[Callable[[int], int]] = None,
     ):
         """
         Initialize Irregular Clocking LFSR.
@@ -118,14 +118,12 @@ class IrregularClockingLFSR(AdvancedLFSR):
 
         # Build state update matrices
         self.base_C, _ = build_state_update_matrix(
-            base_lfsr_config.coefficients,
-            base_lfsr_config.field_order
+            base_lfsr_config.coefficients, base_lfsr_config.field_order
         )
 
         if control_lfsr_config:
             self.control_C, _ = build_state_update_matrix(
-                control_lfsr_config.coefficients,
-                control_lfsr_config.field_order
+                control_lfsr_config.coefficients, control_lfsr_config.field_order
             )
         else:
             self.control_C = None
@@ -140,12 +138,14 @@ class IrregularClockingLFSR(AdvancedLFSR):
             structure_type="irregular_clocking",
             base_lfsr_config=self.base_lfsr_config,
             parameters={
-                'has_control_lfsr': self.control_lfsr_config is not None,
-                'has_irregular_pattern': True
-            }
+                "has_control_lfsr": self.control_lfsr_config is not None,
+                "has_irregular_pattern": True,
+            },
         )
 
-    def _clock_lfsr(self, state: List[int], C, field_order: int, steps: int = 1) -> List[int]:
+    def _clock_lfsr(
+        self, state: List[int], C, field_order: int, steps: int = 1
+    ) -> List[int]:
         """Clock an LFSR specified number of steps."""
         F = GF(field_order)
         state_vec = vector(F, state)
@@ -159,7 +159,7 @@ class IrregularClockingLFSR(AdvancedLFSR):
         self,
         initial_state: List[int],
         length: int,
-        control_initial_state: Optional[List[int]] = None
+        control_initial_state: Optional[List[int]] = None,
     ) -> List[int]:
         """
         Generate sequence from initial state.
@@ -200,10 +200,7 @@ class IrregularClockingLFSR(AdvancedLFSR):
 
             # Clock base LFSR
             base_state = self._clock_lfsr(
-                base_state,
-                self.base_C,
-                self.base_lfsr_config.field_order,
-                steps
+                base_state, self.base_C, self.base_lfsr_config.field_order, steps
             )
 
             # Clock control LFSR (always)
@@ -212,7 +209,7 @@ class IrregularClockingLFSR(AdvancedLFSR):
                     control_state,
                     self.control_C,
                     self.control_lfsr_config.field_order,
-                    1
+                    1,
                 )
 
         return sequence
@@ -220,32 +217,25 @@ class IrregularClockingLFSR(AdvancedLFSR):
     def analyze_structure(self) -> dict:
         """Analyze Irregular Clocking LFSR structure."""
         return {
-            'structure_type': 'IrregularClockingLFSR',
-            'base_lfsr_degree': self.base_lfsr_config.degree,
-            'has_control_lfsr': self.control_lfsr_config is not None,
-            'control_lfsr_degree': (
-                self.control_lfsr_config.degree
-                if self.control_lfsr_config else None
+            "structure_type": "IrregularClockingLFSR",
+            "base_lfsr_degree": self.base_lfsr_config.degree,
+            "has_control_lfsr": self.control_lfsr_config is not None,
+            "control_lfsr_degree": (
+                self.control_lfsr_config.degree if self.control_lfsr_config else None
             ),
-            'has_irregular_pattern': True,
-            'note': 'Irregular clocking LFSR uses non-regular clocking pattern'
+            "has_irregular_pattern": True,
+            "note": "Irregular clocking LFSR uses non-regular clocking pattern",
         }
 
-    def _assess_security(
-        self,
-        structure_properties: dict
-    ) -> dict:
+    def _assess_security(self, structure_properties: dict) -> dict:
         """Assess Irregular Clocking LFSR security."""
         return {
-            'irregularity': 'Irregular clocking provides resistance to linear analysis',
-            'known_vulnerabilities': [
-                'Clock control analysis',
-                'Pattern analysis'
+            "irregularity": "Irregular clocking provides resistance to linear analysis",
+            "known_vulnerabilities": ["Clock control analysis", "Pattern analysis"],
+            "recommendations": [
+                "Use complex clocking patterns",
+                "Ensure control is independent",
             ],
-            'recommendations': [
-                'Use complex clocking patterns',
-                'Ensure control is independent'
-            ]
         }
 
 

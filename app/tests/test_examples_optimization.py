@@ -136,7 +136,9 @@ class TestFactorizationFailureBranches:
     return None to hit both "Factorization failed" else-branches."""
 
     def test_both_failure_branches_printed(self, monkeypatch):
-        monkeypatch.setattr(m, "compute_period_via_factorization", lambda *a, **kw: None)
+        monkeypatch.setattr(
+            m, "compute_period_via_factorization", lambda *a, **kw: None
+        )
         buf = io.StringIO()
         with contextlib.redirect_stdout(buf):
             m.example_period_via_factorization()
@@ -272,6 +274,7 @@ class TestMain:
         captured = capsys.readouterr()
         assert "ERROR: forced failure for coverage" in captured.err
         assert "RuntimeError" in captured.err
+
 
 import sys
 

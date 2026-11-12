@@ -96,9 +96,9 @@ def test_short_iv_is_zero_padded():
     key = [1, 0] * 64
     short_iv = [1, 1, 1, 1]
     padded_iv = short_iv + [0] * 60
-    assert LILI128().generate_keystream(key, short_iv, 64) == LILI128().generate_keystream(
-        key, padded_iv, 64
-    )
+    assert LILI128().generate_keystream(
+        key, short_iv, 64
+    ) == LILI128().generate_keystream(key, padded_iv, 64)
 
 
 def test_rejects_wrong_key_size():

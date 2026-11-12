@@ -90,7 +90,9 @@ def validate_csv_file(filename: str) -> None:
     if file_size > MAX_FILE_SIZE:
         print(f"ERROR: CSV file too large: {filename}")
         print(f"       File size: {file_size} bytes")
-        print(f"       Maximum allowed: {MAX_FILE_SIZE} bytes ({MAX_FILE_SIZE // (1024*1024)} MB)")
+        print(
+            f"       Maximum allowed: {MAX_FILE_SIZE} bytes ({MAX_FILE_SIZE // (1024*1024)} MB)"
+        )
         sys.exit(1)
 
 

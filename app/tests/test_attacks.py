@@ -128,7 +128,10 @@ class TestCombinationGeneratorKeystream:
         initial_state (not the [1,0,...,0] default) when no
         `initial_states` argument is supplied at all."""
         custom_a = LFSRConfig(
-            coefficients=[1, 0, 0, 1], field_order=2, degree=4, initial_state=[0, 1, 0, 0]
+            coefficients=[1, 0, 0, 1],
+            field_order=2,
+            degree=4,
+            initial_state=[0, 1, 0, 0],
         )
         gen = CombinationGenerator(
             lfsrs=[custom_a], combining_function=lambda a: a, function_name="identity"
@@ -179,7 +182,8 @@ class TestCombinationGeneratorLfsrSequence:
 
     def test_sequence_matches_hand_computed_values(self):
         """LFSR A's sequence (index 0) matches the independently
-        hand-computed values used in test_keystream_matches_hand_computed_xor_combination."""
+        hand-computed values used in test_keystream_matches_hand_computed_xor_combination.
+        """
         gen = xor_generator()
         seq = gen.generate_lfsr_sequence(lfsr_index=0, length=10)
         assert seq == [1, 0, 0, 0, 1, 1, 1, 1, 0, 1]
@@ -197,8 +201,39 @@ class TestComputeCorrelationCoefficient:
 
     def test_identical_sequences_have_correlation_one(self):
         """Perfectly matching sequences give correlation +1."""
-        seq = [1, 0, 1, 1, 0, 1, 0, 0, 1, 1, 0, 1, 0, 1, 0, 1, 1, 0, 0, 1, 0, 1,
-               1, 0, 1, 0, 1, 0, 1, 1, 1]
+        seq = [
+            1,
+            0,
+            1,
+            1,
+            0,
+            1,
+            0,
+            0,
+            1,
+            1,
+            0,
+            1,
+            0,
+            1,
+            0,
+            1,
+            1,
+            0,
+            0,
+            1,
+            0,
+            1,
+            1,
+            0,
+            1,
+            0,
+            1,
+            0,
+            1,
+            1,
+            1,
+        ]
         corr, p_value, stats = compute_correlation_coefficient(seq, seq)
         assert corr == 1.0
         assert stats["matches"] == len(seq)
@@ -323,7 +358,7 @@ class TestEstimateAttackSuccessProbability:
         result = estimate_attack_success_probability(
             correlation_coefficient=0.5, keystream_length=1000, lfsr_degree=50
         )
-        assert result["state_space_size"] == 2 ** 50
+        assert result["state_space_size"] == 2**50
         assert result["feasible"] is False
         assert result["overall_success_probability"] == 0.0
 
@@ -364,7 +399,9 @@ class TestSiegenthalerCorrelationAttack:
         gen = majority_generator()
         keystream = gen.generate_keystream(length=300)
         for idx in range(3):
-            result = siegenthaler_correlation_attack(gen, keystream, target_lfsr_index=idx)
+            result = siegenthaler_correlation_attack(
+                gen, keystream, target_lfsr_index=idx
+            )
             assert abs(result.correlation_coefficient) > 0.3
             assert result.attack_successful is True
 
@@ -435,9 +472,7 @@ class TestSiegenthalerCorrelationAttack:
         def oversized_generate(self, lfsr_index, length, initial_state=None):
             return [0, 1] * (length + 10)
 
-        monkeypatch.setattr(
-            type(gen), "generate_lfsr_sequence", oversized_generate
-        )
+        monkeypatch.setattr(type(gen), "generate_lfsr_sequence", oversized_generate)
 
         result = siegenthaler_correlation_attack(gen, keystream, target_lfsr_index=0)
         assert result.total_bits == len(keystream)
@@ -631,7 +666,10 @@ class TestLFSRConfigDefaults:
         """When LFSRConfig.initial_state is set, generate_lfsr_sequence uses
         it in preference to the all-zero-but-first default."""
         custom = LFSRConfig(
-            coefficients=[1, 0, 0, 1], field_order=2, degree=4, initial_state=[0, 1, 1, 0]
+            coefficients=[1, 0, 0, 1],
+            field_order=2,
+            degree=4,
+            initial_state=[0, 1, 1, 0],
         )
         gen = CombinationGenerator(
             lfsrs=[custom], combining_function=lambda a: a, function_name="identity"
@@ -643,10 +681,14 @@ class TestLFSRConfigDefaults:
         """An initial_state passed directly to generate_lfsr_sequence takes
         precedence over both the config default and LFSRConfig.initial_state."""
         gen = xor_generator()
-        seq = gen.generate_lfsr_sequence(lfsr_index=0, length=1, initial_state=[0, 0, 1, 0])
+        seq = gen.generate_lfsr_sequence(
+            lfsr_index=0, length=1, initial_state=[0, 0, 1, 0]
+        )
         assert seq[0] == 0
 
-        seq2 = gen.generate_lfsr_sequence(lfsr_index=0, length=1, initial_state=[1, 1, 1, 1])
+        seq2 = gen.generate_lfsr_sequence(
+            lfsr_index=0, length=1, initial_state=[1, 1, 1, 1]
+        )
         assert seq2[0] == 1
 
 

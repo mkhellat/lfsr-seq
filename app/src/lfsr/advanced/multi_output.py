@@ -95,7 +95,7 @@ class MultiOutputLFSR(AdvancedLFSR):
         self,
         base_lfsr_config: LFSRConfig,
         output_function: Callable[[List[int]], List[int]],
-        output_rate: int
+        output_rate: int,
     ):
         """
         Initialize Multi-Output LFSR.
@@ -113,8 +113,7 @@ class MultiOutputLFSR(AdvancedLFSR):
 
         # Build state update matrix
         self.C, _ = build_state_update_matrix(
-            base_lfsr_config.coefficients,
-            base_lfsr_config.field_order
+            base_lfsr_config.coefficients, base_lfsr_config.field_order
         )
 
     def get_config(self) -> AdvancedLFSRConfig:
@@ -123,10 +122,10 @@ class MultiOutputLFSR(AdvancedLFSR):
             structure_type="multi_output",
             base_lfsr_config=self.base_lfsr_config,
             parameters={
-                'output_rate': self.output_rate,
-                'state_size': self.state_size,
-                'field_order': self.field_order
-            }
+                "output_rate": self.output_rate,
+                "state_size": self.state_size,
+                "field_order": self.field_order,
+            },
         )
 
     def _clock_lfsr(self, state: List[int]) -> List[int]:
@@ -136,11 +135,7 @@ class MultiOutputLFSR(AdvancedLFSR):
         new_state_vec = state_vec * self.C
         return [int(x) for x in new_state_vec]
 
-    def generate_sequence(
-        self,
-        initial_state: List[int],
-        length: int
-    ) -> List[int]:
+    def generate_sequence(self, initial_state: List[int], length: int) -> List[int]:
         """
         Generate sequence from initial state.
 
@@ -180,35 +175,31 @@ class MultiOutputLFSR(AdvancedLFSR):
     def analyze_structure(self) -> dict:
         """Analyze Multi-Output LFSR structure."""
         return {
-            'structure_type': 'MultiOutputLFSR',
-            'base_lfsr_degree': self.base_lfsr_config.degree,
-            'base_lfsr_field_order': self.field_order,
-            'output_rate': self.output_rate,
-            'state_size': self.state_size,
-            'note': f'Multi-output LFSR outputs {self.output_rate} bits per step'
+            "structure_type": "MultiOutputLFSR",
+            "base_lfsr_degree": self.base_lfsr_config.degree,
+            "base_lfsr_field_order": self.field_order,
+            "output_rate": self.output_rate,
+            "state_size": self.state_size,
+            "note": f"Multi-output LFSR outputs {self.output_rate} bits per step",
         }
 
-    def _assess_security(
-        self,
-        structure_properties: dict
-    ) -> dict:
+    def _assess_security(self, structure_properties: dict) -> dict:
         """Assess Multi-Output LFSR security."""
         return {
-            'efficiency': 'Multi-output increases output rate and efficiency',
-            'known_vulnerabilities': [
-                'Linear attacks (if output function is linear)',
-                'Correlation attacks'
+            "efficiency": "Multi-output increases output rate and efficiency",
+            "known_vulnerabilities": [
+                "Linear attacks (if output function is linear)",
+                "Correlation attacks",
             ],
-            'recommendations': [
-                'Use non-linear output function',
-                'Ensure output function has good properties'
-            ]
+            "recommendations": [
+                "Use non-linear output function",
+                "Ensure output function has good properties",
+            ],
         }
 
 
 def create_simple_multi_output_lfsr(
-    base_lfsr_config: LFSRConfig,
-    output_bits: List[int]
+    base_lfsr_config: LFSRConfig, output_bits: List[int]
 ) -> MultiOutputLFSR:
     """
     Create a simple multi-output LFSR outputting specified state bits.

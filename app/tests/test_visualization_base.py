@@ -19,6 +19,7 @@ import builtins
 import importlib
 
 import matplotlib
+
 matplotlib.use("Agg")
 
 import pytest
@@ -126,9 +127,16 @@ class TestVisualizationConfigDefaults:
 
     def test_custom_values_override_defaults(self):
         config = VisualizationConfig(
-            width=5.0, height=3.0, dpi=100, interactive=True,
-            output_format=OutputFormat.SVG, title="My Title",
-            xlabel="X", ylabel="Y", show_grid=False, show_legend=False,
+            width=5.0,
+            height=3.0,
+            dpi=100,
+            interactive=True,
+            output_format=OutputFormat.SVG,
+            title="My Title",
+            xlabel="X",
+            ylabel="Y",
+            show_grid=False,
+            show_legend=False,
         )
         assert config.width == 5.0
         assert config.height == 3.0
@@ -160,6 +168,7 @@ class TestCheckVisualizationDependencies:
 class ConcreteVisualization(BaseVisualization):
     """Minimal concrete subclass since BaseVisualization's own
     save/show/to_html are abstract (raise NotImplementedError)."""
+
     pass
 
 
@@ -182,7 +191,9 @@ class TestBaseVisualizationConstruction:
         monkeypatch.setattr(viz_base, "HAS_MATPLOTLIB", False)
         # Should not raise even though matplotlib is "unavailable", because
         # output_format == HTML is explicitly exempted in _check_dependencies.
-        viz = ConcreteVisualization(VisualizationConfig(output_format=OutputFormat.HTML))
+        viz = ConcreteVisualization(
+            VisualizationConfig(output_format=OutputFormat.HTML)
+        )
         assert viz.config.output_format == OutputFormat.HTML
 
     def test_missing_matplotlib_raises_for_non_html_format(self, monkeypatch):

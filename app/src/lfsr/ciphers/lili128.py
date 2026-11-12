@@ -85,11 +85,11 @@ class LILI128(StreamCipher):
             iv_size=64,
             description="LILI-128 academic design with clock-controlled LFSRs",
             parameters={
-                'lfsrc_size': self.LFSRC_SIZE,
-                'lfsrd_size': self.LFSRD_SIZE,
-                'total_size': self.TOTAL_SIZE,
-                'warmup_steps': self.WARMUP_STEPS
-            }
+                "lfsrc_size": self.LFSRC_SIZE,
+                "lfsrd_size": self.LFSRD_SIZE,
+                "total_size": self.TOTAL_SIZE,
+                "warmup_steps": self.WARMUP_STEPS,
+            },
         )
 
     def _clock_lfsr(self, state: List[int], taps: List[int], size: int) -> List[int]:
@@ -132,9 +132,7 @@ class LILI128(StreamCipher):
         # LFSRd: polynomial x^89 + x^83 + x^80 + x^55 + x^53 + x^42 + x^39 + x^6 + 1
         for _ in range(clock_count):
             self.lfsrd_state = self._clock_lfsr(
-                self.lfsrd_state,
-                [88, 82, 79, 54, 52, 41, 38, 5],
-                self.LFSRD_SIZE
+                self.lfsrd_state, [88, 82, 79, 54, 52, 41, 38, 5], self.LFSRD_SIZE
             )
 
     def _initialize(self, key: List[int], iv: Optional[List[int]]):
@@ -165,10 +163,7 @@ class LILI128(StreamCipher):
             self._clock_controlled()
 
     def generate_keystream(
-        self,
-        key: List[int],
-        iv: Optional[List[int]],
-        length: int
+        self, key: List[int], iv: Optional[List[int]], length: int
     ) -> List[int]:
         """
         Generate LILI-128 keystream.
@@ -227,27 +222,22 @@ class LILI128(StreamCipher):
             combiner="Output is directly from LFSRd (no combining function)",
             state_size=128,  # 39 + 89
             details={
-                'lfsrc_size': 39,
-                'lfsrd_size': 89,
-                'total_size': 128,
-                'warmup_steps': self.WARMUP_STEPS,
-                'polynomials': {
-                    'lfsrc': 'x^39 + x^35 + x^33 + x^31 + x^17 + 1',
-                    'lfsrd': 'x^89 + x^83 + x^80 + x^55 + x^53 + x^42 + x^39 + x^6 + 1'
-                }
-            }
+                "lfsrc_size": 39,
+                "lfsrd_size": 89,
+                "total_size": 128,
+                "warmup_steps": self.WARMUP_STEPS,
+                "polynomials": {
+                    "lfsrc": "x^39 + x^35 + x^33 + x^31 + x^17 + 1",
+                    "lfsrd": "x^89 + x^83 + x^80 + x^55 + x^53 + x^42 + x^39 + x^6 + 1",
+                },
+            },
         )
 
     def apply_attacks(
-        self,
-        keystream: List[int],
-        attack_types: Optional[List[str]] = None
+        self, keystream: List[int], attack_types: Optional[List[str]] = None
     ) -> dict:
         """Apply attacks to LILI-128 keystream."""
         return {
-            'note': 'LILI-128 has known vulnerabilities',
-            'known_vulnerabilities': [
-                'Correlation attacks',
-                'Clock control analysis'
-            ]
+            "note": "LILI-128 has known vulnerabilities",
+            "known_vulnerabilities": ["Correlation attacks", "Clock control analysis"],
         }

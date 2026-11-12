@@ -67,7 +67,9 @@ class TestPerformNistTestCli:
     def test_basic_run_produces_summary(self):
         buf = io.StringIO()
         seq = make_sequence(500)
-        perform_nist_test_cli(seq, output_file=buf, significance_level=0.01, block_size=128)
+        perform_nist_test_cli(
+            seq, output_file=buf, significance_level=0.01, block_size=128
+        )
         out = buf.getvalue()
         assert "NIST SP 800-22 Statistical Test Suite" in out
         assert "Tests Passed:" in out
@@ -248,20 +250,21 @@ class TestPerformNistTestCli:
         def boom(*args, **kwargs):
             raise ValueError("synthetic export failure")
 
-        monkeypatch.setattr(cli_nist_mod, "get_nist_export_function", boom, raising=False)
+        monkeypatch.setattr(
+            cli_nist_mod, "get_nist_export_function", boom, raising=False
+        )
 
         # get_nist_export_function is imported locally inside the function
         # body (`from lfsr.export import get_nist_export_function`), so
         # patch it at the source module instead.
         import lfsr.export as export_mod
+
         monkeypatch.setattr(export_mod, "get_nist_export_function", boom)
 
         out_path = tmp_path / "results.txt"
         seq = make_sequence(200)
         with open(out_path, "w") as f:
-            cli_nist_mod.perform_nist_test_cli(
-                seq, output_file=f, output_format="json"
-            )
+            cli_nist_mod.perform_nist_test_cli(seq, output_file=f, output_format="json")
 
         content = out_path.read_text()
         assert "WARNING: Export failed" in content

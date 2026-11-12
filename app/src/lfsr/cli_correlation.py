@@ -57,7 +57,7 @@ def load_combination_generator_from_json(config_file: str) -> CombinationGenerat
         FileNotFoundError: If config file doesn't exist
     """
     try:
-        with open(config_file, 'r') as f:
+        with open(config_file, "r") as f:
             config = json.load(f)
     except FileNotFoundError as e:
         raise FileNotFoundError(f"Configuration file not found: {config_file}") from e
@@ -65,82 +65,90 @@ def load_combination_generator_from_json(config_file: str) -> CombinationGenerat
         raise ValueError(f"Invalid JSON in configuration file: {e}") from e
 
     # Validate structure
-    if 'lfsrs' not in config:
+    if "lfsrs" not in config:
         raise ValueError("Configuration must contain 'lfsrs' key")
-    if 'combining_function' not in config:
+    if "combining_function" not in config:
         raise ValueError("Configuration must contain 'combining_function' key")
 
     # Load LFSR configurations
     lfsr_configs = []
-    for idx, lfsr_data in enumerate(config['lfsrs']):
-        if 'coefficients' not in lfsr_data:
+    for idx, lfsr_data in enumerate(config["lfsrs"]):
+        if "coefficients" not in lfsr_data:
             raise ValueError(f"LFSR {idx}: missing 'coefficients'")
-        if 'field_order' not in lfsr_data:
+        if "field_order" not in lfsr_data:
             raise ValueError(f"LFSR {idx}: missing 'field_order'")
-        if 'degree' not in lfsr_data:
+        if "degree" not in lfsr_data:
             raise ValueError(f"LFSR {idx}: missing 'degree'")
 
         lfsr_config = LFSRConfig(
-            coefficients=lfsr_data['coefficients'],
-            field_order=lfsr_data['field_order'],
-            degree=lfsr_data['degree'],
-            initial_state=lfsr_data.get('initial_state')
+            coefficients=lfsr_data["coefficients"],
+            field_order=lfsr_data["field_order"],
+            degree=lfsr_data["degree"],
+            initial_state=lfsr_data.get("initial_state"),
         )
         lfsr_configs.append(lfsr_config)
 
     # Load combining function
-    func_config = config['combining_function']
-    func_type = func_config.get('type', 'custom')
+    func_config = config["combining_function"]
+    func_type = func_config.get("type", "custom")
 
-    if func_type == 'majority':
+    if func_type == "majority":
+
         def majority(*args):
             return 1 if sum(args) >= (len(args) + 1) // 2 else 0
+
         combining_function = majority
-        function_name = 'majority'
-    elif func_type == 'xor':
+        function_name = "majority"
+    elif func_type == "xor":
+
         def xor_combiner(*args):
             result = args[0]
             for arg in args[1:]:
                 result ^= arg
             return result
+
         combining_function = xor_combiner
-        function_name = 'xor'
-    elif func_type == 'and':
+        function_name = "xor"
+    elif func_type == "and":
+
         def and_combiner(*args):
             result = args[0]
             for arg in args[1:]:
                 result &= arg
             return result
+
         combining_function = and_combiner
-        function_name = 'and'
-    elif func_type == 'or':
+        function_name = "and"
+    elif func_type == "or":
+
         def or_combiner(*args):
             result = args[0]
             for arg in args[1:]:
                 result |= arg
             return result
+
         combining_function = or_combiner
-        function_name = 'or'
-    elif func_type == 'custom':
+        function_name = "or"
+    elif func_type == "custom":
         # Execute custom function code
-        if 'code' not in func_config:
+        if "code" not in func_config:
             raise ValueError("Custom function requires 'code' field")
         namespace = {}
-        exec(func_config['code'], namespace)
+        exec(func_config["code"], namespace)
         # Find the function (should be named 'f' or similar)
-        if 'f' in namespace:
-            combining_function = namespace['f']
+        if "f" in namespace:
+            combining_function = namespace["f"]
         else:
             # Try to find any callable
             combining_function = next(v for v in namespace.values() if callable(v))
-        function_name = 'custom'
+        function_name = "custom"
     else:
         raise ValueError(f"Unknown function type: {func_type}")
 
     return CombinationGenerator(
         lfsrs=lfsr_configs,
         combining_function=combining_function,
-        function_name=function_name
+        function_name=function_name,
     )
 
 
@@ -159,11 +167,11 @@ def load_keystream_from_file(keystream_file: str) -> List[int]:
         List of keystream bits
     """
     try:
-        with open(keystream_file, 'r') as f:
+        with open(keystream_file, "r") as f:
             content = f.read().strip()
 
         # Try space-separated first
-        if ' ' in content or '\t' in content:
+        if " " in content or "\t" in content:
             bits = content.split()
         else:
             # One per line
@@ -177,7 +185,9 @@ def load_keystream_from_file(keystream_file: str) -> List[int]:
                 try:
                     keystream.append(int(bit))
                 except ValueError as e:
-                    raise ValueError(f"Invalid bit value: {bit} (must be 0 or 1)") from e
+                    raise ValueError(
+                        f"Invalid bit value: {bit} (must be 0 or 1)"
+                    ) from e
 
         return keystream
     except FileNotFoundError as e:
@@ -230,12 +240,18 @@ def perform_correlation_attack_cli(
         analysis = analyze_combining_function(
             gen.combining_function,
             num_inputs=len(gen.lfsrs),
-            field_order=gen.lfsrs[0].field_order
+            field_order=gen.lfsrs[0].field_order,
         )
         print(f"  Balanced: {analysis['balanced']}", file=output_file)
         print(f"  Bias: {analysis['bias']:.6f}", file=output_file)
-        print(f"  Correlation immunity order: {analysis['correlation_immunity']}", file=output_file)
-        print(f"  Output distribution: {analysis['output_distribution']}", file=output_file)
+        print(
+            f"  Correlation immunity order: {analysis['correlation_immunity']}",
+            file=output_file,
+        )
+        print(
+            f"  Output distribution: {analysis['output_distribution']}",
+            file=output_file,
+        )
         print(file=output_file)
 
     # Load or generate keystream
@@ -260,16 +276,22 @@ def perform_correlation_attack_cli(
             combination_generator=gen,
             keystream=keystream,
             method=distinguishing_method,
-            significance_level=significance_level
+            significance_level=significance_level,
         )
 
         print(f"  Method: {dist_result.method_used}", file=output_file)
         print(f"  Distinguishable: {dist_result.distinguishable}", file=output_file)
-        print(f"  Distinguishing statistic: {dist_result.distinguishing_statistic:.6f}", file=output_file)
+        print(
+            f"  Distinguishing statistic: {dist_result.distinguishing_statistic:.6f}",
+            file=output_file,
+        )
         print(f"  P-value: {dist_result.p_value:.6f}", file=output_file)
         print(f"  Attack successful: {dist_result.attack_successful}", file=output_file)
         if dist_result.attack_successful:
-            print("  ⚠ VULNERABLE: Keystream is distinguishable from random!", file=output_file)
+            print(
+                "  ⚠ VULNERABLE: Keystream is distinguishable from random!",
+                file=output_file,
+            )
         print(file=output_file)
 
     # Perform correlation attacks
@@ -300,41 +322,83 @@ def perform_correlation_attack_cli(
                 keystream=keystream,
                 target_lfsr_index=lfsr_idx,
                 max_candidates=max_candidates,
-                significance_level=significance_level
+                significance_level=significance_level,
             )
 
-            print("  Attack method: Fast Correlation Attack (Meier-Staffelbach)", file=output_file)
-            print(f"  Correlation coefficient: {result.correlation_coefficient:.6f}", file=output_file)
+            print(
+                "  Attack method: Fast Correlation Attack (Meier-Staffelbach)",
+                file=output_file,
+            )
+            print(
+                f"  Correlation coefficient: {result.correlation_coefficient:.6f}",
+                file=output_file,
+            )
             print(f"  Attack successful: {result.attack_successful}", file=output_file)
             if result.attack_successful:
-                print(f"  ✓ Recovered state: {result.recovered_state}", file=output_file)
+                print(
+                    f"  ✓ Recovered state: {result.recovered_state}", file=output_file
+                )
                 print("  ⚠ VULNERABLE: State recovery successful!", file=output_file)
             else:
                 print("  ✗ State recovery failed", file=output_file)
-            print(f"  Best correlation: {result.best_correlation:.6f}", file=output_file)
-            print(f"  Iterations performed: {result.iterations_performed}", file=output_file)
-            print(f"  Candidates tested: {result.candidate_states_tested}", file=output_file)
-            print(f"  Complexity estimate: {result.complexity_estimate:.0f} operations", file=output_file)
-            print(f"  Keystream length used: {result.keystream_length}", file=output_file)
+            print(
+                f"  Best correlation: {result.best_correlation:.6f}", file=output_file
+            )
+            print(
+                f"  Iterations performed: {result.iterations_performed}",
+                file=output_file,
+            )
+            print(
+                f"  Candidates tested: {result.candidate_states_tested}",
+                file=output_file,
+            )
+            print(
+                f"  Complexity estimate: {result.complexity_estimate:.0f} operations",
+                file=output_file,
+            )
+            print(
+                f"  Keystream length used: {result.keystream_length}", file=output_file
+            )
         else:
             # Basic Siegenthaler attack
             result = siegenthaler_correlation_attack(
                 combination_generator=gen,
                 keystream=keystream,
                 target_lfsr_index=lfsr_idx,
-                significance_level=significance_level
+                significance_level=significance_level,
             )
 
-            print("  Attack method: Basic Correlation Attack (Siegenthaler)", file=output_file)
-            print(f"  Correlation coefficient: {result.correlation_coefficient:.6f}", file=output_file)
+            print(
+                "  Attack method: Basic Correlation Attack (Siegenthaler)",
+                file=output_file,
+            )
+            print(
+                f"  Correlation coefficient: {result.correlation_coefficient:.6f}",
+                file=output_file,
+            )
             print(f"  P-value: {result.p_value:.6f}", file=output_file)
-            print(f"  Match ratio: {result.match_ratio:.4f} ({result.matches}/{result.total_bits})", file=output_file)
+            print(
+                f"  Match ratio: {result.match_ratio:.4f} ({result.matches}/{result.total_bits})",
+                file=output_file,
+            )
             print(f"  Attack successful: {result.attack_successful}", file=output_file)
-            print(f"  Success probability: {result.success_probability:.2%}", file=output_file)
+            print(
+                f"  Success probability: {result.success_probability:.2%}",
+                file=output_file,
+            )
             if result.attack_successful:
-                print("  ⚠ VULNERABLE: Significant correlation detected!", file=output_file)
-            print(f"  Required keystream bits: {result.required_keystream_bits}", file=output_file)
-            print(f"  Complexity estimate: {result.complexity_estimate:.0f} operations", file=output_file)
+                print(
+                    "  ⚠ VULNERABLE: Significant correlation detected!",
+                    file=output_file,
+                )
+            print(
+                f"  Required keystream bits: {result.required_keystream_bits}",
+                file=output_file,
+            )
+            print(
+                f"  Complexity estimate: {result.complexity_estimate:.0f} operations",
+                file=output_file,
+            )
         print(file=output_file)
 
     print("=" * 70, file=output_file)

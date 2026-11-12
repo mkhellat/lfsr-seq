@@ -11,6 +11,7 @@ rather than pixel comparison.
 """
 
 import matplotlib
+
 matplotlib.use("Agg")
 
 import matplotlib.pyplot as plt
@@ -102,8 +103,12 @@ class TestPlotPeriodDistributionStatic:
         assert out.stat().st_size > 0
 
     def test_grid_toggle(self):
-        fig_on = plot_period_distribution({1: 1}, config=VisualizationConfig(show_grid=True))
-        fig_off = plot_period_distribution({1: 1}, config=VisualizationConfig(show_grid=False))
+        fig_on = plot_period_distribution(
+            {1: 1}, config=VisualizationConfig(show_grid=True)
+        )
+        fig_off = plot_period_distribution(
+            {1: 1}, config=VisualizationConfig(show_grid=False)
+        )
         assert any(line.get_visible() for line in fig_on.axes[0].get_xgridlines())
         assert not any(line.get_visible() for line in fig_off.axes[0].get_xgridlines())
 
@@ -124,7 +129,9 @@ class TestPlotPeriodDistributionInteractive:
 
     def test_theoretical_max_vline_shape_added(self):
         config = VisualizationConfig(interactive=True)
-        fig = plot_period_distribution({1: 1, 15: 15}, theoretical_max_period=15, config=config)
+        fig = plot_period_distribution(
+            {1: 1, 15: 15}, theoretical_max_period=15, config=config
+        )
         # add_vline creates a shape on the layout
         assert len(fig.layout.shapes) >= 1
 

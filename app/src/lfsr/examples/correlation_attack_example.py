@@ -46,10 +46,10 @@ def example_basic_correlation_attack():
         lfsrs=[
             LFSRConfig(coefficients=[1, 0, 0, 1], field_order=2, degree=4),
             LFSRConfig(coefficients=[1, 1, 0, 1], field_order=2, degree=4),
-            LFSRConfig(coefficients=[1, 0, 1, 1], field_order=2, degree=4)
+            LFSRConfig(coefficients=[1, 0, 1, 1], field_order=2, degree=4),
         ],
         combining_function=majority,
-        function_name='majority'
+        function_name="majority",
     )
 
     print("\nCombination Generator Configuration:")
@@ -73,14 +73,14 @@ def example_basic_correlation_attack():
 
     for i in range(len(gen.lfsrs)):
         result = siegenthaler_correlation_attack(
-            combination_generator=gen,
-            keystream=keystream,
-            target_lfsr_index=i
+            combination_generator=gen, keystream=keystream, target_lfsr_index=i
         )
 
         success_str = "✓ Yes" if result.attack_successful else "✗ No"
-        print(f"{i+1:<6} {result.correlation_coefficient:>13.6f}  "
-              f"{result.p_value:>10.6f}  {success_str:<10}  {result.success_probability:>6.2%}")
+        print(
+            f"{i+1:<6} {result.correlation_coefficient:>13.6f}  "
+            f"{result.p_value:>10.6f}  {success_str:<10}  {result.success_probability:>6.2%}"
+        )
 
     # Detailed analysis of first LFSR
     print(f"\n{'─'*70}")
@@ -89,7 +89,9 @@ def example_basic_correlation_attack():
     result = siegenthaler_correlation_attack(gen, keystream, target_lfsr_index=0)
     print(f"  Correlation coefficient: {result.correlation_coefficient:.6f}")
     print(f"  P-value: {result.p_value:.6f}")
-    print(f"  Match ratio: {result.match_ratio:.4f} ({result.matches}/{result.total_bits})")
+    print(
+        f"  Match ratio: {result.match_ratio:.4f} ({result.matches}/{result.total_bits})"
+    )
     print(f"  Attack successful: {result.attack_successful}")
     print(f"  Success probability: {result.success_probability:.2%}")
     print(f"  Required keystream bits: {result.required_keystream_bits}")
@@ -115,7 +117,7 @@ def example_combining_function_analysis():
     functions = [
         ("Majority (3 inputs)", majority, 3),
         ("XOR (2 inputs)", xor_combiner, 2),
-        ("AND (2 inputs)", and_combiner, 2)
+        ("AND (2 inputs)", and_combiner, 2),
     ]
 
     print(f"\n{'─'*70}")
@@ -126,9 +128,11 @@ def example_combining_function_analysis():
 
     for name, func, num_inputs in functions:
         analysis = analyze_combining_function(func, num_inputs, field_order=2)
-        balanced_str = "Yes" if analysis['balanced'] else "No"
-        ci_order = analysis['correlation_immunity']
-        print(f"{name:<25} {balanced_str:<12} {analysis['bias']:>10.4f}  {ci_order:<12}")
+        balanced_str = "Yes" if analysis["balanced"] else "No"
+        ci_order = analysis["correlation_immunity"]
+        print(
+            f"{name:<25} {balanced_str:<12} {analysis['bias']:>10.4f}  {ci_order:<12}"
+        )
 
     # Detailed analysis of majority function
     print(f"\n{'─'*70}")
@@ -140,7 +144,7 @@ def example_combining_function_analysis():
     print(f"  Correlation immunity order: {analysis['correlation_immunity']}")
     print(f"  Output distribution: {analysis['output_distribution']}")
     print("  Truth table (first 4 entries):")
-    for inputs, output in analysis['truth_table'][:4]:
+    for inputs, output in analysis["truth_table"][:4]:
         print(f"    {inputs} -> {output}")
 
 
@@ -193,10 +197,10 @@ def example_vulnerable_combination():
     gen = CombinationGenerator(
         lfsrs=[
             LFSRConfig(coefficients=[1, 0, 0, 1], field_order=2, degree=4),
-            LFSRConfig(coefficients=[1, 1, 0, 1], field_order=2, degree=4)
+            LFSRConfig(coefficients=[1, 1, 0, 1], field_order=2, degree=4),
         ],
         combining_function=and_combiner,
-        function_name='and'
+        function_name="and",
     )
 
     print("\nCombination Generator:")
@@ -236,10 +240,10 @@ def example_fast_correlation_attack():
     gen = CombinationGenerator(
         lfsrs=[
             LFSRConfig(coefficients=[1, 0, 0, 1], field_order=2, degree=4),
-            LFSRConfig(coefficients=[1, 1, 0, 1], field_order=2, degree=4)
+            LFSRConfig(coefficients=[1, 1, 0, 1], field_order=2, degree=4),
         ],
         combining_function=and_combiner,
-        function_name='and'
+        function_name="and",
     )
 
     print("\nCombination Generator:")
@@ -282,10 +286,10 @@ def example_distinguishing_attack():
         lfsrs=[
             LFSRConfig(coefficients=[1, 0, 0, 1], field_order=2, degree=4),
             LFSRConfig(coefficients=[1, 1, 0, 1], field_order=2, degree=4),
-            LFSRConfig(coefficients=[1, 0, 1, 1], field_order=2, degree=4)
+            LFSRConfig(coefficients=[1, 0, 1, 1], field_order=2, degree=4),
         ],
         combining_function=majority,
-        function_name='majority'
+        function_name="majority",
     )
 
     print("\nCombination Generator Configuration:")
@@ -336,6 +340,7 @@ def main():
     except Exception as e:
         print(f"\nERROR: {e}", file=sys.stderr)
         import traceback
+
         traceback.print_exc()
         sys.exit(1)
 

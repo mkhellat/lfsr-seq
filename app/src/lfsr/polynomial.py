@@ -65,9 +65,7 @@ def polynomial_order(
     return poly_order
 
 
-def is_primitive_polynomial(
-    polynomial: Any, gf_order: int
-) -> bool:
+def is_primitive_polynomial(polynomial: Any, gf_order: int) -> bool:
     """
     Check if a polynomial is primitive over GF(gf_order).
 
@@ -108,7 +106,7 @@ def is_primitive_polynomial(
     # Try using SageMath's built-in is_primitive() method first
     # This is the most efficient approach
     try:
-        if hasattr(polynomial, 'is_primitive'):
+        if hasattr(polynomial, "is_primitive"):
             result = polynomial.is_primitive()
             if result is not None:
                 return bool(result)
@@ -203,7 +201,15 @@ def characteristic_polynomial(
 
     # Add primitive polynomial indicator if applicable
     if is_primitive:
-        primitive_line = " " + "\u254e" + " " * (POLYNOMIAL_DISPLAY_WIDTH + 1) + "\u254e" + primitive_indicator + " " * (18 - len(primitive_indicator)) + "\u254e"
+        primitive_line = (
+            " "
+            + "\u254e"
+            + " " * (POLYNOMIAL_DISPLAY_WIDTH + 1)
+            + "\u254e"
+            + primitive_indicator
+            + " " * (18 - len(primitive_indicator))
+            + "\u254e"
+        )
         dump(primitive_line, "mode=all", output_file)
 
     b_border_1 = " " + "\u2516" + "\u2504" * 40 + "\u2538"
@@ -240,9 +246,7 @@ def characteristic_polynomial(
 
 
 def compute_period_via_factorization(
-    coefficients: List[int],
-    field_order: int,
-    state_vector_dim: Optional[int] = None
+    coefficients: List[int], field_order: int, state_vector_dim: Optional[int] = None
 ) -> Optional[int]:
     """
     Compute LFSR period using polynomial factorization.
@@ -365,9 +369,7 @@ def compute_period_via_factorization(
 
 
 def detect_mathematical_shortcuts(
-    coefficients: List[int],
-    field_order: int,
-    state_vector_dim: Optional[int] = None
+    coefficients: List[int], field_order: int, state_vector_dim: Optional[int] = None
 ) -> Dict[str, Any]:
     """
     Detect special cases and recommend optimized algorithms.
@@ -482,17 +484,19 @@ def detect_mathematical_shortcuts(
         if d > 15 and not is_primitive:
             if recommended_method == "enumeration":
                 recommended_method = "factorization"
-                complexity_estimate = "O(d^3) + O(q^d)"  # Factorization + order computation
+                complexity_estimate = (
+                    "O(d^3) + O(q^d)"  # Factorization + order computation
+                )
 
     except (TypeError, ValueError, AttributeError):
         # If analysis fails, return defaults
         pass
 
     return {
-        'is_primitive': is_primitive,
-        'is_irreducible': is_irreducible,
-        'recommended_method': recommended_method,
-        'expected_period': expected_period,
-        'shortcuts_available': shortcuts_available,
-        'complexity_estimate': complexity_estimate
+        "is_primitive": is_primitive,
+        "is_irreducible": is_irreducible,
+        "recommended_method": recommended_method,
+        "expected_period": expected_period,
+        "shortcuts_available": shortcuts_available,
+        "complexity_estimate": complexity_estimate,
     }
