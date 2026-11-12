@@ -1,0 +1,57 @@
+name: probe-sage-install
+
+on:
+  workflow_dispatch:
+
+jobs:
+  probe-sagelib:
+    name: Probe sagelib install (minimal)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install Miniforge (conda-forge default channel)
+        uses: conda-incubator/setup-miniconda@v3
+        with:
+          miniforge-version: latest
+          channels: conda-forge
+          channel-priority: strict
+          python-version: "3.11"
+          activate-environment: sageprobe
+
+      - name: Time sagelib install
+        shell: bash -l {0}
+        run: |
+          echo "=== Starting sagelib install at $(date) ==="
+          time conda install -y -n sageprobe sagelib python=3.11
+          echo "=== Finished at $(date) ==="
+
+      - name: Verify import and report disk usage
+        shell: bash -l {0}
+        run: |
+          conda run -n sageprobe python -c "import sage.all; print('sage.all import OK, version:', sage.version.version)"
+          du -sh /usr/share/miniconda3/envs/sageprobe 2>/dev/null || du -sh "$CONDA_PREFIX"
+
+  probe-sage-full:
+    name: Probe sage install (full metapackage)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install Miniforge (conda-forge default channel)
+        uses: conda-incubator/setup-miniconda@v3
+        with:
+          miniforge-version: latest
+          channels: conda-forge
+          channel-priority: strict
+          python-version: "3.11"
+          activate-environment: sageprobefull
+
+      - name: Time full sage install
+        shell: bash -l {0}
+        run: |
+          echo "=== Starting sage (full) install at $(date) ==="
+          time conda install -y -n sageprobefull sage python=3.11
+          echo "=== Finished at $(date) ==="
+
+      - name: Verify import and report disk usage
+        shell: bash -l {0}
+        run: |
+          conda run -n sageprobefull python -c "import sage.all; print('sage.all import OK, version:', sage.version.version)"
+          du -sh /usr/share/miniconda3/envs/sageprobefull 2>/dev/null || du -sh "$CONDA_PREFIX"
