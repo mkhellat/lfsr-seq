@@ -14,6 +14,7 @@ raising -- it does not assume "just a demo" implies bug-free.
 """
 
 import io
+import sys
 from contextlib import redirect_stdout
 
 import pytest
@@ -171,9 +172,6 @@ class TestMainEndToEnd:
                     tae.main()
         assert exc_info.value.code == 1
         assert "ERROR: simulated failure for coverage" in buf_err.getvalue()
-
-
-import sys
 
 
 class TestSageImportGuardTheoretical:

@@ -8,6 +8,7 @@ This module provides functions for analyzing LFSR sequences, computing
 periods, and categorizing state vectors.
 """
 
+import atexit
 import contextlib
 import multiprocessing
 import textwrap
@@ -41,8 +42,6 @@ def shutdown_worker_pool():
 
 
 # Register cleanup handler for program exit
-import atexit
-
 atexit.register(shutdown_worker_pool)
 
 # Multiprocessing setup for compatibility

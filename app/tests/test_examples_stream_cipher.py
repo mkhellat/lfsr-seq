@@ -13,6 +13,7 @@ stdout is captured -- not deep unit testing of cipher internals.
 """
 
 import io
+import sys
 from contextlib import redirect_stdout
 
 import pytest
@@ -113,9 +114,6 @@ class TestMainEndToEnd:
                     sce.main()
         assert exc_info.value.code == 1
         assert "ERROR: simulated failure for coverage" in buf_err.getvalue()
-
-
-import sys
 
 
 class TestSageImportGuardStreamCipher:

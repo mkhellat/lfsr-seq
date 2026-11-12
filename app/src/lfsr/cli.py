@@ -14,6 +14,7 @@ import os
 import sys
 from typing import Optional, TextIO
 
+from lfsr import __version__
 from lfsr._sage_discovery import ensure_sage_importable
 
 # Try to import sage, but don't fail until it's actually needed. This may
@@ -35,8 +36,6 @@ if _sage_available:
         # permissive sage.all still resolves them.
         # Fallback to sage.all if our helper module isn't available
         from sage.all import *
-
-from lfsr import __version__
 
 
 def main(

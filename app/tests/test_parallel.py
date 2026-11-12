@@ -54,14 +54,18 @@ except ImportError:
 if not _sage_available:
     pytest.skip("SageMath not available", allow_module_level=True)
 
-from lfsr.analysis import (
+# These must stay below the Sage-availability guard above: lfsr.analysis
+# does `from lfsr.sage_imports import *` at its own top level, which
+# would raise ImportError (crashing collection instead of cleanly
+# skipping) if moved above the guard.
+from lfsr.analysis import (  # noqa: E402
     _merge_parallel_results,
     _partition_state_space,
     _process_state_chunk,
     lfsr_sequence_mapper,
     lfsr_sequence_mapper_parallel,
 )
-from lfsr.core import build_state_update_matrix
+from lfsr.core import build_state_update_matrix  # noqa: E402
 
 
 class TestPartitionStateSpace:

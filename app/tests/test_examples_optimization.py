@@ -38,6 +38,7 @@ bugs were found in this module.
 
 import io
 import contextlib
+import sys
 from unittest import mock
 
 import pytest
@@ -274,9 +275,6 @@ class TestMain:
         captured = capsys.readouterr()
         assert "ERROR: forced failure for coverage" in captured.err
         assert "RuntimeError" in captured.err
-
-
-import sys
 
 
 class TestSageImportGuardOptimization:

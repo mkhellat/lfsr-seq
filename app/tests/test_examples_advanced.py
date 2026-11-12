@@ -16,6 +16,8 @@ repo's SageMath install before writing any assertion below; all
 completed without raising (verified 2026-08-14).
 """
 
+import sys
+
 import lfsr.examples.advanced_lfsr_example as example_module
 
 

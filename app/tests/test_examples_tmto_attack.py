@@ -15,6 +15,7 @@ Confirmed via manual run this executes in ~3.5s total, well under the
 """
 
 import io
+import sys
 from contextlib import redirect_stderr, redirect_stdout
 
 import pytest
@@ -143,9 +144,6 @@ class TestMainEndToEnd:
         assert "Examples Complete!" in out
         assert "Example 1: Hellman Table" in out
         assert "Example 5: Hellman vs Rainbow Comparison" in out
-
-
-import sys
 
 
 class TestSageImportGuardTmto:

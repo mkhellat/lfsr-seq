@@ -29,6 +29,7 @@ relying on an in-process timeout.
 
 import io
 import contextlib
+import sys
 
 from lfsr.examples import parallel_processing_example as m
 
@@ -93,9 +94,6 @@ class TestMain:
         assert exc_info.value.code == 1
         err = capsys.readouterr().err
         assert "ERROR: simulated failure for coverage" in err
-
-
-import sys
 
 
 class TestSageImportGuardParallel:
