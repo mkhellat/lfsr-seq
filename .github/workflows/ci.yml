@@ -19,11 +19,12 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # Python versions conda-forge's sagelib package actually ships
-        # builds for (verified directly, 2026-11-12, by listing its
-        # available files) -- not a version this project's pyproject.toml
-        # merely declares support for. 3.13 has no sagelib build yet;
-        # re-check before adding it rather than assuming it's covered.
+        # Python versions conda-forge's sage package actually ships
+        # builds for and that a real CI run has confirmed installs and
+        # passes the test suite (2026-11-12) -- not a version this
+        # project's pyproject.toml merely declares support for. 3.13
+        # was not checked; re-verify with a real run before adding it
+        # rather than assuming it's covered.
         python-version: ['3.11', '3.12']
 
     steps:
@@ -67,7 +68,7 @@ jobs:
     - name: Install sage
       run: conda install -y -n lfsr-ci sage python=${{ matrix.python-version }}
 
-    # Installed into the SAME conda env as sagelib (not a separate venv,
+    # Installed into the SAME conda env as sage (not a separate venv,
     # unlike local dev's .venv + _sage_discovery.py subprocess-fallback
     # pattern) so `import sage` succeeds immediately via
     # ensure_sage_importable()'s own first, fast attempt (a plain `import
