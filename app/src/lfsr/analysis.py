@@ -1355,6 +1355,18 @@ def _process_state_chunk(
                         # Periodic check every 1000 iterations for very large cycles
                         if seq_period % 1000 == 0:
                             _ = len(str(current))  # Force evaluation to detect hangs
+                        # SAFETY LIMIT (matches _find_period_enumeration's own
+                        # guard, which this fused loop replaces): a degenerate
+                        # (non-bijective) companion matrix can produce a
+                        # trajectory that enters a sub-cycle never containing
+                        # the start state, so `current_tuple == state_tuple`
+                        # may never become true -- the pre-fusion two-pass
+                        # code had this same exposure via _find_period's own
+                        # internal 10,000,000-step limit, but this fused loop
+                        # has no separate _find_period() call to inherit that
+                        # limit from, so it needs its own.
+                        if seq_period > 10000000:
+                            raise ValueError("Period exceeds maximum limit (possible infinite loop)")
                     debug_log(f'State {idx+1}: Period computed: {seq_period}')
                 except Exception as e:
                     debug_log(f'State {idx+1}: Error computing period: {e}')
@@ -2049,6 +2061,19 @@ def _process_task_batch_dynamic(
                                 # Periodic check every 1000 iterations for very large cycles
                                 if seq_period % 1000 == 0:
                                     _ = len(str(current))  # Force evaluation to detect hangs
+                                # SAFETY LIMIT (matches _find_period_enumeration's
+                                # own guard, which this fused loop replaces): a
+                                # degenerate (non-bijective) companion matrix can
+                                # produce a trajectory that enters a sub-cycle
+                                # never containing the start state, so
+                                # `current_tuple == state_tuple` may never
+                                # become true -- the pre-fusion two-pass code
+                                # had this same exposure via _find_period's own
+                                # internal 10,000,000-step limit, but this fused
+                                # loop has no separate _find_period() call to
+                                # inherit that limit from, so it needs its own.
+                                if seq_period > 10000000:
+                                    raise ValueError("Period exceeds maximum limit (possible infinite loop)")
                         except Exception as e:
                             errors.append(f'Error computing period for state {state_tuple}: {str(e)}')
                             continue

@@ -1225,6 +1225,73 @@ class TestProcessStateChunkExtra:
         assert result["max_period"] == 4095
         manager.shutdown()
 
+    def test_degenerate_matrix_hits_safety_limit_instead_of_hanging_forever(self, monkeypatch):
+        """Mirrors TestProcessTaskBatchDynamicExtra's equivalent test: a
+        regression test for a real bug found during PR review (before
+        merge, 2026-11-12), see that test's full docstring for the fix
+        this verifies. _process_state_chunk's fused single-pass loop had
+        the same dropped-safety-limit exposure as the dynamic worker's --
+        both were introduced by the same performance fix and needed the
+        same correction.
+
+        _process_state_chunk additionally sanity-checks the reconstructed
+        matrix right after building it (`.dimensions()`, indexing its last
+        column against coeffs_vector) before ever reaching the fused loop,
+        so the fake matrix here needs to satisfy that check too (unlike
+        the dynamic-worker version of this test, which doesn't go through
+        that same setup code)."""
+        import lfsr.core as core_mod
+
+        class _FakeState:
+            __slots__ = ("_count",)
+
+            def __init__(self, count):
+                self._count = count
+
+            def __iter__(self):
+                return iter((self._count,))
+
+            def __eq__(self, other):
+                return False  # never equals anything -- forces the safety limit
+
+            def __hash__(self):
+                return hash(self._count)
+
+        class _NeverTerminatingMatrix:
+            def dimensions(self):
+                return (4, 4)
+
+            def __getitem__(self, key):
+                # Satisfy _process_state_chunk's last-column sanity check:
+                # it reads state_update_matrix[i, d-1] for i in range(d) and
+                # compares against coeffs_vector -- return the real coeffs
+                # so that check passes without actually modeling a matrix.
+                i, _j = key
+                return [0, 0, 0, 0][i]
+
+            def __rmul__(self, other):
+                count = getattr(other, "_count", 0)
+                return _FakeState(count + 1)
+
+        def fake_build_state_update_matrix(*args, **kwargs):
+            return _NeverTerminatingMatrix(), None
+
+        monkeypatch.setattr(core_mod, "build_state_update_matrix", fake_build_state_update_matrix)
+        coeffs = [0, 0, 0, 0]  # must match _NeverTerminatingMatrix.__getitem__ above
+        gf_order, d = 2, 4
+        chunk = [((1, 0, 0, 0), 0)]
+        manager = multiprocessing.Manager()
+        shared_cycles = manager.dict()
+        cycle_lock = manager.Lock()
+        chunk_data = (chunk, coeffs, gf_order, d, "auto", True, 0, shared_cycles, cycle_lock)
+        result = _process_state_chunk(chunk_data)
+        manager.shutdown()
+
+        # The real assertion is that this completes at all -- the pre-fix
+        # code hangs forever on this input, not just slowly.
+        assert len(result["errors"]) == 1
+        assert "exceeds maximum limit" in result["errors"][0]
+
     def test_claimed_between_check_and_lock_race_branch(self):
         """Simulate the check-then-claim race at lines 1340-1352: the fast
         (no-lock) membership check at line 1326 sees the cycle as
@@ -1688,6 +1755,78 @@ class TestProcessTaskBatchDynamicExtra:
         assert len(result["errors"]) == 1
         assert "Error computing period" in result["errors"][0]
         manager.shutdown()
+
+    def test_degenerate_matrix_hits_safety_limit_instead_of_hanging_forever(self, monkeypatch):
+        """Regression test for a real bug found during PR review (before
+        merge, 2026-11-12): the fused single-pass loop introduced to fix
+        the redundant-per-cycle-compute performance issue (see the
+        PERFORMANCE FIX comment above the period-only branch) replaced
+        _find_period()'s own `while next_state != start_state:` loop --
+        but dropped that function's accompanying safety limit
+        (`if period > 10000000: raise ValueError(...)`), which exists
+        specifically because a degenerate (non-bijective) companion matrix
+        can produce a trajectory that never returns to the start state
+        (the same bug class as the documented "All-zero-coefficient LFSR
+        hang" fix elsewhere in this file). Confirmed via direct
+        reproduction before fixing: a real all-zero-coefficient 4-bit
+        GF(2) LFSR made this exact fused loop hang indefinitely (no
+        termination at all, not just slow) -- the old two-pass code only
+        reached _find_period_enumeration's 10,000,000-iteration limit
+        after several real minutes of Sage matrix multiplies, which is
+        itself too slow to exercise directly in a unit test.
+
+        Forced here deterministically and fast (no real 10M Sage
+        operations, no multi-minute wait) by monkeypatching
+        lfsr.core.build_state_update_matrix to return a fake matrix whose
+        `__rmul__` returns a cheap, distinct-every-time fake state object
+        that never equals the real start state -- so the fused loop's
+        `if current_tuple == state_tuple: break` condition can never fire
+        naturally, exercising only the new safety-limit check.
+        """
+        import lfsr.core as core_mod
+
+        class _FakeState:
+            __slots__ = ("_count",)
+
+            def __init__(self, count):
+                self._count = count
+
+            def __iter__(self):
+                return iter((self._count,))
+
+            def __eq__(self, other):
+                return False  # never equals anything -- forces the safety limit
+
+            def __hash__(self):
+                return hash(self._count)
+
+        class _NeverTerminatingMatrix:
+            def __rmul__(self, other):
+                count = getattr(other, "_count", 0)
+                return _FakeState(count + 1)
+
+        def fake_build_state_update_matrix(*args, **kwargs):
+            return _NeverTerminatingMatrix(), None
+
+        monkeypatch.setattr(core_mod, "build_state_update_matrix", fake_build_state_update_matrix)
+        coeffs = [0, 0, 0, 0]  # content irrelevant: the fake matrix ignores it
+        gf_order, d = 2, 4
+        manager = multiprocessing.Manager()
+        shared_cycles = manager.dict()
+        cycle_lock = manager.Lock()
+        task_queue = manager.Queue()
+        task_queue.put([((1, 0, 0, 0), 0)])
+        task_queue.put(None)
+        worker_data = (task_queue, coeffs, gf_order, d, "auto", True, 0, shared_cycles, cycle_lock, 1)
+        result = _process_task_batch_dynamic(worker_data)
+        manager.shutdown()
+
+        # The real assertion here is that this test completes at all --
+        # the pre-fix code would hang forever on this input (not just be
+        # slow). Correctness of the resulting error message confirms the
+        # safety limit, not an unrelated error, is what fired.
+        assert len(result["errors"]) == 1
+        assert "exceeds maximum limit" in result["errors"][0]
 
     def test_claimed_between_check_and_lock_race_branch(self):
         """Mirrors TestProcessStateChunkExtra's equivalent test for the
