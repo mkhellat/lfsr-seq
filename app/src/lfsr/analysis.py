@@ -2664,17 +2664,24 @@ def lfsr_sequence_mapper_parallel_dynamic(
 
     # Persistent worker pool management (Phase 2.3)
     # Use module-level pool that can be reused across analyses
-    def get_or_create_pool(num_workers, use_persistent_pool=True):
-        """Get or create persistent worker pool."""
-        global _worker_pool, _worker_pool_context, _worker_pool_size
+    def get_or_create_pool(num_workers):
+        """Get or create persistent worker pool.
 
-        if not use_persistent_pool:
-            # Create temporary pool (original behavior)
-            try:
-                ctx = multiprocessing.get_context('fork')
-            except ValueError:
-                ctx = multiprocessing.get_context('spawn')
-            return ctx.Pool(processes=num_workers), ctx, True  # is_temporary=True
+        DEAD-CODE REMOVAL (2026-11-12): this used to take a
+        use_persistent_pool: bool = True parameter with an early-return
+        temporary-pool branch for `use_persistent_pool=False`. The only
+        real call site in this codebase always passed `True`, and nothing
+        else in the repo (no CLI flag, no other module, no test) ever
+        referenced that parameter -- confirmed by a full-repo + dev-docs
+        search before removing it. Rather than retrofit a public parameter
+        onto lfsr_sequence_mapper_parallel_dynamic purely to make this
+        branch reachable for a coverage test (which would have turned
+        honest dead code into a thinly-tested, speculative public surface
+        with no real driving use case), the dead branch was deleted
+        outright, along with the now-impossible-to-reach `is_temporary`
+        branches in the caller below.
+        """
+        global _worker_pool, _worker_pool_context, _worker_pool_size
 
         with _worker_pool_lock:
             # Check if existing pool can be reused
@@ -2683,7 +2690,7 @@ def lfsr_sequence_mapper_parallel_dynamic(
                     # Verify pool is still alive (check if it has a _state attribute)
                     # multiprocessing.Pool has _state that indicates if it's running
                     if hasattr(_worker_pool, '_state') and _worker_pool._state == multiprocessing.pool.RUN:
-                        return _worker_pool, _worker_pool_context, False  # is_temporary=False
+                        return _worker_pool, _worker_pool_context
                     else:
                         # Pool is not running, need to recreate
                         _worker_pool = None
@@ -2713,28 +2720,19 @@ def lfsr_sequence_mapper_parallel_dynamic(
             if not no_progress:
                 print("  Persistent pool created (will be reused for subsequent analyses)")
 
-            return pool, ctx, False  # is_temporary=False
+            return pool, ctx
 
     try:
         # Get or create persistent pool
-        pool, ctx, is_temporary = get_or_create_pool(num_workers, use_persistent_pool=True)
+        pool, ctx = get_or_create_pool(num_workers)
 
         if not no_progress:
-            if is_temporary:
-                print("  Using temporary pool")
-            else:
-                print("  Using persistent pool (reused)")
+            print("  Using persistent pool (reused)")
 
         start_time = time.time()
 
-        # Use pool (don't use 'with' statement for persistent pool)
-        if is_temporary:
-            # Temporary pool: use context manager
-            with pool:
-                worker_results = pool.map(_process_task_batch_dynamic, worker_data_list)
-        else:
-            # Persistent pool: don't close, just use it
-            worker_results = pool.map(_process_task_batch_dynamic, worker_data_list)
+        # Don't close the persistent pool -- it's reused across analyses.
+        worker_results = pool.map(_process_task_batch_dynamic, worker_data_list)
 
         elapsed = time.time() - start_time
         if not no_progress:
