@@ -105,10 +105,25 @@ jobs:
       with:
         python-version: '3.11'
 
-    - name: Install linting dependencies
+    # Install from this project's own [dev] extra (pyproject.toml pins
+    # black>=23.0.0,<24.0.0, ruff>=0.1.0,<1.0.0, mypy>=1.0.0,<2.0.0)
+    # instead of a bare `pip install black ruff mypy`.
+    #
+    # BUG FOUND (2026-11-12): the bare, unpinned install is what originally
+    # let black --check fail broadly once continue-on-error was removed --
+    # it silently grabbed black 26.10.1 (three major versions past the
+    # pinned <24.0.0 ceiling) with a materially different rule set than
+    # what pyproject.toml declares and local dev actually uses (23.12.1).
+    # A full repo-wide `black .` reformat was run and verified against the
+    # CORRECT (pinned) version locally, but this CI job kept failing
+    # against the WRONG (unpinned) version until this fix -- a reminder
+    # that fixing the symptom (reformatting the code) doesn't fix the bug
+    # (CI testing against a different tool version than anyone actually
+    # uses) if the root cause is still live.
+    - name: Install lint dependencies (pinned via this project's [dev] extra)
       run: |
         python -m pip install --upgrade pip
-        pip install black ruff mypy
+        pip install -e ".[dev]"
 
     - name: Check code formatting with black
       run: black --check .
