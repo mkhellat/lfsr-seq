@@ -96,8 +96,8 @@ class TestBranchesUnreachableViaRealCalls:
         asserts the union of both outcomes across 2 LFSRs). Monkeypatch
         fast_correlation_attack to force attack_successful=False
         deterministically, isolating this script's print/branch logic."""
-        from dataclasses import dataclass, field
-        from typing import Any, Dict, List, Optional
+        from dataclasses import dataclass
+        from typing import List, Optional
 
         @dataclass
         class _FakeResult:

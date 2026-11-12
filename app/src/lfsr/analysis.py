@@ -2227,7 +2227,7 @@ def _process_task_batch_dynamic(
     batches_processed = 0
 
     # Import cycle detection functions
-    from lfsr.analysis import _find_period, _find_sequence_cycle
+    from lfsr.analysis import _find_sequence_cycle
 
     # Helper function to process a single batch
     def process_single_batch(batch):

@@ -21,7 +21,6 @@ lfsr.analysis before writing any assertions against it.
 """
 
 import multiprocessing
-import os
 import tempfile
 import threading
 
@@ -1131,8 +1130,6 @@ class TestMergeParallelResultsExtra:
         """If `from lfsr.sage_imports import GF, vector` raises ImportError,
         the function must log to stderr and return the all-empty tuple
         rather than propagating."""
-        import lfsr.sage_imports as sage_imports_mod
-
         real_import = __import__
 
         def fake_import(name, *args, **kwargs):

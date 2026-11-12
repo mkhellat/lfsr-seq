@@ -20,8 +20,6 @@ import io
 import json
 import sys
 
-import pytest
-
 import lfsr.reproducibility as repro
 from lfsr.reproducibility import (
     capture_environment,

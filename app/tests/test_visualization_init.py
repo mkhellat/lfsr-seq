@@ -59,7 +59,11 @@ class TestPackageExports:
             )
 
     def test_all_names_are_importable_directly_from_package(self):
-        from lfsr.visualization import (
+        # Import succeeding IS the assertion for this test -- most of
+        # these names are never referenced below on purpose, so ruff
+        # flags them as unused (F401). Suppressed, not fixed: removing
+        # the "unused" imports would remove the test's actual check.
+        from lfsr.visualization import (  # noqa: F401
             BaseVisualization,
             OutputFormat,
             VisualizationConfig,
@@ -75,7 +79,5 @@ class TestPackageExports:
             visualize_attack_comparison,
             visualize_correlation_attack,
         )
-
-        # Import succeeding is the assertion; nothing further needed.
         assert BaseVisualization is base.BaseVisualization
         assert OutputFormat is base.OutputFormat
