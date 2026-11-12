@@ -106,15 +106,21 @@ cipher analysis, educational purposes, and security evaluation.
   work-distribution modes, adaptive batch sizing, batch aggregation, lazy task generation, a
   persistent worker pool, and queue-based memory safety limits) is implemented and available via
   `--parallel`.
-  - **No performance claim is made here.** The profiling behind this feature's original
-    development (archived in `dev-docs/profiling/`) used single-run, wall-clock, fixed-order
-    measurements with 40-60% run-to-run variance on identical reruns — well above the effects it
-    reported — and the raw data it collected shows parallel enumeration *slower* than sequential
-    across most measured configurations, worsening as worker count increases (e.g. 16-bit LFSRs:
-    roughly 0.87x at 2 workers, 0.54x at 4, 0.31x at 8, in the archived runs). Any specific
-    speedup multiplier previously stated in project docs was not reproducible and has been
-    removed; see `dev-docs/profiling/README.md` for the full account. Automatic fallback to
-    sequential mode is used for small LFSRs.
+  - **Update (2026-11-12): two real bugs that made parallel enumeration slower than sequential
+    were found and fixed** (a `multiprocessing.Manager()` IPC round-trip on every state-cycle
+    claim that added overhead with no correctness benefit, and each worker making 3 separate
+    full-cycle passes with real finite-field arithmetic where 1 suffices). After both fixes,
+    parallel enumeration is faster than sequential, independently measured (not estimated) at
+    **~1.65x at 2 workers for a 16-bit LFSR on a quiet host** (serial 6.63s vs. parallel 4.02s,
+    results verified identical to sequential). Diminishing/negative returns were observed at
+    higher worker counts on the same host (4 workers ~1.4x, 8 workers worse) — this has not been
+    investigated further; don't assume more workers is always better. The older claim that
+    parallel enumeration was reliably *slower* than sequential (based on profiling archived in
+    `dev-docs/profiling/`, which predates these fixes and used single-run, high-variance
+    measurements) is now out of date and should not be treated as current; see that archive only
+    as a historical record of a prior, now-fixed state, not as a description of current behavior.
+    Automatic fallback to sequential mode is used for small LFSRs, where per-process overhead
+    still dominates regardless of these fixes.
 - **Optimized State Tracking**: Set-based visited state tracking for `O(1)` lookups
 - **Primitive Polynomial Optimization**: Fast period prediction for primitive polynomials
 - **Period Computation via Factorization**: Computes period from the characteristic polynomial's
@@ -138,31 +144,37 @@ cipher analysis, educational purposes, and security evaluation.
 
 SageMath must be installed separately as it's not available via PyPI:
 
-**Debian/Ubuntu:**
+**Conda/Mamba (recommended — confirmed working, including in this project's own CI):**
 ```bash
-sudo apt-get update
-sudo apt-get install sagemath
+conda install -c conda-forge sage
 ```
+This is the route this project's own CI pipeline uses, confirmed working end-to-end
+(2026-11-12). It installs in well under a minute on a typical machine.
+
+**Debian/Ubuntu:** `apt-get install sagemath` is **not reliably available** on current
+releases — confirmed: the package was removed from Ubuntu 24.04+'s repositories due to a
+Python 3.12 build failure, and `apt-get install` may silently fail to provide a working
+install even where a package of that name exists. Use the Conda route above instead.
 
 **Fedora/RHEL:**
 ```bash
 sudo dnf install sagemath
 ```
+Not independently re-verified as of this project's own 2026-11-12 CI work; if this fails,
+use the Conda route above.
 
 **Arch Linux:**
 ```bash
 sudo pacman -S sagemath
 ```
+This is what the primary development environment for this project actually uses day-to-day.
 
 **macOS (Homebrew):**
 ```bash
 brew install sagemath
 ```
-
-**Conda:**
-```bash
-conda install -c conda-forge sage
-```
+Not independently re-verified as of this project's own 2026-11-12 CI work; if this fails,
+use the Conda route above.
 
 ## Installation
 
@@ -1408,6 +1420,40 @@ visualization, and a CLI, in one tool:
 | [SageMath `sage.crypto.lfsr`](https://doc.sagemath.org/html/en/reference/cryptography/sage/crypto/lfsr.html) | Three primitive functions (`lfsr_sequence`, `lfsr_autocorrelation`, `lfsr_connection_polynomial`) — this is math-library plumbing that `lfsr-seq` itself builds on (see [SageMath Dependency](#prerequisites)), not a competing end-user tool. |
 | [`galois`](https://github.com/mhostetter/galois) | General-purpose NumPy-based finite-field arithmetic library (Galois field arrays, Reed-Solomon/BCH codes, `FLFSR`/`GLFSR` classes). LFSR support is one minor utility among many unrelated features; no cycle enumeration, cryptanalysis, or cipher simulations. |
 | Single-technique research scripts (e.g. [M0RC/lfsr-correlation-attack](https://github.com/M0RC/lfsr-correlation-attack)) | Standalone implementations of one attack technique in isolation, not part of an integrated analysis suite. |
+
+## Future Direction
+
+**A separate, non-SageMath computational engine (Rust and/or C/C++) is a decided future
+direction for this project, not yet started.** As of 2026-11-12:
+
+- **Motivation**: profiling found that SageMath's own per-state object overhead (finite-field
+  vector construction, field-element arithmetic) accounts for roughly 85-90% of per-state time
+  in the core state-enumeration path — a plain machine-integer/bitmask representation of a
+  GF(2) state measured ~288x faster than the equivalent SageMath operation in a direct
+  comparison. This suggests real, substantial headroom for a compiled, non-SageMath engine.
+- **Scope decided**: full replacement of SageMath's role in this project's core math, not just
+  the fast numeric path — including characteristic polynomial computation, irreducibility and
+  primitivity testing, polynomial factorization, and Berlekamp-Massey (linear complexity)
+  recovery.
+- **Repository**: planned as a **separate repository** from `lfsr-seq`, not a rewrite of this
+  one. `lfsr-seq` would continue to exist with SageMath as its engine (and, per an architecture
+  question not yet resolved, possibly keep SageMath as a correctness cross-check even after a
+  faster engine exists elsewhere — this project already does something analogous for GF(2) via
+  the optional `pylfsr`/`lfsr-tools` cross-check extra; see [Installation](#installation)).
+- **Architecture settled for polynomial factorization specifically**: a from-scratch,
+  dependency-free reimplementation of finite-field polynomial factorization was investigated
+  and ruled out as impractical — no real, production-grade pure-Rust or pure-C library for this
+  exists, and tellingly, SageMath itself does not implement this from scratch either; it
+  delegates to [FLINT](https://flintlib.org/) internally. The planned architecture is one
+  deliberate FFI boundary to FLINT (LGPL-3.0-or-later) for factorization specifically, with the
+  rest of the engine (finite-field arithmetic, polynomial arithmetic, irreducibility testing,
+  primitivity testing, Berlekamp-Massey) implemented directly, without FFI, in whichever of
+  Rust/C/C++ is ultimately chosen.
+- **Not yet decided**: Rust vs. C/C++ as the primary implementation language; the new
+  repository's name/location; an implementation timeline. This section will be updated once
+  that work actually begins — until then, `lfsr-seq` continues to depend on SageMath as
+  described above, and nothing here should be read as describing software that currently
+  exists.
 
 ## Acknowledgments
 

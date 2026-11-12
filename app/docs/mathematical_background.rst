@@ -1731,14 +1731,24 @@ For large LFSRs with state spaces containing thousands or millions of
 states, sequential processing can be time-consuming. Parallel state
 enumeration partitions the state space across multiple CPU cores and is
 implemented using fork mode (lower process-creation overhead than
-spawn) with SageMath isolation. **No reliable speedup has been measured
-for this feature** -- the profiling behind its original development
-(archived in ``dev-docs/profiling/``) used single-run, high-variance
-measurements, and the raw data it collected shows parallel enumeration
-slower than sequential processing across most configurations tested,
-worsening as worker count increases. See ``dev-docs/profiling/README.md``
-for the full account. Automatic fallback to sequential mode is used for
-small LFSRs where process/IPC overhead would dominate.
+spawn) with SageMath isolation. **Update (2026-11-12)**: two real bugs
+that made parallel enumeration slower than sequential were found and
+fixed (a ``multiprocessing.Manager()`` IPC round-trip on every
+state-cycle claim that added overhead with no correctness benefit, and
+each worker making 3 separate full-cycle passes with real finite-field
+arithmetic where 1 suffices). After both fixes, parallel enumeration is
+faster than sequential, independently measured at roughly 1.65x at 2
+workers for a 16-bit LFSR on a quiet host (serial 6.63s vs. parallel
+4.02s, results verified identical to sequential). Diminishing/negative
+returns were observed at higher worker counts on the same host and have
+not been investigated further -- more workers is not always better. The
+older claim that parallel enumeration was reliably *slower* than
+sequential (based on profiling archived in ``dev-docs/profiling/``,
+which predates these fixes and used single-run, high-variance
+measurements) is now out of date; treat that archive as a historical
+record of a prior, now-fixed state, not current behavior. Automatic
+fallback to sequential mode is used for small LFSRs where process/IPC
+overhead still dominates regardless of these fixes.
 
 **Motivation**:
 
@@ -1967,10 +1977,17 @@ SageMath vectors are not directly pickleable for inter-process communication.
   Parallel processing automatically forces period-only mode, displaying a
   warning. Use ``--no-parallel`` for full sequence mode.
 
-* **Algorithm Restriction**: Only Floyd's algorithm is used in parallel
-  workers, regardless of the ``--algorithm`` flag. Enumeration and
-  Brent's algorithms are not used due to the matrix multiplication hang
-  issue.
+* **Algorithm Restriction (updated 2026-11-12)**: in period-only mode,
+  parallel workers use a single fused enumeration-style pass (state
+  transition via direct matrix multiplication until the state revisits
+  its own starting value) regardless of the ``--algorithm`` flag --
+  this replaced an earlier two-pass design (period via a separate
+  ``_find_period()`` call, then a second pass for the deduplication
+  key) that made redundant finite-field matrix multiplications per
+  cycle; fusing them into one pass was part of what restored real
+  parallel speedup (see the Parallel State Enumeration section above).
+  Floyd's and Brent's algorithms are not used in the parallel workers'
+  period-only path.
 
 * **Deduplication for Large Periods**: For periods :math:`> 100`,
   deduplication uses simplified keys that may not catch all duplicates.
