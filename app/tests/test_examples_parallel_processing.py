@@ -27,8 +27,8 @@ the risky invocation with the outer shell `timeout` command rather than
 relying on an in-process timeout.
 """
 
-import io
 import contextlib
+import io
 import sys
 
 from lfsr.examples import parallel_processing_example as m

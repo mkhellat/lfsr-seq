@@ -17,7 +17,6 @@ import pytest
 
 from lfsr.cli import cli_main, main, parse_args
 
-
 SIMPLE_CSV = "1,1,0\n"  # GF(2), degree 3, primitive poly x^3+x+1, period 7
 MULTI_CSV = "1,1,0\n1,1\n"  # two LFSRs
 

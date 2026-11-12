@@ -40,7 +40,6 @@ matplotlib.use("Agg")
 
 from lfsr.examples import visualization_example as ve  # noqa: E402
 
-
 IMAGE_EXTENSIONS = (".png", ".svg", ".html", ".pdf", ".jpg", ".jpeg")
 
 

@@ -24,8 +24,8 @@ try:
 except ImportError:
     pytest.skip("SageMath not available", allow_module_level=True)
 
-from lfsr.examples import theoretical_analysis_example as tae
 import lfsr.theoretical_db as theoretical_db
+from lfsr.examples import theoretical_analysis_example as tae
 
 
 @pytest.fixture(autouse=True)

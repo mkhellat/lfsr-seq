@@ -24,7 +24,6 @@ from lfsr.visualization import (
     statistical_plots,
 )
 
-
 EXPECTED_SOURCE_MODULE = {
     "BaseVisualization": base,
     "VisualizationConfig": base,
@@ -79,5 +78,6 @@ class TestPackageExports:
             visualize_attack_comparison,
             visualize_correlation_attack,
         )
+
         assert BaseVisualization is base.BaseVisualization
         assert OutputFormat is base.OutputFormat

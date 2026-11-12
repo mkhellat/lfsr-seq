@@ -31,7 +31,7 @@ try:
 except ImportError:
     pytest.skip("SageMath not available", allow_module_level=True)
 
-from lfsr.core import build_state_update_matrix
+import lfsr.analysis as analysis_mod
 from lfsr.analysis import (
     _find_period,
     _find_period_brent,
@@ -53,7 +53,7 @@ from lfsr.analysis import (
     lfsr_sequence_mapper_parallel_dynamic,
     shutdown_worker_pool,
 )
-import lfsr.analysis as analysis_mod
+from lfsr.core import build_state_update_matrix
 
 
 @pytest.fixture

@@ -79,9 +79,6 @@ class TestMain:
         assert "ERROR: simulated failure for coverage" in err
 
 
-import sys
-
-
 class TestSageImportGuardAdvanced:
     """Regression coverage for the module-level
     `try: from sage.all import * / except ImportError: print(...);

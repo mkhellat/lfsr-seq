@@ -44,6 +44,8 @@ from lfsr.attacks import (
     groebner_basis_attack,
     siegenthaler_correlation_attack,
 )
+
+
 def majority(a, b, c):
     """Standard 3-input majority combining function."""
     return 1 if (a + b + c) >= 2 else 0
