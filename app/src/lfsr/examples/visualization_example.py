@@ -116,9 +116,7 @@ def example_statistical_plots():
 
     coefficients = [1, 0, 0, 1]
     seq_dict, period_dict, max_period, _, _, _, _ = analyze_lfsr(coefficients, 2)
-    theoretical_max = (
-        2 ** len(coefficients) - 1
-    )  # noqa: F841 (illustrative; actual call commented out below)
+    theoretical_max = 2 ** len(coefficients) - 1  # noqa: F841 -- illustrative only
 
     if HAS_MATPLOTLIB:
         config = VisualizationConfig(  # noqa: F841 (illustrative; actual call commented out below)

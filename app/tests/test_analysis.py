@@ -498,7 +498,6 @@ class TestPartitionStateSpace:
         chunks = _partition_state_space(V, 1)
         flat = chunks[0]
         # index 5 = binary 101 (LSB-first per state_index_to_tuple) -> (1,0,1)
-        tuple_for_5 = dict(flat)
         # dict keyed by tuple->idx is wrong direction; rebuild idx->tuple
         idx_to_tuple = {idx: t for (t, idx) in flat}
         assert idx_to_tuple[0] == (0, 0, 0)
@@ -2366,7 +2365,7 @@ class TestLfsrSequenceMapperParallelDynamicExtra:
         input that auto-selects hybrid mode) and must complete quickly;
         it hung indefinitely before the fix (verified independently)."""
         coeffs = [1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1]  # degree 13 -> 8192 states
-        gf_order, d = 2, 13
+        gf_order = 2
         C, V, _ = make_matrix(coeffs, gf_order)
         with tempfile.TemporaryFile(mode="w+") as f:
             (
@@ -2917,7 +2916,7 @@ class TestLfsrSequenceMapperParallelDynamicExtra2:
         same 13-bit/8192-state LFSR as the existing hang-regression test
         but with no_progress=False this time."""
         coeffs = [1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1]  # degree 13 -> 8192 states
-        gf_order, d = 2, 13
+        gf_order = 2
         C, V, _ = make_matrix(coeffs, gf_order)
         with tempfile.TemporaryFile(mode="w+") as f:
             (

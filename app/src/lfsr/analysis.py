@@ -1345,9 +1345,7 @@ def _process_state_chunk(
         debug_log(f"Warning: SageMath isolation test failed: {e}, continuing anyway...")
         # Fallback: create objects anyway (might still work)
         F = GF(gf_order)
-        V = VectorSpace(
-            F, lfsr_degree
-        )  # noqa: F841 (sanity check that sage isolation works)
+        V = VectorSpace(F, lfsr_degree)  # noqa: F841 -- sanity check only
 
     # Local visited set for this worker (to avoid processing same cycle multiple times in this chunk)
     local_visited = set()
@@ -2210,9 +2208,7 @@ def _process_task_batch_dynamic(
     except Exception as e:
         debug_log(f"Warning: SageMath isolation test failed: {e}, continuing anyway...")
         F = GF(gf_order)
-        V = VectorSpace(
-            F, lfsr_degree
-        )  # noqa: F841 (sanity check that sage isolation works)
+        V = VectorSpace(F, lfsr_degree)  # noqa: F841 -- sanity check only
 
     # Local visited set for this worker
     local_visited = set()
