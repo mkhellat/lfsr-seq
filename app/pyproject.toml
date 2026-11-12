@@ -101,18 +101,27 @@ line-length = 88
 target-version = ['py38', 'py39', 'py310', 'py311', 'py312']
 include = '\.pyi?$'
 extend-exclude = '''
-/(
+(
   # directories
-  \.eggs
-  | \.git
-  | \.hg
-  | \.mypy_cache
-  | \.tox
-  | \.venv
-  | build
-  | dist
-)/
-'''
+  /(
+    \.eggs
+    | \.git
+    | \.hg
+    | \.mypy_cache
+    | \.tox
+    | \.venv
+    | build
+    | dist
+  )/
+  # setuptools-scm-generated file, gitignored, regenerated fresh on every
+  # `pip install -e .` -- its exact content (and thus whether it happens
+  # to satisfy black's formatting) depends on the version string at
+  # install time, which isn't something anyone should hand-format or
+  # commit. Found failing in CI (2026-11-12) where a freshly-generated
+  # copy didn't happen to match black's rules, even though local dev's
+  # own copy did (generated at a different point, different content).
+  | src/lfsr/_version\.py
+)'''
 
 [tool.mypy]
 python_version = "3.8"
