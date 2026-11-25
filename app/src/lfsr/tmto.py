@@ -249,42 +249,62 @@ class HellmanTable:
             lfsr_config.coefficients, lfsr_config.field_order
         )
 
-        # Try to find target in chains
-        # Check if target is a chain endpoint
+        def _reconstruct(start: List[int]) -> Optional[List[int]]:
+            # Reconstruct chain to find target. Check chain_length + 1
+            # positions (start plus every one of the chain_length
+            # updates, including the state reached after the final
+            # update) since generate() may record a chain's end_state
+            # at any of those positions, including the last -- and since
+            # generate() never applies a reduction mid-chain for
+            # HellmanTable, this is also the chain's real, full
+            # trajectory, so any state in it is a genuine preimage.
+            start_vec = vector(F, start)
+            current = start_vec
+
+            for _ in range(self.chain_length):
+                if list(current) == target_list:
+                    return start
+                current = C * current
+            if list(current) == target_list:
+                return start
+            return None
+
+        # Fast path: try to find target in chains.
+        # Check if target is a chain endpoint.
         target_list = target_state
         for start, end in self.chains:
             if end == target_list:
-                # Reconstruct chain to find target. Check chain_length + 1
-                # positions (start plus every one of the chain_length
-                # updates, including the state reached after the final
-                # update) since generate() may record a chain's end_state
-                # at any of those positions, including the last.
-                start_vec = vector(F, start)
-                current = start_vec
+                found = _reconstruct(start)
+                if found is not None:
+                    return found
 
-                for _ in range(self.chain_length):
-                    if list(current) == target_list:
-                        return start
-                    current = C * current
-                if list(current) == target_list:
-                    return start
-
-        # Try reduction function approach
-        # Apply reduction to target and check if result is endpoint
+        # Fast path: reduction function approach.
+        # Apply reduction to target and check if result is endpoint.
         reduced = self._reduction_function(target_state, lfsr_config.field_order)
         for start, end in self.chains:
             if end == reduced:
-                # Reconstruct chain (see comment above re: chain_length + 1
-                # positions)
-                start_vec = vector(F, start)
-                current = start_vec
+                found = _reconstruct(start)
+                if found is not None:
+                    return found
 
-                for _ in range(self.chain_length):
-                    if list(current) == target_state:
-                        return start
-                    current = C * current
-                if list(current) == target_state:
-                    return start
+        # Fallback: the fast paths above only select a chain to
+        # reconstruct when its recorded end_state happens to match
+        # target (or a reduction of target) directly -- a cheap
+        # short-circuit, not a real test of chain membership. A target
+        # that is a genuine INTERIOR state of some chain's trajectory
+        # (not that chain's own end_state, and not coincidentally
+        # matching any other chain's end_state either) is never
+        # selected by either fast path, even though reconstructing that
+        # chain would find it. A real Hellman table lookup must fall
+        # back to checking every stored chain's actual trajectory when
+        # the cheap end-state short-circuit doesn't apply -- this is
+        # inherent to the technique (not avoidable without changing the
+        # whole algorithm), so do that here: O(chain_count *
+        # chain_length) in the worst case, but correct.
+        for start, _end in self.chains:
+            found = _reconstruct(start)
+            if found is not None:
+                return found
 
         return None
 
@@ -531,6 +551,27 @@ class RainbowTable:
                     found = _reconstruct(start)
                     if found is not None:
                         return found
+
+        # Full-scan fallback: the two fast paths above only select a
+        # chain to reconstruct when its recorded end_state happens to
+        # match target directly, or matches some step's reduction of
+        # target -- a cheap short-circuit, not a real test of chain
+        # membership. A target that is a genuine INTERIOR state of some
+        # chain's real per-step trajectory (not that chain's own
+        # end_state, and not reachable from target via any single
+        # reduction step either) is never selected by either fast path,
+        # even though _reconstruct(start) would find it -- _reconstruct
+        # already walks the chain's exact real trajectory (update, then
+        # reduce, each step) and checks target at both the pre- and
+        # post-reduction point. A real Rainbow table lookup must fall
+        # back to checking every stored chain's actual trajectory when
+        # the cheap end-state short-circuits don't apply -- this is
+        # inherent to the technique, so do that here: O(chain_count *
+        # chain_length) in the worst case, but correct.
+        for start, _end in self.chains:
+            found = _reconstruct(start)
+            if found is not None:
+                return found
 
         return None
 

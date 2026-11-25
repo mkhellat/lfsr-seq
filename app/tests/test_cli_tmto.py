@@ -100,11 +100,26 @@ class TestPerformTmtoAttackCli:
         assert "Failed to load table" in captured.err
 
     def test_valid_precomputed_hellman_table_file_loads(self, tmp_path):
+        # Each chain entry is a real (start_state, end_state) pair, with
+        # end_state genuinely reachable from start_state by walking the
+        # real state-update function chain_length times (matching what
+        # HellmanTable.generate() itself would produce) -- not
+        # placeholder data, since HellmanTable.lookup()'s full-scan
+        # fallback now reconstructs every stored chain's trajectory
+        # from `start` (not just chains whose recorded `end` happens to
+        # superficially match the lookup target), so a chain entry with
+        # a `start` that isn't a real state vector would crash it, and
+        # an `end` that isn't genuinely reachable from `start` would
+        # never be found by it either.
         table_file = tmp_path / "table.json"
         table_data = {
             "chain_count": 3,
             "chain_length": 4,
-            "chains": [[0, 1], [2, 3], [4, 5]],
+            "chains": [
+                [[1, 0, 0], [0, 1, 1]],
+                [[0, 1, 0], [1, 1, 1]],
+                [[1, 1, 0], [1, 0, 0]],
+            ],
         }
         table_file.write_text(json.dumps(table_data))
 
