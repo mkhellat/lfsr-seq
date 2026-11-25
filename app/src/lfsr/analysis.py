@@ -1873,12 +1873,15 @@ def lfsr_sequence_mapper_parallel(
                 # Terminate all workers immediately (sends SIGTERM)
                 pool.terminate()
 
-                # Wait for workers to terminate (with timeout)
-                try:
-                    pool.join(timeout=10)  # Give workers 10s to clean up
-                except TypeError:
-                    # Python < 3.7 doesn't support timeout in join()
-                    pool.join()
+                # Wait for workers to terminate. multiprocessing.pool.Pool.join()
+                # has never accepted a timeout argument in any supported Python
+                # version (verified via inspect.signature) -- it isn't a
+                # Python-version compatibility concern. A previous version of
+                # this code called pool.join(timeout=10) wrapped in
+                # `except TypeError: pool.join()`, which always raised
+                # TypeError and fell through to the bare retry; simplified to
+                # just the one call that actually ever succeeded.
+                pool.join()
 
                 print(
                     "ERROR: Parallel processing timed out - workers may be hung",
@@ -1907,10 +1910,10 @@ def lfsr_sequence_mapper_parallel(
                     file=sys.stderr,
                 )
                 pool.terminate()
-                try:
-                    pool.join(timeout=5)
-                except TypeError:
-                    pool.join()
+                # See the TimeoutError handler above: Pool.join() has never
+                # accepted a timeout argument, so this is a plain join(), not
+                # a Python-version fallback.
+                pool.join()
                 raise  # Re-raise to exit properly
     except Exception as e:
         # Fallback to sequential on error
@@ -2324,8 +2327,17 @@ def _process_task_batch_dynamic(
                         cycles_skipped += 1
                         continue
 
-                    # Try to claim cycle
-                    cycle_claimed = False
+                    # Try to claim cycle.
+                    #
+                    # DEAD-CODE REMOVAL (2026-11-25): this used to set a
+                    # `cycle_claimed` flag and `continue` afterward if it was
+                    # still False, but by the time execution reaches past the
+                    # `with cycle_lock:` block, cycle_claimed can only ever be
+                    # True -- the one path that could leave it False (another
+                    # worker already claimed this cycle) does its own
+                    # `continue` above, before this point is ever reached.
+                    # Confirmed by control-flow analysis before removing the
+                    # always-true check and the now-unused flag.
                     with cycle_lock:
                         if min_state_tuple in shared_cycles:
                             # Already claimed by another worker
@@ -2336,11 +2348,6 @@ def _process_task_batch_dynamic(
                         else:
                             # Claim this cycle for this worker
                             shared_cycles[min_state_tuple] = worker_id
-                            cycle_claimed = True
-
-                    # Only process if we successfully claimed the cycle
-                    if not cycle_claimed:
-                        continue
 
                     # Process cycle (we've successfully claimed it)
                     states_tuples = (min_state,)
@@ -2639,7 +2646,6 @@ def lfsr_sequence_mapper_parallel_dynamic(
         worker_queues = [
             manager.Queue(maxsize=max_queue_size) for _ in range(num_workers)
         ]
-        task_queue = None
 
         if not no_progress:
             print(
@@ -2648,27 +2654,21 @@ def lfsr_sequence_mapper_parallel_dynamic(
             import sys
 
             sys.stdout.flush()
-    elif use_work_stealing:
-        # Per-worker queues for work stealing (with size limit)
+    else:
+        # Per-worker queues for work stealing (with size limit).
+        # use_work_stealing is hardcoded True above with no parameter, CLI
+        # flag, or config anywhere that can ever set it False, so the
+        # "original shared queue" fallback branch that used to live here
+        # was dead code -- removed 2026-11-25 after confirming via
+        # repo-wide grep that nothing ever assigns use_work_stealing=False
+        # for this function.
         worker_queues = [
             manager.Queue(maxsize=max_queue_size) for _ in range(num_workers)
         ]
-        task_queue = None  # Not used in work stealing mode
         if not no_progress:
             print(
                 f"  Using work stealing with {num_workers} per-worker queues (Phase 3.1, max {max_queue_size} batches/queue)"
             )
-            import sys
-
-            sys.stdout.flush()
-    else:
-        # Original shared queue (fallback, with size limit)
-        task_queue = manager.Queue(
-            maxsize=max_queue_size * num_workers
-        )  # Larger limit for shared queue
-        worker_queues = None
-        if not no_progress:
-            print(f"  Using shared queue (max {max_queue_size * num_workers} batches)")
             import sys
 
             sys.stdout.flush()
@@ -2782,79 +2782,54 @@ def lfsr_sequence_mapper_parallel_dynamic(
             print(f"[Producer PID {os.getpid()}] {msg}", file=sys.stderr, flush=True)
 
     def producer_thread():
-        """Background thread that generates batches and populates queues."""
+        """Background thread that generates batches and populates queues.
+
+        DEAD-CODE REMOVAL (2026-11-25): this used to branch on
+        `use_hybrid_mode`/`use_work_stealing` first, with a hybrid-mode
+        `pass` body and an "Original: Single shared queue" fallback body.
+        Both were unreachable: producer_thread() itself is only ever
+        started from the call site gated by `if not use_hybrid_mode:`
+        (see below), so this function's body never runs with
+        use_hybrid_mode=True; and use_work_stealing is hardcoded True
+        with nothing in the codebase that can ever set it False (same
+        finding as the queue-setup branch above). Collapsed to the one
+        branch that was ever live: round-robin distribution to per-worker
+        queues.
+        """
         nonlocal batches_created
         try:
-            if use_hybrid_mode:
-                # Phase 3.2: Hybrid mode - no producer needed (static chunks assigned)
-                # Work stealing queues used only for overflow/remaining work
-                # Static chunks are assigned directly to workers
-                pass  # No producer needed in hybrid mode
-            elif use_work_stealing:
-                # Phase 3.1: Distribute batches round-robin to worker queues
-                # CRITICAL FIX: Use blocking put() with periodic stop flag checks
-                # If queue is full, producer will block until space is available
-                # Check stop flag periodically to allow emergency shutdown
-                for batch in batch_generator():
-                    # Check for emergency stop BEFORE attempting to queue
-                    if producer_stop_requested.is_set():
-                        debug_log("Producer: Emergency stop requested")
-                        break
+            # Phase 3.1: Distribute batches round-robin to worker queues
+            # CRITICAL FIX: Use blocking put() with periodic stop flag checks
+            # If queue is full, producer will block until space is available
+            # Check stop flag periodically to allow emergency shutdown
+            for batch in batch_generator():
+                # Check for emergency stop BEFORE attempting to queue
+                if producer_stop_requested.is_set():
+                    debug_log("Producer: Emergency stop requested")
+                    break
 
-                    worker_id = batches_created % num_workers
-                    # CRITICAL: Block indefinitely until space is available
-                    # But check stop flag every 1 second to allow emergency shutdown
-                    batch_queued = False
-                    while not batch_queued and not producer_stop_requested.is_set():
-                        try:
-                            # Try with short timeout to allow stop flag checking
-                            worker_queues[worker_id].put(batch, block=True, timeout=1.0)
-                            batches_created += 1
-                            batch_queued = True
-                        except queue_module.Full:
-                            # Queue still full, check stop flag and retry
-                            if producer_stop_requested.is_set():
-                                debug_log(
-                                    "Producer: Emergency stop requested during queue wait"
-                                )
-                                break
-                            # Continue loop to retry
+                worker_id = batches_created % num_workers
+                # CRITICAL: Block indefinitely until space is available
+                # But check stop flag every 1 second to allow emergency shutdown
+                batch_queued = False
+                while not batch_queued and not producer_stop_requested.is_set():
+                    try:
+                        # Try with short timeout to allow stop flag checking
+                        worker_queues[worker_id].put(batch, block=True, timeout=1.0)
+                        batches_created += 1
+                        batch_queued = True
+                    except queue_module.Full:
+                        # Queue still full, check stop flag and retry
+                        if producer_stop_requested.is_set():
+                            debug_log(
+                                "Producer: Emergency stop requested during queue wait"
+                            )
+                            break
+                        # Continue loop to retry
 
-                    if not batch_queued:
-                        # Stop flag was set, exit
-                        break
-            else:
-                # Original: Single shared queue
-                # CRITICAL FIX: Use blocking put() with periodic stop flag checks
-                # If queue is full, producer will block until space is available
-                # Check stop flag periodically to allow emergency shutdown
-                for batch in batch_generator():
-                    # Check for emergency stop BEFORE attempting to queue
-                    if producer_stop_requested.is_set():
-                        debug_log("Producer: Emergency stop requested")
-                        break
-
-                    # CRITICAL: Block indefinitely until space is available
-                    # But check stop flag every 1 second to allow emergency shutdown
-                    batch_queued = False
-                    while not batch_queued and not producer_stop_requested.is_set():
-                        try:
-                            # Try with short timeout to allow stop flag checking
-                            task_queue.put(batch, block=True, timeout=1.0)
-                            batches_created += 1
-                            batch_queued = True
-                        except queue_module.Full:
-                            # Queue still full, check stop flag and retry
-                            if producer_stop_requested.is_set():
-                                debug_log(
-                                    "Producer: Emergency stop requested during queue wait"
-                                )
-                                break
-                            # Continue loop to retry
-
-                    if not batch_queued:
-                        # Stop flag was set, exit
-                        break
+                if not batch_queued:
+                    # Stop flag was set, exit
+                    break
         except Exception as e:
             producer_error[0] = e
         finally:
@@ -2864,18 +2839,9 @@ def lfsr_sequence_mapper_parallel_dynamic(
             # docstring for the bug this fixes.
             producer_done.set()
 
-            if use_hybrid_mode:
-                # Hybrid mode: One sentinel per worker queue (for work stealing)
-                for worker_queue in worker_queues:
-                    _deliver_sentinel(worker_queue)
-            elif use_work_stealing:
-                # Phase 3.1: One sentinel per worker queue
-                for worker_queue in worker_queues:
-                    _deliver_sentinel(worker_queue)
-            else:
-                # Original: One sentinel per worker in shared queue
-                for _ in range(num_workers):
-                    _deliver_sentinel(task_queue)
+            # Phase 3.1: One sentinel per worker queue
+            for worker_queue in worker_queues:
+                _deliver_sentinel(worker_queue)
 
     # Start producer thread (not needed for hybrid mode)
     # CRITICAL: Producer thread is daemon=True so it terminates with main thread
@@ -2932,8 +2898,13 @@ def lfsr_sequence_mapper_parallel_dynamic(
                 cycle_lock,
                 batch_aggregation_count,
             )
-        elif use_work_stealing:
-            # Phase 3.1: Pass worker queues and worker_id for work stealing
+        else:
+            # Phase 3.1: Pass worker queues and worker_id for work stealing.
+            # use_work_stealing is hardcoded True above with nothing in the
+            # codebase that can ever set it False, so the "Original: Single
+            # shared queue" branch that used to live here was dead code --
+            # removed 2026-11-25 (see the matching finding at the queue-setup
+            # site and in producer_thread's docstring above).
             worker_data = (
                 worker_queues,  # List of all worker queues
                 worker_id,  # This worker's ID
@@ -2942,20 +2913,6 @@ def lfsr_sequence_mapper_parallel_dynamic(
                 d,
                 algorithm,
                 period_only,
-                shared_cycles,
-                cycle_lock,
-                batch_aggregation_count,
-            )
-        else:
-            # Original: Single shared queue
-            worker_data = (
-                task_queue,
-                coeffs_vector,
-                gf_order,
-                d,
-                algorithm,
-                period_only,
-                worker_id,
                 shared_cycles,
                 cycle_lock,
                 batch_aggregation_count,
