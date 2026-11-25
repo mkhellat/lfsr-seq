@@ -1064,7 +1064,6 @@ def overlapping_template_matching_test(
         occurrences_per_block.append(count)
 
     # Categorize blocks by number of occurrences
-    # Expected distribution: Poisson with lambda = (M - m + 1) / 2^m
     lambda_param = (M - m + 1) / (2**m)
 
     # Count blocks in each category (0, 1, 2, 3, 4, 5+ occurrences)
@@ -1075,20 +1074,66 @@ def overlapping_template_matching_test(
         else:
             categories[5] += 1
 
-    # Expected frequencies using Poisson distribution
-    # P(k) = (lambda^k * e^(-lambda)) / k!
-    import math
+    # Expected (pi_i) probabilities for categories 0..5.
+    #
+    # NIST SP 800-22 Rev. 1a, Section 2.8, does NOT use a naive memoryless
+    # Poisson distribution over raw per-block occurrence counts. Overlapping
+    # matches are autocorrelated (finding a match only advances the search
+    # window by one bit, not by the template length), so the true
+    # distribution is derived from a generating-function / Markov-chain
+    # recursion:
+    #
+    #   lambda = (M - m + 1) / 2^m,  eta = lambda / 2
+    #   Pr(0, eta) = exp(-eta)
+    #   Pr(u, eta) = sum_{l=1}^{u} exp(-eta - u*ln2 + l*ln(eta)
+    #                                  - lgamma(l+1) + lgamma(u)
+    #                                  - lgamma(l) - lgamma(u-l+1))   for u >= 1
+    #   pi_5 = 1 - sum(pi_0..pi_4)
+    #
+    # For the standard parameterization (M=1032, m=9, as fixed in the NIST
+    # test code and used by its own worked example in Section 2.8.8), NIST
+    # publishes exact fixed pi_i constants in Section 2.8.4 step (4):
+    #   pi_0=0.364091, pi_1=0.185659, pi_2=0.139381,
+    #   pi_3=0.100571, pi_4=0.070432, pi_5=0.139865
+    # These are what every faithful reference implementation (e.g. the NIST
+    # STS "sts" package and independent Python reimplementations) ships as
+    # constants for this case, and they are used here verbatim rather than
+    # re-derived, since re-deriving the recursion with plain floating point
+    # does not reproduce them exactly (a known, documented discrepancy in
+    # some reference code between the published constants and a live
+    # recomputation of the recursion).
+    #
+    # Section 2.8.7 of the spec notes other (M, m) choices are permitted but
+    # states "the pi_i values would need to be recalculated" - i.e. there is
+    # no single standard table for arbitrary parameters. For any call that
+    # doesn't match the standard M=1032, m=9 case, we fall back to computing
+    # pi_i directly from the recursion above (the general method NIST itself
+    # describes for non-default parameterizations).
+    if M == 1032 and m == 9:
+        pi = [0.364091, 0.185659, 0.139381, 0.100571, 0.070432, 0.139865]
+    else:
+        eta = lambda_param / 2.0
 
-    expected = []
-    for k in range(5):
-        if k == 0:
-            prob = math.exp(-lambda_param)
-        else:
-            prob = (lambda_param**k) * math.exp(-lambda_param) / math.factorial(k)
-        expected.append(N * prob)
+        def _pr(u: int, eta: float) -> float:
+            if u == 0:
+                return math.exp(-eta)
+            total = 0.0
+            for ell in range(1, u + 1):
+                total += math.exp(
+                    -eta
+                    - u * math.log(2)
+                    + ell * math.log(eta)
+                    - math.lgamma(ell + 1)
+                    + math.lgamma(u)
+                    - math.lgamma(ell)
+                    - math.lgamma(u - ell + 1)
+                )
+            return total
 
-    # Category 5+: 1 - sum(P(0) to P(4))
-    expected.append(N * (1.0 - sum(expected) / N if N > 0 else 0.0))
+        pi = [_pr(k, eta) for k in range(5)]
+        pi.append(1.0 - sum(pi))
+
+    expected = [N * p for p in pi]
 
     # Compute chi-square statistic
     chi_square = 0.0
@@ -1096,7 +1141,10 @@ def overlapping_template_matching_test(
         if expected[i] > 0:
             chi_square += ((categories[i] - expected[i]) ** 2) / expected[i]
 
-    # Compute p-value using chi-square distribution with 5 degrees of freedom
+    # Compute p-value using chi-square distribution with K=5 degrees of
+    # freedom (NIST SP 800-22 Section 2.8.2: "K ... has been fixed at 5 in
+    # the test code"; Section 2.8.4 step (5): P-value = igamc(5/2, chisq/2),
+    # i.e. the chi-square survival function with 5 degrees of freedom).
     p_value = chi2.sf(chi_square, 5)
     p_value = max(0.0, min(1.0, p_value))  # Clamp to [0, 1]
 
