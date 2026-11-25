@@ -162,16 +162,9 @@ class TestHellmanTableGeneration:
 class TestHellmanTableLookup:
     """Tests for HellmanTable.lookup().
 
-    lookup() as actually implemented only succeeds when the target state
-    is exactly equal to a stored chain's `end_state` -- either directly,
-    or via the target's reduction-function image matching a stored
-    `end_state`. It does NOT search interior chain states for a match;
-    a state that is genuinely a non-endpoint member of a covered chain
-    is NOT found by this method (verified below).
-
-    One further, more serious bug was found and is documented/tested
-    explicitly below (scoped to the reconstruction loop that starts at
-    line 257 of lfsr/tmto.py):
+    One bug was found and is documented/tested explicitly below (scoped
+    to the reconstruction loop that starts at line 257 of
+    lfsr/tmto.py):
 
     1. **False match on duplicate endpoints.** When multiple chains
        share the same `end_state` (verified to happen routinely at this
@@ -194,6 +187,27 @@ class TestHellmanTableLookup:
     lfsr/tmto.py (see test_lookup_finds_endpoint_reached_only_at_final_step
     below, which is now a regression test for the fix rather than a
     bug-documentation test).
+
+    A third bug: lookup()'s two outer chain-selection loops used to
+    only ever attempt reconstructing a chain when its recorded
+    `end_state` superficially matched target (directly, or via
+    target's reduction-function image) -- neither check has any real
+    algebraic relationship to whether target is actually a genuine
+    INTERIOR state of that chain's real trajectory (generate() applies
+    no reduction mid-chain for HellmanTable, so a chain's real
+    trajectory is simply its repeated state updates from start).
+    A target that occurs mid-chain but isn't reachable via either
+    shortcut was never selected for reconstruction at all, even though
+    the existing (correct) reconstruction loop would have found it had
+    it been given the chance. Measured false-negative rate before this
+    fix: ~18-27% of genuine interior trajectory states across repeated
+    real-table trials. Fixed by adding a full-scan fallback that
+    reconstructs every stored chain's trajectory from `start` when the
+    two fast paths above find nothing (see
+    test_lookup_finds_non_endpoint_interior_chain_state below, and the
+    now-corrected test_lookup_fails_for_state_provably_outside_all_coverage,
+    whose old "provably uncovered" state turned out to actually be a
+    real interior state of the table once the fix was in place).
     """
 
     def test_lookup_succeeds_for_target_equal_to_a_chain_endpoint(self):
@@ -236,13 +250,29 @@ class TestHellmanTableLookup:
         trail = _walk_chain(C, F, recovered, chain_length)
         assert end in trail
 
-    def test_lookup_fails_for_non_endpoint_interior_chain_state(self):
-        """A state that genuinely occurs partway through a covered chain
-        (not at the endpoint, and not equal to any *other* chain's
-        end_state either, to avoid inadvertently exercising the
-        duplicate-endpoint bug instead) is NOT found by lookup() -- this
-        documents the actual (narrower-than-docstring) search behavior
-        rather than asserting the idealized algorithm."""
+    def test_lookup_finds_non_endpoint_interior_chain_state(self):
+        """Regression test for the false-negative bug (fixed in
+        lfsr/tmto.py's lookup()): a state that genuinely occurs partway
+        through a covered chain (not at the endpoint, and not equal to
+        any *other* chain's end_state either, to avoid inadvertently
+        exercising the duplicate-endpoint case instead) IS found by
+        lookup(), via the full-scan-every-chain fallback that runs when
+        neither fast path (direct end match, or reduction-of-target end
+        match) fires. Before the fix, lookup() only ever attempted to
+        reconstruct a chain whose recorded end_state happened to
+        superficially match target (or a reduction of target) -- so a
+        genuine interior state of an otherwise-uninvolved-looking chain
+        was never even attempted and lookup() silently returned None
+        despite the state being a real, reconstructable preimage.
+
+        Note: as with the duplicate-endpoint case documented elsewhere
+        in this class, if more than one chain's trajectory genuinely
+        passes through the chosen interior state, lookup() may return
+        any one of those chains' start states (benign, order-dependent
+        nondeterminism, not a bug -- not touched by this fix). So this
+        test asserts the recovered start is a genuine owner (verified
+        by replaying the update function), not necessarily chain 7's
+        own start specifically."""
         random.seed(1)
         chain_length = 8
         table = HellmanTable(
@@ -259,14 +289,31 @@ class TestHellmanTableLookup:
         start, end = table.chains[7]
         trail = _walk_chain(C, F, start, chain_length)
         # An interior state: present in the trail, not this chain's own
-        # end, and not coincidentally any other chain's end either.
+        # end, and not coincidentally any other chain's end either --
+        # i.e. a target that neither fast path can select this chain
+        # for, so only the full-scan fallback can find it.
         interior_candidates = [
-            s for s in trail[1:-1] if s != end and tuple(s) not in all_ends
+            s
+            for s in trail[1:-1]
+            if s != end
+            and tuple(s) not in all_ends
+            and tuple(table._reduction_function(s, REFERENCE_CONFIG.field_order))
+            not in all_ends
         ]
         assert interior_candidates, "expected a non-trivial chain to test against"
         interior_state = interior_candidates[0]
 
-        assert table.lookup(interior_state, REFERENCE_CONFIG) is None
+        recovered = table.lookup(interior_state, REFERENCE_CONFIG)
+        assert (
+            recovered is not None
+        ), "interior state must be found via the full-scan fallback"
+
+        # Independently verify: replaying the update function from the
+        # recovered start really does reach the interior target state
+        # (i.e. recovered is a genuine owner, whether or not it is
+        # chain 7 specifically).
+        recovered_trail = _walk_chain(C, F, recovered, chain_length)
+        assert interior_state in recovered_trail
 
     def test_lookup_returns_wrong_start_for_duplicate_endpoints(self):
         """BUG (see class docstring, point 1): when several chains share
@@ -443,18 +490,45 @@ class TestHellmanTableLookup:
         assert table.lookup(target, REFERENCE_CONFIG) == start
 
     def test_lookup_fails_for_state_provably_outside_all_coverage(self):
-        """A state whose value is not any chain's end_state, and whose
-        reduction-function image is also not any chain's end_state, is
-        provably outside what lookup() can find -- confirm it correctly
-        reports failure (returns None), not a false positive."""
+        """A state that does not appear anywhere in ANY stored chain's
+        real trajectory (start plus every update step) is provably
+        outside what lookup() can find -- confirm it correctly reports
+        failure (returns None), not a false positive.
+
+        Note: since the fix for the false-negative bug (lookup() now
+        falls back to a full scan of every chain's actual
+        reconstruction, not just chains whose recorded end_state
+        superficially matches target or a reduction of target), "not
+        any chain's end_state, and not reachable via a single
+        reduction-function hop" is NO LONGER sufficient to prove a
+        state is uncovered -- such a state can still be a genuine
+        interior state of some chain's trajectory (this was exactly
+        the bug). The only way to prove a state is truly outside
+        lookup()'s coverage now is to check it against every chain's
+        complete real trajectory directly. Uses a smaller table
+        (chain_count=4, chain_length=3) than this class's other tests
+        so that real, full-state-space coverage is incomplete and a
+        genuinely uncovered state is guaranteed to exist -- the
+        chain_count=10/chain_length=8 parameters used elsewhere in this
+        class cover all 16 states of this reference LFSR's state space
+        once every chain's real trajectory (not just end_states) is
+        counted, leaving no uncovered state to test against."""
         random.seed(1)
-        chain_length = 8
+        chain_length = 3
         table = HellmanTable(
-            chain_count=10, chain_length=chain_length, distinguished_bits=1
+            chain_count=4, chain_length=chain_length, distinguished_bits=1
         )
         table.generate(REFERENCE_CONFIG)
 
-        ends = {tuple(end) for _start, end in table.chains}
+        C, _CS = build_state_update_matrix(
+            REFERENCE_CONFIG.coefficients, REFERENCE_CONFIG.field_order
+        )
+        F = GF(REFERENCE_CONFIG.field_order)
+        all_trajectory_states = set()
+        for start, _end in table.chains:
+            for state in _walk_chain(C, F, start, chain_length):
+                all_trajectory_states.add(tuple(state))
+
         all_states = [
             [a, b, c, d]
             for a in range(2)
@@ -462,14 +536,9 @@ class TestHellmanTableLookup:
             for c in range(2)
             for d in range(2)
         ]
-        uncovered = None
-        for state in all_states:
-            if tuple(state) in ends:
-                continue
-            reduced = table._reduction_function(state, REFERENCE_CONFIG.field_order)
-            if tuple(reduced) not in ends:
-                uncovered = state
-                break
+        uncovered = next(
+            (s for s in all_states if tuple(s) not in all_trajectory_states), None
+        )
 
         assert uncovered is not None, "expected at least one provably uncovered state"
         assert table.lookup(uncovered, REFERENCE_CONFIG) is None
@@ -562,6 +631,23 @@ class TestRainbowTableLookup:
     function, and (3) reconstructing via generate()'s exact per-step
     interleaving with a check at both the pre- and post-reduction
     point of each step.
+
+    A fifth, separate bug (found and fixed alongside the equivalent gap
+    in HellmanTable.lookup()) was that both of the above fast paths
+    only ever select a chain to reconstruct when its recorded
+    end_state superficially matches target directly, or matches some
+    step's reduction of target -- neither condition has any real
+    algebraic relationship to whether target is actually a genuine
+    INTERIOR state of a chain's real trajectory. A target that occurs
+    mid-chain but isn't reachable via either shortcut was never
+    selected for reconstruction at all, even though _reconstruct(start)
+    (which walks the chain's real trajectory) would have found it.
+    Measured false-negative rate before this fix: ~18-25% of genuine
+    interior trajectory states across repeated real-table trials.
+    Fixed by adding a full-scan fallback that calls _reconstruct on
+    every stored chain's start when the two fast paths above find
+    nothing (see test_lookup_finds_non_endpoint_interior_chain_state
+    below).
     """
 
     def test_lookup_finds_every_chain_endpoint(self):
@@ -602,6 +688,73 @@ class TestRainbowTableLookup:
         assert unique_chains, "expected at least one chain with a unique end_state"
         for start, end in unique_chains:
             assert table.lookup(end, REFERENCE_CONFIG) == start
+
+    def test_lookup_finds_non_endpoint_interior_chain_state(self):
+        """Regression test for the false-negative bug fixed in
+        RainbowTable.lookup(): a state that genuinely occurs partway
+        through a chain's real per-step trajectory (update, then
+        reduce, same interleaving as generate()) -- not equal to that
+        chain's own end_state, not itself any chain's end_state, and
+        not reachable from any single reduction-function step to any
+        chain's end_state either -- IS found by lookup(), via the
+        full-scan-every-chain fallback that reconstructs every stored
+        chain when neither fast path (direct end match, or
+        step-reduction-of-target end match) fires.
+
+        With seed=2, chain_count=5, chain_length=4 against
+        REFERENCE_CONFIG: chain index 2 (start [0, 0, 1, 1], end
+        [0, 1, 0, 1]) genuinely passes through post-update state
+        [1, 0, 0, 0] at step 0 -- independently verified below to be
+        unreachable via either fast path, so before the fix lookup()
+        returned None for it despite it being a real, reconstructable
+        preimage."""
+        random.seed(2)
+        chain_length = 4
+        table = RainbowTable(chain_count=5, chain_length=chain_length)
+        table.generate(REFERENCE_CONFIG)
+
+        assert table.chains[2] == ([0, 0, 1, 1], [0, 1, 0, 1])
+        target = [1, 0, 0, 0]
+        ends = [e for _s, e in table.chains]
+        assert target not in ends, "precondition: not itself any end_state"
+        assert all(
+            table.reduction_functions[step](target) not in ends
+            for step in range(chain_length)
+        ), (
+            "precondition: no single reduction step of target may match "
+            "any end_state, or this wouldn't be exercising the "
+            "full-scan fallback"
+        )
+
+        C, _CS = build_state_update_matrix(
+            REFERENCE_CONFIG.coefficients, REFERENCE_CONFIG.field_order
+        )
+        F = GF(REFERENCE_CONFIG.field_order)
+        # Independently verify target is a genuine post-update state of
+        # chain 2's real trajectory before trusting lookup()'s answer.
+        v = vector(F, [0, 0, 1, 1])
+        v = C * v
+        assert [int(x) for x in v] == target
+
+        recovered = table.lookup(target, REFERENCE_CONFIG)
+        assert recovered is not None
+
+        # Verify recovered is a genuine owner: replaying generate()'s
+        # exact update-then-reduce interleaving from recovered must
+        # reach target at some step (same benign non-uniqueness caveat
+        # as the duplicate-endpoint test below -- not asserting it must
+        # be chain 2 specifically).
+        v = vector(F, recovered)
+        reached = False
+        for s in range(chain_length):
+            v = C * v
+            state_list = [int(x) for x in v]
+            if state_list == target:
+                reached = True
+                break
+            reduced = table.reduction_functions[s](state_list)
+            v = vector(F, reduced)
+        assert reached, "recovered start must genuinely reach target"
 
     def test_lookup_returns_a_genuine_owner_for_duplicate_endpoints(self):
         """When multiple chains share an end_state (verified to happen
