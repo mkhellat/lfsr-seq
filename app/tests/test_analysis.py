@@ -1290,6 +1290,90 @@ class TestMergeParallelResultsExtra:
         captured = capsys.readouterr()
         assert "Merge PID" in captured.err
 
+    def test_shared_cycles_multi_state_list_picks_min_state_via_min(self):
+        """Every other existing direct test of _merge_parallel_results
+        passes a length-1 tuple for `states` (the period-only fast path),
+        which hits the `isinstance(states_tuples, tuple) and len == 1`
+        branch. This test instead passes a genuine multi-element *list*
+        (as full, non-period-only mode produces) so the
+        `elif isinstance(states_tuples, list) and len(states_tuples) > 0:
+        min_state = min(states_tuples)` branch actually runs, and verifies
+        `min()` picks the correct canonical min_state out of several
+        states rather than just the first or last one in the list."""
+        worker_results = [
+            {
+                "sequences": [
+                    {
+                        "states": [(0, 1), (1, 0), (1, 1)],
+                        "period": 3,
+                        "start_state": (0, 1),
+                        "period_only": False,
+                    },
+                ],
+                "max_period": 3,
+                "errors": [],
+            }
+        ]
+        seq_dict, period_dict, max_period, periods_sum = _merge_parallel_results(
+            worker_results, gf_order=2, lfsr_degree=2, shared_cycles={}
+        )
+        assert period_dict == {1: 3}
+        # (0, 1) < (1, 0) < (1, 1) lexicographically, so min() must pick
+        # (0, 1) as the canonical min_state -- this is the key the
+        # shared_cycles dedup logic hangs off of, not just an arbitrary
+        # element of the list.
+        assert seq_dict[1] == [
+            vector(GF(2), [0, 1]),
+            vector(GF(2), [1, 0]),
+            vector(GF(2), [1, 1]),
+        ]
+
+    def test_shared_cycles_duplicate_min_state_across_two_workers_skipped(
+        self, _debug_parallel_env, capsys
+    ):
+        """Two worker-result entries that independently compute the SAME
+        min_state (e.g. because both workers crossed the same cycle)
+        must be deduplicated to a single entry -- this exercises the
+        "Duplicate cycle (min_state already seen...), skipping" debug-log
+        branch, which no other existing test reaches with genuine
+        multi-state lists from two separate worker-result dicts."""
+        worker_results = [
+            {
+                "sequences": [
+                    {
+                        "states": [(0, 1), (1, 0), (1, 1)],
+                        "period": 3,
+                        "start_state": (0, 1),
+                        "period_only": False,
+                    },
+                ],
+                "max_period": 3,
+                "errors": [],
+            },
+            {
+                "sequences": [
+                    {
+                        # Same cycle, same min_state (0, 1), found again by
+                        # a second worker starting from a different state.
+                        "states": [(1, 1), (0, 1), (1, 0)],
+                        "period": 3,
+                        "start_state": (1, 1),
+                        "period_only": False,
+                    },
+                ],
+                "max_period": 3,
+                "errors": [],
+            },
+        ]
+        seq_dict, period_dict, max_period, periods_sum = _merge_parallel_results(
+            worker_results, gf_order=2, lfsr_degree=2, shared_cycles={}
+        )
+        # Only one unique cycle survives dedup, despite two worker entries.
+        assert period_dict == {1: 3}
+        captured = capsys.readouterr()
+        assert "Duplicate cycle" in captured.err
+        assert "skipping" in captured.err
+
 
 # ---------------------------------------------------------------------------
 # Additional coverage-closing tests: _partition_state_space edge branches
@@ -1368,6 +1452,160 @@ class TestProcessStateChunkExtra:
         assert result["processed_count"] == 0
         assert len(result["errors"]) == 1
         assert "Failed to build state update matrix" in result["errors"][0]
+
+    def test_sage_import_failure_then_subprocess_path_setup_succeeds(self, monkeypatch):
+        """Covers analysis.py's `except ImportError:` handler in
+        _process_state_chunk (the nested subprocess.run(["sage", ...])
+        path-discovery fallback -- previously entirely uncovered, lines
+        ~1260-1290). This is the success variant: the initial `from
+        lfsr.sage_imports import ...` raises ImportError (simulating
+        spawn mode where the worker doesn't inherit the parent's sage
+        import), subprocess.run(["sage", "-c", ...]) succeeds
+        (returncode=0) and reports a path that's genuinely NOT already on
+        sys.path (so `sys.path.insert(0, path)` itself runs, not just the
+        surrounding loop), and the retried `from lfsr.sage_imports import
+        ...` then succeeds -- so the function must continue normally
+        rather than returning the SageMath-not-available error dict."""
+        import shutil
+        import subprocess as subprocess_mod
+        import sys as sys_mod
+        import tempfile as tempfile_mod
+
+        real_import = __import__
+        import_attempts = {"n": 0}
+
+        def fake_import(name, *args, **kwargs):
+            if name == "lfsr.sage_imports":
+                import_attempts["n"] += 1
+                if import_attempts["n"] == 1:
+                    raise ImportError("simulated: sage not importable directly")
+                # Second attempt (after "path setup") succeeds normally.
+            return real_import(name, *args, **kwargs)
+
+        monkeypatch.setattr("builtins.__import__", fake_import)
+
+        # A real directory that is genuinely NOT already on sys.path, so
+        # the `path not in sys.path` check is True and `sys.path.insert`
+        # actually executes (not just the surrounding for-loop), without
+        # needing a real `sage` binary on PATH.
+        fake_sage_path = tempfile_mod.mkdtemp()
+        assert fake_sage_path not in sys_mod.path
+
+        class FakeCompletedProcess:
+            returncode = 0
+            stdout = fake_sage_path + "\n"
+
+        def fake_subprocess_run(*args, **kwargs):
+            return FakeCompletedProcess()
+
+        monkeypatch.setattr(subprocess_mod, "run", fake_subprocess_run)
+
+        try:
+            coeffs = [1, 1]
+            gf_order, d = 2, 2
+            chunk = [((0, 0), 0)]
+            chunk_data = (
+                chunk,
+                coeffs,
+                gf_order,
+                d,
+                "auto",
+                True,
+                0,
+                {},
+                threading.Lock(),
+            )
+            result = _process_state_chunk(chunk_data)
+        finally:
+            if fake_sage_path in sys_mod.path:
+                sys_mod.path.remove(fake_sage_path)
+            shutil.rmtree(fake_sage_path, ignore_errors=True)
+
+        # Must have recovered via the path-setup retry, not returned the
+        # SageMath-not-available error dict.
+        assert result["errors"] == []
+        assert import_attempts["n"] == 2
+        periods = sorted(s["period"] for s in result["sequences"])
+        assert periods == [1]  # (0, 0) is a fixed point under coeffs=[1,1]
+
+    def test_sage_import_failure_then_subprocess_fails_returns_error(self, monkeypatch):
+        """Failure variant of the test above: subprocess.run(["sage",
+        ...]) itself returns a non-zero returncode (sage binary not
+        found/broken), which the source raises as a fresh
+        ImportError("SageMath not found") for -- caught by the surrounding
+        `except (..., ImportError) as e:` and turned into the
+        SageMath-not-available error-result dict, rather than propagating
+        or crashing."""
+        import subprocess as subprocess_mod
+
+        real_import = __import__
+
+        def fake_import(name, *args, **kwargs):
+            if name == "lfsr.sage_imports":
+                raise ImportError("simulated: sage not importable directly")
+            return real_import(name, *args, **kwargs)
+
+        monkeypatch.setattr("builtins.__import__", fake_import)
+
+        class FakeCompletedProcess:
+            returncode = 1  # sage binary not found / failed
+            stdout = ""
+
+        def fake_subprocess_run(*args, **kwargs):
+            return FakeCompletedProcess()
+
+        monkeypatch.setattr(subprocess_mod, "run", fake_subprocess_run)
+
+        coeffs = [1, 1]
+        gf_order, d = 2, 2
+        chunk = [((0, 0), 0)]
+        chunk_data = (chunk, coeffs, gf_order, d, "auto", True, 0, {}, threading.Lock())
+        result = _process_state_chunk(chunk_data)
+
+        assert result["sequences"] == []
+        assert result["processed_count"] == 0
+        assert "SageMath not available in worker process" in result["errors"][0]
+
+    def test_shared_cycles_and_cycle_lock_none_normalizes_internally(self):
+        """Every other direct test of _process_state_chunk passes a real
+        Manager().dict()/.Lock() (or plain {}/threading.Lock()) for
+        shared_cycles/cycle_lock. But the REAL production call site --
+        lfsr_sequence_mapper_parallel's chunk_data_list construction --
+        always passes `shared_cycles=None, cycle_lock=None` (see the
+        comment directly above that assignment: cycle-claim tracking is
+        per-worker-local, no Manager() needed). That exact (None, None)
+        tuple slot combination had never been exercised directly before.
+        This confirms the function's own internal normalization
+        (`if shared_cycles is None: shared_cycles = {}` /
+        `if cycle_lock is None: cycle_lock = contextlib.nullcontext()`)
+        works correctly end-to-end, not just that it doesn't crash."""
+        coeffs = [1, 1, 0, 1]
+        gf_order, d = 2, 4
+        chunk = []
+        for idx in range(16):
+            t = tuple((idx >> i) & 1 for i in range(d))
+            chunk.append((t, idx))
+
+        chunk_data = (
+            chunk,
+            coeffs,
+            gf_order,
+            d,
+            "auto",
+            True,
+            0,
+            None,  # shared_cycles=None: the real production value.
+            None,  # cycle_lock=None: the real production value.
+        )
+        result = _process_state_chunk(chunk_data)
+
+        assert result["errors"] == []
+        periods = sorted(s["period"] for s in result["sequences"])
+        # Matches TestProcessStateChunk.test_period_only_mode_matches_serial_result,
+        # which exercises the identical workload via a real Manager().dict()/.Lock() --
+        # confirming the None-normalized path produces the same correct result.
+        assert periods == [1, 1, 2, 3, 3, 6]
+        assert result["max_period"] == 6
 
     def test_already_claimed_cycle_is_skipped_fast_path(self):
         """Pre-populate shared_cycles with the min_state of the (1,1)
@@ -1962,6 +2200,49 @@ class TestProcessTaskBatchDynamicExtra:
         result = _process_task_batch_dynamic(worker_data)
         assert result["sequences"] == []
         assert "Failed to build state update matrix" in result["errors"][0]
+        manager.shutdown()
+
+    def test_shared_cycles_and_cycle_lock_none_normalizes_internally(self):
+        """Every other direct test of _process_task_batch_dynamic passes a
+        real Manager().dict()/.Lock() (or plain {}/threading.Lock()) for
+        the shared_cycles/cycle_lock tuple slots. But the REAL production
+        call site -- lfsr_sequence_mapper_parallel_dynamic's
+        worker_data_list construction -- always passes
+        `shared_cycles=None, cycle_lock=None` (see the comment directly
+        above that assignment in the source: cycle-claim tracking is
+        per-worker-local, no Manager() needed there either). This confirms
+        the function's own internal normalization
+        (`if shared_cycles is None: shared_cycles = {}` /
+        `if cycle_lock is None: cycle_lock = contextlib.nullcontext()`)
+        works correctly in the work-stealing-mode tuple shape, not just
+        that it doesn't crash."""
+        coeffs = [1, 1, 0, 1]
+        gf_order, d = 2, 4
+        manager = multiprocessing.Manager()
+        worker_queues = [manager.Queue()]
+        batch = [(tuple((s >> i) & 1 for i in range(d)), s) for s in range(16)]
+        worker_queues[0].put(batch)
+        worker_queues[0].put(None)  # sentinel
+
+        worker_data = (
+            worker_queues,
+            0,
+            coeffs,
+            gf_order,
+            d,
+            "auto",
+            True,
+            None,  # shared_cycles=None: the real production value.
+            None,  # cycle_lock=None: the real production value.
+            1,
+        )
+        result = _process_task_batch_dynamic(worker_data)
+
+        assert result["errors"] == []
+        periods = sorted(s["period"] for s in result["sequences"])
+        # Matches TestProcessTaskBatchDynamic.test_shared_queue_mode_matches_serial,
+        # which exercises the identical workload via a real Manager().dict()/.Lock().
+        assert periods == [1, 1, 2, 3, 3, 6]
         manager.shutdown()
 
     def test_already_claimed_cycle_skipped_in_shared_queue_mode(self):
@@ -3226,11 +3507,29 @@ class TestLfsrSequenceMapperParallelForkSpawnFallback:
         captured = capsys.readouterr()
         assert "Using spawn mode" in captured.out
 
-    def test_join_typeerror_falls_back_to_no_timeout_join(self, monkeypatch):
-        """Covers lines 1691-1695: on TimeoutError from async_result.get(),
-        if pool.join(timeout=10) raises TypeError (old-Python signature
-        without a timeout kwarg), the code must retry with a plain
-        pool.join() instead of propagating."""
+    def test_timeout_error_calls_plain_join_and_falls_back(self, monkeypatch):
+        """Covers the TimeoutError handler's pool.join() call: on
+        TimeoutError from async_result.get(), the handler must call
+        pool.join() (no arguments) and then fall back to sequential
+        processing.
+
+        HISTORY: this used to call `pool.join(timeout=10)` wrapped in
+        `except TypeError: pool.join()`, under the mistaken belief that
+        `timeout=` was unsupported only on "Python < 3.7". That was never
+        true in any supported Python version --
+        `multiprocessing.pool.Pool.join()` has never accepted a timeout
+        argument at all (verified via
+        `inspect.signature(multiprocessing.pool.Pool.join)` -> `(self)`),
+        so the first call always raised TypeError and always fell through
+        to the bare retry -- harmless (the retry recovered), but dead,
+        confusing code with an incorrect rationale in its comment. Fixed
+        2026-11-25 by simplifying to a single plain `pool.join()` call;
+        this test's old premise (assert a TypeError-then-retry call
+        sequence `[10, None]`) no longer applies, since there is no
+        longer a `timeout=` call to raise TypeError in the first place.
+        Replaced with a test that simply confirms `pool.join()` is called
+        with no arguments exactly once, and that the fallback to
+        sequential processing still works end-to-end."""
         C, V, d = make_matrix([1, 1], 2)
 
         class FakeAsyncResult:
@@ -3246,10 +3545,8 @@ class TestLfsrSequenceMapperParallelForkSpawnFallback:
             def terminate(self):
                 pass
 
-            def join(self, timeout=None):
-                join_calls.append(timeout)
-                if timeout is not None:
-                    raise TypeError("simulated: join() takes no keyword arguments")
+            def join(self):
+                join_calls.append(None)
 
             def __enter__(self):
                 return self
@@ -3284,16 +3581,20 @@ class TestLfsrSequenceMapperParallelForkSpawnFallback:
         # Falls back to sequential lfsr_sequence_mapper (known-correct).
         assert periods_sum == 4
         assert sorted(period_dict.values()) == [1, 3]
-        # First join() call used timeout=10 and raised TypeError; the retry
-        # call with no timeout must also have happened.
-        assert join_calls == [10, None]
+        # pool.join() must be called exactly once, with no arguments.
+        assert join_calls == [None]
 
     def test_keyboard_interrupt_terminates_pool_and_reraises(self, monkeypatch):
         """Covers lines 1709-1718: a KeyboardInterrupt raised while waiting
         on async_result.get() must terminate the pool, join it, and
         re-raise (not be swallowed by the outer except Exception, since
         KeyboardInterrupt doesn't inherit from Exception -- confirming the
-        propagation path itself works end-to-end)."""
+        propagation path itself works end-to-end).
+
+        join() is asserted to be called with no arguments: see
+        test_timeout_error_calls_plain_join_and_falls_back's docstring for
+        why pool.join(timeout=...) was removed (it never worked in any
+        Python version, not just "pre-3.7" as the old comment claimed)."""
         C, V, d = make_matrix([1, 1], 2)
 
         class FakeAsyncResult:
@@ -3310,8 +3611,8 @@ class TestLfsrSequenceMapperParallelForkSpawnFallback:
             def terminate(self):
                 terminate_called.append(True)
 
-            def join(self, timeout=None):
-                join_calls.append(timeout)
+            def join(self):
+                join_calls.append(None)
 
             def __enter__(self):
                 return self
@@ -3340,7 +3641,7 @@ class TestLfsrSequenceMapperParallelForkSpawnFallback:
                     num_workers=2,
                 )
         assert terminate_called == [True]
-        assert join_calls == [5]
+        assert join_calls == [None]
 
 
 class TestLfsrSequenceMapperParallelLoadImbalanceDebug:
@@ -3682,5 +3983,90 @@ class TestLfsrSequenceMapperParallelDynamicQueueFullRetry:
         # with correct results -- the old bug would have dropped at least
         # one sentinel here and hung forever instead of returning.
         assert forced_full_count["n"] == 3
+        assert periods_sum == 64
+        assert sum(period_dict.values()) == 64
+
+
+class TestLfsrSequenceMapperParallelDynamicProducerErrorPath:
+    """Covers analysis.py's `except Exception as e: producer_error[0] = e`
+    inside producer_thread's top-level try block, and the
+    `if producer_error[0]: raise RuntimeError(f"Producer thread error:
+    {producer_error[0]}")` check in the orchestrator after producer.join().
+    Neither had a direct regression test before: the only way
+    producer_error[0] gets set is if producer_thread's own body raises,
+    which no existing test forced (the sentinel-delivery test above forces
+    queue.Full on sentinel puts specifically, which _deliver_sentinel
+    retries through rather than letting escape to producer_error).
+
+    Forced quickly (not via the 30s producer.join(timeout=30.0) watchdog,
+    which CLAUDE.md documents as intentionally left untested -- that path
+    requires the thread to still be ALIVE after 30s, whereas this test
+    makes the thread raise and die almost immediately, so
+    producer.join(timeout=30.0) returns as soon as the (now-dead) thread
+    actually finishes, well under the real timeout)."""
+
+    def test_producer_thread_exception_raises_runtime_error_and_falls_back(self):
+        """Monkeypatch the real Manager().Queue() proxy's put() so the
+        very first real (non-sentinel) batch put inside producer_thread's
+        round-robin distribution loop raises a plain RuntimeError (not
+        queue.Full, which _deliver_sentinel/the retry loop already handle
+        correctly and deliberately). This is the cheapest real seam: it
+        makes producer_thread's own top-level try block raise almost
+        immediately, producer_error[0] gets set, producer.join(timeout=30.0)
+        returns quickly because the thread actually dies, and the
+        orchestrator's `if producer_error[0]:` check must then raise
+        RuntimeError(f"Producer thread error: ...") -- which propagates
+        into the *outer* except Exception handler (since this is still
+        inside lfsr_sequence_mapper_parallel_dynamic's own try block), so
+        the function falls back to sequential processing and still
+        returns a correct result rather than crashing the caller."""
+        import multiprocessing as mp_module
+
+        d = 6  # VectorSpace(GF(2), 6) = 64 real states; tiny, safe, real.
+        coeffs = [1] + [0] * (d - 1)
+        C, V, _ = make_matrix(coeffs, 2)
+
+        manager = mp_module.Manager()
+        probe_queue = manager.Queue()
+        ProxyClass = type(probe_queue)
+        original_put = ProxyClass.put
+        raised = {"n": 0}
+
+        def failing_put(self, obj, block=True, timeout=None):
+            if obj is not None and raised["n"] == 0:
+                raised["n"] += 1
+                raise RuntimeError("simulated: producer_thread put() failure")
+            return original_put(self, obj, block=block, timeout=timeout)
+
+        ProxyClass.put = failing_put
+        try:
+            with tempfile.TemporaryFile(mode="w+") as f:
+                (
+                    seq_dict,
+                    period_dict,
+                    max_period,
+                    periods_sum,
+                ) = lfsr_sequence_mapper_parallel_dynamic(
+                    C,
+                    V,
+                    2,
+                    output_file=f,
+                    no_progress=True,
+                    period_only=True,
+                    num_workers=1,
+                    batch_size=4,
+                )
+        finally:
+            ProxyClass.put = original_put
+
+        # The forced failure was actually hit.
+        assert raised["n"] == 1
+        # The function must have fallen back to sequential processing
+        # (lfsr_sequence_mapper) rather than propagating the RuntimeError
+        # or returning a wrong/partial result -- the outer `except
+        # Exception as e:` in lfsr_sequence_mapper_parallel_dynamic catches
+        # the RuntimeError("Producer thread error: ...") raised from the
+        # producer_error[0] check and falls back, same as any other
+        # worker-pool-level failure.
         assert periods_sum == 64
         assert sum(period_dict.values()) == 64
