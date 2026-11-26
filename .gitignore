@@ -169,3 +169,8 @@ Thumbs.db
 \#*\#
 .\#*
 
+# Local-only planning/spec docs (not part of the tracked dev-docs/plans/
+# history) -- working notes for in-progress design discussions, never
+# committed.
+dev-docs/plans/local/
+
